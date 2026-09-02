@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 1.3.2</title>
+<title>Duschl Service – Objekt-Dokumentation 1.3.3</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -178,12 +178,12 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <div id="modalRoot"></div>
 
 <script>
-const KEY='duschl_objekt_doku_v132';
-const OLD_KEY='duschl_objekt_doku_v131';
+const KEY='duschl_objekt_doku_v133';
+const OLD_KEY='duschl_objekt_doku_v132';
 let db = load();
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'1.3.2'};
+  return {objects:[],inspections:[],findings:[],version:'1.3.3'};
 }
 function load(){
   try{
@@ -192,7 +192,7 @@ function load(){
     const old=localStorage.getItem(OLD_KEY);
     if(old){
       const migrated=JSON.parse(old);
-      migrated.version='1.3.2';
+      migrated.version='1.3.3';
       (migrated.findings||[]).forEach(f=>{
         if(!f.type)f.type='Feststellung';
         if(!f.beforePhoto && f.photo)f.beforePhoto=f.photo;
@@ -207,7 +207,7 @@ function load(){
     return seed();
   }catch(e){return seed()}
 }
-function save(){db.version='1.3.2';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
+function save(){db.version='1.3.3';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
 function uid(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)}
 function fmt(ts){if(!ts)return'';return new Date(ts).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -401,20 +401,43 @@ function deleteObject(id){
   db.objects=db.objects.filter(x=>x.id!==id);db.inspections=db.inspections.filter(x=>x.objectId!==id);db.findings=db.findings.filter(x=>x.objectId!==id);closeModal();save()
 }
 
-function openInspectionModal(pref=''){
+function openInspectionModal(pref='',prefObj=''){
   if(!db.objects.length){alert('Bitte zuerst ein Objekt anlegen.');showSection('objects');return}
-  const opts=db.objects.map(o=>`<option value="${o.id}" ${o.id===pref?'selected':''}>${esc(o.name)}</option>`).join('');
-  modal(`<div class="row space"><h2>Begehung / Einsatz starten</h2><button onclick="closeModal()">✕</button></div>
+  const existing=db.inspections.find(x=>x.id===pref);
+  const objectId=existing?.objectId||prefObj||(!existing?pref:'')||'';
+  const opts=db.objects.map(o=>`<option value="${o.id}" ${o.id===objectId?'selected':''}>${esc(o.name)}</option>`).join('');
+  modal(`<div class="row space"><h2>${existing?'Begehung / Einsatz bearbeiten':'Begehung / Einsatz starten'}</h2><button onclick="closeModal()">✕</button></div>
   <label>Objekt *</label><select id="iObject">${opts}</select>
-  <label>Notiz zur Begehung</label><textarea id="iNotes" placeholder="z. B. reguläre Monatsbegehung"></textarea>
-  <div class="row" style="margin-top:14px"><button class="primary" onclick="startInspection()">Starten</button></div>`);
+  <label>Notiz zur Begehung</label><textarea id="iNotes" placeholder="z. B. reguläre Monatsbegehung">${esc(existing?.notes||'')}</textarea>
+  ${existing?`<div class="muted" style="margin-top:10px">Gestartet: ${fmt(existing.startedAt||existing.createdAt)}</div>`:''}
+  <div class="row" style="margin-top:14px">
+    <button class="primary" onclick="${existing?`saveInspection('${existing.id}')`:'startInspection()'}">${existing?'Speichern':'Starten'}</button>
+    ${existing?`<button class="danger" onclick="deleteInspection('${existing.id}')">Begehung löschen</button>`:''}
+  </div>`);
 }
 function startInspection(){
   const objectId=document.getElementById('iObject').value, id=uid('insp');
   db.inspections.push({id,objectId,startedAt:Date.now(),endedAt:null,notes:document.getElementById('iNotes').value.trim()});
   closeModal();save();showSection('inspections');setTimeout(()=>openFindingModal(objectId,id),50)
 }
+function saveInspection(id){
+  const i=db.inspections.find(x=>x.id===id); if(!i)return;
+  i.objectId=document.getElementById('iObject').value;
+  i.notes=document.getElementById('iNotes').value.trim();
+  i.updatedAt=Date.now();
+  closeModal();save();showSection('inspections');
+}
 function closeInspection(id){const i=db.inspections.find(x=>x.id===id);if(i){i.endedAt=Date.now();save()}}
+function deleteInspection(id){
+  const linked=db.findings.filter(f=>f.inspectionId===id);
+  const msg=linked.length
+    ? `Diese Begehung enthält ${linked.length} zugeordnete Dokumentation(en). Begehung UND zugehörige Dokumentationen endgültig löschen?`
+    : 'Diese Begehung endgültig löschen?';
+  if(!confirm(msg))return;
+  db.inspections=db.inspections.filter(x=>x.id!==id);
+  db.findings=db.findings.filter(f=>f.inspectionId!==id);
+  closeModal();save();showSection('inspections');
+}
 
 function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   if(!db.objects.length){alert('Bitte zuerst ein Objekt anlegen.');showSection('objects');return}
@@ -534,7 +557,11 @@ async function saveFinding(id){
   closeModal();renderAll();showSection('findings')
 }
 function markDone(id){openFindingModal(db.findings.find(x=>x.id===id)?.objectId||'','',id,true)}
-function deleteFinding(id){if(confirm('Feststellung löschen?')){db.findings=db.findings.filter(x=>x.id!==id);closeModal();save()}}
+function deleteFinding(id){
+  const f=db.findings.find(x=>x.id===id);
+  const label=(f?.type||'Feststellung')==='Leistung'?'Leistungsdokumentation':'Feststellung';
+  if(confirm(`${label} endgültig löschen?`)){db.findings=db.findings.filter(x=>x.id!==id);closeModal();save()}
+}
 
 function exportData(){
   const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
