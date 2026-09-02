@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 1.5.1</title>
+<title>Duschl Service – Objekt-Dokumentation 1.5.2</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -186,7 +186,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
       <div>
         <label>Entscheidungsstatus</label>
         <select id="decisionStatusFilter" onchange="renderDecisions()">
-          <option value="pending">Offener Arbeitsvorrat</option>
+          <option value="pending" selected>Offener Arbeitsvorrat</option>
           <option value="">Alle Entscheidungen</option>
           <option value="approved">Beauftragt</option>
           <option value="rejected">Nicht beauftragt</option>
@@ -245,12 +245,12 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <div id="modalRoot"></div>
 
 <script>
-const KEY='duschl_objekt_doku_v151';
-const OLD_KEY='duschl_objekt_doku_v15';
+const KEY='duschl_objekt_doku_v152';
+const OLD_KEY='duschl_objekt_doku_v151';
 let db = load();
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'1.5.1'};
+  return {objects:[],inspections:[],findings:[],version:'1.5.2'};
 }
 function load(){
   try{
@@ -259,7 +259,7 @@ function load(){
     const old=localStorage.getItem(OLD_KEY);
     if(old){
       const migrated=JSON.parse(old);
-      migrated.version='1.5.1';
+      migrated.version='1.5.2';
       (migrated.findings||[]).forEach(f=>{
         if(!f.type)f.type='Feststellung';
         if(!f.beforePhoto && f.photo)f.beforePhoto=f.photo;
@@ -274,7 +274,7 @@ function load(){
     return seed();
   }catch(e){return seed()}
 }
-function save(){db.version='1.5.1';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
+function save(){db.version='1.5.2';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
 function uid(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)}
 function fmt(ts){if(!ts)return'';return new Date(ts).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -306,60 +306,42 @@ function statusBadge(s){return `<span class="badge">${esc(s)}</span>`}
 
 
 function renderDecisions(){
-  const objFilter=document.getElementById('decisionObjectFilter');
-  if(!objFilter)return;
-  const current=objFilter.value;
-  objFilter.innerHTML='<option value="">Alle Objekte</option>'+db.objects.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
-  objFilter.value=current;
+  const obj=document.getElementById('decisionObjectFilter');
+  const st=document.getElementById('decisionStatusFilter');
+  const pr=document.getElementById('decisionPriorityFilter');
+  if(!obj||!st||!pr)return;
+  const objectId=obj.value||'', status=st.value, priority=pr.value||'';
+  obj.innerHTML='<option value="">Alle Objekte</option>'+db.objects.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
+  obj.value=objectId;
 
-  const status=document.getElementById('decisionStatusFilter')?.value??'pending';
-  const priority=document.getElementById('decisionPriorityFilter')?.value||'';
-  let items=db.findings.filter(f=>(f.type||'Feststellung')==='Feststellung');
-  if(current)items=items.filter(f=>f.objectId===current);
+  const findings=db.findings.filter(f=>(f.type||'Feststellung')==='Feststellung');
+  const pending=findings.filter(f=>(f.decisionStatus||'pending')==='pending');
+  const pendingScope=objectId?pending.filter(f=>f.objectId===objectId):pending;
+
+  document.getElementById('decisionOpenCount').textContent=pendingScope.length;
+  document.getElementById('decisionImmediateCount').textContent=pendingScope.filter(f=>f.priority==='P1').length;
+  document.getElementById('decisionUrgentCount').textContent=pendingScope.filter(f=>f.priority==='P2').length;
+  const nc=document.getElementById('decisionNavCount'); if(nc)nc.textContent=pending.length;
+
+  let items=findings.slice();
+  if(objectId)items=items.filter(f=>f.objectId===objectId);
   if(status)items=items.filter(f=>(f.decisionStatus||'pending')===status);
   if(priority)items=items.filter(f=>f.priority===priority);
-  items.sort((a,b)=>{
-    const rank={P1:1,P2:2,P3:3,P4:4};
-    const pa=rank[a.priority]||9,pb=rank[b.priority]||9;
-    return pa-pb || (b.createdAt||0)-(a.createdAt||0);
-  });
-
-  const allPending=db.findings.filter(f=>(f.type||'Feststellung')==='Feststellung' && (f.decisionStatus||'pending')==='pending');
-  const scopePending=current?allPending.filter(f=>f.objectId===current):allPending;
-  document.getElementById('decisionOpenCount').textContent=scopePending.length;
-  document.getElementById('decisionImmediateCount').textContent=scopePending.filter(f=>f.priority==='P1').length;
-  document.getElementById('decisionUrgentCount').textContent=scopePending.filter(f=>f.priority==='P2').length;
-  const navCount=document.getElementById('decisionNavCount');
-  if(navCount)navCount.textContent=allPending.length;
+  const rank={P1:1,P2:2,P3:3,P4:4};
+  items.sort((a,b)=>(rank[a.priority]||9)-(rank[b.priority]||9)||(b.createdAt||0)-(a.createdAt||0));
 
   const list=document.getElementById('decisionList');
-  if(!items.length){
-    list.innerHTML='<div class="card"><strong>Keine Vorgänge in diesem Arbeitsvorrat.</strong><div class="muted" style="margin-top:6px">Filter ändern oder neue Feststellung dokumentieren.</div></div>';
-    return;
-  }
+  if(!items.length){list.innerHTML='<div class="card"><strong>Keine Vorgänge in diesem Arbeitsvorrat.</strong><div class="muted" style="margin-top:6px">Filter ändern oder eine neue Feststellung dokumentieren.</div></div>';return}
   list.innerHTML=items.map(f=>{
-    const o=db.objects.find(x=>x.id===f.objectId);
-    const photo=f.beforePhoto||f.afterPhoto||'';
+    const o=db.objects.find(x=>x.id===f.objectId), photo=f.beforePhoto||f.afterPhoto||'';
     return `<div class="card" style="margin-bottom:12px">
-      <div class="row space">
-        <div style="min-width:0">
-          <div class="muted">${esc(o?.name||'Unbekanntes Objekt')} · ${fmt(f.createdAt)}</div>
-          <h3 style="margin:5px 0">${esc(f.title||f.description||f.category||'Feststellung')}</h3>
-        </div>
-        <div class="row">${badgeP(f.priority)}<span class="badge">${esc(decisionLabel(f.decisionStatus||'pending'))}</span></div>
-      </div>
+      <div class="row space"><div style="min-width:0"><div class="muted">${esc(o?.name||'Unbekanntes Objekt')} · ${fmt(f.createdAt)}</div><h3 style="margin:5px 0">${esc(f.title||f.description||f.category||'Feststellung')}</h3></div><div class="row">${badgeP(f.priority)}<span class="badge">${esc(decisionLabel(f.decisionStatus||'pending'))}</span></div></div>
       ${photo?`<img src="${photo}" alt="Dokumentationsfoto" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin:8px 0">`:''}
       ${f.description?`<div><strong>Feststellung:</strong> ${esc(f.description)}</div>`:''}
       ${f.action?`<div style="margin-top:6px"><strong>Empfehlung:</strong> ${esc(f.action)}</div>`:''}
-      ${f.decisionComment?`<div style="margin-top:6px"><strong>Entscheidungskommentar:</strong> ${esc(f.decisionComment)}</div>`:''}
-      <div class="row" style="margin-top:12px">
-        <button class="primary" onclick="openDecisionModal('${f.id}')">${(f.decisionStatus||'pending')==='pending'?'Entscheidung treffen':'Entscheidung bearbeiten'}</button>
-        <button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}')">Feststellung öffnen</button>
-      </div>
-    </div>`;
-  }).join('');
+      <div class="row" style="margin-top:12px"><button class="primary" onclick="openDecisionModal('${f.id}')">${(f.decisionStatus||'pending')==='pending'?'Entscheidung treffen':'Entscheidung bearbeiten'}</button><button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}')">Feststellung öffnen</button></div>
+    </div>`}).join('');
 }
-
 function openDecisionModal(id){
   const f=db.findings.find(x=>x.id===id); if(!f)return;
   const o=db.objects.find(x=>x.id===f.objectId);
