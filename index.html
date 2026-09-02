@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 1.6.0 Recovery</title>
+<title>Duschl Service – Objekt-Dokumentation 1.6.1</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -35,6 +35,8 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 .fab{position:fixed;right:18px;bottom:18px;border-radius:999px;padding:14px 18px;background:var(--blue);color:white;border:none;box-shadow:0 8px 22px rgba(0,0,0,.2);z-index:20}
 @media(max-width:680px){main{padding:12px}header small{display:none}nav{top:53px}.desktop{display:none}table{font-size:13px}.modal>.sheet{padding-bottom:32px}}
 @media print{header,nav,.fab,.no-print{display:none!important}body{background:#fff}main{max-width:none;padding:0}.card{box-shadow:none}.section{display:none!important}#reports.active{display:block!important}}
+
+.photo-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.photo-item{position:relative;width:86px;height:86px}.photo-item img{width:86px;height:86px;object-fit:cover;border-radius:8px}.photo-remove{position:absolute;right:3px;top:3px;width:26px;height:26px;border-radius:50%;padding:0;line-height:22px;font-size:18px;background:#fff;border:1px solid #999}
 </style>
 
 <style>
@@ -55,7 +57,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <header>
   <div><h1>Duschl Service</h1><small>Interne Objekt-Dokumentation</small></div>
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
-<span class="badge" style="margin-left:auto">v1.6.0 Recovery</span></header>
+<span class="badge" style="margin-left:auto">v1.6.1</span></header>
 <nav>
   <button onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button onclick="showSection('objects')">Objekte</button>
@@ -327,7 +329,7 @@ const OLD_KEY='duschl_objekt_doku_v159';
 let db = load();
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'1.6.0-recovery'};
+  return {objects:[],inspections:[],findings:[],version:'1.6.1'};
 }
 function load(){
   try{
@@ -368,7 +370,7 @@ function load(){
       objects:mergeById('objects'),
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
-      version:'1.6.0-recovery'
+      version:'1.6.1'
     };
     merged.findings.forEach(f=>{
       if(!f.type)f.type='Feststellung';
@@ -398,7 +400,7 @@ function load(){
   }
 }
 
-function save(){db.version='1.6.0-recovery';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
+function save(){db.version='1.6.1';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
 function uid(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)}
 function fmt(ts){if(!ts)return'';return new Date(ts).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -913,7 +915,7 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   <div id="currentPhotoBlock" class="card" style="margin-top:12px">
     <label>Aktuelles Foto</label>
     <div class="muted" style="margin-bottom:8px">Kamera oder Fotomediathek auswählen.</div>
-    <input type="file" id="fBeforePhoto" accept="image/*" multiple onchange="limitPhotos(this,'beforePhotoCount')"><div class="muted" id="beforePhotoCount">Max. 5 Bilder</div>
+    <input type="file" id="fBeforePhoto" accept="image/*" multiple onchange="handlePhotoSelection('before',this)"><div class="muted" id="beforePhotoCount">Max. 5 Bilder</div><div id="beforePhotoPreview" class="photo-grid"></div>
     ${(f.beforePhoto||f.photo)?`<img class="thumb" src="${f.beforePhoto||f.photo}" alt="Aktuelles Foto" style="margin-top:8px">`:''}
   </div>
 
@@ -970,7 +972,7 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   <div id="afterPhotoBlock" class="card" style="margin-top:12px">
     <label>Foto danach</label>
     <div class="muted" style="margin-bottom:8px">Kamera oder Fotomediathek auswählen.</div>
-    <input type="file" id="fAfterPhoto" accept="image/*" multiple onchange="limitPhotos(this,'afterPhotoCount')"><div class="muted" id="afterPhotoCount">Max. 5 Bilder</div>
+    <input type="file" id="fAfterPhoto" accept="image/*" multiple onchange="handlePhotoSelection('after',this)"><div class="muted" id="afterPhotoCount">Max. 5 Bilder</div><div id="afterPhotoPreview" class="photo-grid"></div>
     ${f.afterPhoto?`<img class="thumb" src="${f.afterPhoto}" alt="Foto danach" style="margin-top:8px">`:''}
   </div>
   <label>Status</label><select id="fStatus" onchange="toggleCompletion()">${['Offen','In Bearbeitung','Erledigt'].map(x=>`<option ${x===(forceClose?'Erledigt':f.status)?'selected':''}>${x}</option>`).join('')}</select>
@@ -982,6 +984,7 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
     <label>Getroffene Maßnahme / Abschlussnotiz</label><textarea id="fCompletionNote" placeholder="z. B. Türschließer nachgestellt / Kunde wünscht keine Umsetzung">${esc(f.completionNote)}</textarea>
   </div>
   <div class="row" style="margin-top:14px"><button class="primary" onclick="saveFinding('${editId}')">Speichern</button>${editId?`<button class="danger" onclick="deleteFinding('${editId}')">Löschen</button>`:''}</div>`);
+  initPhotoDraft(f);
   toggleDocType();toggleDecisionRequired();toggleCompletion();
 }
 function toggleDocType(){
@@ -1037,15 +1040,23 @@ function readPhoto(file){
     };img.onerror=reject;img.src=fr.result};fr.onerror=reject;fr.readAsDataURL(file)
   })
 }
-function limitPhotos(input,countId){
-  const c=document.getElementById(countId);
-  if(input.files.length>5){alert('Maximal 5 Bilder möglich.');input.value='';if(c)c.textContent='Max. 5 Bilder';return}
-  if(c)c.textContent=input.files.length+' von 5 Bildern ausgewählt';
+let photoDraft={before:[],after:[]};
+function initPhotoDraft(f){
+ photoDraft.before=[...((f?.beforePhotos?.length?f.beforePhotos:(f?.beforePhoto||f?.photo?[f.beforePhoto||f.photo]:[]))||[])].slice(0,5);
+ photoDraft.after=[...((f?.afterPhotos?.length?f.afterPhotos:(f?.afterPhoto?[f.afterPhoto]:[]))||[])].slice(0,5);
+ renderPhotoDraft('before');renderPhotoDraft('after');
 }
-async function readPhotos(input){
-  const files=[...(input?.files||[])];
-  if(files.length>5)throw new Error('Maximal 5 Bilder');
-  const out=[];for(const f of files)out.push(await readPhoto(f));return out.filter(Boolean);
+function renderPhotoDraft(w){
+ const b=document.getElementById(w+'PhotoPreview'),c=document.getElementById(w+'PhotoCount');if(!b)return;
+ const a=photoDraft[w]||[];b.innerHTML=a.map((p,i)=>`<div class="photo-item"><img src="${p}"><button type="button" class="photo-remove" onclick="removeDraftPhoto('${w}',${i})">×</button></div>`).join('');
+ if(c)c.textContent=`${a.length} von 5 Bildern`;
+}
+function removeDraftPhoto(w,i){photoDraft[w].splice(i,1);renderPhotoDraft(w)}
+async function handlePhotoSelection(w,input){
+ const files=[...(input?.files||[])],free=5-photoDraft[w].length;
+ if(files.length>free){alert(`Es können noch maximal ${free} Bilder ergänzt werden.`);input.value='';return}
+ for(const file of files){const p=await readPhoto(file);if(p)photoDraft[w].push(p)}
+ input.value='';renderPhotoDraft(w);
 }
 async function saveFinding(id){
   const decisionRequiredValue=document.getElementById('fDecisionRequired')?.value||'';
@@ -1068,13 +1079,8 @@ async function saveFinding(id){
   const completionType=document.getElementById('fCompletionType')?.value||'';
   if(type==='Leistung'&&!activity)return alert('Bitte die durchgeführte Tätigkeit dokumentieren.');
   if(status==='Erledigt'&&!completionType)return alert('Bitte eine Abschlussart wählen.');
-  const beforeInput=document.getElementById('fBeforePhoto'), afterInput=document.getElementById('fAfterPhoto');
-  if((beforeInput?.files?.length||0)>5||(afterInput?.files?.length||0)>5)return alert('Maximal 5 Bilder möglich.');
   const old=db.findings.find(x=>x.id===id);
-  const oldBefore=old?.beforePhotos?.length?old.beforePhotos:(old?.beforePhoto||old?.photo?[old.beforePhoto||old.photo]:[]);
-  const oldAfter=old?.afterPhotos?.length?old.afterPhotos:(old?.afterPhoto?[old.afterPhoto]:[]);
-  const beforePhotos=(beforeInput?.files?.length)?await readPhotos(beforeInput):oldBefore;
-  const afterPhotos=(afterInput?.files?.length)?await readPhotos(afterInput):oldAfter;
+  const beforePhotos=[...(photoDraft.before||[])].slice(0,5), afterPhotos=[...(photoDraft.after||[])].slice(0,5);
   const before=beforePhotos[0]||'', after=afterPhotos[0]||'';
   const description=type==='Feststellung'?(document.getElementById('fDescription')?.value.trim()||''):(document.getElementById('fServiceNote')?.value.trim()||'');
   const data={
