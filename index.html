@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 1.2</title>
+<title>Duschl Service – Objekt-Dokumentation 1.2.2</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -79,7 +79,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
   <div class="grid g3" style="margin:14px 0">
     <div><label>Objekt</label><select id="filterObject" onchange="renderFindings()"><option value="">Alle</option></select></div>
     <div><label>Status</label><select id="filterStatus" onchange="renderFindings()"><option value="">Alle</option><option>Offen</option><option>In Bearbeitung</option><option>Erledigt</option></select></div>
-    <div><label>Priorität</label><select id="filterPriority" onchange="renderFindings()"><option value="">Alle</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select></div>
+    <div><label>Priorität</label><select id="filterPriority" onchange="renderFindings()"><option value="">Alle</option><option value="P1">Sofort</option><option value="P2">Dringend</option><option value="P3">Planbar</option><option value="P4">Beobachten</option></select></div>
     <div><label>Typ</label><select id="filterType" onchange="renderFindings()"><option value="">Alle</option><option>Feststellung</option><option>Leistung</option></select></div>
   </div>
   <div id="findingList" class="grid"></div>
@@ -121,12 +121,12 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <div id="modalRoot"></div>
 
 <script>
-const KEY='duschl_objekt_doku_v12';
-const OLD_KEY='duschl_objekt_doku_v11';
+const KEY='duschl_objekt_doku_v122';
+const OLD_KEY='duschl_objekt_doku_v121';
 let db = load();
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'1.2'};
+  return {objects:[],inspections:[],findings:[],version:'1.2.2'};
 }
 function load(){
   try{
@@ -135,7 +135,7 @@ function load(){
     const old=localStorage.getItem(OLD_KEY);
     if(old){
       const migrated=JSON.parse(old);
-      migrated.version='1.2';
+      migrated.version='1.2.2';
       (migrated.findings||[]).forEach(f=>{
         if(!f.type)f.type='Feststellung';
         if(!f.beforePhoto && f.photo)f.beforePhoto=f.photo;
@@ -150,7 +150,7 @@ function load(){
     return seed();
   }catch(e){return seed()}
 }
-function save(){db.version='1.2';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
+function save(){db.version='1.2.2';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
 function uid(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)}
 function fmt(ts){if(!ts)return'';return new Date(ts).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -163,7 +163,10 @@ function showSection(id){
   [...document.querySelectorAll('nav button')].find(b=>b.getAttribute('onclick')?.includes(`'${id}'`))?.classList.add('primary');
   if(id==='reports')renderReport();
 }
-function badgeP(p){return `<span class="badge ${p.toLowerCase()}">${p}</span>`}
+function priorityLabel(p){
+  return ({P1:'Sofort',P2:'Dringend',P3:'Planbar',P4:'Beobachten'})[p]||p||'';
+}
+function badgeP(p){return `<span class="badge p ${p}">${esc(priorityLabel(p))}</span>`}">${p}</span>`}
 function statusBadge(s){return `<span class="badge">${esc(s)}</span>`}
 
 function renderAll(){
@@ -234,7 +237,7 @@ function renderReport(){
   if(!id){el.innerHTML='<div class="empty">Objekt für Bericht auswählen.</div>';return}
   const o=db.objects.find(x=>x.id===id), ins=db.inspections.filter(x=>x.objectId===id).sort((a,b)=>b.startedAt-a.startedAt), fs=db.findings.filter(x=>x.objectId===id).sort((a,b)=>a.priority.localeCompare(b.priority)||b.createdAt-a.createdAt);
   el.innerHTML=`<div class="card"><h2>${esc(o.name)}</h2><div>${esc(o.address||'')}</div><p>${esc(o.notes||'')}</p>
-  <hr><div class="grid g3"><div><b>${ins.length}</b><div class="muted">Begehungen</div></div><div><b>${fs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt').length}</b><div class="muted">Feststellungen offen</div></div><div><b>${fs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&['P1','P2'].includes(f.priority)&&f.status!=='Erledigt').length}</b><div class="muted">P1/P2 offen</div></div></div></div>
+  <hr><div class="grid g3"><div><b>${ins.length}</b><div class="muted">Begehungen</div></div><div><b>${fs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt').length}</b><div class="muted">Feststellungen offen</div></div><div><b>${fs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&['P1','P2'].includes(f.priority)&&f.status!=='Erledigt').length}</b><div class="muted">Sofort/Dringend offen</div></div></div></div>
   <h3>Dokumentation</h3>${fs.length?fs.map(f=>findingCard(f).replace(/<div class="row"><button[\s\S]*?<\/div>\s*<\/div>$/,'</div>')).join(''):'<div class="empty">Keine Dokumentationen.</div>'}`;
 }
 function showObjectReport(id){showSection('reports');setTimeout(()=>{document.getElementById('reportObject').value=id;renderReport()},0)}
@@ -291,18 +294,22 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   <div id="findingFields">
     <div class="grid g2">
       <div><label>Kategorie</label><select id="fCategory">${['Sicherheit','Funktion','Werterhalt','Optik','Komfort'].map(x=>`<option ${x===f.category?'selected':''}>${x}</option>`).join('')}</select></div>
-      <div><label>Priorität</label><select id="fPriority">${['P1','P2','P3','P4'].map(x=>`<option ${x===f.priority?'selected':''}>${x}</option>`).join('')}</select></div>
+      <div><label>Priorität</label><select id="fPriority">${['P1','P2','P3','P4'].map(x=>`<option value="${x}" ${x===f.priority?'selected':''}>${priorityLabel(x)}</option>`).join('')}</select></div>
     </div>
     <label>Beschreibung / Feststellung</label><textarea id="fDescription">${esc(f.description)}</textarea>
     <label>Empfohlene Maßnahme</label><textarea id="fAction">${esc(f.action)}</textarea>
   </div>
   <div id="serviceFields">
-    <label>Durchgeführte Tätigkeit *</label>
+    <label>Durchgeführte Tätigkeiten *</label>
     <select id="fActivityPreset" onchange="applyActivityPreset()">
-      <option value="">Auswahl / Freitext</option>
-      ${['Kontrollgang / Begehung','Rasen gemäht','Hecke / Sträucher geschnitten','Laub entfernt','Schnee geräumt','Gestreut','Geräumt und gestreut','Mülltonnen bereitgestellt','Reinigung durchgeführt','Sonstiges'].map(x=>`<option>${x}</option>`).join('')}
+      <option value="">Tätigkeit hinzufügen …</option>
+      ${['Kontrollgang / Begehung','Rasen gemäht','Rasenkanten geschnitten','Hecke / Sträucher geschnitten','Laub entfernt','Unkraut entfernt','Bewässerung durchgeführt','Schnee geräumt','Gestreut','Geräumt und gestreut','Mülltonnen bereitgestellt','Reinigung durchgeführt','Sonstiges'].map(x=>`<option>${x}</option>`).join('')}
     </select>
-    <textarea id="fActivity" placeholder="Tätigkeit kurz dokumentieren">${esc(f.activity)}</textarea>
+    <div class="row" style="margin-top:8px">
+      <input id="fActivityCustom" placeholder="Eigene Tätigkeit ergänzen" style="flex:1">
+      <button type="button" onclick="addCustomActivity()">Hinzufügen</button>
+    </div>
+    <textarea id="fActivity" placeholder="Alle ausgewählten und ergänzten Tätigkeiten werden hier übernommen und können weiter bearbeitet werden.">${esc(f.activity)}</textarea>
     <label>Bemerkung / Zustand</label><textarea id="fServiceNote">${esc(f.description)}</textarea>
   </div>
   <div class="grid g2">
@@ -329,9 +336,27 @@ function toggleCompletion(){
   const done=document.getElementById('fStatus')?.value==='Erledigt';
   document.getElementById('completionFields')?.classList.toggle('hidden',!done);
 }
+function appendActivity(text){
+  if(!text)return;
+  const el=document.getElementById('fActivity');
+  const existing=el.value.trim();
+  const parts=existing ? existing.split(/\n|;\s*/).map(x=>x.trim()).filter(Boolean) : [];
+  if(!parts.includes(text)) parts.push(text);
+  el.value=parts.join('\n');
+}
 function applyActivityPreset(){
-  const p=document.getElementById('fActivityPreset').value;
-  if(p&&p!=='Sonstiges')document.getElementById('fActivity').value=p;
+  const sel=document.getElementById('fActivityPreset');
+  const p=sel.value;
+  if(p&&p!=='Sonstiges')appendActivity(p);
+  if(p==='Sonstiges')document.getElementById('fActivityCustom')?.focus();
+  sel.value='';
+}
+function addCustomActivity(){
+  const el=document.getElementById('fActivityCustom');
+  const text=el.value.trim();
+  if(!text)return;
+  appendActivity(text);
+  el.value='';
 }
 function refreshInspectionOptions(){
   const oid=document.getElementById('fObject').value, el=document.getElementById('fInspection');
