@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 1.6.1</title>
+<title>Duschl Service – Objekt-Dokumentation 1.6.2</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -57,7 +57,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <header>
   <div><h1>Duschl Service</h1><small>Interne Objekt-Dokumentation</small></div>
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
-<span class="badge" style="margin-left:auto">v1.6.1</span></header>
+<span class="badge" style="margin-left:auto">v1.6.2</span></header>
 <nav>
   <button onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button onclick="showSection('objects')">Objekte</button>
@@ -269,6 +269,8 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
         <select id="reportDecision" onchange="renderReport()">
           <option value="">Alle</option>
           <option value="pending">Entscheidung ausstehend</option>
+          <option value="quote_requested">Angebot erwünscht</option>
+          <option value="quote_sent">Angebot versendet</option>
           <option value="approved">Beauftragt</option>
           <option value="rejected">Nicht beauftragt</option>
           <option value="deferred">Zurückgestellt</option>
@@ -329,7 +331,7 @@ const OLD_KEY='duschl_objekt_doku_v159';
 let db = load();
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'1.6.1'};
+  return {objects:[],inspections:[],findings:[],version:'1.6.2'};
 }
 function load(){
   try{
@@ -370,7 +372,7 @@ function load(){
       objects:mergeById('objects'),
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
-      version:'1.6.1'
+      version:'1.6.2'
     };
     merged.findings.forEach(f=>{
       if(!f.type)f.type='Feststellung';
@@ -400,7 +402,7 @@ function load(){
   }
 }
 
-function save(){db.version='1.6.1';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
+function save(){db.version='1.6.2';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
 function uid(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)}
 function fmt(ts){if(!ts)return'';return new Date(ts).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -936,6 +938,8 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
         <select id="fDecisionStatus">
           ${[
             ['pending','Entscheidung ausstehend'],
+            ['quote_requested','Angebot erwünscht'],
+            ['quote_sent','Angebot versendet'],
             ['approved','Beauftragt'],
             ['rejected','Nicht beauftragt'],
             ['deferred','Zurückgestellt'],
