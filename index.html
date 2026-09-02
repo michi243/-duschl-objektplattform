@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 1.5.9</title>
+<title>Duschl Service – Objekt-Dokumentation 1.6.0 Recovery</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -55,7 +55,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <header>
   <div><h1>Duschl Service</h1><small>Interne Objekt-Dokumentation</small></div>
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
-<span class="badge" style="margin-left:auto">v1.5.9</span></header>
+<span class="badge" style="margin-left:auto">v1.6.0 Recovery</span></header>
 <nav>
   <button onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button onclick="showSection('objects')">Objekte</button>
@@ -290,6 +290,12 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 </section>
 
 <section id="settings" class="section">
+  <div class="card" style="margin-bottom:14px">
+    <h3>Datenwiederherstellung</h3>
+    <div id="recoveryStatus" class="muted">Historische Datenstände werden automatisch geprüft.</div>
+    <button type="button" onclick="showRecoveryStatus()">Wiederherstellung prüfen</button>
+  </div>
+
   <h2>Daten & Sicherung</h2>
   <div class="grid g2">
     <div class="card">
@@ -316,22 +322,23 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <div id="modalRoot"></div>
 
 <script>
-const KEY='duschl_objekt_doku_v159';
-const OLD_KEY='duschl_objekt_doku_v158';
+const KEY='duschl_objekt_doku_master';
+const OLD_KEY='duschl_objekt_doku_v159';
 let db = load();
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'1.5.9'};
+  return {objects:[],inspections:[],findings:[],version:'1.6.0-recovery'};
 }
 function load(){
   try{
     const keys=[
       'duschl_objekt_doku_v11','duschl_objekt_doku_v12','duschl_objekt_doku_v121',
       'duschl_objekt_doku_v122','duschl_objekt_doku_v13','duschl_objekt_doku_v131',
-      'duschl_objekt_doku_v132','duschl_objekt_doku_v133','duschl_objekt_doku_v141',
-      'duschl_objekt_doku_v15','duschl_objekt_doku_v151','duschl_objekt_doku_v152',
-      'duschl_objekt_doku_v153','duschl_objekt_doku_v154','duschl_objekt_doku_v155','duschl_objekt_doku_v156','duschl_objekt_doku_v157','duschl_objekt_doku_v158',
-      KEY
+      'duschl_objekt_doku_v132','duschl_objekt_doku_v133','duschl_objekt_doku_v14',
+      'duschl_objekt_doku_v141','duschl_objekt_doku_v15','duschl_objekt_doku_v151',
+      'duschl_objekt_doku_v152','duschl_objekt_doku_v153','duschl_objekt_doku_v154',
+      'duschl_objekt_doku_v155','duschl_objekt_doku_v156','duschl_objekt_doku_v157',
+      'duschl_objekt_doku_v158','duschl_objekt_doku_v159','duschl_objekt_doku_master'
     ];
     const stores=[];
     for(const k of keys){
@@ -339,18 +346,20 @@ function load(){
       if(!raw)continue;
       try{
         const d=JSON.parse(raw);
-        if(d && Array.isArray(d.objects) && Array.isArray(d.inspections) && Array.isArray(d.findings)) stores.push(d);
+        if(d && (Array.isArray(d.objects)||Array.isArray(d.inspections)||Array.isArray(d.findings))){
+          stores.push({key:k,data:d});
+        }
       }catch(_){}
     }
     if(!stores.length)return seed();
 
-    // Alte und neue Stände zusammenführen. Neuere Einträge überschreiben ältere
-    // mit derselben ID; fehlende Objekte aus älteren Versionen bleiben erhalten.
+    // Merge ALL historical stores. Later stores update same IDs, but older unique records survive.
     const mergeById=(name)=>{
       const m=new Map();
       for(const s of stores){
-        for(const x of (s[name]||[])){
-          if(x && x.id)m.set(x.id,{...(m.get(x.id)||{}),...x});
+        for(const x of (s.data[name]||[])){
+          if(!x||!x.id)continue;
+          m.set(x.id,{...(m.get(x.id)||{}),...x});
         }
       }
       return [...m.values()];
@@ -359,29 +368,37 @@ function load(){
       objects:mergeById('objects'),
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
-      version:'1.5.9'
+      version:'1.6.0-recovery'
     };
     merged.findings.forEach(f=>{
       if(!f.type)f.type='Feststellung';
-      if(!f.beforePhoto && f.photo)f.beforePhoto=f.photo;
+      if(!f.beforePhoto&&f.photo)f.beforePhoto=f.photo;
       if(!f.afterPhoto)f.afterPhoto='';
       if(!Array.isArray(f.beforePhotos))f.beforePhotos=f.beforePhoto?[f.beforePhoto]:[];
       if(!Array.isArray(f.afterPhotos))f.afterPhotos=f.afterPhoto?[f.afterPhoto]:[];
       if(!f.completionType)f.completionType='';
       if(!f.completionNote)f.completionNote='';
       if(!f.activity)f.activity='';
-      if((f.type||'Feststellung')==='Feststellung' && !f.decisionStatus)f.decisionStatus='pending';
-      if((f.type||'Feststellung')==='Feststellung' && typeof f.decisionRequired==='undefined')f.decisionRequired=true;
+      if((f.type||'Feststellung')==='Feststellung'&&!f.decisionStatus)f.decisionStatus='pending';
+      if((f.type||'Feststellung')==='Feststellung'&&typeof f.decisionRequired==='undefined')f.decisionRequired=true;
     });
+
+    // Never overwrite historical keys. Only write merged result to stable master key.
     localStorage.setItem(KEY,JSON.stringify(merged));
+    window.__recoveryInfo={
+      sources:stores.map(x=>x.key),
+      objects:merged.objects.length,
+      inspections:merged.inspections.length,
+      findings:merged.findings.length
+    };
     return merged;
-  }catch(e){
-    console.error('Daten konnten nicht geladen werden',e);
+  }catch(err){
+    console.error('Recovery fehlgeschlagen',err);
     return seed();
   }
 }
 
-function save(){db.version='1.5.9';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
+function save(){db.version='1.6.0-recovery';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
 function uid(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)}
 function fmt(ts){if(!ts)return'';return new Date(ts).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -541,6 +558,13 @@ function saveDecision(id){
   closeModal();save();showSection('decisions');
 }
 
+function showRecoveryStatus(){
+  const r=window.__recoveryInfo;
+  const el=document.getElementById('recoveryStatus');
+  if(!el)return;
+  if(!r){el.textContent='Kein historischer Datenstand gefunden.';return}
+  el.innerHTML=`Gefunden: <strong>${r.objects}</strong> Objekte, <strong>${r.inspections}</strong> Begehungen, <strong>${r.findings}</strong> Dokumentationen.<br><span class="muted">Zusammengeführt aus ${r.sources.length} lokal vorhandenen Datenständen.</span>`;
+}
 function renderAll(){
   renderDashboard();renderObjects();renderInspections();renderSelects();renderFindings();renderReport();
 renderDecisions();
@@ -550,7 +574,7 @@ renderDecisions();
     ro.innerHTML='<option value="">Bitte wählen</option>'+db.objects.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
     ro.value=rv;
   }
-}
+showRecoveryStatus();}
 function renderDashboard(){
   document.getElementById('kpiObjects').textContent=db.objects.length;
   const open=db.findings.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt');
