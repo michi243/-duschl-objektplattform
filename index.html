@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 1.4.1</title>
+<title>Duschl Service – Objekt-Dokumentation 1.5</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -61,6 +61,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
   <button onclick="showSection('objects')">Objekte</button>
   <button onclick="showSection('inspections')">Begehungen</button>
   <button onclick="showSection('findings')">Dokumentation</button>
+<button onclick="showSection('decisions')">Entscheidungen <span id="decisionNavCount" class="badge" style="margin-left:4px">0</span></button>
   <button onclick="showSection('reports')">Berichte</button>
   <button onclick="showSection('settings')">Daten</button>
 </nav>
@@ -161,6 +162,53 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
   <div id="findingList" class="grid"></div>
 </section>
 
+
+<section id="decisions" class="page">
+  <div class="row space">
+    <div>
+      <h2>Entscheidungen</h2>
+      <div class="muted">Arbeitsvorrat für Feststellungen, bei denen eine Entscheidung des Auftraggebers erforderlich ist.</div>
+    </div>
+  </div>
+
+  <div class="grid stats" style="margin-top:14px">
+    <div class="card"><div class="muted">Offene Entscheidungen</div><div class="big" id="decisionOpenCount">0</div></div>
+    <div class="card"><div class="muted">Sofort</div><div class="big" id="decisionImmediateCount">0</div></div>
+    <div class="card"><div class="muted">Dringend</div><div class="big" id="decisionUrgentCount">0</div></div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div class="grid">
+      <div>
+        <label>Objekt</label>
+        <select id="decisionObjectFilter" onchange="renderDecisions()"><option value="">Alle Objekte</option></select>
+      </div>
+      <div>
+        <label>Entscheidungsstatus</label>
+        <select id="decisionStatusFilter" onchange="renderDecisions()">
+          <option value="pending">Offener Arbeitsvorrat</option>
+          <option value="">Alle Entscheidungen</option>
+          <option value="approved">Beauftragt</option>
+          <option value="rejected">Nicht beauftragt</option>
+          <option value="deferred">Zurückgestellt</option>
+          <option value="question">Rückfrage erforderlich</option>
+          <option value="thirdparty">An Dritten vergeben</option>
+        </select>
+      </div>
+      <div>
+        <label>Priorität</label>
+        <select id="decisionPriorityFilter" onchange="renderDecisions()">
+          <option value="">Alle Prioritäten</option>
+          <option value="P1">Sofort</option>
+          <option value="P2">Dringend</option>
+          <option value="P3">Planbar</option>
+          <option value="P4">Beobachten</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div id="decisionList" style="margin-top:14px"></div>
+</section>
 <section id="reports" class="section">
   <div class="row space no-print"><div><h2>Berichte</h2><div class="muted">Objektbezogene Dokumentation</div></div><button onclick="window.print()">Drucken / PDF</button></div>
   <div class="card no-print" style="margin:14px 0">
@@ -197,12 +245,12 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <div id="modalRoot"></div>
 
 <script>
-const KEY='duschl_objekt_doku_v141';
-const OLD_KEY='duschl_objekt_doku_v133';
+const KEY='duschl_objekt_doku_v15';
+const OLD_KEY='duschl_objekt_doku_v141';
 let db = load();
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'1.4.1'};
+  return {objects:[],inspections:[],findings:[],version:'1.5'};
 }
 function load(){
   try{
@@ -211,7 +259,7 @@ function load(){
     const old=localStorage.getItem(OLD_KEY);
     if(old){
       const migrated=JSON.parse(old);
-      migrated.version='1.4.1';
+      migrated.version='1.5';
       (migrated.findings||[]).forEach(f=>{
         if(!f.type)f.type='Feststellung';
         if(!f.beforePhoto && f.photo)f.beforePhoto=f.photo;
@@ -226,7 +274,7 @@ function load(){
     return seed();
   }catch(e){return seed()}
 }
-function save(){db.version='1.4.1';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
+function save(){db.version='1.5';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
 function uid(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)}
 function fmt(ts){if(!ts)return'';return new Date(ts).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -256,9 +304,106 @@ function decisionLabel(v){
 function badgeP(p){return `<span class="badge p ${p}">${esc(priorityLabel(p))}</span>`}
 function statusBadge(s){return `<span class="badge">${esc(s)}</span>`}
 
+
+function renderDecisions(){
+  const objFilter=document.getElementById('decisionObjectFilter');
+  if(!objFilter)return;
+  const current=objFilter.value;
+  objFilter.innerHTML='<option value="">Alle Objekte</option>'+db.objects.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
+  objFilter.value=current;
+
+  const status=document.getElementById('decisionStatusFilter')?.value??'pending';
+  const priority=document.getElementById('decisionPriorityFilter')?.value||'';
+  let items=db.findings.filter(f=>(f.type||'Feststellung')==='Feststellung');
+  if(current)items=items.filter(f=>f.objectId===current);
+  if(status)items=items.filter(f=>(f.decisionStatus||'pending')===status);
+  if(priority)items=items.filter(f=>f.priority===priority);
+  items.sort((a,b)=>{
+    const rank={P1:1,P2:2,P3:3,P4:4};
+    const pa=rank[a.priority]||9,pb=rank[b.priority]||9;
+    return pa-pb || (b.createdAt||0)-(a.createdAt||0);
+  });
+
+  const allPending=db.findings.filter(f=>(f.type||'Feststellung')==='Feststellung' && (f.decisionStatus||'pending')==='pending');
+  const scopePending=current?allPending.filter(f=>f.objectId===current):allPending;
+  document.getElementById('decisionOpenCount').textContent=scopePending.length;
+  document.getElementById('decisionImmediateCount').textContent=scopePending.filter(f=>f.priority==='P1').length;
+  document.getElementById('decisionUrgentCount').textContent=scopePending.filter(f=>f.priority==='P2').length;
+  const navCount=document.getElementById('decisionNavCount');
+  if(navCount)navCount.textContent=allPending.length;
+
+  const list=document.getElementById('decisionList');
+  if(!items.length){
+    list.innerHTML='<div class="card"><strong>Keine Vorgänge in diesem Arbeitsvorrat.</strong><div class="muted" style="margin-top:6px">Filter ändern oder neue Feststellung dokumentieren.</div></div>';
+    return;
+  }
+  list.innerHTML=items.map(f=>{
+    const o=db.objects.find(x=>x.id===f.objectId);
+    const photo=f.beforePhoto||f.afterPhoto||'';
+    return `<div class="card" style="margin-bottom:12px">
+      <div class="row space">
+        <div style="min-width:0">
+          <div class="muted">${esc(o?.name||'Unbekanntes Objekt')} · ${fmt(f.createdAt)}</div>
+          <h3 style="margin:5px 0">${esc(f.title||f.description||f.category||'Feststellung')}</h3>
+        </div>
+        <div class="row">${badgeP(f.priority)}<span class="badge">${esc(decisionLabel(f.decisionStatus||'pending'))}</span></div>
+      </div>
+      ${photo?`<img src="${photo}" alt="Dokumentationsfoto" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin:8px 0">`:''}
+      ${f.description?`<div><strong>Feststellung:</strong> ${esc(f.description)}</div>`:''}
+      ${f.action?`<div style="margin-top:6px"><strong>Empfehlung:</strong> ${esc(f.action)}</div>`:''}
+      ${f.decisionComment?`<div style="margin-top:6px"><strong>Entscheidungskommentar:</strong> ${esc(f.decisionComment)}</div>`:''}
+      <div class="row" style="margin-top:12px">
+        <button class="primary" onclick="openDecisionModal('${f.id}')">${(f.decisionStatus||'pending')==='pending'?'Entscheidung treffen':'Entscheidung bearbeiten'}</button>
+        <button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}')">Feststellung öffnen</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openDecisionModal(id){
+  const f=db.findings.find(x=>x.id===id); if(!f)return;
+  const o=db.objects.find(x=>x.id===f.objectId);
+  modal(`<div class="row space"><div><h2>Entscheidung treffen</h2><div class="muted">${esc(o?.name||'')}</div></div><button onclick="closeModal()">✕</button></div>
+    <div class="card" style="margin-top:12px">
+      <div class="row">${badgeP(f.priority)}<span class="badge">${esc(f.category||'Feststellung')}</span></div>
+      ${f.description?`<p><strong>Feststellung:</strong><br>${esc(f.description)}</p>`:''}
+      ${f.action?`<p><strong>Empfehlung:</strong><br>${esc(f.action)}</p>`:''}
+    </div>
+    <label>Entscheidung *</label>
+    <select id="dStatus">
+      <option value="pending" ${(f.decisionStatus||'pending')==='pending'?'selected':''}>Entscheidung ausstehend</option>
+      <option value="approved" ${f.decisionStatus==='approved'?'selected':''}>Beauftragt</option>
+      <option value="rejected" ${f.decisionStatus==='rejected'?'selected':''}>Nicht beauftragt</option>
+      <option value="deferred" ${f.decisionStatus==='deferred'?'selected':''}>Zurückgestellt</option>
+      <option value="question" ${f.decisionStatus==='question'?'selected':''}>Rückfrage erforderlich</option>
+      <option value="thirdparty" ${f.decisionStatus==='thirdparty'?'selected':''}>An Dritten vergeben</option>
+    </select>
+    <label>Entscheider / Auftraggeber</label>
+    <input id="dBy" value="${esc(f.decisionBy||'')}" placeholder="Name / Ansprechpartner">
+    <label>Entscheidungsdatum</label>
+    <input id="dDate" type="date" value="${esc(f.decisionDate||new Date().toISOString().slice(0,10))}">
+    <label>Kommentar / Begründung</label>
+    <textarea id="dComment" placeholder="z. B. Austausch freigegeben">${esc(f.decisionComment||'')}</textarea>
+    <label>Freigabebetrag (€)</label>
+    <input id="dAmount" type="number" min="0" step="0.01" inputmode="decimal" value="${f.decisionAmount!==''&&f.decisionAmount!=null?esc(f.decisionAmount):''}" placeholder="optional">
+    <div class="row" style="margin-top:14px"><button class="primary" onclick="saveDecision('${id}')">Entscheidung speichern</button><button onclick="closeModal()">Abbrechen</button></div>`);
+}
+
+function saveDecision(id){
+  const f=db.findings.find(x=>x.id===id); if(!f)return;
+  f.decisionStatus=document.getElementById('dStatus').value;
+  f.decisionBy=document.getElementById('dBy').value.trim();
+  f.decisionDate=document.getElementById('dDate').value;
+  f.decisionComment=document.getElementById('dComment').value.trim();
+  const amount=document.getElementById('dAmount').value;
+  f.decisionAmount=amount===''?'':Number(amount);
+  f.decisionUpdatedAt=Date.now();
+  closeModal();save();showSection('decisions');
+}
+
 function renderAll(){
   renderDashboard();renderObjects();renderInspections();renderSelects();renderFindings();renderReport();
-}
+renderDecisions();}
 function renderDashboard(){
   document.getElementById('kpiObjects').textContent=db.objects.length;
   const open=db.findings.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt');
