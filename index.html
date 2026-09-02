@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 1.5</title>
+<title>Duschl Service – Objekt-Dokumentation 1.5.1</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
 header{position:sticky;top:0;z-index:10;background:var(--blue);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
 header h1{font-size:18px;margin:0}header small{opacity:.8}
-nav{display:flex;gap:8px;overflow:auto;padding:10px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:56px;z-index:9}
+nav{display:flex;gap:8px;overflow:visible;flex-wrap:wrap;padding:10px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:56px;z-index:9}
 nav button{white-space:nowrap}
 main{max-width:1100px;margin:auto;padding:16px}
 .grid{display:grid;gap:12px}.g2{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}.g3{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
@@ -163,7 +163,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 </section>
 
 
-<section id="decisions" class="page">
+<section id="decisions" class="section">
   <div class="row space">
     <div>
       <h2>Entscheidungen</h2>
@@ -245,12 +245,12 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <div id="modalRoot"></div>
 
 <script>
-const KEY='duschl_objekt_doku_v15';
-const OLD_KEY='duschl_objekt_doku_v141';
+const KEY='duschl_objekt_doku_v151';
+const OLD_KEY='duschl_objekt_doku_v15';
 let db = load();
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'1.5'};
+  return {objects:[],inspections:[],findings:[],version:'1.5.1'};
 }
 function load(){
   try{
@@ -259,7 +259,7 @@ function load(){
     const old=localStorage.getItem(OLD_KEY);
     if(old){
       const migrated=JSON.parse(old);
-      migrated.version='1.5';
+      migrated.version='1.5.1';
       (migrated.findings||[]).forEach(f=>{
         if(!f.type)f.type='Feststellung';
         if(!f.beforePhoto && f.photo)f.beforePhoto=f.photo;
@@ -274,7 +274,7 @@ function load(){
     return seed();
   }catch(e){return seed()}
 }
-function save(){db.version='1.5';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
+function save(){db.version='1.5.1';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
 function uid(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)}
 function fmt(ts){if(!ts)return'';return new Date(ts).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -285,7 +285,7 @@ function showSection(id){
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('primary'));
   [...document.querySelectorAll('nav button')].find(b=>b.getAttribute('onclick')?.includes(`'${id}'`))?.classList.add('primary');
-  if(id==='reports')renderReport();
+  if(id==='reports')renderReport();if(id==='decisions')renderDecisions();
 }
 function priorityLabel(p){
 
