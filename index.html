@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation</title>
+<title>Duschl Service – Objekt-Dokumentation 1.2</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -46,14 +46,14 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
   <button onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button onclick="showSection('objects')">Objekte</button>
   <button onclick="showSection('inspections')">Begehungen</button>
-  <button onclick="showSection('findings')">Feststellungen</button>
+  <button onclick="showSection('findings')">Dokumentation</button>
   <button onclick="showSection('reports')">Berichte</button>
   <button onclick="showSection('settings')">Daten</button>
 </nav>
 
 <main>
 <section id="dashboard" class="section active">
-  <div class="row space"><div><h2>Übersicht</h2><div class="muted">Dein aktueller Dokumentationsstand</div></div><button class="primary" onclick="openInspectionModal()">+ Begehung starten</button></div>
+  <div class="row space"><div><h2>Übersicht</h2><div class="muted">Dein aktueller Dokumentationsstand</div></div><button class="primary" onclick="openInspectionModal()">+ Begehung / Einsatz starten</button></div>
   <div class="grid g3" style="margin-top:14px">
     <div class="card"><div class="muted">Objekte</div><div class="kpi" id="kpiObjects">0</div></div>
     <div class="card"><div class="muted">Offene Feststellungen</div><div class="kpi" id="kpiOpen">0</div></div>
@@ -75,11 +75,12 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 </section>
 
 <section id="findings" class="section">
-  <div class="row space"><div><h2>Feststellungen</h2><div class="muted">Mängel, Hinweise und Maßnahmen</div></div><button class="primary" onclick="openFindingModal()">+ Feststellung</button></div>
+  <div class="row space"><div><h2>Dokumentation</h2><div class="muted">Feststellungen und Leistungsnachweise</div></div><button class="primary" onclick="openFindingModal()">+ Dokumentation</button></div>
   <div class="grid g3" style="margin:14px 0">
     <div><label>Objekt</label><select id="filterObject" onchange="renderFindings()"><option value="">Alle</option></select></div>
     <div><label>Status</label><select id="filterStatus" onchange="renderFindings()"><option value="">Alle</option><option>Offen</option><option>In Bearbeitung</option><option>Erledigt</option></select></div>
     <div><label>Priorität</label><select id="filterPriority" onchange="renderFindings()"><option value="">Alle</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select></div>
+    <div><label>Typ</label><select id="filterType" onchange="renderFindings()"><option value="">Alle</option><option>Feststellung</option><option>Leistung</option></select></div>
   </div>
   <div id="findingList" class="grid"></div>
 </section>
@@ -98,7 +99,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
   <div class="grid g2">
     <div class="card">
       <h3>Sicherung exportieren</h3>
-      <p class="muted">Lädt alle Objekte, Begehungen und Feststellungen als JSON-Datei herunter.</p>
+      <p class="muted">Lädt alle Objekte, Begehungen und Dokumentationen als JSON-Datei herunter.</p>
       <button class="primary" onclick="exportData()">Sicherung erstellen</button>
     </div>
     <div class="card">
@@ -116,18 +117,40 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 </section>
 </main>
 
-<button class="fab" onclick="openFindingModal()">+ Feststellung</button>
+<button class="fab" onclick="openFindingModal()">+ Dokumentation</button>
 <div id="modalRoot"></div>
 
 <script>
-const KEY='duschl_objekt_doku_v11';
+const KEY='duschl_objekt_doku_v12';
+const OLD_KEY='duschl_objekt_doku_v11';
 let db = load();
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'1.1'};
+  return {objects:[],inspections:[],findings:[],version:'1.2'};
 }
-function load(){try{return JSON.parse(localStorage.getItem(KEY))||seed()}catch(e){return seed()}}
-function save(){localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
+function load(){
+  try{
+    const current=localStorage.getItem(KEY);
+    if(current)return JSON.parse(current);
+    const old=localStorage.getItem(OLD_KEY);
+    if(old){
+      const migrated=JSON.parse(old);
+      migrated.version='1.2';
+      (migrated.findings||[]).forEach(f=>{
+        if(!f.type)f.type='Feststellung';
+        if(!f.beforePhoto && f.photo)f.beforePhoto=f.photo;
+        if(!f.afterPhoto)f.afterPhoto='';
+        if(!f.completionType)f.completionType='';
+        if(!f.completionNote)f.completionNote='';
+        if(!f.activity)f.activity='';
+      });
+      localStorage.setItem(KEY,JSON.stringify(migrated));
+      return migrated;
+    }
+    return seed();
+  }catch(e){return seed()}
+}
+function save(){db.version='1.2';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
 function uid(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)}
 function fmt(ts){if(!ts)return'';return new Date(ts).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -148,7 +171,7 @@ function renderAll(){
 }
 function renderDashboard(){
   document.getElementById('kpiObjects').textContent=db.objects.length;
-  const open=db.findings.filter(f=>f.status!=='Erledigt');
+  const open=db.findings.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt');
   document.getElementById('kpiOpen').textContent=open.length;
   document.getElementById('kpiCritical').textContent=open.filter(f=>['P1','P2'].includes(f.priority)).length;
   document.getElementById('kpiInspections').textContent=db.inspections.length;
@@ -163,7 +186,7 @@ function renderObjects(){
     return `<div class="card">
       <div class="row space"><div><h3 style="margin:0">${esc(o.name)}</h3><div class="muted">${esc(o.address||'')}</div></div><span class="badge">${open} offen</span></div>
       <p>${esc(o.notes||'')}</p>
-      <div class="row"><button onclick="openInspectionModal('${o.id}')">Begehung starten</button><button onclick="openObjectModal('${o.id}')">Bearbeiten</button><button onclick="showObjectReport('${o.id}')">Bericht</button></div>
+      <div class="row"><button onclick="openInspectionModal('${o.id}')">Begehung / Einsatz starten</button><button onclick="openObjectModal('${o.id}')">Bearbeiten</button><button onclick="showObjectReport('${o.id}')">Bericht</button></div>
     </div>`;
   }).join(''):`<div class="empty">Noch kein Objekt angelegt.</div>`;
 }
@@ -172,8 +195,8 @@ function renderInspections(){
   const arr=[...db.inspections].sort((a,b)=>b.startedAt-a.startedAt);
   el.innerHTML=arr.length?arr.map(i=>{
     const count=db.findings.filter(f=>f.inspectionId===i.id).length;
-    return `<div class="card"><div class="row space"><div><b>${esc(objectName(i.objectId))}</b><div class="muted">${fmt(i.startedAt)}${i.endedAt?' · abgeschlossen':''}</div></div><span class="badge">${count} Feststellungen</span></div>
-      <p>${esc(i.notes||'')}</p><div class="row"><button onclick="openFindingModal('${i.objectId}','${i.id}')">+ Feststellung</button>${!i.endedAt?`<button onclick="closeInspection('${i.id}')">Begehung abschließen</button>`:''}</div></div>`;
+    return `<div class="card"><div class="row space"><div><b>${esc(objectName(i.objectId))}</b><div class="muted">${fmt(i.startedAt)}${i.endedAt?' · abgeschlossen':''}</div></div><span class="badge">${count} Dokumentationen</span></div>
+      <p>${esc(i.notes||'')}</p><div class="row"><button onclick="openFindingModal('${i.objectId}','${i.id}')">+ Dokumentation</button>${!i.endedAt?`<button onclick="closeInspection('${i.id}')">Begehung / Einsatz abschließen</button>`:''}</div></div>`;
   }).join(''):`<div class="empty">Noch keine Begehung dokumentiert.</div>`;
 }
 function renderSelects(){
@@ -185,21 +208,25 @@ function renderSelects(){
   });
 }
 function findingCard(f){
-  return `<div class="card finding" data-priority="${f.priority}">
-    <div class="row space"><div>${badgeP(f.priority)} ${statusBadge(f.status)}</div><small class="muted">${fmt(f.createdAt)}</small></div>
+  const type=f.type||'Feststellung';
+  const before=f.beforePhoto||f.photo||'', after=f.afterPhoto||'';
+  return `<div class="card finding" data-priority="${f.priority||'P4'}">
+    <div class="row space"><div><span class="badge">${esc(type)}</span> ${type==='Feststellung'?badgeP(f.priority||'P3'):''} ${statusBadge(f.status)}</div><small class="muted">${fmt(f.createdAt)}</small></div>
     <h3 style="margin-bottom:5px">${esc(f.title)}</h3>
     <div class="muted">${esc(objectName(f.objectId))}${f.area?' · '+esc(f.area):''}</div>
-    ${f.photo?`<img class="thumb" src="${f.photo}" alt="Foto" style="margin-top:10px">`:''}
+    ${(before||after)?`<div class="row" style="margin-top:10px">${before?`<div><small class="muted">Vorher</small><br><img class="thumb" src="${before}" alt="Vorher"></div>`:''}${after?`<div><small class="muted">Nachher</small><br><img class="thumb" src="${after}" alt="Nachher"></div>`:''}</div>`:''}
     ${f.description?`<p>${esc(f.description)}</p>`:''}
-    ${f.action?`<p><b>Maßnahme:</b> ${esc(f.action)}</p>`:''}
-    <div class="row"><button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}')">Bearbeiten</button>${f.status!=='Erledigt'?`<button onclick="markDone('${f.id}')">Erledigt</button>`:''}</div>
+    ${type==='Leistung'&&f.activity?`<p><b>Durchgeführt:</b> ${esc(f.activity)}</p>`:''}
+    ${type==='Feststellung'&&f.action?`<p><b>Empfehlung:</b> ${esc(f.action)}</p>`:''}
+    ${f.status==='Erledigt'&&f.completionType?`<p><b>Abschluss:</b> ${esc(f.completionType)}${f.completionNote?' – '+esc(f.completionNote):''}</p>`:''}
+    <div class="row"><button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}')">Bearbeiten</button>${f.status!=='Erledigt'?`<button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}',true)">Abschließen</button>`:''}</div>
   </div>`;
 }
 function renderFindings(){
-  const of=document.getElementById('filterObject')?.value||'', sf=document.getElementById('filterStatus')?.value||'', pf=document.getElementById('filterPriority')?.value||'';
+  const of=document.getElementById('filterObject')?.value||'', sf=document.getElementById('filterStatus')?.value||'', pf=document.getElementById('filterPriority')?.value||'', tf=document.getElementById('filterType')?.value||'';
   let arr=[...db.findings].sort((a,b)=>b.createdAt-a.createdAt);
-  if(of)arr=arr.filter(x=>x.objectId===of);if(sf)arr=arr.filter(x=>x.status===sf);if(pf)arr=arr.filter(x=>x.priority===pf);
-  const el=document.getElementById('findingList'); if(el)el.innerHTML=arr.length?arr.map(f=>findingCard(f)).join(''):`<div class="empty">Keine Feststellungen im gewählten Filter.</div>`;
+  if(of)arr=arr.filter(x=>x.objectId===of);if(sf)arr=arr.filter(x=>x.status===sf);if(pf)arr=arr.filter(x=>x.priority===pf);if(tf)arr=arr.filter(x=>(x.type||'Feststellung')===tf);
+  const el=document.getElementById('findingList'); if(el)el.innerHTML=arr.length?arr.map(f=>findingCard(f)).join(''):`<div class="empty">Keine Dokumentationen im gewählten Filter.</div>`;
 }
 function renderReport(){
   const id=document.getElementById('reportObject')?.value;
@@ -207,8 +234,8 @@ function renderReport(){
   if(!id){el.innerHTML='<div class="empty">Objekt für Bericht auswählen.</div>';return}
   const o=db.objects.find(x=>x.id===id), ins=db.inspections.filter(x=>x.objectId===id).sort((a,b)=>b.startedAt-a.startedAt), fs=db.findings.filter(x=>x.objectId===id).sort((a,b)=>a.priority.localeCompare(b.priority)||b.createdAt-a.createdAt);
   el.innerHTML=`<div class="card"><h2>${esc(o.name)}</h2><div>${esc(o.address||'')}</div><p>${esc(o.notes||'')}</p>
-  <hr><div class="grid g3"><div><b>${ins.length}</b><div class="muted">Begehungen</div></div><div><b>${fs.filter(f=>f.status!=='Erledigt').length}</b><div class="muted">Offen</div></div><div><b>${fs.filter(f=>['P1','P2'].includes(f.priority)&&f.status!=='Erledigt').length}</b><div class="muted">P1/P2 offen</div></div></div></div>
-  <h3>Feststellungen</h3>${fs.length?fs.map(f=>findingCard(f).replace(/<div class="row"><button[\s\S]*?<\/div>\s*<\/div>$/,'</div>')).join(''):'<div class="empty">Keine Feststellungen.</div>'}`;
+  <hr><div class="grid g3"><div><b>${ins.length}</b><div class="muted">Begehungen</div></div><div><b>${fs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt').length}</b><div class="muted">Feststellungen offen</div></div><div><b>${fs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&['P1','P2'].includes(f.priority)&&f.status!=='Erledigt').length}</b><div class="muted">P1/P2 offen</div></div></div></div>
+  <h3>Dokumentation</h3>${fs.length?fs.map(f=>findingCard(f).replace(/<div class="row"><button[\s\S]*?<\/div>\s*<\/div>$/,'</div>')).join(''):'<div class="empty">Keine Dokumentationen.</div>'}`;
 }
 function showObjectReport(id){showSection('reports');setTimeout(()=>{document.getElementById('reportObject').value=id;renderReport()},0)}
 
@@ -237,7 +264,7 @@ function deleteObject(id){
 function openInspectionModal(pref=''){
   if(!db.objects.length){alert('Bitte zuerst ein Objekt anlegen.');showSection('objects');return}
   const opts=db.objects.map(o=>`<option value="${o.id}" ${o.id===pref?'selected':''}>${esc(o.name)}</option>`).join('');
-  modal(`<div class="row space"><h2>Begehung starten</h2><button onclick="closeModal()">✕</button></div>
+  modal(`<div class="row space"><h2>Begehung / Einsatz starten</h2><button onclick="closeModal()">✕</button></div>
   <label>Objekt *</label><select id="iObject">${opts}</select>
   <label>Notiz zur Begehung</label><textarea id="iNotes" placeholder="z. B. reguläre Monatsbegehung"></textarea>
   <div class="row" style="margin-top:14px"><button class="primary" onclick="startInspection()">Starten</button></div>`);
@@ -249,26 +276,62 @@ function startInspection(){
 }
 function closeInspection(id){const i=db.inspections.find(x=>x.id===id);if(i){i.endedAt=Date.now();save()}}
 
-function openFindingModal(prefObj='',prefInsp='',editId=''){
+function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   if(!db.objects.length){alert('Bitte zuerst ein Objekt anlegen.');showSection('objects');return}
-  const f=db.findings.find(x=>x.id===editId)||{objectId:prefObj,inspectionId:prefInsp,title:'',area:'',category:'Sicherheit',priority:'P3',description:'',action:'',status:'Offen',photo:''};
+  const f=db.findings.find(x=>x.id===editId)||{objectId:prefObj,inspectionId:prefInsp,type:'Feststellung',title:'',area:'',category:'Sicherheit',priority:'P3',description:'',action:'',activity:'',status:'Offen',beforePhoto:'',afterPhoto:'',completionType:'',completionNote:''};
+  if(!f.type)f.type='Feststellung';
   const objOpts=db.objects.map(o=>`<option value="${o.id}" ${o.id===f.objectId?'selected':''}>${esc(o.name)}</option>`).join('');
   const inspOpts=db.inspections.filter(i=>!f.objectId||i.objectId===f.objectId).map(i=>`<option value="${i.id}" ${i.id===f.inspectionId?'selected':''}>${esc(inspectionName(i.id))}</option>`).join('');
-  modal(`<div class="row space"><h2>${editId?'Feststellung bearbeiten':'Feststellung erfassen'}</h2><button onclick="closeModal()">✕</button></div>
+  modal(`<div class="row space"><h2>${editId?'Dokumentation bearbeiten':'Dokumentation erfassen'}</h2><button onclick="closeModal()">✕</button></div>
   <label>Objekt *</label><select id="fObject" onchange="refreshInspectionOptions()">${objOpts}</select>
-  <label>Begehung</label><select id="fInspection"><option value="">Ohne Zuordnung</option>${inspOpts}</select>
-  <label>Bereich</label><input id="fArea" value="${esc(f.area)}" placeholder="z. B. Treppenhaus EG, Tiefgarage">
-  <label>Titel *</label><input id="fTitle" value="${esc(f.title)}" placeholder="z. B. Handlauf locker">
-  <div class="grid g2">
-    <div><label>Kategorie</label><select id="fCategory">${['Sicherheit','Funktion','Werterhalt','Optik','Komfort'].map(x=>`<option ${x===f.category?'selected':''}>${x}</option>`).join('')}</select></div>
-    <div><label>Priorität</label><select id="fPriority">${['P1','P2','P3','P4'].map(x=>`<option ${x===f.priority?'selected':''}>${x}</option>`).join('')}</select></div>
+  <label>Begehung / Einsatz</label><select id="fInspection"><option value="">Ohne Zuordnung</option>${inspOpts}</select>
+  <label>Dokumentationstyp *</label><select id="fType" onchange="toggleDocType()">${['Feststellung','Leistung'].map(x=>`<option ${x===f.type?'selected':''}>${x}</option>`).join('')}</select>
+  <label>Bereich</label><input id="fArea" value="${esc(f.area)}" placeholder="z. B. Außenanlage, Gehweg, Treppenhaus">
+  <label>Titel *</label><input id="fTitle" value="${esc(f.title)}" placeholder="z. B. Handlauf locker / Rasen gemäht / Winterdienst">
+  <div id="findingFields">
+    <div class="grid g2">
+      <div><label>Kategorie</label><select id="fCategory">${['Sicherheit','Funktion','Werterhalt','Optik','Komfort'].map(x=>`<option ${x===f.category?'selected':''}>${x}</option>`).join('')}</select></div>
+      <div><label>Priorität</label><select id="fPriority">${['P1','P2','P3','P4'].map(x=>`<option ${x===f.priority?'selected':''}>${x}</option>`).join('')}</select></div>
+    </div>
+    <label>Beschreibung / Feststellung</label><textarea id="fDescription">${esc(f.description)}</textarea>
+    <label>Empfohlene Maßnahme</label><textarea id="fAction">${esc(f.action)}</textarea>
   </div>
-  <label>Beschreibung</label><textarea id="fDescription">${esc(f.description)}</textarea>
-  <label>Empfohlene Maßnahme</label><textarea id="fAction">${esc(f.action)}</textarea>
-  <label>Status</label><select id="fStatus">${['Offen','In Bearbeitung','Erledigt'].map(x=>`<option ${x===f.status?'selected':''}>${x}</option>`).join('')}</select>
-  <label>Foto</label><input type="file" id="fPhoto" accept="image/*" capture="environment">
-  ${f.photo?`<img class="thumb" src="${f.photo}" alt="bestehendes Foto" style="margin-top:8px">`:''}
+  <div id="serviceFields">
+    <label>Durchgeführte Tätigkeit *</label>
+    <select id="fActivityPreset" onchange="applyActivityPreset()">
+      <option value="">Auswahl / Freitext</option>
+      ${['Kontrollgang / Begehung','Rasen gemäht','Hecke / Sträucher geschnitten','Laub entfernt','Schnee geräumt','Gestreut','Geräumt und gestreut','Mülltonnen bereitgestellt','Reinigung durchgeführt','Sonstiges'].map(x=>`<option>${x}</option>`).join('')}
+    </select>
+    <textarea id="fActivity" placeholder="Tätigkeit kurz dokumentieren">${esc(f.activity)}</textarea>
+    <label>Bemerkung / Zustand</label><textarea id="fServiceNote">${esc(f.description)}</textarea>
+  </div>
+  <div class="grid g2">
+    <div><label>Vorher-Foto</label><input type="file" id="fBeforePhoto" accept="image/*" capture="environment">${(f.beforePhoto||f.photo)?`<img class="thumb" src="${f.beforePhoto||f.photo}" alt="Vorher" style="margin-top:8px">`:''}</div>
+    <div><label>Nachher-Foto</label><input type="file" id="fAfterPhoto" accept="image/*" capture="environment">${f.afterPhoto?`<img class="thumb" src="${f.afterPhoto}" alt="Nachher" style="margin-top:8px">`:''}</div>
+  </div>
+  <label>Status</label><select id="fStatus" onchange="toggleCompletion()">${['Offen','In Bearbeitung','Erledigt'].map(x=>`<option ${x===(forceClose?'Erledigt':f.status)?'selected':''}>${x}</option>`).join('')}</select>
+  <div id="completionFields" class="card" style="margin-top:12px;background:#f7f9fa">
+    <label>Abschlussart *</label><select id="fCompletionType">
+      <option value="">Bitte wählen</option>
+      ${['Maßnahme durchgeführt','Leistung durchgeführt','Nicht gewünscht','Keine Maßnahme erforderlich','An Dritten übergeben','Sonstiger Abschluss'].map(x=>`<option ${x===f.completionType?'selected':''}>${x}</option>`).join('')}
+    </select>
+    <label>Getroffene Maßnahme / Abschlussnotiz</label><textarea id="fCompletionNote" placeholder="z. B. Türschließer nachgestellt / Kunde wünscht keine Umsetzung">${esc(f.completionNote)}</textarea>
+  </div>
   <div class="row" style="margin-top:14px"><button class="primary" onclick="saveFinding('${editId}')">Speichern</button>${editId?`<button class="danger" onclick="deleteFinding('${editId}')">Löschen</button>`:''}</div>`);
+  toggleDocType();toggleCompletion();
+}
+function toggleDocType(){
+  const type=document.getElementById('fType')?.value||'Feststellung';
+  document.getElementById('findingFields')?.classList.toggle('hidden',type!=='Feststellung');
+  document.getElementById('serviceFields')?.classList.toggle('hidden',type!=='Leistung');
+}
+function toggleCompletion(){
+  const done=document.getElementById('fStatus')?.value==='Erledigt';
+  document.getElementById('completionFields')?.classList.toggle('hidden',!done);
+}
+function applyActivityPreset(){
+  const p=document.getElementById('fActivityPreset').value;
+  if(p&&p!=='Sonstiges')document.getElementById('fActivity').value=p;
 }
 function refreshInspectionOptions(){
   const oid=document.getElementById('fObject').value, el=document.getElementById('fInspection');
@@ -287,13 +350,28 @@ function readPhoto(file){
 }
 async function saveFinding(id){
   const title=document.getElementById('fTitle').value.trim();if(!title)return alert('Bitte Titel eingeben.');
-  const file=document.getElementById('fPhoto').files[0], old=db.findings.find(x=>x.id===id), newPhoto=await readPhoto(file);
-  const data={objectId:document.getElementById('fObject').value,inspectionId:document.getElementById('fInspection').value,area:document.getElementById('fArea').value.trim(),title,category:document.getElementById('fCategory').value,priority:document.getElementById('fPriority').value,description:document.getElementById('fDescription').value.trim(),action:document.getElementById('fAction').value.trim(),status:document.getElementById('fStatus').value,photo:newPhoto||(old?.photo||'')};
+  const type=document.getElementById('fType').value, status=document.getElementById('fStatus').value;
+  const activity=document.getElementById('fActivity')?.value.trim()||'';
+  const completionType=document.getElementById('fCompletionType')?.value||'';
+  if(type==='Leistung'&&!activity)return alert('Bitte die durchgeführte Tätigkeit dokumentieren.');
+  if(status==='Erledigt'&&!completionType)return alert('Bitte eine Abschlussart wählen.');
+  const beforeFile=document.getElementById('fBeforePhoto').files[0], afterFile=document.getElementById('fAfterPhoto').files[0];
+  const old=db.findings.find(x=>x.id===id), before=await readPhoto(beforeFile), after=await readPhoto(afterFile);
+  const description=type==='Feststellung'?(document.getElementById('fDescription')?.value.trim()||''):(document.getElementById('fServiceNote')?.value.trim()||'');
+  const data={
+    objectId:document.getElementById('fObject').value,inspectionId:document.getElementById('fInspection').value,
+    type,area:document.getElementById('fArea').value.trim(),title,
+    category:type==='Feststellung'?(document.getElementById('fCategory')?.value||''):'Leistung',
+    priority:type==='Feststellung'?(document.getElementById('fPriority')?.value||'P4'):'P4',
+    description,action:type==='Feststellung'?(document.getElementById('fAction')?.value.trim()||''):'',
+    activity,status,completionType,completionNote:document.getElementById('fCompletionNote')?.value.trim()||'',
+    beforePhoto:before||(old?.beforePhoto||old?.photo||''),afterPhoto:after||(old?.afterPhoto||'')
+  };
   if(id)Object.assign(old,data,{updatedAt:Date.now()});else db.findings.push({id:uid('find'),createdAt:Date.now(),...data});
-  try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){alert('Speicher des Browsers ist voll. Bitte Sicherung exportieren und ältere Fotos/Feststellungen reduzieren.');return}
+  try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){alert('Speicher des Browsers ist voll. Bitte Sicherung exportieren und ältere Fotos/Dokumentationen reduzieren.');return}
   closeModal();renderAll();showSection('findings')
 }
-function markDone(id){const f=db.findings.find(x=>x.id===id);if(f){f.status='Erledigt';f.updatedAt=Date.now();save()}}
+function markDone(id){openFindingModal(db.findings.find(x=>x.id===id)?.objectId||'','',id,true)}
 function deleteFinding(id){if(confirm('Feststellung löschen?')){db.findings=db.findings.filter(x=>x.id!==id);closeModal();save()}}
 
 function exportData(){
