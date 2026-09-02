@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 1.2.2</title>
+<title>Duschl Service – Objekt-Dokumentation 1.3.2</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -36,6 +36,20 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 @media(max-width:680px){main{padding:12px}header small{display:none}nav{top:53px}.desktop{display:none}table{font-size:13px}.modal>.sheet{padding-bottom:32px}}
 @media print{header,nav,.fab,.no-print{display:none!important}body{background:#fff}main{max-width:none;padding:0}.card{box-shadow:none}.section{display:none!important}#reports.active{display:block!important}}
 </style>
+
+<style>
+.object-file{border:1px solid #dfe5e8;border-radius:14px;background:#fff;margin-bottom:14px;overflow:hidden}
+.object-file-head{padding:14px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.object-file-stats{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.stat-chip{background:#f4f6f7;border-radius:999px;padding:5px 9px;font-size:.85rem}
+.timeline{border-top:1px solid #edf0f2;padding:10px 14px 14px}
+.timeline-item{padding:10px 0;border-bottom:1px solid #edf0f2}
+.timeline-item:last-child{border-bottom:0}
+.compact-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.filterbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:12px 0}
+.hidden-history{display:none}
+</style>
+
 </head>
 <body>
 <header>
@@ -57,7 +71,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
   <div class="grid g3" style="margin-top:14px">
     <div class="card"><div class="muted">Objekte</div><div class="kpi" id="kpiObjects">0</div></div>
     <div class="card"><div class="muted">Offene Feststellungen</div><div class="kpi" id="kpiOpen">0</div></div>
-    <div class="card"><div class="muted">P1 / P2 offen</div><div class="kpi" id="kpiCritical">0</div></div>
+    <div class="card"><div class="muted">Sofort / Dringend offen</div><div class="kpi" id="kpiCritical">0</div></div>
     <div class="card"><div class="muted">Begehungen</div><div class="kpi" id="kpiInspections">0</div></div>
   </div>
   <h3>Offene Punkte</h3>
@@ -70,15 +84,58 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 </section>
 
 <section id="inspections" class="section">
-  <div class="row space"><div><h2>Begehungen</h2><div class="muted">Dokumentierte Rundgänge</div></div><button class="primary" onclick="openInspectionModal()">+ Begehung</button></div>
-  <div id="inspectionList" class="grid" style="margin-top:14px"></div>
+  <div class="row space">
+    <div>
+      <h2>Objektakte & Historie</h2>
+      <div class="muted">Aktueller Stand je Objekt mit den letzten Einsätzen und vollständiger Historie bei Bedarf</div>
+    </div>
+    <button class="primary" onclick="openInspectionModal()">+ Begehung / Einsatz</button>
+  </div>
+
+  <div class="filterbar">
+    <div>
+      <label>Objekt</label>
+      <select id="historyObjectFilter" onchange="renderObjectFiles()">
+        <option value="">Alle Objekte</option>
+      </select>
+    </div>
+    <div>
+      <label>Zeitraum</label>
+      <select id="historyPeriodFilter" onchange="renderObjectFiles()">
+        <option value="all">Gesamter Zeitraum</option>
+        <option value="30">Letzte 30 Tage</option>
+        <option value="90">Letzte 90 Tage</option>
+        <option value="365">Letzte 12 Monate</option>
+      </select>
+    </div>
+    <div>
+      <label>Dokumentation</label>
+      <select id="historyTypeFilter" onchange="renderObjectFiles()">
+        <option value="">Alle</option>
+        <option value="Feststellung">Feststellungen</option>
+        <option value="Leistung">Leistungen</option>
+      </select>
+    </div>
+    <div>
+      <label>Status</label>
+      <select id="historyStatusFilter" onchange="renderObjectFiles()">
+        <option value="">Alle</option>
+        <option value="active">Offen + In Bearbeitung</option>
+        <option value="Offen">Offen</option>
+        <option value="In Bearbeitung">In Bearbeitung</option>
+        <option value="Erledigt">Erledigt</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="objectFiles"></div>
 </section>
 
 <section id="findings" class="section">
   <div class="row space"><div><h2>Dokumentation</h2><div class="muted">Feststellungen und Leistungsnachweise</div></div><button class="primary" onclick="openFindingModal()">+ Dokumentation</button></div>
   <div class="grid g3" style="margin:14px 0">
     <div><label>Objekt</label><select id="filterObject" onchange="renderFindings()"><option value="">Alle</option></select></div>
-    <div><label>Status</label><select id="filterStatus" onchange="renderFindings()"><option value="">Alle</option><option>Offen</option><option>In Bearbeitung</option><option>Erledigt</option></select></div>
+    <div><label>Status</label><select id="filterStatus" onchange="renderFindings()"><option value="active">Offen + In Bearbeitung</option><option value="">Alle</option><option>Offen</option><option>In Bearbeitung</option><option>Erledigt</option></select></div>
     <div><label>Priorität</label><select id="filterPriority" onchange="renderFindings()"><option value="">Alle</option><option value="P1">Sofort</option><option value="P2">Dringend</option><option value="P3">Planbar</option><option value="P4">Beobachten</option></select></div>
     <div><label>Typ</label><select id="filterType" onchange="renderFindings()"><option value="">Alle</option><option>Feststellung</option><option>Leistung</option></select></div>
   </div>
@@ -121,12 +178,12 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <div id="modalRoot"></div>
 
 <script>
-const KEY='duschl_objekt_doku_v122';
-const OLD_KEY='duschl_objekt_doku_v121';
+const KEY='duschl_objekt_doku_v132';
+const OLD_KEY='duschl_objekt_doku_v131';
 let db = load();
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'1.2.2'};
+  return {objects:[],inspections:[],findings:[],version:'1.3.2'};
 }
 function load(){
   try{
@@ -135,7 +192,7 @@ function load(){
     const old=localStorage.getItem(OLD_KEY);
     if(old){
       const migrated=JSON.parse(old);
-      migrated.version='1.2.2';
+      migrated.version='1.3.2';
       (migrated.findings||[]).forEach(f=>{
         if(!f.type)f.type='Feststellung';
         if(!f.beforePhoto && f.photo)f.beforePhoto=f.photo;
@@ -150,7 +207,7 @@ function load(){
     return seed();
   }catch(e){return seed()}
 }
-function save(){db.version='1.2.2';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
+function save(){db.version='1.3.2';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
 function uid(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)}
 function fmt(ts){if(!ts)return'';return new Date(ts).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -166,7 +223,7 @@ function showSection(id){
 function priorityLabel(p){
   return ({P1:'Sofort',P2:'Dringend',P3:'Planbar',P4:'Beobachten'})[p]||p||'';
 }
-function badgeP(p){return `<span class="badge p ${p}">${esc(priorityLabel(p))}</span>`}">${p}</span>`}
+function badgeP(p){return `<span class="badge p ${p}">${esc(priorityLabel(p))}</span>`}
 function statusBadge(s){return `<span class="badge">${esc(s)}</span>`}
 
 function renderAll(){
@@ -193,14 +250,94 @@ function renderObjects(){
     </div>`;
   }).join(''):`<div class="empty">Noch kein Objekt angelegt.</div>`;
 }
-function renderInspections(){
-  const el=document.getElementById('inspectionList');
-  const arr=[...db.inspections].sort((a,b)=>b.startedAt-a.startedAt);
-  el.innerHTML=arr.length?arr.map(i=>{
-    const count=db.findings.filter(f=>f.inspectionId===i.id).length;
-    return `<div class="card"><div class="row space"><div><b>${esc(objectName(i.objectId))}</b><div class="muted">${fmt(i.startedAt)}${i.endedAt?' · abgeschlossen':''}</div></div><span class="badge">${count} Dokumentationen</span></div>
-      <p>${esc(i.notes||'')}</p><div class="row"><button onclick="openFindingModal('${i.objectId}','${i.id}')">+ Dokumentation</button>${!i.endedAt?`<button onclick="closeInspection('${i.id}')">Begehung / Einsatz abschließen</button>`:''}</div></div>`;
-  }).join(''):`<div class="empty">Noch keine Begehung dokumentiert.</div>`;
+function renderInspections(){renderObjectFiles()}
+
+function renderObjectFiles(){
+  const host=document.getElementById('objectFiles'); if(!host)return;
+
+  const objFilter=document.getElementById('historyObjectFilter');
+  if(objFilter){
+    const cur=objFilter.value;
+    objFilter.innerHTML='<option value="">Alle Objekte</option>'+db.objects.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
+    objFilter.value=cur;
+  }
+
+  const selectedObject=document.getElementById('historyObjectFilter')?.value||'';
+  const days=document.getElementById('historyPeriodFilter')?.value||'all';
+  const type=document.getElementById('historyTypeFilter')?.value||'';
+  const status=document.getElementById('historyStatusFilter')?.value||'';
+
+  let objects=[...db.objects];
+  if(selectedObject)objects=objects.filter(o=>o.id===selectedObject);
+
+  const cutoff=days==='all'?0:Date.now()-Number(days)*86400000;
+
+  host.innerHTML=objects.map(o=>{
+    const inspections=db.inspections
+      .filter(i=>i.objectId===o.id && (!cutoff || new Date(i.createdAt||i.date||0).getTime()>=cutoff))
+      .sort((a,b)=>new Date(b.createdAt||b.date||0)-new Date(a.createdAt||a.date||0));
+
+    let docs=db.findings.filter(f=>f.objectId===o.id && (!cutoff || (f.createdAt||0)>=cutoff));
+    if(type)docs=docs.filter(f=>(f.type||'Feststellung')===type);
+    if(status==='active')docs=docs.filter(f=>f.status!=='Erledigt');else if(status)docs=docs.filter(f=>f.status===status);
+
+    const open=docs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt').length;
+    const urgent=docs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&['P1','P2'].includes(f.priority)&&f.status!=='Erledigt').length;
+    const services=docs.filter(f=>(f.type||'Feststellung')==='Leistung').length;
+
+    const lastFive=inspections.slice(0,5);
+    const older=inspections.slice(5);
+
+    const renderInspection=(i)=>{
+      const f=db.findings.filter(x=>x.inspectionId===i.id)
+        .filter(x=>!type||(x.type||'Feststellung')===type)
+        .filter(x=>!status||(status==='active'?x.status!=='Erledigt':x.status===status));
+      if((type||status) && !f.length)return '';
+      return `<div class="timeline-item">
+        <div class="row space">
+          <div><b>${esc(inspectionName(i.id))}</b><div class="muted">${fmt(i.createdAt||i.date)}</div></div>
+          <span class="badge">${f.length} Dok.</span>
+        </div>
+        ${f.length?`<div class="muted" style="margin-top:5px">${f.slice(0,3).map(x=>esc(x.title)).join(' · ')}${f.length>3?' · …':''}</div>`:''}
+        <div class="compact-actions">
+          <button onclick="openInspectionModal('${i.id}')">Öffnen</button>
+          <button onclick="openFindingModal('${o.id}','${i.id}')">+ Dokumentation</button>
+        </div>
+      </div>`;
+    };
+
+    const lastHtml=lastFive.map(renderInspection).join('');
+    const olderHtml=older.map(renderInspection).join('');
+
+    return `<div class="object-file">
+      <div class="object-file-head">
+        <div>
+          <h3 style="margin:0">${esc(o.name)}</h3>
+          <div class="muted">${esc(o.address||'')}</div>
+          <div class="object-file-stats">
+            <span class="stat-chip">${open} offen</span>
+            <span class="stat-chip">${urgent} Sofort/Dringend</span>
+            <span class="stat-chip">${services} Leistungen</span>
+            <span class="stat-chip">${inspections.length} Einsätze</span>
+          </div>
+        </div>
+        <button onclick="openInspectionModal('', '${o.id}')">+ Einsatz</button>
+      </div>
+      <div class="timeline">
+        ${lastHtml||'<div class="muted">Keine Einsätze im gewählten Filter.</div>'}
+        ${older.length?`<div id="hist_${o.id}" class="hidden-history">${olderHtml}</div>
+        <button id="histbtn_${o.id}" onclick="toggleObjectHistory('${o.id}',${older.length})">Gesamte Historie anzeigen (${older.length} weitere)</button>`:''}
+      </div>
+    </div>`;
+  }).join('') || '<div class="muted">Keine Objekte vorhanden.</div>';
+}
+
+function toggleObjectHistory(objectId,count){
+  const box=document.getElementById('hist_'+objectId), btn=document.getElementById('histbtn_'+objectId);
+  if(!box||!btn)return;
+  const hidden=box.classList.contains('hidden-history');
+  box.classList.toggle('hidden-history');
+  btn.textContent=hidden?'Historie einklappen':`Gesamte Historie anzeigen (${count} weitere)`;
 }
 function renderSelects(){
   const opts=db.objects.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
@@ -228,7 +365,7 @@ function findingCard(f){
 function renderFindings(){
   const of=document.getElementById('filterObject')?.value||'', sf=document.getElementById('filterStatus')?.value||'', pf=document.getElementById('filterPriority')?.value||'', tf=document.getElementById('filterType')?.value||'';
   let arr=[...db.findings].sort((a,b)=>b.createdAt-a.createdAt);
-  if(of)arr=arr.filter(x=>x.objectId===of);if(sf)arr=arr.filter(x=>x.status===sf);if(pf)arr=arr.filter(x=>x.priority===pf);if(tf)arr=arr.filter(x=>(x.type||'Feststellung')===tf);
+  if(of)arr=arr.filter(x=>x.objectId===of);if(sf==='active')arr=arr.filter(x=>x.status!=='Erledigt');else if(sf)arr=arr.filter(x=>x.status===sf);if(pf)arr=arr.filter(x=>x.priority===pf);if(tf)arr=arr.filter(x=>(x.type||'Feststellung')===tf);
   const el=document.getElementById('findingList'); if(el)el.innerHTML=arr.length?arr.map(f=>findingCard(f)).join(''):`<div class="empty">Keine Dokumentationen im gewählten Filter.</div>`;
 }
 function renderReport(){
