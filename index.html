@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 1.3.3</title>
+<title>Duschl Service – Objekt-Dokumentation 1.4</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -117,7 +117,29 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
       </select>
     </div>
     <div>
-      <label>Status</label>
+      
+  <div class="card" style="margin-top:14px;padding:14px">
+    <h3 style="margin-top:0">Entscheidung Auftraggeber</h3>
+    <div class="muted" style="margin-bottom:10px">Deine fachliche Empfehlung bleibt getrennt von der Entscheidung des Auftraggebers.</div>
+    <label>Entscheidungsstatus</label>
+    <select id="fDecisionStatus">
+      <option value="pending">Entscheidung ausstehend</option>
+      <option value="approved">Beauftragt</option>
+      <option value="rejected">Nicht beauftragt</option>
+      <option value="deferred">Zurückgestellt</option>
+      <option value="question">Rückfrage erforderlich</option>
+      <option value="thirdparty">An Dritten vergeben</option>
+    </select>
+    <label>Entscheider / Auftraggeber</label>
+    <input id="fDecisionBy" placeholder="Name / Ansprechpartner">
+    <label>Entscheidungsdatum</label>
+    <input id="fDecisionDate" type="date">
+    <label>Kommentar / Begründung</label>
+    <textarea id="fDecisionComment" placeholder="z. B. Austausch freigegeben, Umsetzung im Oktober"></textarea>
+    <label>Freigabebetrag (€)</label>
+    <input id="fDecisionAmount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="optional">
+  </div>
+<label>Status</label>
       <select id="historyStatusFilter" onchange="renderObjectFiles()">
         <option value="">Alle</option>
         <option value="active">Offen + In Bearbeitung</option>
@@ -135,7 +157,16 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
   <div class="row space"><div><h2>Dokumentation</h2><div class="muted">Feststellungen und Leistungsnachweise</div></div><button class="primary" onclick="openFindingModal()">+ Dokumentation</button></div>
   <div class="grid g3" style="margin:14px 0">
     <div><label>Objekt</label><select id="filterObject" onchange="renderFindings()"><option value="">Alle</option></select></div>
-    <div><label>Status</label><select id="filterStatus" onchange="renderFindings()"><option value="active">Offen + In Bearbeitung</option><option value="">Alle</option><option>Offen</option><option>In Bearbeitung</option><option>Erledigt</option></select></div>
+    <div><label>Status</label><select id="filterStatus" onchange="renderFindings()"><option value="active">Offen + In Bearbeitung</option><option value="">Alle</option><option>Offen</option><option>In Bearbeitung</option><option>Erledigt</option></select>
+      <select id="filterDecision" onchange="renderFindings()">
+        <option value="">Alle Entscheidungen</option>
+        <option value="pending">Entscheidung ausstehend</option>
+        <option value="approved">Beauftragt</option>
+        <option value="rejected">Nicht beauftragt</option>
+        <option value="deferred">Zurückgestellt</option>
+        <option value="question">Rückfrage erforderlich</option>
+        <option value="thirdparty">An Dritten vergeben</option>
+      </select></div>
     <div><label>Priorität</label><select id="filterPriority" onchange="renderFindings()"><option value="">Alle</option><option value="P1">Sofort</option><option value="P2">Dringend</option><option value="P3">Planbar</option><option value="P4">Beobachten</option></select></div>
     <div><label>Typ</label><select id="filterType" onchange="renderFindings()"><option value="">Alle</option><option>Feststellung</option><option>Leistung</option></select></div>
   </div>
@@ -178,12 +209,12 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <div id="modalRoot"></div>
 
 <script>
-const KEY='duschl_objekt_doku_v133';
-const OLD_KEY='duschl_objekt_doku_v132';
+const KEY='duschl_objekt_doku_v14';
+const OLD_KEY='duschl_objekt_doku_v133';
 let db = load();
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'1.3.3'};
+  return {objects:[],inspections:[],findings:[],version:'1.4'};
 }
 function load(){
   try{
@@ -192,7 +223,7 @@ function load(){
     const old=localStorage.getItem(OLD_KEY);
     if(old){
       const migrated=JSON.parse(old);
-      migrated.version='1.3.3';
+      migrated.version='1.4';
       (migrated.findings||[]).forEach(f=>{
         if(!f.type)f.type='Feststellung';
         if(!f.beforePhoto && f.photo)f.beforePhoto=f.photo;
@@ -207,7 +238,7 @@ function load(){
     return seed();
   }catch(e){return seed()}
 }
-function save(){db.version='1.3.3';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
+function save(){db.version='1.4';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
 function uid(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)}
 function fmt(ts){if(!ts)return'';return new Date(ts).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -221,6 +252,17 @@ function showSection(id){
   if(id==='reports')renderReport();
 }
 function priorityLabel(p){
+
+function decisionLabel(v){
+  return ({
+    'pending':'Entscheidung ausstehend',
+    'approved':'Beauftragt',
+    'rejected':'Nicht beauftragt',
+    'deferred':'Zurückgestellt',
+    'question':'Rückfrage erforderlich',
+    'thirdparty':'An Dritten vergeben'
+  })[v]||'Entscheidung ausstehend'
+}
   return ({P1:'Sofort',P2:'Dringend',P3:'Planbar',P4:'Beobachten'})[p]||p||'';
 }
 function badgeP(p){return `<span class="badge p ${p}">${esc(priorityLabel(p))}</span>`}
@@ -364,8 +406,9 @@ function findingCard(f){
 }
 function renderFindings(){
   const of=document.getElementById('filterObject')?.value||'', sf=document.getElementById('filterStatus')?.value||'', pf=document.getElementById('filterPriority')?.value||'', tf=document.getElementById('filterType')?.value||'';
+  const df=document.getElementById('filterDecision')?.value||'';
   let arr=[...db.findings].sort((a,b)=>b.createdAt-a.createdAt);
-  if(of)arr=arr.filter(x=>x.objectId===of);if(sf==='active')arr=arr.filter(x=>x.status!=='Erledigt');else if(sf)arr=arr.filter(x=>x.status===sf);if(pf)arr=arr.filter(x=>x.priority===pf);if(tf)arr=arr.filter(x=>(x.type||'Feststellung')===tf);
+  if(of)arr=arr.filter(x=>x.objectId===of);if(sf==='active')arr=arr.filter(x=>x.status!=='Erledigt');else if(sf)arr=arr.filter(x=>x.status===sf);if(df)arr=arr.filter(x=>(x.decisionStatus||'pending')===df);if(pf)arr=arr.filter(x=>x.priority===pf);if(tf)arr=arr.filter(x=>(x.type||'Feststellung')===tf);
   const el=document.getElementById('findingList'); if(el)el.innerHTML=arr.length?arr.map(f=>findingCard(f)).join(''):`<div class="empty">Keine Dokumentationen im gewählten Filter.</div>`;
 }
 function renderReport(){
@@ -534,6 +577,13 @@ function readPhoto(file){
   })
 }
 async function saveFinding(id){
+  const decisionStatus=document.getElementById('fDecisionStatus')?.value||'pending';
+  const decisionBy=document.getElementById('fDecisionBy')?.value.trim()||'';
+  const decisionDate=document.getElementById('fDecisionDate')?.value||'';
+  const decisionComment=document.getElementById('fDecisionComment')?.value.trim()||'';
+  const decisionAmountRaw=document.getElementById('fDecisionAmount')?.value;
+  const decisionAmount=decisionAmountRaw===''||decisionAmountRaw==null?'':Number(decisionAmountRaw);
+
   const title=document.getElementById('fTitle').value.trim();if(!title)return alert('Bitte Titel eingeben.');
   const type=document.getElementById('fType').value, status=document.getElementById('fStatus').value;
   const activity=document.getElementById('fActivity')?.value.trim()||'';
