@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 1.5.6</title>
+<title>Duschl Service – Objekt-Dokumentation 1.5.7</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -55,7 +55,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <header>
   <div><h1>Duschl Service</h1><small>Interne Objekt-Dokumentation</small></div>
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
-<span class="badge" style="margin-left:auto">v1.5.6</span></header>
+<span class="badge" style="margin-left:auto">v1.5.7</span></header>
 <nav>
   <button onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button onclick="showSection('objects')">Objekte</button>
@@ -249,12 +249,12 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <div id="modalRoot"></div>
 
 <script>
-const KEY='duschl_objekt_doku_v156';
-const OLD_KEY='duschl_objekt_doku_v155';
+const KEY='duschl_objekt_doku_v157';
+const OLD_KEY='duschl_objekt_doku_v156';
 let db = load();
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'1.5.6'};
+  return {objects:[],inspections:[],findings:[],version:'1.5.7'};
 }
 function load(){
   try{
@@ -263,6 +263,7 @@ function load(){
       'duschl_objekt_doku_v122','duschl_objekt_doku_v13','duschl_objekt_doku_v131',
       'duschl_objekt_doku_v132','duschl_objekt_doku_v133','duschl_objekt_doku_v141',
       'duschl_objekt_doku_v15','duschl_objekt_doku_v151','duschl_objekt_doku_v152',
+      'duschl_objekt_doku_v153','duschl_objekt_doku_v154','duschl_objekt_doku_v155','duschl_objekt_doku_v156',
       KEY
     ];
     const stores=[];
@@ -291,7 +292,7 @@ function load(){
       objects:mergeById('objects'),
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
-      version:'1.5.6'
+      version:'1.5.7'
     };
     merged.findings.forEach(f=>{
       if(!f.type)f.type='Feststellung';
@@ -301,6 +302,7 @@ function load(){
       if(!f.completionNote)f.completionNote='';
       if(!f.activity)f.activity='';
       if((f.type||'Feststellung')==='Feststellung' && !f.decisionStatus)f.decisionStatus='pending';
+      if((f.type||'Feststellung')==='Feststellung' && typeof f.decisionRequired==='undefined')f.decisionRequired=true;
     });
     localStorage.setItem(KEY,JSON.stringify(merged));
     return merged;
@@ -310,7 +312,7 @@ function load(){
   }
 }
 
-function save(){db.version='1.5.6';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
+function save(){db.version='1.5.7';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
 function uid(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)}
 function fmt(ts){if(!ts)return'';return new Date(ts).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -333,7 +335,8 @@ function decisionLabel(v){
     rejected:'Nicht beauftragt',
     deferred:'Zurückgestellt',
     question:'Rückfrage erforderlich',
-    thirdparty:'An Dritten vergeben'
+    thirdparty:'An Dritten vergeben',
+    not_required:'Keine Entscheidung erforderlich'
   })[v]||'Entscheidung ausstehend';
 }
 function inspectionClosed(i){return !!(i && i.endedAt)}
@@ -362,7 +365,7 @@ function renderDecisions(){
   obj.innerHTML='<option value="">Alle Objekte</option>'+objectOptions.map(([id,name])=>`<option value="${esc(id)}">${esc(name)}</option>`).join('');
   if(objectMap.has(selectedObject))obj.value=selectedObject; else obj.value='';
 
-  const findings=(db.findings||[]).filter(f=>String(f.type||'Feststellung').trim()==='Feststellung');
+  const findings=(db.findings||[]).filter(f=>String(f.type||'Feststellung').trim()==='Feststellung' && f.decisionRequired!==false);
   const pending=findings.filter(f=>String(f.decisionStatus||'pending').trim()==='pending');
 
   // Kennzahlen beziehen sich auf aktuell gewähltes Objekt, nicht auf Status-/Prioritätsfilter.
@@ -712,8 +715,9 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   }
 
   if(!db.objects.length){alert('Bitte zuerst ein Objekt anlegen.');showSection('objects');return}
-  const f=db.findings.find(x=>x.id===editId)||{objectId:prefObj,inspectionId:prefInsp,type:'Feststellung',title:'',area:'',category:'Sicherheit',priority:'P3',description:'',action:'',activity:'',status:'Offen',beforePhoto:'',afterPhoto:'',completionType:'',completionNote:'',decisionStatus:'pending',decisionBy:'',decisionDate:'',decisionComment:'',decisionAmount:''};
+  const f=db.findings.find(x=>x.id===editId)||{objectId:prefObj,inspectionId:prefInsp,type:'Feststellung',title:'',area:'',category:'Sicherheit',priority:'P3',description:'',action:'',activity:'',status:'Offen',beforePhoto:'',afterPhoto:'',completionType:'',completionNote:'',decisionRequired:editId?true:'',decisionStatus:'pending',decisionBy:'',decisionDate:'',decisionComment:'',decisionAmount:''};
   if(!f.type)f.type='Feststellung';
+  if(editId && f.type==='Feststellung' && typeof f.decisionRequired==='undefined')f.decisionRequired=true;
   const objOpts=db.objects.map(o=>`<option value="${o.id}" ${o.id===f.objectId?'selected':''}>${esc(o.name)}</option>`).join('');
   const inspOpts=db.inspections.filter(i=>!f.objectId||i.objectId===f.objectId).map(i=>`<option value="${i.id}" ${i.id===f.inspectionId?'selected':''}>${esc(inspectionName(i.id))}</option>`).join('');
   modal(`<div class="row space"><h2>${editId?'Dokumentation bearbeiten':'Dokumentation erfassen'}</h2><button onclick="closeModal()">✕</button></div>
@@ -728,30 +732,51 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
       <div><label>Priorität</label><select id="fPriority">${['P1','P2','P3','P4'].map(x=>`<option value="${x}" ${x===f.priority?'selected':''}>${priorityLabel(x)}</option>`).join('')}</select></div>
     </div>
     <label>Beschreibung / Feststellung</label><textarea id="fDescription">${esc(f.description)}</textarea>
+  </div>
+
+  <div id="currentPhotoBlock" class="card" style="margin-top:12px">
+    <label>Aktuelles Foto</label>
+    <div class="muted" style="margin-bottom:8px">Kamera oder Fotomediathek auswählen.</div>
+    <input type="file" id="fBeforePhoto" accept="image/*">
+    ${(f.beforePhoto||f.photo)?`<img class="thumb" src="${f.beforePhoto||f.photo}" alt="Aktuelles Foto" style="margin-top:8px">`:''}
+  </div>
+
+  <div id="findingActionFields">
     <label>Empfohlene Maßnahme</label><textarea id="fAction">${esc(f.action)}</textarea>
+
     <div class="card" style="margin-top:12px;background:#f7f9fa">
       <h3 style="margin-top:0">Entscheidung Auftraggeber</h3>
-      <label>Entscheidungsstatus</label>
-      <select id="fDecisionStatus">
-        ${[
-          ['pending','Entscheidung ausstehend'],
-          ['approved','Beauftragt'],
-          ['rejected','Nicht beauftragt'],
-          ['deferred','Zurückgestellt'],
-          ['question','Rückfrage erforderlich'],
-          ['thirdparty','An Dritten vergeben']
-        ].map(([v,l])=>`<option value="${v}" ${v===(f.decisionStatus||'pending')?'selected':''}>${l}</option>`).join('')}
+      <label>Entscheidung des Auftraggebers erforderlich? *</label>
+      <select id="fDecisionRequired" onchange="toggleDecisionRequired()">
+        <option value="" ${f.decisionRequired===''?'selected':''}>Bitte wählen</option>
+        <option value="yes" ${f.decisionRequired===true?'selected':''}>Ja</option>
+        <option value="no" ${f.decisionRequired===false?'selected':''}>Nein</option>
       </select>
-      <label>Entscheider / Auftraggeber</label>
-      <input id="fDecisionBy" value="${esc(f.decisionBy||'')}" placeholder="Name / Ansprechpartner">
-      <label>Entscheidungsdatum</label>
-      <input id="fDecisionDate" type="date" value="${esc(f.decisionDate||'')}">
-      <label>Kommentar / Begründung</label>
-      <textarea id="fDecisionComment" placeholder="z. B. Austausch freigegeben">${esc(f.decisionComment||'')}</textarea>
-      <label>Freigabebetrag (€)</label>
-      <input id="fDecisionAmount" type="number" min="0" step="0.01" inputmode="decimal" value="${f.decisionAmount!==''&&f.decisionAmount!=null?esc(f.decisionAmount):''}" placeholder="optional">
+
+      <div id="decisionDetailFields">
+        <label>Entscheidungsstatus</label>
+        <select id="fDecisionStatus">
+          ${[
+            ['pending','Entscheidung ausstehend'],
+            ['approved','Beauftragt'],
+            ['rejected','Nicht beauftragt'],
+            ['deferred','Zurückgestellt'],
+            ['question','Rückfrage erforderlich'],
+            ['thirdparty','An Dritten vergeben']
+          ].map(([v,l])=>`<option value="${v}" ${v===(f.decisionStatus||'pending')?'selected':''}>${l}</option>`).join('')}
+        </select>
+        <label>Entscheider / Auftraggeber</label>
+        <input id="fDecisionBy" value="${esc(f.decisionBy||'')}" placeholder="Name / Ansprechpartner">
+        <label>Entscheidungsdatum</label>
+        <input id="fDecisionDate" type="date" value="${esc(f.decisionDate||'')}">
+        <label>Kommentar / Begründung</label>
+        <textarea id="fDecisionComment" placeholder="z. B. Austausch freigegeben">${esc(f.decisionComment||'')}</textarea>
+        <label>Freigabebetrag (€)</label>
+        <input id="fDecisionAmount" type="number" min="0" step="0.01" inputmode="decimal" value="${f.decisionAmount!==''&&f.decisionAmount!=null?esc(f.decisionAmount):''}" placeholder="optional">
+      </div>
     </div>
   </div>
+
   <div id="serviceFields">
     <label>Durchgeführte Tätigkeiten *</label>
     <select id="fActivityPreset" onchange="applyActivityPreset()">
@@ -765,9 +790,12 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
     <textarea id="fActivity" placeholder="Alle ausgewählten und ergänzten Tätigkeiten werden hier übernommen und können weiter bearbeitet werden.">${esc(f.activity)}</textarea>
     <label>Bemerkung / Zustand</label><textarea id="fServiceNote">${esc(f.description)}</textarea>
   </div>
-  <div class="grid g2">
-    <div><label>Vorher-Foto</label><input type="file" id="fBeforePhoto" accept="image/*" capture="environment">${(f.beforePhoto||f.photo)?`<img class="thumb" src="${f.beforePhoto||f.photo}" alt="Vorher" style="margin-top:8px">`:''}</div>
-    <div><label>Nachher-Foto</label><input type="file" id="fAfterPhoto" accept="image/*" capture="environment">${f.afterPhoto?`<img class="thumb" src="${f.afterPhoto}" alt="Nachher" style="margin-top:8px">`:''}</div>
+
+  <div id="afterPhotoBlock" class="card" style="margin-top:12px">
+    <label>Foto danach</label>
+    <div class="muted" style="margin-bottom:8px">Kamera oder Fotomediathek auswählen.</div>
+    <input type="file" id="fAfterPhoto" accept="image/*">
+    ${f.afterPhoto?`<img class="thumb" src="${f.afterPhoto}" alt="Foto danach" style="margin-top:8px">`:''}
   </div>
   <label>Status</label><select id="fStatus" onchange="toggleCompletion()">${['Offen','In Bearbeitung','Erledigt'].map(x=>`<option ${x===(forceClose?'Erledigt':f.status)?'selected':''}>${x}</option>`).join('')}</select>
   <div id="completionFields" class="card" style="margin-top:12px;background:#f7f9fa">
@@ -778,12 +806,19 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
     <label>Getroffene Maßnahme / Abschlussnotiz</label><textarea id="fCompletionNote" placeholder="z. B. Türschließer nachgestellt / Kunde wünscht keine Umsetzung">${esc(f.completionNote)}</textarea>
   </div>
   <div class="row" style="margin-top:14px"><button class="primary" onclick="saveFinding('${editId}')">Speichern</button>${editId?`<button class="danger" onclick="deleteFinding('${editId}')">Löschen</button>`:''}</div>`);
-  toggleDocType();toggleCompletion();
+  toggleDocType();toggleDecisionRequired();toggleCompletion();
 }
 function toggleDocType(){
   const type=document.getElementById('fType')?.value||'Feststellung';
   document.getElementById('findingFields')?.classList.toggle('hidden',type!=='Feststellung');
+  document.getElementById('findingActionFields')?.classList.toggle('hidden',type!=='Feststellung');
   document.getElementById('serviceFields')?.classList.toggle('hidden',type!=='Leistung');
+  toggleDecisionRequired();
+}
+function toggleDecisionRequired(){
+  const type=document.getElementById('fType')?.value||'Feststellung';
+  const required=document.getElementById('fDecisionRequired')?.value==='yes';
+  document.getElementById('decisionDetailFields')?.classList.toggle('hidden',type!=='Feststellung'||!required);
 }
 function toggleCompletion(){
   const done=document.getElementById('fStatus')?.value==='Erledigt';
@@ -827,15 +862,22 @@ function readPhoto(file){
   })
 }
 async function saveFinding(id){
-  const decisionStatus=document.getElementById('fDecisionStatus')?.value||'pending';
-  const decisionBy=document.getElementById('fDecisionBy')?.value.trim()||'';
-  const decisionDate=document.getElementById('fDecisionDate')?.value||'';
-  const decisionComment=document.getElementById('fDecisionComment')?.value.trim()||'';
+  const decisionRequiredValue=document.getElementById('fDecisionRequired')?.value||'';
+  let decisionRequired=decisionRequiredValue==='yes';
+  let decisionStatus=document.getElementById('fDecisionStatus')?.value||'pending';
+  let decisionBy=document.getElementById('fDecisionBy')?.value.trim()||'';
+  let decisionDate=document.getElementById('fDecisionDate')?.value||'';
+  let decisionComment=document.getElementById('fDecisionComment')?.value.trim()||'';
   const decisionAmountRaw=document.getElementById('fDecisionAmount')?.value;
-  const decisionAmount=decisionAmountRaw===''||decisionAmountRaw==null?'':Number(decisionAmountRaw);
+  let decisionAmount=decisionAmountRaw===''||decisionAmountRaw==null?'':Number(decisionAmountRaw);
+
 
   const title=document.getElementById('fTitle').value.trim();if(!title)return alert('Bitte Titel eingeben.');
   const type=document.getElementById('fType').value, status=document.getElementById('fStatus').value;
+  if(type==='Feststellung'&&!decisionRequiredValue)return alert('Bitte auswählen, ob eine Entscheidung des Auftraggebers erforderlich ist.');
+  if(type!=='Feststellung'){decisionRequired=false;decisionStatus='not_required';decisionBy='';decisionDate='';decisionComment='';decisionAmount=''}
+  if(type==='Feststellung'&&!decisionRequired){decisionStatus='not_required';decisionBy='';decisionDate='';decisionComment='';decisionAmount=''}
+  if(type==='Feststellung'&&decisionRequired&&decisionStatus==='not_required')decisionStatus='pending';
   const activity=document.getElementById('fActivity')?.value.trim()||'';
   const completionType=document.getElementById('fCompletionType')?.value||'';
   if(type==='Leistung'&&!activity)return alert('Bitte die durchgeführte Tätigkeit dokumentieren.');
@@ -850,7 +892,7 @@ async function saveFinding(id){
     priority:type==='Feststellung'?(document.getElementById('fPriority')?.value||'P4'):'P4',
     description,action:type==='Feststellung'?(document.getElementById('fAction')?.value.trim()||''):'',
     activity,status,completionType,completionNote:document.getElementById('fCompletionNote')?.value.trim()||'',
-    decisionStatus,decisionBy,decisionDate,decisionComment,decisionAmount,
+    decisionRequired,decisionStatus,decisionBy,decisionDate,decisionComment,decisionAmount,
     beforePhoto:before||(old?.beforePhoto||old?.photo||''),afterPhoto:after||(old?.afterPhoto||'')
   };
   if(id)Object.assign(old,data,{updatedAt:Date.now()});else db.findings.push({id:uid('find'),createdAt:Date.now(),...data});
