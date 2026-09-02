@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 1.4</title>
+<title>Duschl Service – Objekt-Dokumentation 1.4.1</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -117,35 +117,23 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
       </select>
     </div>
     <div>
-      
-  <div class="card" style="margin-top:14px;padding:14px">
-    <h3 style="margin-top:0">Entscheidung Auftraggeber</h3>
-    <div class="muted" style="margin-bottom:10px">Deine fachliche Empfehlung bleibt getrennt von der Entscheidung des Auftraggebers.</div>
-    <label>Entscheidungsstatus</label>
-    <select id="fDecisionStatus">
-      <option value="pending">Entscheidung ausstehend</option>
-      <option value="approved">Beauftragt</option>
-      <option value="rejected">Nicht beauftragt</option>
-      <option value="deferred">Zurückgestellt</option>
-      <option value="question">Rückfrage erforderlich</option>
-      <option value="thirdparty">An Dritten vergeben</option>
-    </select>
-    <label>Entscheider / Auftraggeber</label>
-    <input id="fDecisionBy" placeholder="Name / Ansprechpartner">
-    <label>Entscheidungsdatum</label>
-    <input id="fDecisionDate" type="date">
-    <label>Kommentar / Begründung</label>
-    <textarea id="fDecisionComment" placeholder="z. B. Austausch freigegeben, Umsetzung im Oktober"></textarea>
-    <label>Freigabebetrag (€)</label>
-    <input id="fDecisionAmount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="optional">
-  </div>
-<label>Status</label>
+      <label>Status</label>
       <select id="historyStatusFilter" onchange="renderObjectFiles()">
         <option value="">Alle</option>
         <option value="active">Offen + In Bearbeitung</option>
         <option value="Offen">Offen</option>
         <option value="In Bearbeitung">In Bearbeitung</option>
         <option value="Erledigt">Erledigt</option>
+      </select>
+      <label>Auftraggeber-Entscheidung</label>
+      <select id="historyDecisionFilter" onchange="renderObjectFiles()">
+        <option value="">Alle Entscheidungen</option>
+        <option value="pending">Entscheidung ausstehend</option>
+        <option value="approved">Beauftragt</option>
+        <option value="rejected">Nicht beauftragt</option>
+        <option value="deferred">Zurückgestellt</option>
+        <option value="question">Rückfrage erforderlich</option>
+        <option value="thirdparty">An Dritten vergeben</option>
       </select>
     </div>
   </div>
@@ -209,12 +197,12 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <div id="modalRoot"></div>
 
 <script>
-const KEY='duschl_objekt_doku_v14';
+const KEY='duschl_objekt_doku_v141';
 const OLD_KEY='duschl_objekt_doku_v133';
 let db = load();
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'1.4'};
+  return {objects:[],inspections:[],findings:[],version:'1.4.1'};
 }
 function load(){
   try{
@@ -223,7 +211,7 @@ function load(){
     const old=localStorage.getItem(OLD_KEY);
     if(old){
       const migrated=JSON.parse(old);
-      migrated.version='1.4';
+      migrated.version='1.4.1';
       (migrated.findings||[]).forEach(f=>{
         if(!f.type)f.type='Feststellung';
         if(!f.beforePhoto && f.photo)f.beforePhoto=f.photo;
@@ -238,7 +226,7 @@ function load(){
     return seed();
   }catch(e){return seed()}
 }
-function save(){db.version='1.4';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
+function save(){db.version='1.4.1';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
 function uid(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)}
 function fmt(ts){if(!ts)return'';return new Date(ts).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -255,12 +243,12 @@ function priorityLabel(p){
 
 function decisionLabel(v){
   return ({
-    'pending':'Entscheidung ausstehend',
-    'approved':'Beauftragt',
-    'rejected':'Nicht beauftragt',
-    'deferred':'Zurückgestellt',
-    'question':'Rückfrage erforderlich',
-    'thirdparty':'An Dritten vergeben'
+    pending:'Entscheidung ausstehend',
+    approved:'Beauftragt',
+    rejected:'Nicht beauftragt',
+    deferred:'Zurückgestellt',
+    question:'Rückfrage erforderlich',
+    thirdparty:'An Dritten vergeben'
   })[v]||'Entscheidung ausstehend'
 }
   return ({P1:'Sofort',P2:'Dringend',P3:'Planbar',P4:'Beobachten'})[p]||p||'';
@@ -295,6 +283,7 @@ function renderObjects(){
 function renderInspections(){renderObjectFiles()}
 
 function renderObjectFiles(){
+  const hdf=document.getElementById('historyDecisionFilter')?.value||'';
   const host=document.getElementById('objectFiles'); if(!host)return;
 
   const objFilter=document.getElementById('historyObjectFilter');
@@ -321,7 +310,7 @@ function renderObjectFiles(){
 
     let docs=db.findings.filter(f=>f.objectId===o.id && (!cutoff || (f.createdAt||0)>=cutoff));
     if(type)docs=docs.filter(f=>(f.type||'Feststellung')===type);
-    if(status==='active')docs=docs.filter(f=>f.status!=='Erledigt');else if(status)docs=docs.filter(f=>f.status===status);
+    if(status==='active')docs=docs.filter(f=>f.status!=='Erledigt');else if(status)docs=docs.filter(f=>f.status===status);if(hdf)docs=docs.filter(f=>(f.type||'Feststellung')!=='Feststellung'||(f.decisionStatus||'pending')===hdf);
 
     const open=docs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt').length;
     const urgent=docs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&['P1','P2'].includes(f.priority)&&f.status!=='Erledigt').length;
@@ -396,7 +385,7 @@ function findingCard(f){
     <div class="row space"><div><span class="badge">${esc(type)}</span> ${type==='Feststellung'?badgeP(f.priority||'P3'):''} ${statusBadge(f.status)}</div><small class="muted">${fmt(f.createdAt)}</small></div>
     <h3 style="margin-bottom:5px">${esc(f.title)}</h3>
     <div class="muted">${esc(objectName(f.objectId))}${f.area?' · '+esc(f.area):''}</div>
-    ${(before||after)?`<div class="row" style="margin-top:10px">${before?`<div><small class="muted">Vorher</small><br><img class="thumb" src="${before}" alt="Vorher"></div>`:''}${after?`<div><small class="muted">Nachher</small><br><img class="thumb" src="${after}" alt="Nachher"></div>`:''}</div>`:''}
+    ${(before||after)?`${f.type==='Feststellung'?`<div class="muted">Auftraggeber: ${esc(decisionLabel(f.decisionStatus||'pending'))}</div>`:''}<div class="row" style="margin-top:10px">${before?`<div><small class="muted">Vorher</small><br><img class="thumb" src="${before}" alt="Vorher"></div>`:''}${after?`<div><small class="muted">Nachher</small><br><img class="thumb" src="${after}" alt="Nachher"></div>`:''}</div>`:''}
     ${f.description?`<p>${esc(f.description)}</p>`:''}
     ${type==='Leistung'&&f.activity?`<p><b>Durchgeführt:</b> ${esc(f.activity)}</p>`:''}
     ${type==='Feststellung'&&f.action?`<p><b>Empfehlung:</b> ${esc(f.action)}</p>`:''}
@@ -405,8 +394,8 @@ function findingCard(f){
   </div>`;
 }
 function renderFindings(){
-  const of=document.getElementById('filterObject')?.value||'', sf=document.getElementById('filterStatus')?.value||'', pf=document.getElementById('filterPriority')?.value||'', tf=document.getElementById('filterType')?.value||'';
   const df=document.getElementById('filterDecision')?.value||'';
+  const of=document.getElementById('filterObject')?.value||'', sf=document.getElementById('filterStatus')?.value||'', pf=document.getElementById('filterPriority')?.value||'', tf=document.getElementById('filterType')?.value||'';
   let arr=[...db.findings].sort((a,b)=>b.createdAt-a.createdAt);
   if(of)arr=arr.filter(x=>x.objectId===of);if(sf==='active')arr=arr.filter(x=>x.status!=='Erledigt');else if(sf)arr=arr.filter(x=>x.status===sf);if(df)arr=arr.filter(x=>(x.decisionStatus||'pending')===df);if(pf)arr=arr.filter(x=>x.priority===pf);if(tf)arr=arr.filter(x=>(x.type||'Feststellung')===tf);
   const el=document.getElementById('findingList'); if(el)el.innerHTML=arr.length?arr.map(f=>findingCard(f)).join(''):`<div class="empty">Keine Dokumentationen im gewählten Filter.</div>`;
@@ -484,7 +473,7 @@ function deleteInspection(id){
 
 function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   if(!db.objects.length){alert('Bitte zuerst ein Objekt anlegen.');showSection('objects');return}
-  const f=db.findings.find(x=>x.id===editId)||{objectId:prefObj,inspectionId:prefInsp,type:'Feststellung',title:'',area:'',category:'Sicherheit',priority:'P3',description:'',action:'',activity:'',status:'Offen',beforePhoto:'',afterPhoto:'',completionType:'',completionNote:''};
+  const f=db.findings.find(x=>x.id===editId)||{objectId:prefObj,inspectionId:prefInsp,type:'Feststellung',title:'',area:'',category:'Sicherheit',priority:'P3',description:'',action:'',activity:'',status:'Offen',beforePhoto:'',afterPhoto:'',completionType:'',completionNote:'',decisionStatus:'pending',decisionBy:'',decisionDate:'',decisionComment:'',decisionAmount:''};
   if(!f.type)f.type='Feststellung';
   const objOpts=db.objects.map(o=>`<option value="${o.id}" ${o.id===f.objectId?'selected':''}>${esc(o.name)}</option>`).join('');
   const inspOpts=db.inspections.filter(i=>!f.objectId||i.objectId===f.objectId).map(i=>`<option value="${i.id}" ${i.id===f.inspectionId?'selected':''}>${esc(inspectionName(i.id))}</option>`).join('');
@@ -501,6 +490,28 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
     </div>
     <label>Beschreibung / Feststellung</label><textarea id="fDescription">${esc(f.description)}</textarea>
     <label>Empfohlene Maßnahme</label><textarea id="fAction">${esc(f.action)}</textarea>
+    <div class="card" style="margin-top:12px;background:#f7f9fa">
+      <h3 style="margin-top:0">Entscheidung Auftraggeber</h3>
+      <label>Entscheidungsstatus</label>
+      <select id="fDecisionStatus">
+        ${[
+          ['pending','Entscheidung ausstehend'],
+          ['approved','Beauftragt'],
+          ['rejected','Nicht beauftragt'],
+          ['deferred','Zurückgestellt'],
+          ['question','Rückfrage erforderlich'],
+          ['thirdparty','An Dritten vergeben']
+        ].map(([v,l])=>`<option value="${v}" ${v===(f.decisionStatus||'pending')?'selected':''}>${l}</option>`).join('')}
+      </select>
+      <label>Entscheider / Auftraggeber</label>
+      <input id="fDecisionBy" value="${esc(f.decisionBy||'')}" placeholder="Name / Ansprechpartner">
+      <label>Entscheidungsdatum</label>
+      <input id="fDecisionDate" type="date" value="${esc(f.decisionDate||'')}">
+      <label>Kommentar / Begründung</label>
+      <textarea id="fDecisionComment" placeholder="z. B. Austausch freigegeben">${esc(f.decisionComment||'')}</textarea>
+      <label>Freigabebetrag (€)</label>
+      <input id="fDecisionAmount" type="number" min="0" step="0.01" inputmode="decimal" value="${f.decisionAmount!==''&&f.decisionAmount!=null?esc(f.decisionAmount):''}" placeholder="optional">
+    </div>
   </div>
   <div id="serviceFields">
     <label>Durchgeführte Tätigkeiten *</label>
@@ -600,6 +611,7 @@ async function saveFinding(id){
     priority:type==='Feststellung'?(document.getElementById('fPriority')?.value||'P4'):'P4',
     description,action:type==='Feststellung'?(document.getElementById('fAction')?.value.trim()||''):'',
     activity,status,completionType,completionNote:document.getElementById('fCompletionNote')?.value.trim()||'',
+    decisionStatus,decisionBy,decisionDate,decisionComment,decisionAmount,
     beforePhoto:before||(old?.beforePhoto||old?.photo||''),afterPhoto:after||(old?.afterPhoto||'')
   };
   if(id)Object.assign(old,data,{updatedAt:Date.now()});else db.findings.push({id:uid('find'),createdAt:Date.now(),...data});
