@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 1.5.7</title>
+<title>Duschl Service – Objekt-Dokumentation 1.5.8</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -55,7 +55,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <header>
   <div><h1>Duschl Service</h1><small>Interne Objekt-Dokumentation</small></div>
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
-<span class="badge" style="margin-left:auto">v1.5.7</span></header>
+<span class="badge" style="margin-left:auto">v1.5.8</span></header>
 <nav>
   <button onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button onclick="showSection('objects')">Objekte</button>
@@ -214,11 +214,78 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
   <div id="decisionList" style="margin-top:14px"></div>
 </section>
 <section id="reports" class="section">
-  <div class="row space no-print"><div><h2>Berichte</h2><div class="muted">Objektbezogene Dokumentation</div></div><button onclick="window.print()">Drucken / PDF</button></div>
-  <div class="card no-print" style="margin:14px 0">
-    <label>Objekt auswählen</label>
-    <select id="reportObject" onchange="renderReport()"><option value="">Bitte wählen</option></select>
+  <div class="row space no-print">
+    <div><h2>Berichte</h2><div class="muted">Objektbezogene Dokumentation und Historie</div></div>
+    <button onclick="window.print()">Drucken / PDF</button>
   </div>
+
+  <div class="card no-print" style="margin:14px 0">
+    <div class="grid g2">
+      <div>
+        <label>Objekt *</label>
+        <select id="reportObject" onchange="renderReport()"><option value="">Bitte wählen</option></select>
+      </div>
+      <div>
+        <label>Zeitraum</label>
+        <select id="reportPeriod" onchange="renderReport()">
+          <option value="">Gesamter Zeitraum</option>
+          <option value="30">Letzte 30 Tage</option>
+          <option value="90">Letzte 90 Tage</option>
+          <option value="365">Letzte 12 Monate</option>
+        </select>
+      </div>
+      <div>
+        <label>Dokumentationstyp</label>
+        <select id="reportType" onchange="renderReport()">
+          <option value="">Alle</option>
+          <option value="Feststellung">Feststellung</option>
+          <option value="Leistung">Leistung</option>
+        </select>
+      </div>
+      <div>
+        <label>Status</label>
+        <select id="reportStatus" onchange="renderReport()">
+          <option value="">Alle</option>
+          <option value="active">Offen + In Bearbeitung</option>
+          <option value="Offen">Offen</option>
+          <option value="In Bearbeitung">In Bearbeitung</option>
+          <option value="Erledigt">Erledigt</option>
+        </select>
+      </div>
+      <div>
+        <label>Priorität</label>
+        <select id="reportPriority" onchange="renderReport()">
+          <option value="">Alle Prioritäten</option>
+          <option value="P1">Sofort</option>
+          <option value="P2">Dringend</option>
+          <option value="P3">Planbar</option>
+          <option value="P4">Beobachten</option>
+        </select>
+      </div>
+      <div>
+        <label>Entscheidung Auftraggeber</label>
+        <select id="reportDecision" onchange="renderReport()">
+          <option value="">Alle</option>
+          <option value="pending">Entscheidung ausstehend</option>
+          <option value="approved">Beauftragt</option>
+          <option value="rejected">Nicht beauftragt</option>
+          <option value="deferred">Zurückgestellt</option>
+          <option value="question">Rückfrage erforderlich</option>
+          <option value="thirdparty">An Dritten vergeben</option>
+          <option value="not_required">Keine Entscheidung erforderlich</option>
+        </select>
+      </div>
+      <div style="grid-column:1/-1">
+        <label>Bereich / Ort im Objekt</label>
+        <input id="reportArea" oninput="renderReport()" placeholder="z. B. Treppenhaus, Außenanlage, Gehweg">
+      </div>
+    </div>
+    <div class="row space" style="margin-top:12px">
+      <div class="muted"><strong id="reportResultCount">0</strong> Dokumentationen im Bericht</div>
+      <button type="button" onclick="resetReportFilters()">Filter zurücksetzen</button>
+    </div>
+  </div>
+
   <div id="reportContent"></div>
 </section>
 
@@ -249,12 +316,12 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <div id="modalRoot"></div>
 
 <script>
-const KEY='duschl_objekt_doku_v157';
-const OLD_KEY='duschl_objekt_doku_v156';
+const KEY='duschl_objekt_doku_v158';
+const OLD_KEY='duschl_objekt_doku_v157';
 let db = load();
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'1.5.7'};
+  return {objects:[],inspections:[],findings:[],version:'1.5.8'};
 }
 function load(){
   try{
@@ -263,7 +330,7 @@ function load(){
       'duschl_objekt_doku_v122','duschl_objekt_doku_v13','duschl_objekt_doku_v131',
       'duschl_objekt_doku_v132','duschl_objekt_doku_v133','duschl_objekt_doku_v141',
       'duschl_objekt_doku_v15','duschl_objekt_doku_v151','duschl_objekt_doku_v152',
-      'duschl_objekt_doku_v153','duschl_objekt_doku_v154','duschl_objekt_doku_v155','duschl_objekt_doku_v156',
+      'duschl_objekt_doku_v153','duschl_objekt_doku_v154','duschl_objekt_doku_v155','duschl_objekt_doku_v156','duschl_objekt_doku_v157',
       KEY
     ];
     const stores=[];
@@ -292,7 +359,7 @@ function load(){
       objects:mergeById('objects'),
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
-      version:'1.5.7'
+      version:'1.5.8'
     };
     merged.findings.forEach(f=>{
       if(!f.type)f.type='Feststellung';
@@ -312,7 +379,7 @@ function load(){
   }
 }
 
-function save(){db.version='1.5.7';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
+function save(){db.version='1.5.8';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
 function uid(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)}
 function fmt(ts){if(!ts)return'';return new Date(ts).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -474,7 +541,14 @@ function saveDecision(id){
 
 function renderAll(){
   renderDashboard();renderObjects();renderInspections();renderSelects();renderFindings();renderReport();
-renderDecisions();}
+renderDecisions();
+  const ro=document.getElementById('reportObject');
+  if(ro){
+    const rv=ro.value;
+    ro.innerHTML='<option value="">Bitte wählen</option>'+db.objects.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
+    ro.value=rv;
+  }
+}
 function renderDashboard(){
   document.getElementById('kpiObjects').textContent=db.objects.length;
   const open=db.findings.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt');
@@ -617,15 +691,91 @@ function renderFindings(){
   const el=document.getElementById('findingList'); if(el)el.innerHTML=arr.length?arr.map(f=>findingCard(f)).join(''):`<div class="empty">Keine Dokumentationen im gewählten Filter.</div>`;
 }
 function renderReport(){
-  const id=document.getElementById('reportObject')?.value;
-  const el=document.getElementById('reportContent');if(!el)return;
-  if(!id){el.innerHTML='<div class="empty">Objekt für Bericht auswählen.</div>';return}
-  const o=db.objects.find(x=>x.id===id), ins=db.inspections.filter(x=>x.objectId===id).sort((a,b)=>b.startedAt-a.startedAt), fs=db.findings.filter(x=>x.objectId===id).sort((a,b)=>a.priority.localeCompare(b.priority)||b.createdAt-a.createdAt);
-  el.innerHTML=`<div class="card"><h2>${esc(o.name)}</h2><div>${esc(o.address||'')}</div><p>${esc(o.notes||'')}</p>
-  <hr><div class="grid g3"><div><b>${ins.length}</b><div class="muted">Begehungen</div></div><div><b>${fs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt').length}</b><div class="muted">Feststellungen offen</div></div><div><b>${fs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&['P1','P2'].includes(f.priority)&&f.status!=='Erledigt').length}</b><div class="muted">Sofort/Dringend offen</div></div></div></div>
-  <h3>Dokumentation</h3>${fs.length?fs.map(f=>findingCard(f).replace(/<div class="row"><button[\s\S]*?<\/div>\s*<\/div>$/,'</div>')).join(''):'<div class="empty">Keine Dokumentationen.</div>'}`;
+  const objectId=document.getElementById('reportObject')?.value||'';
+  const el=document.getElementById('reportContent'); if(!el)return;
+
+  if(!objectId){
+    const c=document.getElementById('reportResultCount'); if(c)c.textContent='0';
+    el.innerHTML='<div class="empty">Objekt für Bericht auswählen.</div>';
+    return;
+  }
+
+  const period=document.getElementById('reportPeriod')?.value||'';
+  const type=document.getElementById('reportType')?.value||'';
+  const status=document.getElementById('reportStatus')?.value||'';
+  const priority=document.getElementById('reportPriority')?.value||'';
+  const decision=document.getElementById('reportDecision')?.value||'';
+  const area=(document.getElementById('reportArea')?.value||'').trim().toLowerCase();
+
+  const o=db.objects.find(x=>x.id===objectId);
+  if(!o){
+    el.innerHTML='<div class="empty">Objekt nicht gefunden.</div>';
+    return;
+  }
+
+  const cutoff=period ? Date.now()-Number(period)*24*60*60*1000 : 0;
+
+  let inspections=db.inspections
+    .filter(i=>i.objectId===objectId)
+    .filter(i=>!cutoff || Number(i.startedAt||i.createdAt||0)>=cutoff)
+    .sort((a,b)=>Number(b.startedAt||b.createdAt||0)-Number(a.startedAt||a.createdAt||0));
+
+  let docs=db.findings
+    .filter(f=>f.objectId===objectId)
+    .filter(f=>!cutoff || Number(f.createdAt||f.updatedAt||0)>=cutoff);
+
+  if(type)docs=docs.filter(f=>(f.type||'Feststellung')===type);
+  if(status==='active')docs=docs.filter(f=>f.status!=='Erledigt');
+  else if(status)docs=docs.filter(f=>f.status===status);
+  if(priority)docs=docs.filter(f=>f.priority===priority);
+  if(decision)docs=docs.filter(f=>{
+    if((f.type||'Feststellung')!=='Feststellung')return decision==='';
+    return (f.decisionStatus || (f.decisionRequired===false?'not_required':'pending'))===decision;
+  });
+  if(area)docs=docs.filter(f=>String(f.area||'').toLowerCase().includes(area));
+
+  const rank={P1:1,P2:2,P3:3,P4:4};
+  docs.sort((a,b)=>(rank[a.priority]||9)-(rank[b.priority]||9) || Number(b.createdAt||b.updatedAt||0)-Number(a.createdAt||a.updatedAt||0));
+
+  const count=document.getElementById('reportResultCount'); if(count)count.textContent=docs.length;
+
+  const openFindings=docs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt').length;
+  const urgentOpen=docs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&['P1','P2'].includes(f.priority)&&f.status!=='Erledigt').length;
+  const pendingDecision=docs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.decisionRequired!==false&&(f.decisionStatus||'pending')==='pending').length;
+
+  el.innerHTML=`<div class="card">
+    <h2>${esc(o.name)}</h2>
+    <div>${esc(o.address||'')}</div>
+    <p>${esc(o.notes||'')}</p>
+    <hr>
+    <div class="grid g3">
+      <div><b>${inspections.length}</b><div class="muted">Begehungen im Zeitraum</div></div>
+      <div><b>${openFindings}</b><div class="muted">Feststellungen offen</div></div>
+      <div><b>${urgentOpen}</b><div class="muted">Sofort/Dringend offen</div></div>
+    </div>
+    <div style="margin-top:10px"><b>${pendingDecision}</b> <span class="muted">Entscheidungen ausstehend</span></div>
+  </div>
+  <h3>Dokumentation</h3>
+  ${docs.length
+    ? docs.map(f=>findingCard(f).replace(/<div class="row"><button[\s\S]*?<\/div>\s*<\/div>$/,'</div>')).join('')
+    : '<div class="empty">Keine Dokumentationen für diese Filterkombination.</div>'}`;
 }
-function showObjectReport(id){showSection('reports');setTimeout(()=>{document.getElementById('reportObject').value=id;renderReport()},0)}
+
+function resetReportFilters(){
+  const ids=['reportPeriod','reportType','reportStatus','reportPriority','reportDecision'];
+  ids.forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});
+  const a=document.getElementById('reportArea');if(a)a.value='';
+  renderReport();
+}
+
+function showObjectReport(id){
+  showSection('reports');
+  setTimeout(()=>{
+    const e=document.getElementById('reportObject');
+    if(e)e.value=id;
+    renderReport();
+  },0);
+}
 
 function modal(html){document.getElementById('modalRoot').innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="sheet">${html}</div></div>`}
 function closeModal(){document.getElementById('modalRoot').innerHTML=''}
