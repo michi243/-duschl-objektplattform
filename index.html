@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 1.5.8</title>
+<title>Duschl Service – Objekt-Dokumentation 1.5.9</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -55,7 +55,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <header>
   <div><h1>Duschl Service</h1><small>Interne Objekt-Dokumentation</small></div>
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
-<span class="badge" style="margin-left:auto">v1.5.8</span></header>
+<span class="badge" style="margin-left:auto">v1.5.9</span></header>
 <nav>
   <button onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button onclick="showSection('objects')">Objekte</button>
@@ -316,12 +316,12 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 <div id="modalRoot"></div>
 
 <script>
-const KEY='duschl_objekt_doku_v158';
-const OLD_KEY='duschl_objekt_doku_v157';
+const KEY='duschl_objekt_doku_v159';
+const OLD_KEY='duschl_objekt_doku_v158';
 let db = load();
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'1.5.8'};
+  return {objects:[],inspections:[],findings:[],version:'1.5.9'};
 }
 function load(){
   try{
@@ -330,7 +330,7 @@ function load(){
       'duschl_objekt_doku_v122','duschl_objekt_doku_v13','duschl_objekt_doku_v131',
       'duschl_objekt_doku_v132','duschl_objekt_doku_v133','duschl_objekt_doku_v141',
       'duschl_objekt_doku_v15','duschl_objekt_doku_v151','duschl_objekt_doku_v152',
-      'duschl_objekt_doku_v153','duschl_objekt_doku_v154','duschl_objekt_doku_v155','duschl_objekt_doku_v156','duschl_objekt_doku_v157',
+      'duschl_objekt_doku_v153','duschl_objekt_doku_v154','duschl_objekt_doku_v155','duschl_objekt_doku_v156','duschl_objekt_doku_v157','duschl_objekt_doku_v158',
       KEY
     ];
     const stores=[];
@@ -359,12 +359,14 @@ function load(){
       objects:mergeById('objects'),
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
-      version:'1.5.8'
+      version:'1.5.9'
     };
     merged.findings.forEach(f=>{
       if(!f.type)f.type='Feststellung';
       if(!f.beforePhoto && f.photo)f.beforePhoto=f.photo;
       if(!f.afterPhoto)f.afterPhoto='';
+      if(!Array.isArray(f.beforePhotos))f.beforePhotos=f.beforePhoto?[f.beforePhoto]:[];
+      if(!Array.isArray(f.afterPhotos))f.afterPhotos=f.afterPhoto?[f.afterPhoto]:[];
       if(!f.completionType)f.completionType='';
       if(!f.completionNote)f.completionNote='';
       if(!f.activity)f.activity='';
@@ -379,7 +381,7 @@ function load(){
   }
 }
 
-function save(){db.version='1.5.8';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
+function save(){db.version='1.5.9';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
 function uid(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)}
 function fmt(ts){if(!ts)return'';return new Date(ts).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -865,7 +867,7 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   }
 
   if(!db.objects.length){alert('Bitte zuerst ein Objekt anlegen.');showSection('objects');return}
-  const f=db.findings.find(x=>x.id===editId)||{objectId:prefObj,inspectionId:prefInsp,type:'Feststellung',title:'',area:'',category:'Sicherheit',priority:'P3',description:'',action:'',activity:'',status:'Offen',beforePhoto:'',afterPhoto:'',completionType:'',completionNote:'',decisionRequired:editId?true:'',decisionStatus:'pending',decisionBy:'',decisionDate:'',decisionComment:'',decisionAmount:''};
+  const f=db.findings.find(x=>x.id===editId)||{objectId:prefObj,inspectionId:prefInsp,type:'Feststellung',title:'',area:'',category:'Sicherheit',priority:'P3',description:'',action:'',activity:'',status:'Offen',beforePhoto:'',afterPhoto:'',beforePhotos:[],afterPhotos:[],completionType:'',completionNote:'',decisionRequired:editId?true:'',decisionStatus:'pending',decisionBy:'',decisionDate:'',decisionComment:'',decisionAmount:''};
   if(!f.type)f.type='Feststellung';
   if(editId && f.type==='Feststellung' && typeof f.decisionRequired==='undefined')f.decisionRequired=true;
   const objOpts=db.objects.map(o=>`<option value="${o.id}" ${o.id===f.objectId?'selected':''}>${esc(o.name)}</option>`).join('');
@@ -887,7 +889,7 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   <div id="currentPhotoBlock" class="card" style="margin-top:12px">
     <label>Aktuelles Foto</label>
     <div class="muted" style="margin-bottom:8px">Kamera oder Fotomediathek auswählen.</div>
-    <input type="file" id="fBeforePhoto" accept="image/*">
+    <input type="file" id="fBeforePhoto" accept="image/*" multiple onchange="limitPhotos(this,'beforePhotoCount')"><div class="muted" id="beforePhotoCount">Max. 5 Bilder</div>
     ${(f.beforePhoto||f.photo)?`<img class="thumb" src="${f.beforePhoto||f.photo}" alt="Aktuelles Foto" style="margin-top:8px">`:''}
   </div>
 
@@ -944,7 +946,7 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   <div id="afterPhotoBlock" class="card" style="margin-top:12px">
     <label>Foto danach</label>
     <div class="muted" style="margin-bottom:8px">Kamera oder Fotomediathek auswählen.</div>
-    <input type="file" id="fAfterPhoto" accept="image/*">
+    <input type="file" id="fAfterPhoto" accept="image/*" multiple onchange="limitPhotos(this,'afterPhotoCount')"><div class="muted" id="afterPhotoCount">Max. 5 Bilder</div>
     ${f.afterPhoto?`<img class="thumb" src="${f.afterPhoto}" alt="Foto danach" style="margin-top:8px">`:''}
   </div>
   <label>Status</label><select id="fStatus" onchange="toggleCompletion()">${['Offen','In Bearbeitung','Erledigt'].map(x=>`<option ${x===(forceClose?'Erledigt':f.status)?'selected':''}>${x}</option>`).join('')}</select>
@@ -1011,6 +1013,16 @@ function readPhoto(file){
     };img.onerror=reject;img.src=fr.result};fr.onerror=reject;fr.readAsDataURL(file)
   })
 }
+function limitPhotos(input,countId){
+  const c=document.getElementById(countId);
+  if(input.files.length>5){alert('Maximal 5 Bilder möglich.');input.value='';if(c)c.textContent='Max. 5 Bilder';return}
+  if(c)c.textContent=input.files.length+' von 5 Bildern ausgewählt';
+}
+async function readPhotos(input){
+  const files=[...(input?.files||[])];
+  if(files.length>5)throw new Error('Maximal 5 Bilder');
+  const out=[];for(const f of files)out.push(await readPhoto(f));return out.filter(Boolean);
+}
 async function saveFinding(id){
   const decisionRequiredValue=document.getElementById('fDecisionRequired')?.value||'';
   let decisionRequired=decisionRequiredValue==='yes';
@@ -1032,8 +1044,14 @@ async function saveFinding(id){
   const completionType=document.getElementById('fCompletionType')?.value||'';
   if(type==='Leistung'&&!activity)return alert('Bitte die durchgeführte Tätigkeit dokumentieren.');
   if(status==='Erledigt'&&!completionType)return alert('Bitte eine Abschlussart wählen.');
-  const beforeFile=document.getElementById('fBeforePhoto').files[0], afterFile=document.getElementById('fAfterPhoto').files[0];
-  const old=db.findings.find(x=>x.id===id), before=await readPhoto(beforeFile), after=await readPhoto(afterFile);
+  const beforeInput=document.getElementById('fBeforePhoto'), afterInput=document.getElementById('fAfterPhoto');
+  if((beforeInput?.files?.length||0)>5||(afterInput?.files?.length||0)>5)return alert('Maximal 5 Bilder möglich.');
+  const old=db.findings.find(x=>x.id===id);
+  const oldBefore=old?.beforePhotos?.length?old.beforePhotos:(old?.beforePhoto||old?.photo?[old.beforePhoto||old.photo]:[]);
+  const oldAfter=old?.afterPhotos?.length?old.afterPhotos:(old?.afterPhoto?[old.afterPhoto]:[]);
+  const beforePhotos=(beforeInput?.files?.length)?await readPhotos(beforeInput):oldBefore;
+  const afterPhotos=(afterInput?.files?.length)?await readPhotos(afterInput):oldAfter;
+  const before=beforePhotos[0]||'', after=afterPhotos[0]||'';
   const description=type==='Feststellung'?(document.getElementById('fDescription')?.value.trim()||''):(document.getElementById('fServiceNote')?.value.trim()||'');
   const data={
     objectId:document.getElementById('fObject').value,inspectionId:document.getElementById('fInspection').value,
@@ -1043,7 +1061,7 @@ async function saveFinding(id){
     description,action:type==='Feststellung'?(document.getElementById('fAction')?.value.trim()||''):'',
     activity,status,completionType,completionNote:document.getElementById('fCompletionNote')?.value.trim()||'',
     decisionRequired,decisionStatus,decisionBy,decisionDate,decisionComment,decisionAmount,
-    beforePhoto:before||(old?.beforePhoto||old?.photo||''),afterPhoto:after||(old?.afterPhoto||'')
+    beforePhoto:before,afterPhoto:after,beforePhotos,afterPhotos
   };
   if(id)Object.assign(old,data,{updatedAt:Date.now()});else db.findings.push({id:uid('find'),createdAt:Date.now(),...data});
   try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){alert('Speicher des Browsers ist voll. Bitte Sicherung exportieren und ältere Fotos/Dokumentationen reduzieren.');return}
