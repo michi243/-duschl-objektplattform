@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.8.1 Logout-Fix</title>
+<title>Duschl Service – Objekt-Dokumentation 2.9.0 Benutzer & Berechtigungen</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -386,7 +386,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.8.1 Logout-Fix ===== */
+/* ===== v2.9.0 Benutzer & Berechtigungen ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -607,7 +607,7 @@ body.photo-viewer-open{overflow:hidden}
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.8.1 Logout-Fix</span></header>
+<span class="badge">v2.9.0 Benutzer & Berechtigungen</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -615,6 +615,7 @@ body.photo-viewer-open{overflow:hidden}
   <button id="navFindings" onclick="showSection('findings')">Dokumentation</button>
 <button id="navDecisions" onclick="showSection('decisions')">Entscheidungen <span id="decisionNavCount" class="badge" style="margin-left:4px">0</span></button>
   <button id="navWorkqueue" onclick="showSection('workqueue')">Arbeitsvorrat</button><button id="navReports" onclick="showSection('reports')">Berichte</button>
+  <button id="navUsers" onclick="showSection('users')">Benutzer & Berechtigungen</button>
   <button id="navSettings" onclick="showSection('settings')">Daten</button>
 </nav>
 
@@ -858,6 +859,19 @@ body.photo-viewer-open{overflow:hidden}
   <div id="reportContent"></div>
 </section>
 
+<section id="users" class="section">
+  <div class="card">
+    <h2>Benutzer & Berechtigungen</h2>
+    <p class="muted">Bestehende Benutzer verwalten: Rolle, Aktivstatus und Objektzugriffe.</p>
+    <div class="row" style="gap:10px;align-items:end;flex-wrap:wrap">
+      <label style="min-width:260px;flex:1">Benutzer
+        <select id="userAdminSelect" onchange="loadUserAdminEditor()"></select>
+      </label>
+      <button onclick="loadUserAdminData()">Aktualisieren</button>
+    </div>
+  </div>
+  <div id="userAdminEditor"></div>
+</section>
 <section id="settings" class="section">
   <div class="card" style="margin-bottom:14px">
     <h3>Zentrale Datenbasis</h3>
@@ -977,12 +991,14 @@ function applyRoleUI(){
   show('navWorkqueue',true);
   show('navReports',true);
   show('navDecisions',canUseDecisionsUI());
+  show('navUsers',isAdminRole());
   show('navSettings',canUseSettingsUI());
   show('addObjectBtn',canManageObjectsUI());
 
   if(!canUseDecisionsUI() && document.getElementById('decisions')?.classList.contains('active')){
     showSection('dashboard');
   }
+  if(!isAdminRole() && document.getElementById('users')?.classList.contains('active')) showSection('dashboard');
   if(!canUseSettingsUI() && document.getElementById('settings')?.classList.contains('active')){
     showSection('dashboard');
   }
@@ -1801,7 +1817,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.8.1-logout-fix'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.9.0-users-permissions'};
 }
 function load(){
   try{
@@ -1864,7 +1880,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.8.1-logout-fix'
+      version:'2.9.0-users-permissions'
     };
 
     merged.findings.forEach(f=>{
@@ -1901,7 +1917,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.8.1-logout-fix';
+  db.version='2.9.0-users-permissions';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -1913,12 +1929,13 @@ function objectName(id){return db.objects.find(x=>x.id===id)?.name||'—'}
 function inspectionName(id){const i=db.inspections.find(x=>x.id===id);return i?`${objectName(i.objectId)} · ${fmt(i.startedAt)}`:'—'}
 function showSection(id){
   if(id==='decisions'&&!canUseDecisionsUI())return requireDecisionUI();
+  if(id==='users'&&!isAdminRole())return requireAdminUI('Benutzer & Berechtigungen');
   if(id==='settings'&&!canUseSettingsUI())return requireAdminUI('Daten & Administration');
   document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('primary'));
   [...document.querySelectorAll('nav button')].find(b=>b.getAttribute('onclick')?.includes(`'${id}'`))?.classList.add('primary');
-  if(id==='reports')renderReport();if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();
+  if(id==='reports')renderReport();if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='users')loadUserAdminData();
 }
 function priorityLabel(p){
   return ({P1:'Sofort',P2:'Dringend',P3:'Planbar',P4:'Beobachten'})[p]||p||'';
@@ -2401,6 +2418,55 @@ async function saveWorkItem(id){
     console.error('Aufgabe speichern fehlgeschlagen',e);
     alert('Aufgabe konnte nicht zentral gespeichert werden: '+(e.message||e));
   }
+}
+
+
+let userAdminProfiles=[];
+let userAdminAssignments=[];
+
+async function loadUserAdminData(){
+  if(!isAdminRole())return;
+  const sel=document.getElementById('userAdminSelect'),ed=document.getElementById('userAdminEditor');
+  if(!sel||!ed)return;
+  ed.innerHTML='<div class="card"><p class="muted">Benutzerdaten werden geladen …</p></div>';
+  try{
+    userAdminProfiles=await cloudFetch('/rest/v1/profiles?select=id,full_name,role,active&order=full_name.asc')||[];
+    userAdminAssignments=await cloudFetch('/rest/v1/object_user_assignments?select=id,object_id,user_id,active')||[];
+    const keep=sel.value;
+    sel.innerHTML='<option value="">Benutzer auswählen …</option>'+userAdminProfiles.map(p=>`<option value="${esc(p.id)}">${esc(p.full_name||p.id)} · ${esc(ROLE_LABELS[p.role]||p.role)}${p.active===false?' · inaktiv':''}</option>`).join('');
+    if(keep&&userAdminProfiles.some(p=>p.id===keep))sel.value=keep;
+    loadUserAdminEditor();
+  }catch(e){ed.innerHTML=`<div class="card"><h3>Fehler</h3><p>${esc(e.message)}</p></div>`}
+}
+function loadUserAdminEditor(){
+  if(!isAdminRole())return;
+  const uid=document.getElementById('userAdminSelect')?.value,ed=document.getElementById('userAdminEditor');
+  if(!ed)return;if(!uid){ed.innerHTML='';return}
+  const p=userAdminProfiles.find(x=>x.id===uid);if(!p){ed.innerHTML='';return}
+  const assigned=new Set(userAdminAssignments.filter(a=>a.user_id===uid&&a.active!==false).map(a=>a.object_id));
+  const roles=[['platform_admin','Administrator / GF'],['object_manager','Objektbetreuer'],['employee','Mitarbeiter'],['customer','Auftraggeber / Kunde']];
+  const roleOptions=roles.map(([v,l])=>`<option value="${v}" ${p.role===v?'selected':''}>${l}</option>`).join('');
+  const objectRows=(db.objects||[]).map(o=>`<label class="row" style="gap:10px;align-items:center;margin:8px 0"><input type="checkbox" class="userObjectAssignment" value="${esc(o.id)}" ${assigned.has(o.id)?'checked':''}><span><strong>${esc(o.name||'Objekt')}</strong>${o.street||o.city?`<br><span class="muted">${esc([o.street,[o.postal_code,o.city].filter(Boolean).join(' ')].filter(Boolean).join(', '))}</span>`:''}</span></label>`).join('')||'<p class="muted">Keine Objekte vorhanden.</p>';
+  ed.innerHTML=`<div class="card"><h3>${esc(p.full_name||'Benutzer')}</h3><p class="muted">User-ID: ${esc(p.id)}</p><div class="grid2"><label>Rolle<select id="userAdminRole">${roleOptions}</select></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminActive" type="checkbox" ${p.active!==false?'checked':''}><span>Benutzer aktiv</span></label></div><h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px"><button onclick="saveUserAdminPermissions()">Speichern</button></div><p class="muted" style="margin-top:12px">Passwort und E-Mail werden hier bewusst nicht verwaltet.</p></div>`;
+}
+async function saveUserAdminPermissions(){
+  if(!isAdminRole())return requireAdminUI('Benutzer & Berechtigungen');
+  const uid=document.getElementById('userAdminSelect')?.value,role=document.getElementById('userAdminRole')?.value,active=!!document.getElementById('userAdminActive')?.checked;
+  if(!uid||!role)return alert('Benutzer und Rolle fehlen.');
+  if(uid===currentUserProfile?.id&&(!active||role!=='platform_admin'))return alert('Der aktuell angemeldete Administrator kann sich nicht selbst deaktivieren oder seine Administratorrolle entfernen.');
+  const checked=[...document.querySelectorAll('.userObjectAssignment:checked')].map(x=>x.value);
+  try{
+    await cloudFetch('/rest/v1/profiles?id=eq.'+encodeURIComponent(uid),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({role,active})});
+    const existing=userAdminAssignments.filter(a=>a.user_id===uid);
+    for(const a of existing){
+      const should=checked.includes(a.object_id);
+      if(a.active!==should)await cloudFetch('/rest/v1/object_user_assignments?id=eq.'+encodeURIComponent(a.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({active:should,updated_at:new Date().toISOString()})});
+    }
+    const existingIds=new Set(existing.map(a=>a.object_id));
+    for(const object_id of checked)if(!existingIds.has(object_id))await cloudFetch('/rest/v1/object_user_assignments',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({object_id,user_id:uid,active:true,assigned_by:currentUserProfile?.id})});
+    alert('Berechtigungen gespeichert.');
+    await loadUserAdminData();
+  }catch(e){alert('Speichern fehlgeschlagen: '+e.message)}
 }
 
 function renderAll(){
