@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.4.2 Supabase Fotos</title>
+<title>Duschl Service – Objekt-Dokumentation 2.4.3 Supabase Fotos</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -386,7 +386,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.4.2 Supabase Fotos ===== */
+/* ===== v2.4.3 Supabase Fotos ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -422,7 +422,7 @@ a{color:var(--accent-2)!important}
 <header>
   <div><h1>Duschl Service</h1><small>Interne Objekt-Dokumentation</small></div>
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
-<span class="badge" style="margin-left:auto">v2.4.2 Supabase Fotos</span></header>
+<span class="badge" style="margin-left:auto">v2.4.3 Supabase Fotos</span></header>
 <nav>
   <button onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button onclick="showSection('objects')">Objekte</button>
@@ -697,12 +697,12 @@ a{color:var(--accent-2)!important}
       <button type="button" onclick="cloudReloadObjects()">Objekte neu laden</button>
       <button type="button" onclick="cloudLogout()">Abmelden</button>
     </div>
-    <div class="muted" style="margin-top:8px">Teststufe 2.4.2: Objekte, Begehungen, Dokumentationen und neue Fotos werden zentral in Supabase gespeichert. Lokale IndexedDB-Fotos bleiben als Rückfall- und Migrationsquelle erhalten.</div>
+    <div class="muted" style="margin-top:8px">Teststufe 2.4.3: Objekte, Begehungen, Dokumentationen und neue Fotos werden zentral in Supabase gespeichert. Lokale IndexedDB-Fotos bleiben als Rückfall- und Migrationsquelle erhalten.</div>
   </div>
 
   <div class="card" style="margin-bottom:14px">
     <h3>Supabase Foto-Voraussetzung</h3>
-    <div class="muted">v2.4.2 nutzt den bereits vorhandenen privaten Storage-Bucket <b>objektplattform-media</b> und die bereits vorhandene zentrale Tabelle <b>media</b>. Eine zusätzliche Foto-Tabelle ist nicht erforderlich.</div>
+    <div class="muted">v2.4.3 nutzt den bereits vorhandenen privaten Storage-Bucket <b>objektplattform-media</b> und die bereits vorhandene zentrale Tabelle <b>media</b>. Eine zusätzliche Foto-Tabelle ist nicht erforderlich.</div>
   </div>
   <div class="card" style="margin-bottom:14px">
     <h3>Speicherstatus</h3>
@@ -737,7 +737,7 @@ a{color:var(--accent-2)!important}
   </div>
   <div class="card" style="margin-top:14px">
     <h3>Lokale Daten</h3>
-    <p class="muted">Teststufe 2.4.2: Objekte, Begehungen und Dokumentationen werden zentral über Supabase gespeichert. Neue Fotos werden in Supabase Storage gespeichert; vorhandene lokale Fotos bleiben erhalten und werden beim nächsten Speichern einer Dokumentation hochgeladen.</p>
+    <p class="muted">Teststufe 2.4.3: Objekte, Begehungen und Dokumentationen werden zentral über Supabase gespeichert. Neue Fotos werden in Supabase Storage gespeichert; vorhandene lokale Fotos bleiben erhalten und werden beim nächsten Speichern einer Dokumentation hochgeladen.</p>
     <button class="danger" onclick="resetData()">Alle lokalen Daten löschen</button>
   </div>
 </section>
@@ -1052,6 +1052,22 @@ async function cloudSaveFinding(id,data){
   }
   if(!row)throw new Error('Feststellung wurde von Supabase nicht zurückgegeben.');
 
+  // Fotos zentral speichern: lokale Entwürfe -> privater Supabase Storage
+  // und danach Verknüpfung in public.media.
+  let cloudBefore=[],cloudAfter=[];
+  try{
+    cloudBefore=await uploadFindingPhotos(row.id,'before',data.beforePhotos||[]);
+    cloudAfter=await uploadFindingPhotos(row.id,'after',data.afterPhotos||[]);
+    await cloudReplacePhotoRefs(row.id,data,cloudBefore,cloudAfter);
+    row.__beforePhotos=cloudBefore;
+    row.__afterPhotos=cloudAfter;
+  }catch(photoError){
+    for(const ref of [...cloudBefore,...cloudAfter]){
+      try{await cloudMediaDelete(ref)}catch(_e){}
+    }
+    throw new Error('Foto konnte nicht zentral gespeichert werden: '+(photoError.message||photoError));
+  }
+
   // Decision is a separate normalized table in the Supabase schema.
   if(data.type==='Feststellung'){
     const decisionPayload={
@@ -1359,7 +1375,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'2.4.2-supabase-photos'};
+  return {objects:[],inspections:[],findings:[],version:'2.4.3-supabase-photos'};
 }
 function load(){
   try{
@@ -1421,7 +1437,7 @@ function load(){
       objects:mergeById('objects'),
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
-      version:'2.4.2-supabase-photos'
+      version:'2.4.3-supabase-photos'
     };
 
     merged.findings.forEach(f=>{
@@ -1458,7 +1474,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.4.2-supabase-photos';
+  db.version='2.4.3-supabase-photos';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -2449,8 +2465,8 @@ async function saveFinding(id){
       comment:decisionComment,
       amount:decisionAmount
     });
-    const savedBefore=(row.__beforePhotos||beforePhotos).slice(0,5);
-    const savedAfter=(row.__afterPhotos||afterPhotos).slice(0,5);
+    const savedBefore=(row.__beforePhotos||[]).slice(0,5);
+    const savedAfter=(row.__afterPhotos||[]).slice(0,5);
     cloudLocal.beforePhotos=savedBefore; cloudLocal.afterPhotos=savedAfter;
     cloudLocal.beforePhoto=savedBefore[0]||''; cloudLocal.afterPhoto=savedAfter[0]||'';
     // Existing local draft/test record is replaced by the authoritative cloud record.
