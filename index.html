@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 1.7.2</title>
+<title>Duschl Service – Objekt-Dokumentation 1.7.3 Recovery</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -38,7 +38,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 
 .photo-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.photo-item{position:relative;width:86px;height:86px}.photo-item img{width:86px;height:86px;object-fit:cover;border-radius:8px}.photo-remove{position:absolute;right:3px;top:3px;width:26px;height:26px;border-radius:50%;padding:0;line-height:22px;font-size:18px;background:#fff;border:1px solid #999}
 
-/* ===== Duschl Service Dark UI – v1.7.2 ===== */
+/* ===== Duschl Service Dark UI – v1.7.3 Recovery ===== */
 :root{
   --bg:#07131d;
   --bg-soft:#0b1824;
@@ -245,7 +245,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* ===== Dark UI completion – v1.7.2 ===== */
+/* ===== Dark UI completion – v1.7.3 Recovery ===== */
 body,main,.section,.content,.container,.wrap,.page{background:transparent!important;color:var(--text)!important}
 div[style*="background:#fff"],div[style*="background: #fff"],div[style*="background:white"],div[style*="background: white"],
 section[style*="background:#fff"],section[style*="background: #fff"],.card[style*="background:#fff"],.card[style*="background: #fff"]{
@@ -282,7 +282,7 @@ a{color:var(--accent-2)!important}
 <header>
   <div><h1>Duschl Service</h1><small>Interne Objekt-Dokumentation</small></div>
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
-<span class="badge" style="margin-left:auto">v1.7.2</span></header>
+<span class="badge" style="margin-left:auto">v1.7.3 Recovery</span></header>
 <nav>
   <button onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button onclick="showSection('objects')">Objekte</button>
@@ -520,8 +520,14 @@ a{color:var(--accent-2)!important}
 
 <section id="settings" class="section">
   <div class="card" style="margin-bottom:14px">
+    <h3>Datensicherung</h3>
+    <div class="muted">Vor weiteren Änderungen kannst du den aktuell wiederhergestellten Master-Datenbestand als JSON sichern.</div>
+    <button type="button" onclick="downloadMasterBackup()">Master-Backup herunterladen</button>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
     <h3>Datenwiederherstellung</h3>
-    <div id="recoveryStatus" class="muted">Historische Datenstände werden automatisch geprüft.</div>
+    <div id="recoveryStatus" class="muted">Alle lokal vorhandenen Datenstände werden automatisch geprüft.</div>
     <button type="button" onclick="showRecoveryStatus()">Wiederherstellung prüfen</button>
   </div>
 
@@ -556,11 +562,12 @@ const OLD_KEY='duschl_objekt_doku_v159';
 let db = load();
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'1.7.2'};
+  return {objects:[],inspections:[],findings:[],version:'1.7.3-recovery'};
 }
 function load(){
   try{
-    const keys=[
+    const candidates=[];
+    const known=[
       'duschl_objekt_doku_v11','duschl_objekt_doku_v12','duschl_objekt_doku_v121',
       'duschl_objekt_doku_v122','duschl_objekt_doku_v13','duschl_objekt_doku_v131',
       'duschl_objekt_doku_v132','duschl_objekt_doku_v133','duschl_objekt_doku_v14',
@@ -569,36 +576,57 @@ function load(){
       'duschl_objekt_doku_v155','duschl_objekt_doku_v156','duschl_objekt_doku_v157',
       'duschl_objekt_doku_v158','duschl_objekt_doku_v159','duschl_objekt_doku_master'
     ];
-    const stores=[];
-    for(const k of keys){
+
+    // zusätzlich ALLE localStorage-Keys prüfen, damit künftige/abweichende Versionsnamen nicht verloren gehen
+    const allKeys=new Set(known);
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k)allKeys.add(k);
+    }
+
+    for(const k of allKeys){
       const raw=localStorage.getItem(k);
       if(!raw)continue;
       try{
         const d=JSON.parse(raw);
-        if(d && (Array.isArray(d.objects)||Array.isArray(d.inspections)||Array.isArray(d.findings))){
-          stores.push({key:k,data:d});
+        if(d && typeof d==='object' &&
+          (Array.isArray(d.objects)||Array.isArray(d.inspections)||Array.isArray(d.findings))){
+          candidates.push({key:k,data:d});
         }
       }catch(_){}
     }
-    if(!stores.length)return seed();
 
-    // Merge ALL historical stores. Later stores update same IDs, but older unique records survive.
+    if(!candidates.length){
+      window.__recoveryInfo={sources:[],objects:0,inspections:0,findings:0};
+      return seed();
+    }
+
+    // Bestehende Datensätze niemals durch leere/ältere Datensätze verdrängen
     const mergeById=(name)=>{
-      const m=new Map();
-      for(const s of stores){
+      const map=new Map();
+      for(const s of candidates){
         for(const x of (s.data[name]||[])){
           if(!x||!x.id)continue;
-          m.set(x.id,{...(m.get(x.id)||{}),...x});
+          const prev=map.get(x.id)||{};
+          const prevTs=Number(prev.updatedAt||prev.createdAt||prev.startedAt||0);
+          const nextTs=Number(x.updatedAt||x.createdAt||x.startedAt||0);
+          if(!map.has(x.id) || nextTs>=prevTs){
+            map.set(x.id,{...prev,...x});
+          }else{
+            map.set(x.id,{...x,...prev});
+          }
         }
       }
-      return [...m.values()];
+      return [...map.values()];
     };
+
     const merged={
       objects:mergeById('objects'),
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
-      version:'1.7.2'
+      version:'1.7.3-recovery'
     };
+
     merged.findings.forEach(f=>{
       if(!f.type)f.type='Feststellung';
       if(!f.beforePhoto&&f.photo)f.beforePhoto=f.photo;
@@ -612,10 +640,11 @@ function load(){
       if((f.type||'Feststellung')==='Feststellung'&&typeof f.decisionRequired==='undefined')f.decisionRequired=true;
     });
 
-    // Never overwrite historical keys. Only write merged result to stable master key.
+    // Master nur aktualisieren, historische Keys niemals löschen
     localStorage.setItem(KEY,JSON.stringify(merged));
+
     window.__recoveryInfo={
-      sources:stores.map(x=>x.key),
+      sources:candidates.map(x=>x.key),
       objects:merged.objects.length,
       inspections:merged.inspections.length,
       findings:merged.findings.length
@@ -627,7 +656,7 @@ function load(){
   }
 }
 
-function save(){db.version='1.7.2';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
+function save(){db.version='1.7.3-recovery';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
 function uid(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)}
 function fmt(ts){if(!ts)return'';return new Date(ts).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -785,6 +814,21 @@ function saveDecision(id){
   f.decisionAmount=amount===''?'':Number(amount);
   f.decisionUpdatedAt=Date.now();
   closeModal();save();showSection('decisions');
+}
+
+function downloadMasterBackup(){
+  try{
+    const raw=localStorage.getItem(KEY)||JSON.stringify(db);
+    const blob=new Blob([raw],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='Duschl_Service_Backup_'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }catch(err){
+    alert('Backup konnte nicht erstellt werden.');
+  }
 }
 
 function showRecoveryStatus(){
