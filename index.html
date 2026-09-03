@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.9.2 Benutzer-API-Fix</title>
+<title>Duschl Service – Objekt-Dokumentation 2.9.3 Benutzer-UI</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -386,7 +386,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.9.2 Benutzer-API-Fix ===== */
+/* ===== v2.9.3 Benutzer-UI ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -607,7 +607,7 @@ body.photo-viewer-open{overflow:hidden}
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.9.2 Benutzer-API-Fix</span></header>
+<span class="badge">v2.9.3 Benutzer-UI</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1817,7 +1817,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.9.2-users-api-fix'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.9.3-users-ui'};
 }
 function load(){
   try{
@@ -1880,7 +1880,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.9.2-users-api-fix'
+      version:'2.9.3-users-ui'
     };
 
     merged.findings.forEach(f=>{
@@ -1917,7 +1917,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.9.2-users-api-fix';
+  db.version='2.9.3-users-ui';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -2447,7 +2447,7 @@ function loadUserAdminEditor(){
   const roles=[['platform_admin','Administrator / GF'],['object_manager','Objektbetreuer'],['employee','Mitarbeiter'],['customer','Auftraggeber / Kunde']];
   const roleOptions=roles.map(([v,l])=>`<option value="${v}" ${p.role===v?'selected':''}>${l}</option>`).join('');
   const objectRows=(db.objects||[]).map(o=>`<label class="row" style="gap:10px;align-items:center;margin:8px 0"><input type="checkbox" class="userObjectAssignment" value="${esc(o.id)}" ${assigned.has(o.id)?'checked':''}><span><strong>${esc(o.name||'Objekt')}</strong>${o.street||o.city?`<br><span class="muted">${esc([o.street,[o.postal_code,o.city].filter(Boolean).join(' ')].filter(Boolean).join(', '))}</span>`:''}</span></label>`).join('')||'<p class="muted">Keine Objekte vorhanden.</p>';
-  ed.innerHTML=`<div class="card"><h3>${esc(p.full_name||'Benutzer')}</h3><p class="muted">User-ID: ${esc(p.id)}</p><div class="grid2"><label>Rolle<select id="userAdminRole">${roleOptions}</select></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminActive" type="checkbox" ${p.active!==false?'checked':''}><span>Benutzer aktiv</span></label></div><h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px"><button onclick="saveUserAdminPermissions()">Speichern</button></div><p class="muted" style="margin-top:12px">Passwort und E-Mail werden hier bewusst nicht verwaltet.</p></div>`;
+  ed.innerHTML=`<div class="card"><h3>${esc(p.full_name||'Benutzer')}</h3><div class="grid2"><label>Rolle<select id="userAdminRole">${roleOptions}</select></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminActive" type="checkbox" ${p.active!==false?'checked':''}><span>Benutzer aktiv</span></label></div><h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px"><button onclick="saveUserAdminPermissions()">Speichern</button></div><p class="muted" style="margin-top:12px">Passwort und E-Mail werden hier bewusst nicht verwaltet.</p></div>`;
 }
 async function saveUserAdminPermissions(){
   if(!isAdminRole())return requireAdminUI('Benutzer & Berechtigungen');
