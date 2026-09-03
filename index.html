@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.6.7 Arbeitsvorrat Zusammenführung</title>
+<title>Duschl Service – Objekt-Dokumentation 2.7.0 Konsolidiert</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -386,7 +386,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.6.7 Arbeitsvorrat Zusammenführung ===== */
+/* ===== v2.7.0 Konsolidiert ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -605,7 +605,7 @@ body.photo-viewer-open{overflow:hidden}
 <header>
   <div><h1>Duschl Service</h1><small>Interne Objekt-Dokumentation</small></div>
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
-<span class="badge" style="margin-left:auto">v2.6.7 Arbeitsvorrat Zusammenführung</span></header>
+<span class="badge" style="margin-left:auto">v2.7.0 Konsolidiert</span></header>
 <nav>
   <button onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button onclick="showSection('objects')">Objekte</button>
@@ -864,7 +864,7 @@ body.photo-viewer-open{overflow:hidden}
       <button type="button" onclick="cloudReloadObjects()">Objekte neu laden</button>
       <button type="button" onclick="cloudLogout()">Abmelden</button>
     </div>
-    <div class="muted" style="margin-top:8px">Teststufe 2.6.7: Objekte, Begehungen, Dokumentationen, Fotos und der Arbeitsvorrat werden zentral in Supabase gespeichert. Lokale IndexedDB-Fotos bleiben als Rückfall- und Migrationsquelle erhalten.</div>
+    <div class="muted" style="margin-top:8px">Teststufe 2.7.0: Objekte, Begehungen, Dokumentationen, Fotos und der Arbeitsvorrat werden zentral in Supabase gespeichert. Lokale IndexedDB-Fotos bleiben als Rückfall- und Migrationsquelle erhalten.</div>
   </div>
 
   <div class="card" style="margin-bottom:14px">
@@ -904,7 +904,7 @@ body.photo-viewer-open{overflow:hidden}
   </div>
   <div class="card" style="margin-top:14px">
     <h3>Lokale Daten</h3>
-    <p class="muted">Teststufe 2.6.7: Objekte, Begehungen, Dokumentationen und der Arbeitsvorrat werden zentral über Supabase gespeichert. Neue Fotos werden in Supabase Storage gespeichert; vorhandene lokale Fotos bleiben erhalten und werden beim nächsten Speichern einer Dokumentation hochgeladen.</p>
+    <p class="muted">Teststufe 2.7.0: Objekte, Begehungen, Dokumentationen und der Arbeitsvorrat werden zentral über Supabase gespeichert. Neue Fotos werden in Supabase Storage gespeichert; vorhandene lokale Fotos bleiben erhalten und werden beim nächsten Speichern einer Dokumentation hochgeladen.</p>
     <button class="danger" onclick="resetData()">Alle lokalen Daten löschen</button>
   </div>
 </section>
@@ -1711,7 +1711,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.6.7-workqueue-merged'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.7.0-consolidated'};
 }
 function load(){
   try{
@@ -1774,7 +1774,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.6.7-workqueue-merged'
+      version:'2.7.0-consolidated'
     };
 
     merged.findings.forEach(f=>{
@@ -1811,7 +1811,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.6.7-workqueue-merged';
+  db.version='2.7.0-consolidated';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -1831,16 +1831,19 @@ function showSection(id){
 function priorityLabel(p){
   return ({P1:'Sofort',P2:'Dringend',P3:'Planbar',P4:'Beobachten'})[p]||p||'';
 }
+const DECISION_STATUS_LABELS={
+  pending:'Entscheidung ausstehend',
+  quote_requested:'Angebot erwünscht',
+  quote_sent:'Angebot versendet',
+  approved:'Beauftragt',
+  rejected:'Nicht beauftragt',
+  deferred:'Zurückgestellt',
+  question:'Rückfrage erforderlich',
+  thirdparty:'An Dritten vergeben',
+  not_required:'Entscheidung nicht erforderlich'
+};
 function decisionLabel(v){
-  return ({
-    pending:'Entscheidung ausstehend',quote_requested:'Angebot erwünscht',quote_sent:'Angebot versendet',
-    approved:'Beauftragt',
-    rejected:'Nicht beauftragt',
-    deferred:'Zurückgestellt',
-    question:'Rückfrage erforderlich',
-    thirdparty:'An Dritten vergeben',
-    not_required:'Keine Entscheidung erforderlich'
-  })[v]||'Entscheidung ausstehend';
+  return DECISION_STATUS_LABELS[v]||DECISION_STATUS_LABELS.pending;
 }
 function inspectionClosed(i){return !!(i && i.endedAt)}
 
@@ -1937,6 +1940,9 @@ function resetDecisionFilters(){
 function openDecisionModal(id){
   const f=db.findings.find(x=>x.id===id); if(!f)return;
   const o=db.objects.find(x=>x.id===f.objectId);
+  const options=Object.entries(DECISION_STATUS_LABELS)
+    .map(([v,l])=>`<option value="${v}" ${(f.decisionStatus||'pending')===v?'selected':''}>${esc(l)}</option>`)
+    .join('');
   modal(`<div class="row space"><div><h2>Entscheidung treffen</h2><div class="muted">${esc(o?.name||'')}</div></div><button onclick="closeModal()">✕</button></div>
     <div class="card" style="margin-top:12px">
       <div class="row">${badgeP(f.priority)}<span class="badge">${esc(f.category||'Feststellung')}</span></div>
@@ -1944,14 +1950,7 @@ function openDecisionModal(id){
       ${f.action?`<p><strong>Empfehlung:</strong><br>${esc(f.action)}</p>`:''}
     </div>
     <label>Entscheidung *</label>
-    <select id="dStatus">
-      <option value="pending" ${(f.decisionStatus||'pending')==='pending'?'selected':''}>Entscheidung ausstehend</option>
-      <option value="approved" ${f.decisionStatus==='approved'?'selected':''}>Beauftragt</option>
-      <option value="rejected" ${f.decisionStatus==='rejected'?'selected':''}>Nicht beauftragt</option>
-      <option value="deferred" ${f.decisionStatus==='deferred'?'selected':''}>Zurückgestellt</option>
-      <option value="question" ${f.decisionStatus==='question'?'selected':''}>Rückfrage erforderlich</option>
-      <option value="thirdparty" ${f.decisionStatus==='thirdparty'?'selected':''}>An Dritten vergeben</option>
-    </select>
+    <select id="dStatus">${options}</select>
     <label>Entscheider / Auftraggeber</label>
     <input id="dBy" value="${esc(f.decisionBy||'')}" placeholder="Name / Ansprechpartner">
     <label>Entscheidungsdatum</label>
@@ -1963,16 +1962,63 @@ function openDecisionModal(id){
     <div class="row" style="margin-top:14px"><button class="primary" onclick="saveDecision('${id}')">Entscheidung speichern</button><button onclick="closeModal()">Abbrechen</button></div>`);
 }
 
-function saveDecision(id){
+async function saveDecision(id){
   const f=db.findings.find(x=>x.id===id); if(!f)return;
-  f.decisionStatus=document.getElementById('dStatus').value;
-  f.decisionBy=document.getElementById('dBy').value.trim();
-  f.decisionDate=document.getElementById('dDate').value;
-  f.decisionComment=document.getElementById('dComment').value.trim();
-  const amount=document.getElementById('dAmount').value;
-  f.decisionAmount=amount===''?'':Number(amount);
-  f.decisionUpdatedAt=Date.now();
-  closeModal();save();showSection('decisions');
+  const status=document.getElementById('dStatus')?.value||'pending';
+  const by=document.getElementById('dBy')?.value.trim()||'';
+  const date=document.getElementById('dDate')?.value||'';
+  const comment=document.getElementById('dComment')?.value.trim()||'';
+  const amountRaw=document.getElementById('dAmount')?.value??'';
+  const amount=amountRaw===''?'':Number(amountRaw);
+  const required=status!=='not_required';
+
+  try{
+    if(!cloudSession?.access_token)throw new Error('Nicht angemeldet.');
+    cloudSetStatus('Entscheidung wird zentral gespeichert …','wait');
+
+    const payload={
+      finding_id:f.id,
+      required,
+      status:required?status:'not_required',
+      decided_by_name:by||null,
+      decision_date:date||null,
+      comment:comment||null,
+      amount:amount===''?null:amount,
+      updated_at:new Date().toISOString()
+    };
+    const existing=await cloudRequest(`decisions?select=id&finding_id=eq.${encodeURIComponent(f.id)}&limit=1`);
+    if(existing?.[0]?.id){
+      await cloudRequest(`decisions?id=eq.${encodeURIComponent(existing[0].id)}`,{
+        method:'PATCH',
+        headers:{'Prefer':'return=minimal'},
+        body:JSON.stringify(payload)
+      });
+    }else{
+      await cloudRequest('decisions',{
+        method:'POST',
+        headers:{'Prefer':'return=minimal'},
+        body:JSON.stringify(payload)
+      });
+    }
+
+    f.decisionRequired=required;
+    f.decisionStatus=required?status:'not_required';
+    f.decisionBy=by;
+    f.decisionDate=date;
+    f.decisionComment=comment;
+    f.decisionAmount=amount;
+    f.decisionUpdatedAt=Date.now();
+    try{localStorage.setItem(KEY,JSON.stringify(db))}catch(_e){}
+
+    cloudSetStatus('Verbunden · Entscheidung zentral gespeichert','ok');
+    closeModal();
+    renderAll();
+    showSection('decisions');
+  }catch(e){
+    console.error('Entscheidung zentral speichern fehlgeschlagen',e);
+    cloudSetStatus('Fehler beim Speichern der Entscheidung','bad');
+    alert('Entscheidung konnte nicht zentral gespeichert werden: '+(e.message||e));
+  }
 }
 
 function downloadMasterBackup(){
@@ -2009,17 +2055,7 @@ function todayISO(){
 }
 const TASK_STATUS_LABELS={planned:'Geplant',due:'Fällig',in_progress:'In Bearbeitung',waiting:'Wartet auf Material / Dritten',completed:'Erledigt',cancelled:'Abgebrochen'};
 
-const WORK_DECISION_LABELS={
-  pending:'Entscheidung ausstehend',
-  quote_requested:'Angebot erwünscht',
-  quote_sent:'Angebot versendet',
-  approved:'Beauftragt',
-  rejected:'Nicht beauftragt',
-  deferred:'Zurückgestellt',
-  question:'Rückfrage erforderlich',
-  thirdparty:'An Dritten vergeben',
-  not_required:'Entscheidung nicht erforderlich'
-};
+const WORK_DECISION_LABELS=DECISION_STATUS_LABELS;
 
 function workQueueClass(f){
   const type=f.type||'Feststellung';
@@ -2033,23 +2069,34 @@ function gfTaskDerivedBucket(t){
   const today=new Date(); today.setHours(0,0,0,0);
   if(!t.dueDate)return 'no_due';
   const d=new Date(t.dueDate+'T00:00:00');
+  if(isNaN(d))return 'no_due';
   if(d<today)return 'overdue';
   if(d.getTime()===today.getTime())return 'today';
-  const end=new Date(today); end.setDate(end.getDate()+7);
-  if(d<=end)return 'week';
+
+  // "Diese Woche" = aktuelle Kalenderwoche Montag bis Sonntag.
+  const weekday=(today.getDay()+6)%7; // Montag=0
+  const monday=new Date(today); monday.setDate(today.getDate()-weekday);
+  const sunday=new Date(monday); sunday.setDate(monday.getDate()+6); sunday.setHours(23,59,59,999);
+  if(d>=monday && d<=sunday)return 'week';
   return 'later';
 }
 function gfTaskSortKey(t){
   const rank={overdue:0,today:1,week:2,later:3,no_due:4,closed:5}[gfTaskDerivedBucket(t)] ?? 9;
   return `${rank}-${t.dueDate||'9999-12-31'}-${(t.ownerName||'').toLowerCase()}-${(t.title||'').toLowerCase()}`;
 }
-function gfTaskKpis(tasks){
-  const open=tasks.filter(t=>!['completed','cancelled'].includes(t.status));
+function gfTaskKpis(items){
+  const openDecisionStates=new Set(['pending','quote_requested','quote_sent','approved','deferred','question']);
+  const open=items.filter(t=>{
+    if(t.findingStatus==='Erledigt')return false;
+    if(t.hasTask && ['completed','cancelled'].includes(t.status))return false;
+    return openDecisionStates.has(t.decisionStatus||'pending') || (t.hasTask && !['completed','cancelled'].includes(t.status));
+  });
+  const activeTasks=open.filter(t=>t.hasTask && !['completed','cancelled'].includes(t.status));
   return {
     open:open.length,
-    overdue:open.filter(t=>gfTaskDerivedBucket(t)==='overdue').length,
-    week:open.filter(t=>['today','week'].includes(gfTaskDerivedBucket(t))).length,
-    noOwner:open.filter(t=>!(t.ownerName||'').trim()).length
+    overdue:activeTasks.filter(t=>gfTaskDerivedBucket(t)==='overdue').length,
+    week:activeTasks.filter(t=>['today','week'].includes(gfTaskDerivedBucket(t))).length,
+    noOwner:activeTasks.filter(t=>!(t.ownerName||'').trim()).length
   };
 }
 function gfWorkFilters(){
@@ -2074,8 +2121,6 @@ function renderWorkQueue(){
   const tasks=(db.tasks||[]).map(t=>({...t}));
   const taskByFinding=new Map(tasks.filter(t=>t.findingId).map(t=>[t.findingId,t]));
 
-  // Eine Feststellung = ein steuerbarer Vorgang.
-  // Vorhandene Aufgabe wird in denselben Vorgang integriert statt die Dokumentation zu verdrängen.
   const items=(db.findings||[])
     .filter(f=>(f.type||'Feststellung')==='Feststellung')
     .map(f=>{
@@ -2085,7 +2130,7 @@ function renderWorkQueue(){
         findingId:f.id,
         objectId:f.objectId,
         title:task?.title||f.title||'Dokumentation',
-        status:task?.status||'planned',
+        status:task?.status||'',
         decisionStatus:f.decisionStatus||(f.decisionRequired===false?'not_required':'pending'),
         ownerName:task?.ownerName||f.workOwner||'',
         dueDate:task?.dueDate||f.workDueDate||'',
@@ -2097,33 +2142,53 @@ function renderWorkQueue(){
       };
     });
 
-  const k=gfTaskKpis(tasks);
+  const k=gfTaskKpis(items);
   const objects=(db.objects||[]).slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'','de'));
   const ownerNames=[...new Set(items.map(t=>(t.ownerName||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'de'));
+
+  const openDecisionStates=new Set(['pending','quote_requested','quote_sent','approved','deferred','question']);
 
   let filtered=items.filter(t=>{
     if(current.object && t.objectId!==current.object)return false;
 
-    // Ohne expliziten Arbeitsstatus: erledigte/abgebrochene Tasks ausblenden,
-    // reine Dokumentationen bleiben sichtbar, solange ihr Entscheidungsstatus relevant ist.
+    // Arbeitsstatus filtert ausschließlich echte Aufgaben.
     if(current.status){
-      if(t.status!==current.status)return false;
-    }else if(t.hasTask && ['completed','cancelled'].includes(t.status)){
-      return false;
+      if(current.status==='no_task'){
+        if(t.hasTask || t.findingStatus==='Erledigt')return false;
+      }else{
+        if(!t.hasTask || t.status!==current.status)return false;
+      }
     }
 
     if(current.decision && (t.decisionStatus||'pending')!==current.decision)return false;
     if(current.owner && !(t.ownerName||'').toLowerCase().includes(current.owner))return false;
-    if(current.due && gfTaskDerivedBucket(t)!==current.due)return false;
+    if(current.due){
+      if(!t.hasTask || gfTaskDerivedBucket(t)!==current.due)return false;
+    }
+
+    // Ohne explizite Statusfilter: nur tatsächlich offene/relevante Vorgänge.
+    if(!current.status && !current.decision){
+      if(t.findingStatus==='Erledigt')return false;
+      const activeTask=t.hasTask && !['completed','cancelled'].includes(t.status);
+      const openDecision=openDecisionStates.has(t.decisionStatus||'pending');
+      if(!activeTask && !openDecision)return false;
+    }
+
     return true;
-  }).sort((a,b)=>gfTaskSortKey(a).localeCompare(gfTaskSortKey(b)));
+  }).sort((a,b)=>{
+    // Tasks zuerst nach Fälligkeit; reine Entscheidungs-/Dokuvorgänge danach.
+    if(a.hasTask!==b.hasTask)return a.hasTask?-1:1;
+    return gfTaskSortKey({...a,status:a.status||'planned'}).localeCompare(
+      gfTaskSortKey({...b,status:b.status||'planned'})
+    );
+  });
 
   root.innerHTML=`
     <div class="gf-kpis">
-      <div class="gf-kpi"><span>Offene Aufgaben</span><strong>${k.open}</strong></div>
+      <div class="gf-kpi"><span>Offene Vorgänge</span><strong>${k.open}</strong></div>
       <div class="gf-kpi"><span>Überfällig</span><strong>${k.overdue}</strong></div>
       <div class="gf-kpi"><span>Diese Woche</span><strong>${k.week}</strong></div>
-      <div class="gf-kpi"><span>Ohne Verantwortlichen</span><strong>${k.noOwner}</strong></div>
+      <div class="gf-kpi"><span>Aufgaben ohne Verantwortlichen</span><strong>${k.noOwner}</strong></div>
     </div>
 
     <div class="gf-filterbox">
@@ -2137,24 +2202,20 @@ function renderWorkQueue(){
       <label>Arbeitsstatus
         <select id="gfWorkStatus" onchange="renderWorkQueue()">
           <option value="" ${!current.status?'selected':''}>Alle offenen Arbeitsstatus</option>
-          <option value="planned" ${current.status==='planned'?'selected':''}>Geplant</option>
-          <option value="due" ${current.status==='due'?'selected':''}>Fällig</option>
-          <option value="in_progress" ${current.status==='in_progress'?'selected':''}>In Bearbeitung</option>
-          <option value="waiting" ${current.status==='waiting'?'selected':''}>Wartet auf Material / Dritten</option>
-          <option value="completed" ${current.status==='completed'?'selected':''}>Erledigt</option>
-          <option value="cancelled" ${current.status==='cancelled'?'selected':''}>Abgebrochen</option>
+          <option value="no_task" ${current.status==='no_task'?'selected':''}>Noch keine Aufgabe</option>
+          ${Object.entries(TASK_STATUS_LABELS).map(([v,l])=>`<option value="${v}" ${current.status===v?'selected':''}>${esc(l)}</option>`).join('')}
         </select>
       </label>
 
       <label>Entscheidungsstatus
         <select id="gfWorkDecision" onchange="renderWorkQueue()">
           <option value="" ${!current.decision?'selected':''}>Alle Entscheidungsstatus</option>
-          ${Object.entries(WORK_DECISION_LABELS).map(([value,label])=>`<option value="${value}" ${current.decision===value?'selected':''}>${label}</option>`).join('')}
+          ${Object.entries(DECISION_STATUS_LABELS).map(([value,label])=>`<option value="${value}" ${current.decision===value?'selected':''}>${esc(label)}</option>`).join('')}
         </select>
       </label>
 
       <label>Verantwortlich
-        <input id="gfWorkOwner" list="gfWorkOwnerList" value="${esc(current.owner)}" placeholder="Name" oninput="renderWorkQueue()">
+        <input id="gfWorkOwner" list="gfWorkOwnerList" value="${esc(current.owner)}" placeholder="Name" onchange="renderWorkQueue()">
         <datalist id="gfWorkOwnerList">${ownerNames.map(x=>`<option value="${esc(x)}"></option>`).join('')}</datalist>
       </label>
 
@@ -2177,10 +2238,11 @@ function renderWorkQueue(){
         const o=(db.objects||[]).find(x=>x.id===t.objectId)||{};
         const due=t.dueDate?new Date(t.dueDate+'T00:00:00').toLocaleDateString('de-DE'):'Ohne Termin';
         const workStatus=t.hasTask
-          ? ((typeof TASK_STATUS_LABELS!=='undefined'&&TASK_STATUS_LABELS[t.status])||t.status||'Geplant')
-          : 'Noch keine Aufgabe';
-        const decisionStatus=WORK_DECISION_LABELS[t.decisionStatus||'pending']||'Entscheidung ausstehend';
+          ? (TASK_STATUS_LABELS[t.status]||t.status||'Geplant')
+          : (t.findingStatus==='Erledigt'?'Dokumentation erledigt':'Noch keine Aufgabe');
+        const decisionStatus=decisionLabel(t.decisionStatus||'pending');
         const overdue=t.hasTask && gfTaskDerivedBucket(t)==='overdue';
+        const canPlan=!t.hasTask && t.decisionStatus==='approved' && t.findingStatus!=='Erledigt';
 
         return `
           <div class="gf-workitem ${overdue?'is-overdue':''}">
@@ -2196,35 +2258,49 @@ function renderWorkQueue(){
             </div>
             <div class="gf-meta">
               <div><b>Dokumentation:</b> ${esc(f.status||'Offen')}</div>
-              <div><b>Verantwortlich:</b> ${esc((t.ownerName||'').trim()||'Nicht zugeordnet')}</div>
-              <div><b>Fällig:</b> ${esc(due)}</div>
+              ${t.hasTask?`<div><b>Verantwortlich:</b> ${esc((t.ownerName||'').trim()||'Nicht zugeordnet')}</div>`:''}
+              ${t.hasTask?`<div><b>Fällig:</b> ${esc(due)}</div>`:''}
               ${t.workNote?`<div><b>Arbeitsinfo:</b> ${esc(t.workNote)}</div>`:''}
             </div>
-            <button type="button" onclick="${t.hasTask?`openPlanTask('${f.id}')`:`openWorkItem('${f.id}')`}">
-              ${t.hasTask?'Aufgabe bearbeiten':'Vorgang öffnen'}
-            </button>
+            <div class="row">
+              ${t.hasTask?`<button type="button" onclick="openWorkItem('${f.id}')">Aufgabe bearbeiten</button>`:''}
+              ${canPlan?`<button type="button" class="primary" onclick="openWorkItem('${f.id}')">Aufgabe planen</button>`:''}
+              <button type="button" onclick="openFindingModal('${f.objectId||''}','${f.inspectionId||''}','${f.id}')">Dokumentation öffnen</button>
+            </div>
           </div>`;
       }).join('') : `<div class="empty-state">Keine Vorgänge für die gewählten Filter.</div>`}
     </div>`;
 }
 function openWorkItem(id){
   const f=db.findings.find(x=>x.id===id);if(!f)return;
-  modal(`<h2>Aufgabe planen</h2>
+  const task=(db.tasks||[]).find(t=>t.findingId===id);
+  const status=task?.status||f.taskStatus||'planned';
+  const owner=task?.ownerName||f.workOwner||'';
+  const due=task?.dueDate||f.workDueDate||'';
+  const note=task?.workNote||f.workNote||'';
+  const statusOptions=Object.entries(TASK_STATUS_LABELS)
+    .map(([v,l])=>`<option value="${v}" ${status===v?'selected':''}>${esc(l)}</option>`)
+    .join('');
+  modal(`<h2>${task?'Aufgabe bearbeiten':'Aufgabe planen'}</h2>
     <div class="muted">${esc(objectName(f.objectId))} · ${esc(f.title||'')}</div>
-    <label>Verantwortlich<input id="wiOwner" value="${esc(f.workOwner||'')}" placeholder="Mitarbeiter / Team"></label>
-    <label>Fällig am<input id="wiDue" type="date" value="${esc(f.workDueDate||'')}"></label>
-    <label>Arbeitsinformation<textarea id="wiNote" placeholder="Hinweise für die Ausführung">${esc(f.workNote||'')}</textarea></label>
+    <label>Arbeitsstatus<select id="wiStatus">${statusOptions}</select></label>
+    <label>Verantwortlich<input id="wiOwner" value="${esc(owner)}" placeholder="Mitarbeiter / Team"></label>
+    <label>Fällig am<input id="wiDue" type="date" value="${esc(due)}"></label>
+    <label>Arbeitsinformation<textarea id="wiNote" placeholder="Hinweise für die Ausführung">${esc(note)}</textarea></label>
     <div class="row"><button class="primary" onclick="saveWorkItem('${id}')">Speichern</button><button onclick="closeModal()">Abbrechen</button></div>`);
 }
+function openPlanTask(id){openWorkItem(id);}
+
 async function saveWorkItem(id){
   const f=db.findings.find(x=>x.id===id);if(!f)return;
   const ownerName=document.getElementById('wiOwner')?.value.trim()||'';
   const dueDate=document.getElementById('wiDue')?.value||'';
   const workNote=document.getElementById('wiNote')?.value.trim()||'';
+  const status=document.getElementById('wiStatus')?.value||'planned';
   try{
     if(!cloudSession?.access_token)throw new Error('Nicht angemeldet.');
     cloudSetStatus('Arbeitsvorrat wird zentral gespeichert …','wait');
-    await cloudSaveTaskForFinding(f,{ownerName,dueDate,workNote,status:f.taskStatus||'planned'});
+    await cloudSaveTaskForFinding(f,{ownerName,dueDate,workNote,status});
     cloudSetStatus('Verbunden · Arbeitsvorrat zentral','ok');
     closeModal();renderAll();showSection('workqueue');
   }catch(e){
@@ -2742,16 +2818,9 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
       <div id="decisionDetailFields">
         <label>Entscheidungsstatus</label>
         <select id="fDecisionStatus">
-          ${[
-            ['pending','Entscheidung ausstehend'],
-            ['quote_requested','Angebot erwünscht'],
-            ['quote_sent','Angebot versendet'],
-            ['approved','Beauftragt'],
-            ['rejected','Nicht beauftragt'],
-            ['deferred','Zurückgestellt'],
-            ['question','Rückfrage erforderlich'],
-            ['thirdparty','An Dritten vergeben']
-          ].map(([v,l])=>`<option value="${v}" ${v===(f.decisionStatus||'pending')?'selected':''}>${l}</option>`).join('')}
+          ${Object.entries(DECISION_STATUS_LABELS)
+            .filter(([v])=>v!=='not_required')
+            .map(([v,l])=>`<option value="${v}" ${v===(f.decisionStatus||'pending')?'selected':''}>${esc(l)}</option>`).join('')}
         </select>
         <label>Entscheider / Auftraggeber</label>
         <input id="fDecisionBy" value="${esc(f.decisionBy||'')}" placeholder="Name / Ansprechpartner">
