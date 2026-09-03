@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.1.0 Supabase Test</title>
+<title>Duschl Service – Objekt-Dokumentation 2.2.0 Supabase Begehungen</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -386,7 +386,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.1.0 Supabase Test ===== */
+/* ===== v2.2.0 Supabase Begehungen ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -422,7 +422,7 @@ a{color:var(--accent-2)!important}
 <header>
   <div><h1>Duschl Service</h1><small>Interne Objekt-Dokumentation</small></div>
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
-<span class="badge" style="margin-left:auto">v2.1.0 Supabase Test</span></header>
+<span class="badge" style="margin-left:auto">v2.2.0 Supabase Begehungen</span></header>
 <nav>
   <button onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button onclick="showSection('objects')">Objekte</button>
@@ -697,7 +697,7 @@ a{color:var(--accent-2)!important}
       <button type="button" onclick="cloudReloadObjects()">Objekte neu laden</button>
       <button type="button" onclick="cloudLogout()">Abmelden</button>
     </div>
-    <div class="muted" style="margin-top:8px">Teststufe: Objekte werden zentral in Supabase gespeichert. Begehungen, Dokumentationen und Fotos bleiben in dieser Version noch lokal.</div>
+    <div class="muted" style="margin-top:8px">Teststufe: Objekte und Begehungen werden zentral in Supabase gespeichert. Dokumentationen und Fotos bleiben in dieser Version noch lokal.</div>
   </div>
   <div class="card" style="margin-bottom:14px">
     <h3>Speicherstatus</h3>
@@ -732,7 +732,7 @@ a{color:var(--accent-2)!important}
   </div>
   <div class="card" style="margin-top:14px">
     <h3>Lokale Daten</h3>
-    <p class="muted">Teststufe 2.1.0: Objekte werden zentral über Supabase gespeichert. Begehungen, Dokumentationen und Fotos bleiben bis zur nächsten Migrationsstufe lokal.</p>
+    <p class="muted">Teststufe 2.2.0: Objekte und Begehungen werden zentral über Supabase gespeichert. Dokumentationen und Fotos bleiben bis zur nächsten Migrationsstufe lokal.</p>
     <button class="danger" onclick="resetData()">Alle lokalen Daten löschen</button>
   </div>
 </section>
@@ -851,14 +851,72 @@ function cloudObjectToLocal(o){
 function splitAddress(address=''){
   return {street:address.trim(),postal_code:null,city:null};
 }
+
+function cloudInspectionToLocal(i){
+  return {
+    id:i.id,
+    objectId:i.object_id,
+    startedAt:i.started_at?new Date(i.started_at).getTime():Date.now(),
+    endedAt:i.ended_at?new Date(i.ended_at).getTime():null,
+    notes:i.notes||'',
+    createdAt:i.created_at?new Date(i.created_at).getTime():Date.now(),
+    updatedAt:i.updated_at?new Date(i.updated_at).getTime():Date.now(),
+    cloud:true
+  };
+}
+async function cloudReloadInspections(){
+  if(!cloudSession?.access_token)return;
+  const rows=await cloudRequest('inspections?select=id,object_id,started_at,ended_at,notes,created_at,updated_at&order=started_at.desc');
+  db.inspections=(rows||[]).map(cloudInspectionToLocal);
+  renderAll();
+}
+async function cloudSaveInspection(id,data){
+  const payload={
+    object_id:data.objectId,
+    notes:data.notes||null,
+    updated_at:new Date().toISOString()
+  };
+  if(id){
+    const rows=await cloudRequest(`inspections?id=eq.${encodeURIComponent(id)}`,{
+      method:'PATCH',
+      headers:{'Prefer':'return=representation'},
+      body:JSON.stringify(payload)
+    });
+    return rows?.[0];
+  }
+  payload.started_at=new Date().toISOString();
+  const rows=await cloudRequest('inspections',{
+    method:'POST',
+    headers:{'Prefer':'return=representation'},
+    body:JSON.stringify(payload)
+  });
+  return rows?.[0];
+}
+async function cloudSetInspectionClosed(id,closed){
+  const payload={
+    ended_at:closed?new Date().toISOString():null,
+    updated_at:new Date().toISOString()
+  };
+  const rows=await cloudRequest(`inspections?id=eq.${encodeURIComponent(id)}`,{
+    method:'PATCH',
+    headers:{'Prefer':'return=representation'},
+    body:JSON.stringify(payload)
+  });
+  return rows?.[0];
+}
+async function cloudDeleteInspection(id){
+  await cloudRequest(`inspections?id=eq.${encodeURIComponent(id)}`,{method:'DELETE'});
+}
 async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
   cloudSetStatus('Supabase wird geladen …','wait');
   try{
     const rows=await cloudRequest('objects?select=id,name,street,postal_code,city,notes,created_at,updated_at&active=eq.true&order=name.asc');
     db.objects=(rows||[]).map(cloudObjectToLocal);
+    const inspectionRows=await cloudRequest('inspections?select=id,object_id,started_at,ended_at,notes,created_at,updated_at&order=started_at.desc');
+    db.inspections=(inspectionRows||[]).map(cloudInspectionToLocal);
     renderAll();
-    cloudSetStatus(`Verbunden · ${db.objects.length} Objekt(e) zentral`,'ok');
+    cloudSetStatus(`Verbunden · ${db.objects.length} Objekt(e) · ${db.inspections.length} Begehung(en) zentral`,'ok');
   }catch(e){
     console.error('Objekte laden fehlgeschlagen',e);
     cloudSetStatus('Verbindungsfehler: '+(e.message||e),'bad');
@@ -1044,7 +1102,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'2.1.0-supabase-test'};
+  return {objects:[],inspections:[],findings:[],version:'2.2.0-supabase-inspections'};
 }
 function load(){
   try{
@@ -1106,7 +1164,7 @@ function load(){
       objects:mergeById('objects'),
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
-      version:'2.1.0-supabase-test'
+      version:'2.2.0-supabase-inspections'
     };
 
     merged.findings.forEach(f=>{
@@ -1143,7 +1201,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.1.0-supabase-test';
+  db.version='2.2.0-supabase-inspections';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -1796,45 +1854,87 @@ function openInspectionModal(pref='',prefObj=''){
     ${existing?`<button class="danger" onclick="deleteInspection('${existing.id}')">Begehung löschen</button>`:''}
   </div>`);
 }
-function startInspection(){
-  const objectId=document.getElementById('iObject').value, id=uid('insp');
-  db.inspections.push({id,objectId,startedAt:Date.now(),endedAt:null,notes:document.getElementById('iNotes').value.trim()});
-  closeModal();save();showSection('inspections');setTimeout(()=>openFindingModal(objectId,id),50)
+async function startInspection(){
+  const objectId=document.getElementById('iObject').value;
+  const notes=document.getElementById('iNotes').value.trim();
+  try{
+    const row=await cloudSaveInspection('',{objectId,notes});
+    if(!row)throw new Error('Keine Rückgabe aus Supabase.');
+    const i=cloudInspectionToLocal(row);
+    db.inspections.unshift(i);
+    closeModal();renderAll();showSection('inspections');
+    setTimeout(()=>openFindingModal(objectId,i.id),50);
+  }catch(e){
+    console.error(e);
+    alert('Begehung konnte nicht zentral gespeichert werden: '+(e.message||e));
+  }
 }
-function saveInspection(id){
+async function saveInspection(id){
   const i=db.inspections.find(x=>x.id===id); if(!i)return;
-  i.objectId=document.getElementById('iObject').value;
-  i.notes=document.getElementById('iNotes').value.trim();
-  i.updatedAt=Date.now();
-  closeModal();save();showSection('inspections');
+  const objectId=document.getElementById('iObject').value;
+  const notes=document.getElementById('iNotes').value.trim();
+  try{
+    await cloudSaveInspection(id,{objectId,notes});
+    closeModal();
+    await cloudReloadInspections();
+    showSection('inspections');
+  }catch(e){
+    console.error(e);
+    alert('Begehung konnte nicht zentral gespeichert werden: '+(e.message||e));
+  }
 }
-function closeInspection(id){
-  const i=db.inspections.find(x=>x.id===id);
-  if(i){i.endedAt=Date.now();save()}
+async function closeInspection(id){
+  try{
+    await cloudSetInspectionClosed(id,true);
+    await cloudReloadInspections();
+  }catch(e){
+    console.error(e);
+    alert('Begehung konnte nicht abgeschlossen werden: '+(e.message||e));
+  }
 }
-function closeInspectionAndRefresh(id){
+async function closeInspectionAndRefresh(id){
   if(!confirm('Begehung / Auftrag abschließen? Danach können keine neuen Dokumentationen mehr angelegt werden.'))return;
-  closeInspection(id);
-  closeModal();
-  showSection('inspections');
+  try{
+    await cloudSetInspectionClosed(id,true);
+    closeModal();
+    await cloudReloadInspections();
+    showSection('inspections');
+  }catch(e){
+    console.error(e);
+    alert('Begehung konnte nicht abgeschlossen werden: '+(e.message||e));
+  }
 }
-function reopenInspection(id){
+async function reopenInspection(id){
   const i=db.inspections.find(x=>x.id===id); if(!i)return;
   if(!confirm('Abgeschlossene Begehung / Auftrag wieder öffnen? Danach können wieder neue Dokumentationen angelegt werden.'))return;
-  i.endedAt=null;
-  i.reopenedAt=Date.now();
-  closeModal();save();showSection('inspections');
+  try{
+    await cloudSetInspectionClosed(id,false);
+    closeModal();
+    await cloudReloadInspections();
+    showSection('inspections');
+  }catch(e){
+    console.error(e);
+    alert('Begehung konnte nicht wieder geöffnet werden: '+(e.message||e));
+  }
 }
 
-function deleteInspection(id){
+async function deleteInspection(id){
   const linked=db.findings.filter(f=>f.inspectionId===id);
   const msg=linked.length
-    ? `Diese Begehung enthält ${linked.length} zugeordnete Dokumentation(en). Begehung UND zugehörige Dokumentationen endgültig löschen?`
-    : 'Diese Begehung endgültig löschen?';
+    ? `Diese Begehung enthält ${linked.length} lokal zugeordnete Dokumentation(en). Begehung zentral löschen? Die lokale Test-Dokumentation wird ebenfalls entfernt.`
+    : 'Diese Begehung endgültig aus der zentralen Datenbank löschen?';
   if(!confirm(msg))return;
-  db.inspections=db.inspections.filter(x=>x.id!==id);
-  db.findings=db.findings.filter(f=>f.inspectionId!==id);
-  closeModal();save();showSection('inspections');
+  try{
+    await cloudDeleteInspection(id);
+    db.findings=db.findings.filter(f=>f.inspectionId!==id);
+    try{localStorage.setItem(KEY,JSON.stringify(db))}catch(_e){}
+    closeModal();
+    await cloudReloadInspections();
+    showSection('inspections');
+  }catch(e){
+    console.error(e);
+    alert('Begehung konnte nicht gelöscht werden: '+(e.message||e));
+  }
 }
 
 function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
