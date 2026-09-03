@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.7.0 Konsolidiert</title>
+<title>Duschl Service – Objekt-Dokumentation 2.8.0 Rollen-UI</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -386,7 +386,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.7.0 Konsolidiert ===== */
+/* ===== v2.8.0 Rollen-UI ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -605,15 +605,16 @@ body.photo-viewer-open{overflow:hidden}
 <header>
   <div><h1>Duschl Service</h1><small>Interne Objekt-Dokumentation</small></div>
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
-<span class="badge" style="margin-left:auto">v2.7.0 Konsolidiert</span></header>
+<span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
+<span class="badge">v2.8.0 Rollen-UI</span></header>
 <nav>
-  <button onclick="showSection('dashboard')" class="primary">Dashboard</button>
-  <button onclick="showSection('objects')">Objekte</button>
-  <button onclick="showSection('inspections')">Begehungen</button>
-  <button onclick="showSection('findings')">Dokumentation</button>
-<button onclick="showSection('decisions')">Entscheidungen <span id="decisionNavCount" class="badge" style="margin-left:4px">0</span></button>
-  <button onclick="showSection('workqueue')">Arbeitsvorrat</button><button onclick="showSection('reports')">Berichte</button>
-  <button onclick="showSection('settings')">Daten</button>
+  <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
+  <button id="navObjects" onclick="showSection('objects')">Objekte</button>
+  <button id="navInspections" onclick="showSection('inspections')">Begehungen</button>
+  <button id="navFindings" onclick="showSection('findings')">Dokumentation</button>
+<button id="navDecisions" onclick="showSection('decisions')">Entscheidungen <span id="decisionNavCount" class="badge" style="margin-left:4px">0</span></button>
+  <button id="navWorkqueue" onclick="showSection('workqueue')">Arbeitsvorrat</button><button id="navReports" onclick="showSection('reports')">Berichte</button>
+  <button id="navSettings" onclick="showSection('settings')">Daten</button>
 </nav>
 
 <main>
@@ -630,7 +631,7 @@ body.photo-viewer-open{overflow:hidden}
 </section>
 
 <section id="objects" class="section">
-  <div class="row space"><div><h2>Objekte</h2><div class="muted">Interner Objektbestand</div></div><button class="primary" onclick="openObjectModal()">+ Objekt</button></div>
+  <div class="row space"><div><h2>Objekte</h2><div class="muted">Interner Objektbestand</div></div><button id="addObjectBtn" class="primary" onclick="openObjectModal()">+ Objekt</button></div>
   <div id="objectList" class="grid g2" style="margin-top:14px"></div>
 </section>
 
@@ -864,7 +865,7 @@ body.photo-viewer-open{overflow:hidden}
       <button type="button" onclick="cloudReloadObjects()">Objekte neu laden</button>
       <button type="button" onclick="cloudLogout()">Abmelden</button>
     </div>
-    <div class="muted" style="margin-top:8px">Teststufe 2.7.0: Objekte, Begehungen, Dokumentationen, Fotos und der Arbeitsvorrat werden zentral in Supabase gespeichert. Lokale IndexedDB-Fotos bleiben als Rückfall- und Migrationsquelle erhalten.</div>
+    <div class="muted" style="margin-top:8px">Teststufe 2.8.0: Objekte, Begehungen, Dokumentationen, Fotos und der Arbeitsvorrat werden zentral in Supabase gespeichert. Lokale IndexedDB-Fotos bleiben als Rückfall- und Migrationsquelle erhalten.</div>
   </div>
 
   <div class="card" style="margin-bottom:14px">
@@ -904,7 +905,7 @@ body.photo-viewer-open{overflow:hidden}
   </div>
   <div class="card" style="margin-top:14px">
     <h3>Lokale Daten</h3>
-    <p class="muted">Teststufe 2.7.0: Objekte, Begehungen, Dokumentationen und der Arbeitsvorrat werden zentral über Supabase gespeichert. Neue Fotos werden in Supabase Storage gespeichert; vorhandene lokale Fotos bleiben erhalten und werden beim nächsten Speichern einer Dokumentation hochgeladen.</p>
+    <p class="muted">Teststufe 2.8.0: Objekte, Begehungen, Dokumentationen und der Arbeitsvorrat werden zentral über Supabase gespeichert. Neue Fotos werden in Supabase Storage gespeichert; vorhandene lokale Fotos bleiben erhalten und werden beim nächsten Speichern einer Dokumentation hochgeladen.</p>
     <button class="danger" onclick="resetData()">Alle lokalen Daten löschen</button>
   </div>
 </section>
@@ -919,6 +920,85 @@ const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
 let cloudSession=null;
+
+let currentUserProfile=null;
+let currentUserRole='';
+
+const ROLE_LABELS={
+  platform_admin:'Administrator',
+  staff:'Objektbetreuer (Legacy)',
+  object_manager:'Objektbetreuer',
+  employee:'Mitarbeiter',
+  customer:'Auftraggeber'
+};
+
+function isAdminRole(){return currentUserRole==='platform_admin'}
+function isObjectManagerRole(){return ['object_manager','staff'].includes(currentUserRole)}
+function canManageObjectsUI(){return isAdminRole()}
+function canUseDecisionsUI(){return isAdminRole()||currentUserRole==='customer'}
+function canUseSettingsUI(){return isAdminRole()}
+
+async function cloudLoadCurrentProfile(){
+  if(!cloudSession?.access_token){
+    currentUserProfile=null;currentUserRole='';return null;
+  }
+  const uid=cloudSession?.user?.id;
+  if(!uid)throw new Error('Benutzer-ID der Supabase-Sitzung fehlt.');
+  const rows=await cloudRequest(
+    `profiles?select=id,full_name,role,active&id=eq.${encodeURIComponent(uid)}&limit=1`
+  );
+  const p=rows?.[0];
+  if(!p||p.active!==true)throw new Error('Kein aktives Benutzerprofil gefunden.');
+  currentUserProfile=p;
+  currentUserRole=p.role||'';
+  applyRoleUI();
+  return p;
+}
+
+function applyRoleUI(){
+  const role=currentUserRole||'';
+  const rb=document.getElementById('roleBadge');
+  if(rb){
+    rb.textContent=ROLE_LABELS[role]||role||'Unbekannte Rolle';
+    rb.style.display=role?'':'none';
+  }
+
+  const show=(id,yes)=>{
+    const el=document.getElementById(id);
+    if(el)el.classList.toggle('hidden',!yes);
+  };
+
+  // v2.8.0: UI-Ausprägung zunächst vollständig für Admin + Objektbetreuer.
+  show('navDashboard',true);
+  show('navObjects',true);
+  show('navInspections',true);
+  show('navFindings',true);
+  show('navWorkqueue',true);
+  show('navReports',true);
+  show('navDecisions',canUseDecisionsUI());
+  show('navSettings',canUseSettingsUI());
+  show('addObjectBtn',canManageObjectsUI());
+
+  if(!canUseDecisionsUI() && document.getElementById('decisions')?.classList.contains('active')){
+    showSection('dashboard');
+  }
+  if(!canUseSettingsUI() && document.getElementById('settings')?.classList.contains('active')){
+    showSection('dashboard');
+  }
+
+  renderAll();
+}
+
+function requireAdminUI(action='Diese Funktion'){
+  if(isAdminRole())return true;
+  alert(`${action} ist nur für Administratoren freigegeben.`);
+  return false;
+}
+function requireDecisionUI(){
+  if(canUseDecisionsUI())return true;
+  alert('Auftraggeberentscheidungen sind für diese Rolle nicht freigegeben.');
+  return false;
+}
 
 function cloudHeaders(extra={}){
   const h={'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json',...extra};
@@ -977,6 +1057,7 @@ async function cloudLogin(){
     cloudStoreSession(s);
     cloudShowGate(false);
     cloudAuthMessage('');
+    await cloudLoadCurrentProfile();
     await cloudReloadObjects();
   }catch(e){
     cloudAuthMessage(e.message||'Anmeldung fehlgeschlagen.',true);
@@ -987,6 +1068,9 @@ async function cloudLogout(){
     if(cloudSession?.access_token)await fetch(`${SUPABASE_URL}/auth/v1/logout`,{method:'POST',headers:cloudHeaders()});
   }catch(_e){}
   cloudStoreSession(null);
+  currentUserProfile=null;
+  currentUserRole='';
+  applyRoleUI();
   cloudSetStatus('Nicht angemeldet','bad');
   cloudShowGate(true);
 }
@@ -1339,7 +1423,8 @@ async function cloudSaveFinding(id,data){
   }
 
   // Decision is a separate normalized table in the Supabase schema.
-  if(data.type==='Feststellung'){
+  // Objektbetreuer/Mitarbeiter dürfen dokumentieren, aber keine Auftraggeberentscheidung schreiben.
+  if(data.type==='Feststellung' && canUseDecisionsUI()){
     const decisionPayload={
       finding_id:row.id,
       required:!!data.decisionRequired,
@@ -1427,10 +1512,14 @@ async function bootCloud(){
   }
   cloudShowGate(false);
   try{
+    await cloudLoadCurrentProfile();
     await cloudReloadObjects();
   }catch(_e){
     const ok=await cloudRefreshSession();
-    if(ok)await cloudReloadObjects();
+    if(ok){
+      await cloudLoadCurrentProfile();
+      await cloudReloadObjects();
+    }
     else cloudShowGate(true);
   }
 }
@@ -1711,7 +1800,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.7.0-consolidated'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.8.0-roles-ui'};
 }
 function load(){
   try{
@@ -1774,7 +1863,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.7.0-consolidated'
+      version:'2.8.0-roles-ui'
     };
 
     merged.findings.forEach(f=>{
@@ -1811,7 +1900,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.7.0-consolidated';
+  db.version='2.8.0-roles-ui';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -1822,6 +1911,8 @@ function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt
 function objectName(id){return db.objects.find(x=>x.id===id)?.name||'—'}
 function inspectionName(id){const i=db.inspections.find(x=>x.id===id);return i?`${objectName(i.objectId)} · ${fmt(i.startedAt)}`:'—'}
 function showSection(id){
+  if(id==='decisions'&&!canUseDecisionsUI())return requireDecisionUI();
+  if(id==='settings'&&!canUseSettingsUI())return requireAdminUI('Daten & Administration');
   document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('primary'));
@@ -1938,6 +2029,7 @@ function resetDecisionFilters(){
 }
 
 function openDecisionModal(id){
+  if(!requireDecisionUI())return;
   const f=db.findings.find(x=>x.id===id); if(!f)return;
   const o=db.objects.find(x=>x.id===f.objectId);
   const options=Object.entries(DECISION_STATUS_LABELS)
@@ -1963,6 +2055,7 @@ function openDecisionModal(id){
 }
 
 async function saveDecision(id){
+  if(!requireDecisionUI())return;
   const f=db.findings.find(x=>x.id===id); if(!f)return;
   const status=document.getElementById('dStatus')?.value||'pending';
   const by=document.getElementById('dBy')?.value.trim()||'';
@@ -2311,7 +2404,7 @@ async function saveWorkItem(id){
 
 function renderAll(){
   renderDashboard();renderObjects();renderInspections();renderSelects();renderFindings();renderReport();
-renderDecisions();renderWorkQueue();
+if(canUseDecisionsUI())renderDecisions();renderWorkQueue();
   const ro=document.getElementById('reportObject');
   if(ro){
     const rv=ro.value;
@@ -2336,7 +2429,7 @@ function renderObjects(){
     return `<div class="card">
       <div class="row space"><div><h3 style="margin:0">${esc(o.name)}</h3><div class="muted">${esc(o.address||'')}</div></div><span class="badge">${open} offen</span></div>
       <p>${esc(o.notes||'')}</p>
-      <div class="row"><button onclick="openInspectionModal('${o.id}')">Begehung / Einsatz starten</button><button onclick="openObjectModal('${o.id}')">Bearbeiten</button><button onclick="showObjectReport('${o.id}')">Bericht</button></div>
+      <div class="row"><button onclick="openInspectionModal('${o.id}')">Begehung / Einsatz starten</button>${canManageObjectsUI()?`<button onclick="openObjectModal('${o.id}')">Bearbeiten</button>`:''}<button onclick="showObjectReport('${o.id}')">Bericht</button></div>
     </div>`;
   }).join(''):`<div class="empty">Noch kein Objekt angelegt.</div>`;
 }
@@ -2632,6 +2725,7 @@ function closeModal(){
 }
 
 function openObjectModal(id=''){
+  if(!requireAdminUI(id?'Objekt bearbeiten':'Objekt anlegen'))return;
   const o=db.objects.find(x=>x.id===id)||{id:'',name:'',address:'',notes:''};
   modal(`<div class="row space"><h2>${id?'Objekt bearbeiten':'Objekt anlegen'}</h2><button onclick="closeModal()">✕</button></div>
   <label>Objektbezeichnung *</label><input id="oName" value="${esc(o.name)}" placeholder="z. B. WEG Musterstraße 12">
@@ -2640,6 +2734,7 @@ function openObjectModal(id=''){
   <div class="row" style="margin-top:14px"><button class="primary" onclick="saveObject('${id}')">Speichern</button>${id?`<button class="danger" onclick="deleteObject('${id}')">Löschen</button>`:''}</div>`);
 }
 async function saveObject(id){
+  if(!requireAdminUI(id?'Objekt bearbeiten':'Objekt anlegen'))return;
   const name=document.getElementById('oName').value.trim();
   if(!name)return alert('Bitte Objektbezeichnung eingeben.');
   const data={
@@ -2658,6 +2753,7 @@ async function saveObject(id){
   }
 }
 async function deleteObject(id){
+  if(!requireAdminUI('Objekt löschen'))return;
   if(!confirm('Objekt inklusive zugehöriger Daten löschen? In dieser Teststufe werden nur zentral gespeicherte Objekte gelöscht.'))return;
   try{
     await cloudDeleteObject(id);
@@ -2683,7 +2779,7 @@ function openInspectionModal(pref='',prefObj=''){
     <button class="primary" onclick="${existing?`saveInspection('${existing.id}')`:'startInspection()'}">${existing?'Speichern':'Starten'}</button>
     ${existing && !inspectionClosed(existing)?`<button onclick="closeInspectionAndRefresh('${existing.id}')">Abschließen</button>`:''}
     ${existing && inspectionClosed(existing)?`<button onclick="reopenInspection('${existing.id}')">Wieder öffnen</button>`:''}
-    ${existing?`<button class="danger" onclick="deleteInspection('${existing.id}')">Begehung löschen</button>`:''}
+    ${existing&&isAdminRole()?`<button class="danger" onclick="deleteInspection('${existing.id}')">Begehung löschen</button>`:''}
   </div>`);
 }
 async function startInspection(){
@@ -2751,6 +2847,7 @@ async function reopenInspection(id){
 }
 
 async function deleteInspection(id){
+  if(!requireAdminUI('Begehung löschen'))return;
   const linked=db.findings.filter(f=>f.inspectionId===id);
   const msg=linked.length
     ? `Diese Begehung enthält ${linked.length} lokal zugeordnete Dokumentation(en). Begehung zentral löschen? Die lokale Test-Dokumentation wird ebenfalls entfernt.`
@@ -2806,7 +2903,7 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   <div id="findingActionFields">
     <label>Empfohlene Maßnahme</label><textarea id="fAction">${esc(f.action)}</textarea>
 
-    <div class="card" style="margin-top:12px;background:#f7f9fa">
+    <div id="findingDecisionCard" class="card" style="margin-top:12px;background:#f7f9fa;${canUseDecisionsUI()?'':'display:none'}">
       <h3 style="margin-top:0">Entscheidung Auftraggeber</h3>
       <label>Entscheidung des Auftraggebers erforderlich? *</label>
       <select id="fDecisionRequired" onchange="toggleDecisionRequired()">
@@ -2862,7 +2959,7 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
     </select>
     <label>Getroffene Maßnahme / Abschlussnotiz</label><textarea id="fCompletionNote" placeholder="z. B. Türschließer nachgestellt / Kunde wünscht keine Umsetzung">${esc(f.completionNote)}</textarea>
   </div>
-  <div class="row" style="margin-top:14px"><button class="primary" onclick="saveFinding('${editId}')">Speichern</button>${editId?`<button class="danger" onclick="deleteFinding('${editId}')">Löschen</button>`:''}</div>`);
+  <div class="row" style="margin-top:14px"><button class="primary" onclick="saveFinding('${editId}')">Speichern</button>${editId&&isAdminRole()?`<button class="danger" onclick="deleteFinding('${editId}')">Löschen</button>`:''}</div>`);
   initPhotoDraft(f);
   toggleDocType();toggleDecisionRequired();toggleCompletion();
 }
@@ -2971,19 +3068,21 @@ async function handlePhotoSelection(w,input){
  input.value='';renderPhotoDraft(w);hydrateMediaImages();
 }
 async function saveFinding(id){
-  const decisionRequiredValue=document.getElementById('fDecisionRequired')?.value||'';
-  let decisionRequired=decisionRequiredValue==='yes';
-  let decisionStatus=document.getElementById('fDecisionStatus')?.value||'pending';
-  let decisionBy=document.getElementById('fDecisionBy')?.value.trim()||'';
-  let decisionDate=document.getElementById('fDecisionDate')?.value||'';
-  let decisionComment=document.getElementById('fDecisionComment')?.value.trim()||'';
-  const decisionAmountRaw=document.getElementById('fDecisionAmount')?.value;
+  const mayEditDecision=canUseDecisionsUI();
+  const decisionRequiredValue=mayEditDecision?(document.getElementById('fDecisionRequired')?.value||''):'yes';
+  let decisionRequired=mayEditDecision?(decisionRequiredValue==='yes'):true;
+  const existingFindingForDecision=db.findings.find(x=>x.id===id);
+  let decisionStatus=mayEditDecision?(document.getElementById('fDecisionStatus')?.value||'pending'):(existingFindingForDecision?.decisionStatus||'pending');
+  let decisionBy=mayEditDecision?(document.getElementById('fDecisionBy')?.value.trim()||''):(existingFindingForDecision?.decisionBy||'');
+  let decisionDate=mayEditDecision?(document.getElementById('fDecisionDate')?.value||''):(existingFindingForDecision?.decisionDate||'');
+  let decisionComment=mayEditDecision?(document.getElementById('fDecisionComment')?.value.trim()||''):(existingFindingForDecision?.decisionComment||'');
+  const decisionAmountRaw=mayEditDecision?document.getElementById('fDecisionAmount')?.value:existingFindingForDecision?.decisionAmount;
   let decisionAmount=decisionAmountRaw===''||decisionAmountRaw==null?'':Number(decisionAmountRaw);
 
 
   const title=document.getElementById('fTitle').value.trim();if(!title)return alert('Bitte Titel eingeben.');
   const type=document.getElementById('fType').value, status=document.getElementById('fStatus').value;
-  if(type==='Feststellung'&&!decisionRequiredValue)return alert('Bitte auswählen, ob eine Entscheidung des Auftraggebers erforderlich ist.');
+  if(type==='Feststellung'&&mayEditDecision&&!decisionRequiredValue)return alert('Bitte auswählen, ob eine Entscheidung des Auftraggebers erforderlich ist.');
   if(type!=='Feststellung'){decisionRequired=false;decisionStatus='not_required';decisionBy='';decisionDate='';decisionComment='';decisionAmount=''}
   if(type==='Feststellung'&&!decisionRequired){decisionStatus='not_required';decisionBy='';decisionDate='';decisionComment='';decisionAmount=''}
   if(type==='Feststellung'&&decisionRequired&&decisionStatus==='not_required')decisionStatus='pending';
@@ -3039,6 +3138,7 @@ async function saveFinding(id){
 }
 function markDone(id){openFindingModal(db.findings.find(x=>x.id===id)?.objectId||'','',id,true)}
 async function deleteFinding(id){
+  if(!requireAdminUI('Dokumentation löschen'))return;
   const f=db.findings.find(x=>x.id===id);
   const label=(f?.type||'Feststellung')==='Leistung'?'Leistungsdokumentation':'Feststellung';
   if(!confirm(`${label} endgültig löschen?`))return;
@@ -3061,6 +3161,7 @@ function importData(){
   const fr=new FileReader();fr.onload=()=>{try{const x=JSON.parse(fr.result);if(!x.objects||!x.inspections||!x.findings)throw 0;if(confirm('Vorhandene Daten durch Sicherung ersetzen?')){db=x;save();alert('Sicherung importiert.')}}catch(e){alert('Ungültige Sicherungsdatei.')}};fr.readAsText(file)
 }
 function resetData(){if(confirm('Wirklich alle lokalen Daten löschen?')){db=seed();save()}}
+applyRoleUI();
 bootStorage();
 bootCloud();
 </script>
