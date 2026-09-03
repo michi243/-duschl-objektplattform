@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.5.0 Supabase Arbeitsvorrat</title>
+<title>Duschl Service – Objekt-Dokumentation 2.5.2 Darkmode Fix</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -386,7 +386,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.5.0 Supabase Arbeitsvorrat ===== */
+/* ===== v2.5.2 Darkmode Fix ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -401,6 +401,93 @@ a{color:var(--accent-2)!important}
 .cloud-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#7b8790;margin-right:6px}
 .cloud-dot.ok{background:#66b52f}.cloud-dot.bad{background:#ff4b55}.cloud-dot.wait{background:#f0a400}
 .cloud-banner{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#0b1823;margin-bottom:12px}
+</style>
+
+
+<style id="darkmode-final-fix-v252">
+/* ===== v2.5.2 – final dark-mode override ===== */
+:root{color-scheme:dark}
+
+/* Legacy object / inspection UI that was declared after the old dark-mode block */
+.object-file,
+.object-file-head,
+.timeline,
+.timeline-item,
+.stat-chip,
+.filterbar,
+.object-card,
+.inspection-card,
+.finding-card,
+.decision-card,
+.report-card,
+.history-item,
+.list-item,
+.item{
+  color:var(--text)!important;
+  border-color:var(--line)!important;
+}
+.object-file,
+.object-card,
+.inspection-card,
+.finding-card,
+.decision-card,
+.report-card,
+.history-item,
+.list-item,
+.item{
+  background:linear-gradient(180deg,var(--panel) 0%,var(--bg-soft) 100%)!important;
+}
+.stat-chip{
+  background:#122330!important;
+  color:#eaf1f5!important;
+  border:1px solid #334b5d!important;
+}
+.timeline{border-top-color:var(--line)!important}
+.timeline-item{border-bottom-color:var(--line)!important}
+
+/* Form controls */
+input,
+select,
+textarea{
+  background:#0a1722!important;
+  color:#f2f6f9!important;
+  border-color:#355166!important;
+  -webkit-text-fill-color:#f2f6f9;
+}
+input::placeholder,
+textarea::placeholder{color:#8295a4!important;-webkit-text-fill-color:#8295a4}
+select option{background:#101d28!important;color:#f2f6f9!important}
+
+/* Safari/iOS can render native controls light unless explicitly told otherwise */
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"],
+input[type="search"],
+input[type="text"],
+input[type="number"]{
+  color-scheme:dark!important;
+}
+
+/* Catch remaining legacy light backgrounds */
+[style*="background:#f4f6f7"],
+[style*="background: #f4f6f7"],
+[style*="background:#f7f9fa"],
+[style*="background: #f7f9fa"],
+[style*="background:#fff"],
+[style*="background: #fff"],
+[style*="background:white"],
+[style*="background: white"]{
+  background:#122330!important;
+  color:#eaf1f5!important;
+  border-color:#334b5d!important;
+}
+
+/* Keep report printing intentionally white */
+@media print{
+  :root{color-scheme:light}
+  body{background:#fff!important;color:#111!important}
+  .customer-report,.customer-report *{color:#111!important}
+}
 </style>
 
 </head>
@@ -422,7 +509,7 @@ a{color:var(--accent-2)!important}
 <header>
   <div><h1>Duschl Service</h1><small>Interne Objekt-Dokumentation</small></div>
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
-<span class="badge" style="margin-left:auto">v2.5.0 Supabase Arbeitsvorrat</span></header>
+<span class="badge" style="margin-left:auto">v2.5.2 Darkmode Fix</span></header>
 <nav>
   <button onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button onclick="showSection('objects')">Objekte</button>
@@ -697,7 +784,7 @@ a{color:var(--accent-2)!important}
       <button type="button" onclick="cloudReloadObjects()">Objekte neu laden</button>
       <button type="button" onclick="cloudLogout()">Abmelden</button>
     </div>
-    <div class="muted" style="margin-top:8px">Teststufe 2.5.0: Objekte, Begehungen, Dokumentationen, Fotos und der Arbeitsvorrat werden zentral in Supabase gespeichert. Lokale IndexedDB-Fotos bleiben als Rückfall- und Migrationsquelle erhalten.</div>
+    <div class="muted" style="margin-top:8px">Teststufe 2.5.2: Objekte, Begehungen, Dokumentationen, Fotos und der Arbeitsvorrat werden zentral in Supabase gespeichert. Lokale IndexedDB-Fotos bleiben als Rückfall- und Migrationsquelle erhalten.</div>
   </div>
 
   <div class="card" style="margin-bottom:14px">
@@ -737,7 +824,7 @@ a{color:var(--accent-2)!important}
   </div>
   <div class="card" style="margin-top:14px">
     <h3>Lokale Daten</h3>
-    <p class="muted">Teststufe 2.5.0: Objekte, Begehungen, Dokumentationen und der Arbeitsvorrat werden zentral über Supabase gespeichert. Neue Fotos werden in Supabase Storage gespeichert; vorhandene lokale Fotos bleiben erhalten und werden beim nächsten Speichern einer Dokumentation hochgeladen.</p>
+    <p class="muted">Teststufe 2.5.2: Objekte, Begehungen, Dokumentationen und der Arbeitsvorrat werden zentral über Supabase gespeichert. Neue Fotos werden in Supabase Storage gespeichert; vorhandene lokale Fotos bleiben erhalten und werden beim nächsten Speichern einer Dokumentation hochgeladen.</p>
     <button class="danger" onclick="resetData()">Alle lokalen Daten löschen</button>
   </div>
 </section>
@@ -1022,17 +1109,8 @@ function cloudTaskToLocal(t){
   };
 }
 async function cloudLoadTasks(){
-  const rows=await cloudRequest('tasks?select=id,object_id,finding_id,title,task_type,status,owner_id,due_date,work_note,completed_at,created_at,updated_at&order=due_date.asc.nullslast,created_at.desc');
+  const rows=await cloudRequest('tasks?select=id,object_id,finding_id,title,task_type,status,owner_id,owner_name,due_date,work_note,completed_at,created_at,updated_at&order=due_date.asc.nullslast,created_at.desc');
   const tasks=(rows||[]).map(cloudTaskToLocal);
-  const profileIds=[...new Set(tasks.map(t=>t.ownerId).filter(Boolean))];
-  let names=new Map();
-  if(profileIds.length){
-    try{
-      const p=await cloudRequest(`profiles?select=id,full_name&id=in.(${profileIds.map(encodeURIComponent).join(',')})`);
-      names=new Map((p||[]).map(x=>[x.id,x.full_name||'']));
-    }catch(e){console.warn('Verantwortliche konnten nicht geladen werden.',e)}
-  }
-  tasks.forEach(t=>t.ownerName=names.get(t.ownerId)||'');
   db.tasks=tasks;
   applyTasksToFindings();
   return tasks;
@@ -1068,18 +1146,15 @@ async function cloudFindProfileByName(name){
 }
 async function cloudSaveTaskForFinding(f,data){
   if(!f?.id||!f?.objectId)throw new Error('Feststellung oder Objekt fehlt.');
-  let ownerId=null, ownerName='';
-  if((data.ownerName||'').trim()){
-    const p=await cloudFindProfileByName(data.ownerName);
-    ownerId=p.id; ownerName=p.full_name||data.ownerName.trim();
-  }
+  const ownerName=(data.ownerName||'').trim();
   const payload={
     object_id:f.objectId,
     finding_id:f.id,
     title:f.title||'Zusatzmaßnahme',
     task_type:'additional_measure',
     status:data.status||'planned',
-    owner_id:ownerId,
+    owner_id:null,
+    owner_name:ownerName||null,
     due_date:data.dueDate||null,
     work_note:data.workNote||null,
     completed_at:(data.status==='completed')?new Date().toISOString():null,
@@ -1491,7 +1566,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.5.0-supabase-tasks'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.5.2-darkmode-fix'};
 }
 function load(){
   try{
@@ -1554,7 +1629,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.5.0-supabase-tasks'
+      version:'2.5.2-darkmode-fix'
     };
 
     merged.findings.forEach(f=>{
@@ -1591,7 +1666,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.5.0-supabase-tasks';
+  db.version='2.5.2-darkmode-fix';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
