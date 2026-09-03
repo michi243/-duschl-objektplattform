@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.9.1 Benutzer-Fix</title>
+<title>Duschl Service – Objekt-Dokumentation 2.9.2 Benutzer-API-Fix</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -386,7 +386,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.9.1 Benutzer-Fix ===== */
+/* ===== v2.9.2 Benutzer-API-Fix ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -607,7 +607,7 @@ body.photo-viewer-open{overflow:hidden}
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.9.1 Benutzer-Fix</span></header>
+<span class="badge">v2.9.2 Benutzer-API-Fix</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1817,7 +1817,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.9.1-users-fix'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.9.2-users-api-fix'};
 }
 function load(){
   try{
@@ -1880,7 +1880,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.9.1-users-fix'
+      version:'2.9.2-users-api-fix'
     };
 
     merged.findings.forEach(f=>{
@@ -1917,7 +1917,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.9.1-users-fix';
+  db.version='2.9.2-users-api-fix';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -2430,8 +2430,8 @@ async function loadUserAdminData(){
   if(!sel||!ed)return;
   ed.innerHTML='<div class="card"><p class="muted">Benutzerdaten werden geladen …</p></div>';
   try{
-    userAdminProfiles=await cloudRequest('/rest/v1/profiles?select=id,full_name,role,active&order=full_name.asc')||[];
-    userAdminAssignments=await cloudRequest('/rest/v1/object_user_assignments?select=id,object_id,user_id,active')||[];
+    userAdminProfiles=await cloudRequest('profiles?select=id,full_name,role,active&order=full_name.asc')||[];
+    userAdminAssignments=await cloudRequest('object_user_assignments?select=id,object_id,user_id,active')||[];
     const keep=sel.value;
     sel.innerHTML='<option value="">Benutzer auswählen …</option>'+userAdminProfiles.map(p=>`<option value="${esc(p.id)}">${esc(p.full_name||p.id)} · ${esc(ROLE_LABELS[p.role]||p.role)}${p.active===false?' · inaktiv':''}</option>`).join('');
     if(keep&&userAdminProfiles.some(p=>p.id===keep))sel.value=keep;
@@ -2456,14 +2456,14 @@ async function saveUserAdminPermissions(){
   if(uid===currentUserProfile?.id&&(!active||role!=='platform_admin'))return alert('Der aktuell angemeldete Administrator kann sich nicht selbst deaktivieren oder seine Administratorrolle entfernen.');
   const checked=[...document.querySelectorAll('.userObjectAssignment:checked')].map(x=>x.value);
   try{
-    await cloudRequest('/rest/v1/profiles?id=eq.'+encodeURIComponent(uid),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({role,active})});
+    await cloudRequest('profiles?id=eq.'+encodeURIComponent(uid),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({role,active})});
     const existing=userAdminAssignments.filter(a=>a.user_id===uid);
     for(const a of existing){
       const should=checked.includes(a.object_id);
-      if(a.active!==should)await cloudRequest('/rest/v1/object_user_assignments?id=eq.'+encodeURIComponent(a.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({active:should,updated_at:new Date().toISOString()})});
+      if(a.active!==should)await cloudRequest('object_user_assignments?id=eq.'+encodeURIComponent(a.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({active:should,updated_at:new Date().toISOString()})});
     }
     const existingIds=new Set(existing.map(a=>a.object_id));
-    for(const object_id of checked)if(!existingIds.has(object_id))await cloudRequest('/rest/v1/object_user_assignments',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({object_id,user_id:uid,active:true,assigned_by:currentUserProfile?.id})});
+    for(const object_id of checked)if(!existingIds.has(object_id))await cloudRequest('object_user_assignments',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({object_id,user_id:uid,active:true,assigned_by:currentUserProfile?.id})});
     alert('Berechtigungen gespeichert.');
     await loadUserAdminData();
   }catch(e){alert('Speichern fehlgeschlagen: '+e.message)}
