@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.4.3 Supabase Fotos</title>
+<title>Duschl Service – Objekt-Dokumentation 2.5.0 Supabase Arbeitsvorrat</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -386,7 +386,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.4.3 Supabase Fotos ===== */
+/* ===== v2.5.0 Supabase Arbeitsvorrat ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -422,7 +422,7 @@ a{color:var(--accent-2)!important}
 <header>
   <div><h1>Duschl Service</h1><small>Interne Objekt-Dokumentation</small></div>
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
-<span class="badge" style="margin-left:auto">v2.4.3 Supabase Fotos</span></header>
+<span class="badge" style="margin-left:auto">v2.5.0 Supabase Arbeitsvorrat</span></header>
 <nav>
   <button onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button onclick="showSection('objects')">Objekte</button>
@@ -697,7 +697,7 @@ a{color:var(--accent-2)!important}
       <button type="button" onclick="cloudReloadObjects()">Objekte neu laden</button>
       <button type="button" onclick="cloudLogout()">Abmelden</button>
     </div>
-    <div class="muted" style="margin-top:8px">Teststufe 2.4.3: Objekte, Begehungen, Dokumentationen und neue Fotos werden zentral in Supabase gespeichert. Lokale IndexedDB-Fotos bleiben als Rückfall- und Migrationsquelle erhalten.</div>
+    <div class="muted" style="margin-top:8px">Teststufe 2.5.0: Objekte, Begehungen, Dokumentationen, Fotos und der Arbeitsvorrat werden zentral in Supabase gespeichert. Lokale IndexedDB-Fotos bleiben als Rückfall- und Migrationsquelle erhalten.</div>
   </div>
 
   <div class="card" style="margin-bottom:14px">
@@ -737,7 +737,7 @@ a{color:var(--accent-2)!important}
   </div>
   <div class="card" style="margin-top:14px">
     <h3>Lokale Daten</h3>
-    <p class="muted">Teststufe 2.4.3: Objekte, Begehungen und Dokumentationen werden zentral über Supabase gespeichert. Neue Fotos werden in Supabase Storage gespeichert; vorhandene lokale Fotos bleiben erhalten und werden beim nächsten Speichern einer Dokumentation hochgeladen.</p>
+    <p class="muted">Teststufe 2.5.0: Objekte, Begehungen, Dokumentationen und der Arbeitsvorrat werden zentral über Supabase gespeichert. Neue Fotos werden in Supabase Storage gespeichert; vorhandene lokale Fotos bleiben erhalten und werden beim nächsten Speichern einer Dokumentation hochgeladen.</p>
     <button class="danger" onclick="resetData()">Alle lokalen Daten löschen</button>
   </div>
 </section>
@@ -944,6 +944,12 @@ function cloudFindingToLocal(f,decision){
     decisionDate:d.decision_date||'',
     decisionComment:d.comment||'',
     decisionAmount:d.amount??'',
+    workOwner:'',
+    workOwnerId:null,
+    workDueDate:'',
+    workNote:'',
+    taskId:'',
+    taskStatus:'',
     beforePhoto:'',
     afterPhoto:'',
     beforePhotos:[],
@@ -997,6 +1003,114 @@ async function cloudReplacePhotoRefs(findingId,data,beforeRefs,afterRefs){
   if(rows.length)await cloudRequest('media',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify(rows)});
 }
 
+
+function cloudTaskToLocal(t){
+  return {
+    id:t.id,
+    objectId:t.object_id,
+    findingId:t.finding_id||'',
+    title:t.title||'',
+    taskType:t.task_type||'additional_measure',
+    status:t.status||'planned',
+    ownerId:t.owner_id||null,
+    ownerName:t.owner_name||'',
+    dueDate:t.due_date||'',
+    workNote:t.work_note||'',
+    completedAt:t.completed_at||null,
+    createdAt:t.created_at||null,
+    updatedAt:t.updated_at||null
+  };
+}
+async function cloudLoadTasks(){
+  const rows=await cloudRequest('tasks?select=id,object_id,finding_id,title,task_type,status,owner_id,due_date,work_note,completed_at,created_at,updated_at&order=due_date.asc.nullslast,created_at.desc');
+  const tasks=(rows||[]).map(cloudTaskToLocal);
+  const profileIds=[...new Set(tasks.map(t=>t.ownerId).filter(Boolean))];
+  let names=new Map();
+  if(profileIds.length){
+    try{
+      const p=await cloudRequest(`profiles?select=id,full_name&id=in.(${profileIds.map(encodeURIComponent).join(',')})`);
+      names=new Map((p||[]).map(x=>[x.id,x.full_name||'']));
+    }catch(e){console.warn('Verantwortliche konnten nicht geladen werden.',e)}
+  }
+  tasks.forEach(t=>t.ownerName=names.get(t.ownerId)||'');
+  db.tasks=tasks;
+  applyTasksToFindings();
+  return tasks;
+}
+function applyTasksToFindings(){
+  const byFinding=new Map((db.tasks||[]).filter(t=>t.findingId).map(t=>[t.findingId,t]));
+  for(const f of (db.findings||[])){
+    const t=byFinding.get(f.id);
+    if(t){
+      f.taskId=t.id;
+      f.taskStatus=t.status||'planned';
+      f.workOwnerId=t.ownerId||null;
+      f.workOwner=t.ownerName||'';
+      f.workDueDate=t.dueDate||'';
+      f.workNote=t.workNote||'';
+    }else{
+      f.taskId='';
+      f.taskStatus='';
+      f.workOwnerId=null;
+      f.workOwner='';
+      f.workDueDate='';
+      f.workNote='';
+    }
+  }
+}
+async function cloudFindProfileByName(name){
+  const q=(name||'').trim();
+  if(!q)return null;
+  const rows=await cloudRequest(`profiles?select=id,full_name&active=eq.true&full_name=ilike.${encodeURIComponent(q)}&limit=2`);
+  if(rows?.length===1)return rows[0];
+  if(rows?.length>1)throw new Error('Mehrere aktive Profile mit diesem Namen gefunden. Bitte eindeutigen Namen verwenden.');
+  throw new Error('Kein aktives Mitarbeiterprofil mit diesem Namen gefunden.');
+}
+async function cloudSaveTaskForFinding(f,data){
+  if(!f?.id||!f?.objectId)throw new Error('Feststellung oder Objekt fehlt.');
+  let ownerId=null, ownerName='';
+  if((data.ownerName||'').trim()){
+    const p=await cloudFindProfileByName(data.ownerName);
+    ownerId=p.id; ownerName=p.full_name||data.ownerName.trim();
+  }
+  const payload={
+    object_id:f.objectId,
+    finding_id:f.id,
+    title:f.title||'Zusatzmaßnahme',
+    task_type:'additional_measure',
+    status:data.status||'planned',
+    owner_id:ownerId,
+    due_date:data.dueDate||null,
+    work_note:data.workNote||null,
+    completed_at:(data.status==='completed')?new Date().toISOString():null,
+    updated_at:new Date().toISOString()
+  };
+  let row;
+  if(f.taskId){
+    const rows=await cloudRequest(`tasks?id=eq.${encodeURIComponent(f.taskId)}`,{
+      method:'PATCH',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)
+    });
+    row=rows?.[0];
+  }else{
+    const rows=await cloudRequest('tasks',{
+      method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)
+    });
+    row=rows?.[0];
+  }
+  if(!row)throw new Error('Aufgabe wurde von Supabase nicht zurückgegeben.');
+  const local=cloudTaskToLocal(row); local.ownerName=ownerName;
+  db.tasks=db.tasks||[];
+  const idx=db.tasks.findIndex(t=>t.id===local.id);
+  if(idx>=0)db.tasks[idx]=local; else db.tasks.push(local);
+  applyTasksToFindings();
+  return local;
+}
+async function cloudDeleteTaskForFinding(findingId){
+  const tasks=(db.tasks||[]).filter(t=>t.findingId===findingId);
+  for(const t of tasks)await cloudRequest(`tasks?id=eq.${encodeURIComponent(t.id)}`,{method:'DELETE'});
+  db.tasks=(db.tasks||[]).filter(t=>t.findingId!==findingId);
+}
+
 async function cloudReloadFindings(){
   if(!cloudSession?.access_token)return;
   const rows=await cloudRequest('findings?select=id,object_id,inspection_id,type,area,title,category,priority,description,recommended_action,activity,status,completion_type,completion_note,created_at,updated_at&order=created_at.desc');
@@ -1016,6 +1130,7 @@ async function cloudReloadFindings(){
   const cloudIds=new Set(cloudRows.map(f=>f.id));
   const localOnly=(db.findings||[]).filter(f=>!f.cloud && !cloudIds.has(f.id));
   db.findings=[...cloudRows,...localOnly];
+  await cloudLoadTasks();
   renderAll();
   hydrateMediaImages();
 }
@@ -1094,6 +1209,7 @@ async function cloudSaveFinding(id,data){
   return row;
 }
 async function cloudDeleteFinding(id){
+  try{await cloudDeleteTaskForFinding(id)}catch(_e){}
   if(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||'')){
     try{
       const photos=await cloudRequest(`media?select=storage_path&finding_id=eq.${encodeURIComponent(id)}&media_type=eq.photo`);
@@ -1112,7 +1228,7 @@ async function cloudReloadObjects(){
     db.inspections=(inspectionRows||[]).map(cloudInspectionToLocal);
     await cloudReloadFindings();
     renderAll();
-    cloudSetStatus(`Verbunden · ${db.objects.length} Objekt(e) · ${db.inspections.length} Begehung(en) · ${db.findings.filter(f=>f.cloud).length} Dokumentation(en) zentral`,'ok');
+    cloudSetStatus(`Verbunden · ${db.objects.length} Objekt(e) · ${db.inspections.length} Begehung(en) · ${db.findings.filter(f=>f.cloud).length} Dokumentation(en) · ${(db.tasks||[]).length} Aufgabe(n) zentral`,'ok');
   }catch(e){
     console.error('Objekte laden fehlgeschlagen',e);
     cloudSetStatus('Verbindungsfehler: '+(e.message||e),'bad');
@@ -1375,7 +1491,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'2.4.3-supabase-photos'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.5.0-supabase-tasks'};
 }
 function load(){
   try{
@@ -1437,7 +1553,8 @@ function load(){
       objects:mergeById('objects'),
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
-      version:'2.4.3-supabase-photos'
+      tasks:[],
+      version:'2.5.0-supabase-tasks'
     };
 
     merged.findings.forEach(f=>{
@@ -1474,7 +1591,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.4.3-supabase-photos';
+  db.version='2.5.0-supabase-tasks';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -1740,14 +1857,21 @@ function openWorkItem(id){
     <label>Arbeitsinformation<textarea id="wiNote" placeholder="Hinweise für die Ausführung">${esc(f.workNote||'')}</textarea></label>
     <div class="row"><button class="primary" onclick="saveWorkItem('${id}')">Speichern</button><button onclick="closeModal()">Abbrechen</button></div>`);
 }
-function saveWorkItem(id){
+async function saveWorkItem(id){
   const f=db.findings.find(x=>x.id===id);if(!f)return;
-  f.workOwner=document.getElementById('wiOwner')?.value.trim()||'';
-  f.workDueDate=document.getElementById('wiDue')?.value||'';
-  f.workNote=document.getElementById('wiNote')?.value.trim()||'';
-  f.updatedAt=Date.now();
-  try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){alert('Metadatenspeicher ist voll. Bitte Backup erstellen.');return}
-  closeModal();renderAll();showSection('workqueue');
+  const ownerName=document.getElementById('wiOwner')?.value.trim()||'';
+  const dueDate=document.getElementById('wiDue')?.value||'';
+  const workNote=document.getElementById('wiNote')?.value.trim()||'';
+  try{
+    if(!cloudSession?.access_token)throw new Error('Nicht angemeldet.');
+    cloudSetStatus('Arbeitsvorrat wird zentral gespeichert …','wait');
+    await cloudSaveTaskForFinding(f,{ownerName,dueDate,workNote,status:f.taskStatus||'planned'});
+    cloudSetStatus('Verbunden · Arbeitsvorrat zentral','ok');
+    closeModal();renderAll();showSection('workqueue');
+  }catch(e){
+    console.error('Aufgabe speichern fehlgeschlagen',e);
+    alert('Aufgabe konnte nicht zentral gespeichert werden: '+(e.message||e));
+  }
 }
 
 function renderAll(){
