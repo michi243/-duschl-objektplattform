@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.0.2 Kundenbericht</title>
+<title>Duschl Service – Objekt-Dokumentation 2.1.0 Supabase Test</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -384,12 +384,45 @@ a{color:var(--accent-2)!important}
 }
 </style>
 
+
+<style>
+/* ===== v2.1.0 Supabase Test ===== */
+#authGate{
+  position:fixed;inset:0;z-index:1000;
+  display:flex;align-items:center;justify-content:center;
+  padding:18px;background:rgba(2,9,14,.96);
+}
+#authGate.hidden{display:none!important}
+.auth-card{
+  width:min(460px,100%);padding:20px;border-radius:18px;
+  background:linear-gradient(180deg,var(--panel),var(--bg-soft));
+  border:1px solid var(--line);box-shadow:var(--shadow)
+}
+.cloud-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#7b8790;margin-right:6px}
+.cloud-dot.ok{background:#66b52f}.cloud-dot.bad{background:#ff4b55}.cloud-dot.wait{background:#f0a400}
+.cloud-banner{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#0b1823;margin-bottom:12px}
+</style>
+
 </head>
 <body>
+
+<div id="authGate">
+  <div class="auth-card">
+    <h2 style="margin-top:0">Duschl Service</h2>
+    <div class="muted" style="margin-bottom:14px">Zentrale Objektplattform · Supabase Test</div>
+    <label>E-Mail</label>
+    <input id="authEmail" type="email" autocomplete="username" value="Duschl-service@gmx.de">
+    <label>Passwort</label>
+    <input id="authPassword" type="password" autocomplete="current-password" placeholder="Supabase-Benutzerpasswort">
+    <div id="authMessage" class="muted" style="margin:10px 0"></div>
+    <button class="primary" style="width:100%" onclick="cloudLogin()">Anmelden</button>
+  </div>
+</div>
+
 <header>
   <div><h1>Duschl Service</h1><small>Interne Objekt-Dokumentation</small></div>
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
-<span class="badge" style="margin-left:auto">v2.0.2 Kundenbericht</span></header>
+<span class="badge" style="margin-left:auto">v2.1.0 Supabase Test</span></header>
 <nav>
   <button onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button onclick="showSection('objects')">Objekte</button>
@@ -658,6 +691,15 @@ a{color:var(--accent-2)!important}
 
 <section id="settings" class="section">
   <div class="card" style="margin-bottom:14px">
+    <h3>Zentrale Datenbasis</h3>
+    <div id="cloudStatus" class="cloud-banner"><span id="cloudDot" class="cloud-dot wait"></span><span id="cloudStatusText">Verbindung wird geprüft …</span></div>
+    <div class="row">
+      <button type="button" onclick="cloudReloadObjects()">Objekte neu laden</button>
+      <button type="button" onclick="cloudLogout()">Abmelden</button>
+    </div>
+    <div class="muted" style="margin-top:8px">Teststufe: Objekte werden zentral in Supabase gespeichert. Begehungen, Dokumentationen und Fotos bleiben in dieser Version noch lokal.</div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
     <h3>Speicherstatus</h3>
     <div id="storageStatus" class="muted">Bildspeicher wird geprüft …</div>
   </div>
@@ -690,7 +732,7 @@ a{color:var(--accent-2)!important}
   </div>
   <div class="card" style="margin-top:14px">
     <h3>Lokale Daten</h3>
-    <p class="muted">Diese Stufe speichert ausschließlich auf diesem Browser/Gerät. Für Stufe 2 werden Benutzerzugänge und zentrale Cloud-Daten ergänzt.</p>
+    <p class="muted">Teststufe 2.1.0: Objekte werden zentral über Supabase gespeichert. Begehungen, Dokumentationen und Fotos bleiben bis zur nächsten Migrationsstufe lokal.</p>
     <button class="danger" onclick="resetData()">Alle lokalen Daten löschen</button>
   </div>
 </section>
@@ -700,6 +742,174 @@ a{color:var(--accent-2)!important}
 <div id="modalRoot"></div>
 
 <script>
+
+const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
+const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
+let cloudSession=null;
+
+function cloudHeaders(extra={}){
+  const h={'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json',...extra};
+  if(cloudSession?.access_token)h['Authorization']='Bearer '+cloudSession.access_token;
+  return h;
+}
+function cloudSetStatus(text,state='wait'){
+  const t=document.getElementById('cloudStatusText'),d=document.getElementById('cloudDot');
+  if(t)t.textContent=text;
+  if(d){d.className='cloud-dot '+state}
+}
+function cloudAuthMessage(text,isError=false){
+  const e=document.getElementById('authMessage');if(!e)return;
+  e.textContent=text||'';e.style.color=isError?'#ff8b91':'';
+}
+function cloudShowGate(show=true){
+  document.getElementById('authGate')?.classList.toggle('hidden',!show);
+}
+function cloudStoreSession(s){
+  cloudSession=s||null;
+  if(s)localStorage.setItem(SUPABASE_SESSION_KEY,JSON.stringify(s));
+  else localStorage.removeItem(SUPABASE_SESSION_KEY);
+}
+function cloudLoadStoredSession(){
+  try{return JSON.parse(localStorage.getItem(SUPABASE_SESSION_KEY)||'null')}catch(_e){return null}
+}
+async function cloudRefreshSession(){
+  const s=cloudLoadStoredSession();
+  if(!s?.refresh_token)return false;
+  try{
+    const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{
+      method:'POST',
+      headers:cloudHeaders(),
+      body:JSON.stringify({refresh_token:s.refresh_token})
+    });
+    if(!r.ok)throw new Error(await r.text());
+    const n=await r.json();cloudStoreSession(n);return true;
+  }catch(e){
+    console.warn('Session-Aktualisierung fehlgeschlagen',e);
+    cloudStoreSession(null);return false;
+  }
+}
+async function cloudLogin(){
+  const email=document.getElementById('authEmail')?.value.trim();
+  const password=document.getElementById('authPassword')?.value||'';
+  if(!email||!password)return cloudAuthMessage('E-Mail und Passwort eingeben.',true);
+  cloudAuthMessage('Anmeldung läuft …');
+  try{
+    const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`,{
+      method:'POST',
+      headers:cloudHeaders(),
+      body:JSON.stringify({email,password})
+    });
+    if(!r.ok)throw new Error('Anmeldung fehlgeschlagen.');
+    const s=await r.json();
+    cloudStoreSession(s);
+    cloudShowGate(false);
+    cloudAuthMessage('');
+    await cloudReloadObjects();
+  }catch(e){
+    cloudAuthMessage(e.message||'Anmeldung fehlgeschlagen.',true);
+  }
+}
+async function cloudLogout(){
+  try{
+    if(cloudSession?.access_token)await fetch(`${SUPABASE_URL}/auth/v1/logout`,{method:'POST',headers:cloudHeaders()});
+  }catch(_e){}
+  cloudStoreSession(null);
+  cloudSetStatus('Nicht angemeldet','bad');
+  cloudShowGate(true);
+}
+async function cloudRequest(path,options={},retry=true){
+  if(!cloudSession?.access_token)throw new Error('Nicht angemeldet.');
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/${path}`,{
+    ...options,
+    headers:cloudHeaders({...(options.headers||{})})
+  });
+  if(r.status===401 && retry){
+    const ok=await cloudRefreshSession();
+    if(ok)return cloudRequest(path,options,false);
+  }
+  if(!r.ok){
+    const msg=await r.text();
+    throw new Error(msg||`HTTP ${r.status}`);
+  }
+  if(r.status===204)return null;
+  const ct=r.headers.get('content-type')||'';
+  return ct.includes('application/json')?await r.json():await r.text();
+}
+function cloudObjectToLocal(o){
+  const address=[o.street,o.postal_code,o.city].filter(Boolean).join(', ');
+  return {
+    id:o.id,
+    name:o.name||'',
+    address,
+    notes:o.notes||'',
+    createdAt:o.created_at?new Date(o.created_at).getTime():Date.now(),
+    updatedAt:o.updated_at?new Date(o.updated_at).getTime():Date.now(),
+    cloud:true
+  };
+}
+function splitAddress(address=''){
+  return {street:address.trim(),postal_code:null,city:null};
+}
+async function cloudReloadObjects(){
+  if(!cloudSession?.access_token)return;
+  cloudSetStatus('Supabase wird geladen …','wait');
+  try{
+    const rows=await cloudRequest('objects?select=id,name,street,postal_code,city,notes,created_at,updated_at&active=eq.true&order=name.asc');
+    db.objects=(rows||[]).map(cloudObjectToLocal);
+    renderAll();
+    cloudSetStatus(`Verbunden · ${db.objects.length} Objekt(e) zentral`,'ok');
+  }catch(e){
+    console.error('Objekte laden fehlgeschlagen',e);
+    cloudSetStatus('Verbindungsfehler: '+(e.message||e),'bad');
+    alert('Supabase-Verbindung fehlgeschlagen. Details stehen unter Daten.');
+  }
+}
+async function cloudSaveObject(id,data){
+  const addr=splitAddress(data.address);
+  const payload={
+    name:data.name,
+    street:addr.street||null,
+    postal_code:addr.postal_code,
+    city:addr.city,
+    notes:data.notes||null,
+    updated_at:new Date().toISOString()
+  };
+  if(id){
+    const rows=await cloudRequest(`objects?id=eq.${encodeURIComponent(id)}`,{
+      method:'PATCH',
+      headers:{'Prefer':'return=representation'},
+      body:JSON.stringify(payload)
+    });
+    return rows?.[0];
+  }
+  const rows=await cloudRequest('objects',{
+    method:'POST',
+    headers:{'Prefer':'return=representation'},
+    body:JSON.stringify(payload)
+  });
+  return rows?.[0];
+}
+async function cloudDeleteObject(id){
+  await cloudRequest(`objects?id=eq.${encodeURIComponent(id)}`,{method:'DELETE'});
+}
+async function bootCloud(){
+  cloudSession=cloudLoadStoredSession();
+  if(!cloudSession){
+    cloudSetStatus('Nicht angemeldet','bad');
+    cloudShowGate(true);
+    return;
+  }
+  cloudShowGate(false);
+  try{
+    await cloudReloadObjects();
+  }catch(_e){
+    const ok=await cloudRefreshSession();
+    if(ok)await cloudReloadObjects();
+    else cloudShowGate(true);
+  }
+}
+
 const KEY='duschl_objekt_doku_master';
 const OLD_KEY='duschl_objekt_doku_v159';
 let db = load();
@@ -834,7 +1044,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'2.0.2-dark-fix'};
+  return {objects:[],inspections:[],findings:[],version:'2.1.0-supabase-test'};
 }
 function load(){
   try{
@@ -896,7 +1106,7 @@ function load(){
       objects:mergeById('objects'),
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
-      version:'2.0.2-dark-fix'
+      version:'2.1.0-supabase-test'
     };
 
     merged.findings.forEach(f=>{
@@ -933,7 +1143,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.0.2-dark-fix';
+  db.version='2.1.0-supabase-test';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -1539,15 +1749,34 @@ function openObjectModal(id=''){
   <label>Notizen</label><textarea id="oNotes">${esc(o.notes)}</textarea>
   <div class="row" style="margin-top:14px"><button class="primary" onclick="saveObject('${id}')">Speichern</button>${id?`<button class="danger" onclick="deleteObject('${id}')">Löschen</button>`:''}</div>`);
 }
-function saveObject(id){
-  const name=document.getElementById('oName').value.trim();if(!name)return alert('Bitte Objektbezeichnung eingeben.');
-  const data={name,address:document.getElementById('oAddress').value.trim(),notes:document.getElementById('oNotes').value.trim()};
-  if(id)Object.assign(db.objects.find(x=>x.id===id),data);else db.objects.push({id:uid('obj'),createdAt:Date.now(),...data});
-  closeModal();save()
+async function saveObject(id){
+  const name=document.getElementById('oName').value.trim();
+  if(!name)return alert('Bitte Objektbezeichnung eingeben.');
+  const data={
+    name,
+    address:document.getElementById('oAddress').value.trim(),
+    notes:document.getElementById('oNotes').value.trim()
+  };
+  try{
+    const row=await cloudSaveObject(id,data);
+    if(!row)throw new Error('Keine Rückgabe aus Supabase.');
+    closeModal();
+    await cloudReloadObjects();
+  }catch(e){
+    console.error(e);
+    alert('Objekt konnte nicht zentral gespeichert werden: '+(e.message||e));
+  }
 }
-function deleteObject(id){
-  if(!confirm('Objekt inklusive zugehöriger Begehungen und Feststellungen löschen?'))return;
-  db.objects=db.objects.filter(x=>x.id!==id);db.inspections=db.inspections.filter(x=>x.objectId!==id);db.findings=db.findings.filter(x=>x.objectId!==id);closeModal();save()
+async function deleteObject(id){
+  if(!confirm('Objekt inklusive zugehöriger Daten löschen? In dieser Teststufe werden nur zentral gespeicherte Objekte gelöscht.'))return;
+  try{
+    await cloudDeleteObject(id);
+    closeModal();
+    await cloudReloadObjects();
+  }catch(e){
+    console.error(e);
+    alert('Objekt konnte nicht gelöscht werden: '+(e.message||e));
+  }
 }
 
 function openInspectionModal(pref='',prefObj=''){
@@ -1872,6 +2101,7 @@ function importData(){
 }
 function resetData(){if(confirm('Wirklich alle lokalen Daten löschen?')){db=seed();save()}}
 bootStorage();
+bootCloud();
 </script>
 </body>
 </html>
