@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 1.7.3 Recovery</title>
+<title>Duschl Service – Objekt-Dokumentation 1.8.0 Storage</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -38,7 +38,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 
 .photo-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.photo-item{position:relative;width:86px;height:86px}.photo-item img{width:86px;height:86px;object-fit:cover;border-radius:8px}.photo-remove{position:absolute;right:3px;top:3px;width:26px;height:26px;border-radius:50%;padding:0;line-height:22px;font-size:18px;background:#fff;border:1px solid #999}
 
-/* ===== Duschl Service Dark UI – v1.7.3 Recovery ===== */
+/* ===== Duschl Service Dark UI – v1.8.0 Storage ===== */
 :root{
   --bg:#07131d;
   --bg-soft:#0b1824;
@@ -245,7 +245,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* ===== Dark UI completion – v1.7.3 Recovery ===== */
+/* ===== Dark UI completion – v1.8.0 Storage ===== */
 body,main,.section,.content,.container,.wrap,.page{background:transparent!important;color:var(--text)!important}
 div[style*="background:#fff"],div[style*="background: #fff"],div[style*="background:white"],div[style*="background: white"],
 section[style*="background:#fff"],section[style*="background: #fff"],.card[style*="background:#fff"],.card[style*="background: #fff"]{
@@ -282,7 +282,7 @@ a{color:var(--accent-2)!important}
 <header>
   <div><h1>Duschl Service</h1><small>Interne Objekt-Dokumentation</small></div>
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
-<span class="badge" style="margin-left:auto">v1.7.3 Recovery</span></header>
+<span class="badge" style="margin-left:auto">v1.8.0 Storage</span></header>
 <nav>
   <button onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button onclick="showSection('objects')">Objekte</button>
@@ -520,6 +520,11 @@ a{color:var(--accent-2)!important}
 
 <section id="settings" class="section">
   <div class="card" style="margin-bottom:14px">
+    <h3>Speicherstatus</h3>
+    <div id="storageStatus" class="muted">Bildspeicher wird geprüft …</div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
     <h3>Datensicherung</h3>
     <div class="muted">Vor weiteren Änderungen kannst du den aktuell wiederhergestellten Master-Datenbestand als JSON sichern.</div>
     <button type="button" onclick="downloadMasterBackup()">Master-Backup herunterladen</button>
@@ -561,8 +566,137 @@ const KEY='duschl_objekt_doku_master';
 const OLD_KEY='duschl_objekt_doku_v159';
 let db = load();
 
+let mediaDbPromise=null;
+function openMediaDb(){
+  if(mediaDbPromise)return mediaDbPromise;
+  mediaDbPromise=new Promise((resolve,reject)=>{
+    const req=indexedDB.open('DuschlServiceMedia',1);
+    req.onupgradeneeded=()=>{
+      const idb=req.result;
+      if(!idb.objectStoreNames.contains('photos'))idb.createObjectStore('photos');
+    };
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+  return mediaDbPromise;
+}
+function dataUrlToBlob(dataUrl){
+  const [meta,data]=dataUrl.split(',');
+  const mime=(meta.match(/data:([^;]+)/)||[])[1]||'image/jpeg';
+  const bin=atob(data),arr=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+  return new Blob([arr],{type:mime});
+}
+async function mediaPut(id,value){
+  const idb=await openMediaDb();
+  return new Promise((resolve,reject)=>{
+    const tx=idb.transaction('photos','readwrite');
+    tx.objectStore('photos').put(value,id);
+    tx.oncomplete=()=>resolve();
+    tx.onerror=()=>reject(tx.error);
+  });
+}
+async function mediaGet(id){
+  const idb=await openMediaDb();
+  return new Promise((resolve,reject)=>{
+    const tx=idb.transaction('photos','readonly');
+    const req=tx.objectStore('photos').get(id);
+    req.onsuccess=()=>resolve(req.result||null);
+    req.onerror=()=>reject(req.error);
+  });
+}
+async function mediaDelete(id){
+  const idb=await openMediaDb();
+  return new Promise((resolve,reject)=>{
+    const tx=idb.transaction('photos','readwrite');
+    tx.objectStore('photos').delete(id);
+    tx.oncomplete=()=>resolve();
+    tx.onerror=()=>reject(tx.error);
+  });
+}
+function isMediaRef(v){return typeof v==='string'&&v.startsWith('media:')}
+function mediaId(v){return isMediaRef(v)?v.slice(6):v}
+function mediaImg(ref,alt='',cls='thumb',style=''){
+  if(!ref)return '';
+  if(isMediaRef(ref))return `<img class="${cls}" data-media-ref="${esc(ref)}" alt="${esc(alt)}" ${style?`style="${style}"`:''}>`;
+  return `<img class="${cls}" src="${ref}" alt="${esc(alt)}" ${style?`style="${style}"`:''}>`;
+}
+async function hydrateMediaImages(root=document){
+  const imgs=[...root.querySelectorAll('img[data-media-ref]')];
+  for(const img of imgs){
+    const ref=img.getAttribute('data-media-ref');
+    if(!ref||img.dataset.mediaLoaded==='1')continue;
+    try{
+      const blob=await mediaGet(mediaId(ref));
+      if(blob){
+        const url=URL.createObjectURL(blob);
+        img.src=url;img.dataset.mediaLoaded='1';
+        img.addEventListener('load',()=>setTimeout(()=>URL.revokeObjectURL(url),5000),{once:true});
+      }
+    }catch(e){console.error('Bild laden fehlgeschlagen',e)}
+  }
+}
+async function migratePhotosToIndexedDB(){
+  let changed=false, moved=0;
+  for(const f of (db.findings||[])){
+    const groups=['beforePhotos','afterPhotos'];
+    for(const g of groups){
+      const arr=Array.isArray(f[g])?f[g]:[];
+      const out=[];
+      for(let i=0;i<arr.length;i++){
+        const p=arr[i];
+        if(isMediaRef(p)){out.push(p);continue}
+        if(typeof p==='string'&&p.startsWith('data:image/')){
+          const id=`${f.id}_${g}_${i}`;
+          await mediaPut(id,dataUrlToBlob(p));
+          out.push('media:'+id);moved++;changed=true;
+        }else if(p)out.push(p);
+      }
+      f[g]=out;
+    }
+    const bp=f.beforePhotos?.[0]||'', ap=f.afterPhotos?.[0]||'';
+    if(f.beforePhoto!==bp){f.beforePhoto=bp;changed=true}
+    if(f.afterPhoto!==ap){f.afterPhoto=ap;changed=true}
+    if(f.photo && f.photo.startsWith('data:image/')){delete f.photo;changed=true}
+  }
+  if(changed){
+    try{localStorage.setItem(KEY,JSON.stringify(db))}
+    catch(e){console.error('Metadaten konnten nach Migration nicht gespeichert werden',e)}
+  }
+  window.__mediaMigration={moved};
+  return moved;
+}
+async function bootStorage(){
+  try{
+    await openMediaDb();
+    const moved=await migratePhotosToIndexedDB();
+    renderAll();
+    hydrateMediaImages();
+    updateStorageStatus(moved);
+  }catch(e){
+    console.error('Speicherinitialisierung fehlgeschlagen',e);
+    renderAll();
+    updateStorageStatus(0,'Fehler bei Bildspeicher');
+  }
+}
+async function updateStorageStatus(moved=0,error=''){
+  const el=document.getElementById('storageStatus');
+  if(!el)return;
+  let text=error||'Bildspeicher aktiv: IndexedDB';
+  if(moved)text+=` · ${moved} vorhandene Bilder ausgelagert`;
+  if(navigator.storage?.estimate){
+    try{
+      const x=await navigator.storage.estimate();
+      const used=Math.round((x.usage||0)/1024/1024);
+      const quota=Math.round((x.quota||0)/1024/1024);
+      text+=` · ca. ${used} MB von ${quota} MB belegt`;
+    }catch(_){}
+  }
+  el.textContent=text;
+}
+
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'1.7.3-recovery'};
+  return {objects:[],inspections:[],findings:[],version:'1.8.0-storage'};
 }
 function load(){
   try{
@@ -624,7 +758,7 @@ function load(){
       objects:mergeById('objects'),
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
-      version:'1.7.3-recovery'
+      version:'1.8.0-storage'
     };
 
     merged.findings.forEach(f=>{
@@ -656,7 +790,12 @@ function load(){
   }
 }
 
-function save(){db.version='1.7.3-recovery';localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
+function save(){
+  db.version='1.8.0-storage';
+  try{localStorage.setItem(KEY,JSON.stringify(db))}
+  catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
+  renderAll();hydrateMediaImages();
+}
 function uid(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)}
 function fmt(ts){if(!ts)return'';return new Date(ts).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -754,7 +893,7 @@ function renderDecisions(){
         </div>
         <div class="row">${badgeP(f.priority)}<span class="badge">${esc(decisionLabel(f.decisionStatus||'pending'))}</span></div>
       </div>
-      ${photo?`<img src="${photo}" alt="Dokumentationsfoto" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin:8px 0">`:''}
+      ${photo?`${mediaImg(photo,'Dokumentationsfoto','', 'width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin:8px 0')}`:''}
       ${f.description?`<div><strong>Feststellung:</strong> ${esc(f.description)}</div>`:''}
       ${f.action?`<div style="margin-top:6px"><strong>Empfehlung:</strong> ${esc(f.action)}</div>`:''}
       <div class="row" style="margin-top:12px">
@@ -847,7 +986,7 @@ renderDecisions();
     ro.innerHTML='<option value="">Bitte wählen</option>'+db.objects.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
     ro.value=rv;
   }
-showRecoveryStatus();}
+showRecoveryStatus();setTimeout(()=>hydrateMediaImages(),0);}
 function renderDashboard(){
   document.getElementById('kpiObjects').textContent=db.objects.length;
   const open=db.findings.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt');
@@ -974,7 +1113,7 @@ function findingCard(f){
     <div class="row space"><div><span class="badge">${esc(type)}</span> ${type==='Feststellung'?badgeP(f.priority||'P3'):''} ${statusBadge(f.status)}</div><small class="muted">${fmt(f.createdAt)}</small></div>
     <h3 style="margin-bottom:5px">${esc(f.title)}</h3>
     <div class="muted">${esc(objectName(f.objectId))}${f.area?' · '+esc(f.area):''}</div>
-    ${(before||after)?`${f.type==='Feststellung'?`<div class="muted">Auftraggeber: ${esc(decisionLabel(f.decisionStatus||'pending'))}</div>`:''}<div class="row" style="margin-top:10px">${before?`<div><small class="muted">Vorher</small><br><img class="thumb" src="${before}" alt="Vorher"></div>`:''}${after?`<div><small class="muted">Nachher</small><br><img class="thumb" src="${after}" alt="Nachher"></div>`:''}</div>`:''}
+    ${(before||after)?`${f.type==='Feststellung'?`<div class="muted">Auftraggeber: ${esc(decisionLabel(f.decisionStatus||'pending'))}</div>`:''}<div class="row" style="margin-top:10px">${before?`<div><small class="muted">Vorher</small><br>${mediaImg(before,'Vorher','thumb')}</div>`:''}${after?`<div><small class="muted">Nachher</small><br>${mediaImg(after,'Nachher','thumb')}</div>`:''}</div>`:''}
     ${f.description?`<p>${esc(f.description)}</p>`:''}
     ${type==='Leistung'&&f.activity?`<p><b>Durchgeführt:</b> ${esc(f.activity)}</p>`:''}
     ${type==='Feststellung'&&f.action?`<p><b>Empfehlung:</b> ${esc(f.action)}</p>`:''}
@@ -1187,7 +1326,7 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
     <label>Aktuelles Foto</label>
     <div class="muted" style="margin-bottom:8px">Kamera oder Fotomediathek auswählen.</div>
     <input type="file" id="fBeforePhoto" accept="image/*" multiple onchange="handlePhotoSelection('before',this)"><div class="muted" id="beforePhotoCount">Max. 5 Bilder</div><div class="muted">Über „In Fotos sichern“ an die Fotomediathek übergeben.</div><div id="beforePhotoPreview" class="photo-grid"></div>
-    ${(f.beforePhoto||f.photo)?`<img class="thumb" src="${f.beforePhoto||f.photo}" alt="Aktuelles Foto" style="margin-top:8px">`:''}
+    ${(f.beforePhoto||f.photo)?`${mediaImg(f.beforePhoto||f.photo,'Aktuelles Foto','thumb','margin-top:8px')}`:''}
   </div>
 
   <div id="findingActionFields">
@@ -1246,7 +1385,7 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
     <label>Foto danach</label>
     <div class="muted" style="margin-bottom:8px">Kamera oder Fotomediathek auswählen.</div>
     <input type="file" id="fAfterPhoto" accept="image/*" multiple onchange="handlePhotoSelection('after',this)"><div class="muted" id="afterPhotoCount">Max. 5 Bilder</div><div class="muted">Über „In Fotos sichern“ an die Fotomediathek übergeben.</div><div id="afterPhotoPreview" class="photo-grid"></div>
-    ${f.afterPhoto?`<img class="thumb" src="${f.afterPhoto}" alt="Foto danach" style="margin-top:8px">`:''}
+    ${f.afterPhoto?`${mediaImg(f.afterPhoto,'Foto danach','thumb','margin-top:8px')}`:''}
   </div>
   <label>Status</label><select id="fStatus" onchange="toggleCompletion()">${['Offen','In Bearbeitung','Erledigt'].map(x=>`<option ${x===(forceClose?'Erledigt':f.status)?'selected':''}>${x}</option>`).join('')}</select>
   <div id="completionFields" class="card" style="margin-top:12px;background:#f7f9fa">
@@ -1321,16 +1460,21 @@ function initPhotoDraft(f){
 }
 function renderPhotoDraft(w){
  const b=document.getElementById(w+'PhotoPreview'),c=document.getElementById(w+'PhotoCount');if(!b)return;
- const a=photoDraft[w]||[];b.innerHTML=a.map((p,i)=>`<div><div class="photo-item"><img src="${p}"><button type="button" class="photo-remove" onclick="removeDraftPhoto('${w}',${i})">×</button></div><div class="photo-actions"><button type="button" class="photo-save" onclick="savePhotoToDevice('${w}',${i})">In Fotos sichern</button></div></div>`).join('');
+ const a=photoDraft[w]||[];b.innerHTML=a.map((p,i)=>`<div><div class="photo-item">${mediaImg(p,'Foto '+(i+1),'')}</div><button type="button" class="photo-remove" onclick="removeDraftPhoto('${w}',${i})">×</button><div class="photo-actions"><button type="button" class="photo-save" onclick="savePhotoToDevice('${w}',${i})">In Fotos sichern</button></div></div>`).join('');hydrateMediaImages(b);
  if(c)c.textContent=`${a.length} von 5 Bildern`;
 }
-function removeDraftPhoto(w,i){photoDraft[w].splice(i,1);renderPhotoDraft(w)}
+async function removeDraftPhoto(w,i){
+ const ref=photoDraft[w][i];
+ photoDraft[w].splice(i,1);
+ if(isMediaRef(ref)&&mediaId(ref).startsWith('draft_')){try{await mediaDelete(mediaId(ref))}catch(_){}}
+ renderPhotoDraft(w)
+}
 async function savePhotoToDevice(which,index){
   const data=(photoDraft[which]||[])[index];
   if(!data)return;
   try{
-    const res=await fetch(data);
-    const blob=await res.blob();
+    const blob=isMediaRef(data)?await mediaGet(mediaId(data)):await (await fetch(data)).blob();
+    if(!blob)throw new Error('Bild nicht gefunden');
     const file=new File([blob],`Duschl_Service_${Date.now()}.jpg`,{type:'image/jpeg'});
     if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
       await navigator.share({files:[file],title:'Duschl Service Foto'});
@@ -1349,8 +1493,15 @@ async function savePhotoToDevice(which,index){
 async function handlePhotoSelection(w,input){
  const files=[...(input?.files||[])],free=5-photoDraft[w].length;
  if(files.length>free){alert(`Es können noch maximal ${free} Bilder ergänzt werden.`);input.value='';return}
- for(const file of files){const p=await readPhoto(file);if(p)photoDraft[w].push(p)}
- input.value='';renderPhotoDraft(w);
+ for(const file of files){
+   const p=await readPhoto(file);
+   if(p){
+     const id=`draft_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+     await mediaPut(id,dataUrlToBlob(p));
+     photoDraft[w].push('media:'+id);
+   }
+ }
+ input.value='';renderPhotoDraft(w);hydrateMediaImages();
 }
 async function saveFinding(id){
   const decisionRequiredValue=document.getElementById('fDecisionRequired')?.value||'';
@@ -1388,8 +1539,8 @@ async function saveFinding(id){
     beforePhoto:before,afterPhoto:after,beforePhotos,afterPhotos
   };
   if(id)Object.assign(old,data,{updatedAt:Date.now()});else db.findings.push({id:uid('find'),createdAt:Date.now(),...data});
-  try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){alert('Speicher des Browsers ist voll. Bitte Sicherung exportieren und ältere Fotos/Dokumentationen reduzieren.');return}
-  closeModal();renderAll();showSection('findings')
+  try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){alert('Metadatenspeicher ist voll. Bitte Backup erstellen.');return}
+  closeModal();renderAll();hydrateMediaImages();showSection('findings')
 }
 function markDone(id){openFindingModal(db.findings.find(x=>x.id===id)?.objectId||'','',id,true)}
 function deleteFinding(id){
@@ -1407,7 +1558,7 @@ function importData(){
   const fr=new FileReader();fr.onload=()=>{try{const x=JSON.parse(fr.result);if(!x.objects||!x.inspections||!x.findings)throw 0;if(confirm('Vorhandene Daten durch Sicherung ersetzen?')){db=x;save();alert('Sicherung importiert.')}}catch(e){alert('Ungültige Sicherungsdatei.')}};fr.readAsText(file)
 }
 function resetData(){if(confirm('Wirklich alle lokalen Daten löschen?')){db=seed();save()}}
-renderAll();
+bootStorage();
 </script>
 </body>
 </html>
