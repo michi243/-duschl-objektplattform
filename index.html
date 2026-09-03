@@ -907,6 +907,125 @@ async function cloudSetInspectionClosed(id,closed){
 async function cloudDeleteInspection(id){
   await cloudRequest(`inspections?id=eq.${encodeURIComponent(id)}`,{method:'DELETE'});
 }
+
+function cloudFindingTypeToDb(v){return v==='Leistung'?'service':'finding'}
+function cloudFindingTypeToLocal(v){return v==='service'?'Leistung':'Feststellung'}
+function cloudFindingStatusToDb(v){
+  return ({'Offen':'open','In Bearbeitung':'in_progress','Erledigt':'completed','Geschlossen':'closed'})[v]||'open';
+}
+function cloudFindingStatusToLocal(v){
+  return ({open:'Offen',in_progress:'In Bearbeitung',completed:'Erledigt',closed:'Erledigt'})[v]||'Offen';
+}
+function cloudFindingToLocal(f,decision){
+  const d=decision||{};
+  return {
+    id:f.id,
+    objectId:f.object_id,
+    inspectionId:f.inspection_id||'',
+    type:cloudFindingTypeToLocal(f.type),
+    area:f.area||'',
+    title:f.title||'',
+    category:f.category||'',
+    priority:f.priority||'P4',
+    description:f.description||'',
+    action:f.recommended_action||'',
+    activity:f.activity||'',
+    status:cloudFindingStatusToLocal(f.status),
+    completionType:f.completion_type||'',
+    completionNote:f.completion_note||'',
+    decisionRequired:d.required!==undefined?!!d.required:(f.type==='finding'),
+    decisionStatus:d.status||(f.type==='finding'?'pending':'not_required'),
+    decisionBy:d.decided_by_name||'',
+    decisionDate:d.decision_date||'',
+    decisionComment:d.comment||'',
+    decisionAmount:d.amount??'',
+    beforePhoto:'',
+    afterPhoto:'',
+    beforePhotos:[],
+    afterPhotos:[],
+    createdAt:f.created_at?new Date(f.created_at).getTime():Date.now(),
+    updatedAt:f.updated_at?new Date(f.updated_at).getTime():Date.now(),
+    cloud:true
+  };
+}
+async function cloudReloadFindings(){
+  if(!cloudSession?.access_token)return;
+  const rows=await cloudRequest('findings?select=id,object_id,inspection_id,type,area,title,category,priority,description,recommended_action,activity,status,completion_type,completion_note,created_at,updated_at&order=created_at.desc');
+  const decisions=await cloudRequest('decisions?select=id,finding_id,required,status,decided_by_name,decision_date,comment,amount,created_at,updated_at');
+  const dm=new Map((decisions||[]).map(d=>[d.finding_id,d]));
+  const cloudRows=(rows||[]).map(f=>cloudFindingToLocal(f,dm.get(f.id)));
+
+  // Cloud is authoritative for cloud findings; keep only purely local legacy/test rows
+  // that have no cloud UUID counterpart. New saves are replaced with the returned cloud UUID.
+  const cloudIds=new Set(cloudRows.map(f=>f.id));
+  const localOnly=(db.findings||[]).filter(f=>!f.cloud && !cloudIds.has(f.id));
+  db.findings=[...cloudRows,...localOnly];
+  renderAll();
+  hydrateMediaImages();
+}
+async function cloudSaveFinding(id,data){
+  const payload={
+    object_id:data.objectId,
+    inspection_id:data.inspectionId||null,
+    type:cloudFindingTypeToDb(data.type),
+    area:data.area||null,
+    title:data.title,
+    category:data.category||null,
+    priority:data.priority||'P4',
+    description:data.description||null,
+    recommended_action:data.action||null,
+    activity:data.activity||null,
+    status:cloudFindingStatusToDb(data.status),
+    completion_type:data.completionType||null,
+    completion_note:data.completionNote||null,
+    completed_at:data.status==='Erledigt'?new Date().toISOString():null,
+    updated_at:new Date().toISOString()
+  };
+  let row;
+  const isCloudId=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||'');
+  if(isCloudId){
+    const rows=await cloudRequest(`findings?id=eq.${encodeURIComponent(id)}`,{
+      method:'PATCH',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)
+    });
+    row=rows?.[0];
+  }else{
+    const rows=await cloudRequest('findings',{
+      method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)
+    });
+    row=rows?.[0];
+  }
+  if(!row)throw new Error('Feststellung wurde von Supabase nicht zurückgegeben.');
+
+  // Decision is a separate normalized table in the Supabase schema.
+  if(data.type==='Feststellung'){
+    const decisionPayload={
+      finding_id:row.id,
+      required:!!data.decisionRequired,
+      status:data.decisionRequired?(data.decisionStatus||'pending'):'not_required',
+      decided_by_name:data.decisionBy||null,
+      decision_date:data.decisionDate||null,
+      comment:data.decisionComment||null,
+      amount:data.decisionAmount===''||data.decisionAmount==null?null:Number(data.decisionAmount),
+      updated_at:new Date().toISOString()
+    };
+    const existing=await cloudRequest(`decisions?select=id&finding_id=eq.${encodeURIComponent(row.id)}&limit=1`);
+    if(existing?.[0]?.id){
+      await cloudRequest(`decisions?id=eq.${encodeURIComponent(existing[0].id)}`,{
+        method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify(decisionPayload)
+      });
+    }else{
+      await cloudRequest('decisions',{
+        method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify(decisionPayload)
+      });
+    }
+  }
+  return row;
+}
+async function cloudDeleteFinding(id){
+  if(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||'')){
+    await cloudRequest(`findings?id=eq.${encodeURIComponent(id)}`,{method:'DELETE'});
+  }
+}
 async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
   cloudSetStatus('Supabase wird geladen …','wait');
@@ -915,8 +1034,9 @@ async function cloudReloadObjects(){
     db.objects=(rows||[]).map(cloudObjectToLocal);
     const inspectionRows=await cloudRequest('inspections?select=id,object_id,started_at,ended_at,notes,created_at,updated_at&order=started_at.desc');
     db.inspections=(inspectionRows||[]).map(cloudInspectionToLocal);
+    await cloudReloadFindings();
     renderAll();
-    cloudSetStatus(`Verbunden · ${db.objects.length} Objekt(e) · ${db.inspections.length} Begehung(en) zentral`,'ok');
+    cloudSetStatus(`Verbunden · ${db.objects.length} Objekt(e) · ${db.inspections.length} Begehung(en) · ${db.findings.filter(f=>f.cloud).length} Dokumentation(en) zentral`,'ok');
   }catch(e){
     console.error('Objekte laden fehlgeschlagen',e);
     cloudSetStatus('Verbindungsfehler: '+(e.message||e),'bad');
@@ -1102,7 +1222,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'2.2.0-supabase-inspections'};
+  return {objects:[],inspections:[],findings:[],version:'2.3.0-supabase-findings'};
 }
 function load(){
   try{
@@ -1164,7 +1284,7 @@ function load(){
       objects:mergeById('objects'),
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
-      version:'2.2.0-supabase-inspections'
+      version:'2.3.0-supabase-findings'
     };
 
     merged.findings.forEach(f=>{
@@ -1201,7 +1321,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.2.0-supabase-inspections';
+  db.version='2.3.0-supabase-findings';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -2180,15 +2300,45 @@ async function saveFinding(id){
     decisionRequired,decisionStatus,decisionBy,decisionDate,decisionComment,decisionAmount,
     beforePhoto:before,afterPhoto:after,beforePhotos,afterPhotos
   };
-  if(id)Object.assign(old,data,{updatedAt:Date.now()});else db.findings.push({id:uid('find'),createdAt:Date.now(),...data});
-  try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){alert('Metadatenspeicher ist voll. Bitte Backup erstellen.');return}
-  closeModal();renderAll();hydrateMediaImages();showSection('findings')
+  try{
+    if(!cloudSession?.access_token)throw new Error('Nicht angemeldet.');
+    const row=await cloudSaveFinding(id,data);
+    const cloudLocal=cloudFindingToLocal(row,{
+      required:decisionRequired,
+      status:decisionRequired?decisionStatus:'not_required',
+      decided_by_name:decisionBy,
+      decision_date:decisionDate,
+      comment:decisionComment,
+      amount:decisionAmount
+    });
+    // Existing local draft/test record is replaced by the authoritative cloud record.
+    if(id){
+      const idx=db.findings.findIndex(x=>x.id===id);
+      if(idx>=0)db.findings[idx]={...cloudLocal,beforePhoto:before,afterPhoto:after,beforePhotos,afterPhotos};
+      else db.findings.push({...cloudLocal,beforePhoto:before,afterPhoto:after,beforePhotos,afterPhotos});
+    }else{
+      db.findings.push({...cloudLocal,beforePhoto:before,afterPhoto:after,beforePhotos,afterPhotos});
+    }
+    try{localStorage.setItem(KEY,JSON.stringify(db))}catch(_e){}
+    closeModal();renderAll();hydrateMediaImages();showSection('findings');
+  }catch(e){
+    console.error('Dokumentation in Supabase speichern fehlgeschlagen',e);
+    alert('Speichern in Supabase fehlgeschlagen: '+(e.message||e));
+  }
 }
 function markDone(id){openFindingModal(db.findings.find(x=>x.id===id)?.objectId||'','',id,true)}
-function deleteFinding(id){
+async function deleteFinding(id){
   const f=db.findings.find(x=>x.id===id);
   const label=(f?.type||'Feststellung')==='Leistung'?'Leistungsdokumentation':'Feststellung';
-  if(confirm(`${label} endgültig löschen?`)){db.findings=db.findings.filter(x=>x.id!==id);closeModal();save()}
+  if(!confirm(`${label} endgültig löschen?`))return;
+  try{
+    await cloudDeleteFinding(id);
+    db.findings=db.findings.filter(x=>x.id!==id);
+    closeModal();save();
+  }catch(e){
+    console.error('Dokumentation löschen fehlgeschlagen',e);
+    alert('Löschen in Supabase fehlgeschlagen: '+(e.message||e));
+  }
 }
 
 function exportData(){
