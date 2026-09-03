@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.6.0 GF-Arbeitsvorrat</title>
+<title>Duschl Service – Objekt-Dokumentation 2.6.1 GF-Arbeitsvorrat Filterfix</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -386,7 +386,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.6.0 GF-Arbeitsvorrat ===== */
+/* ===== v2.6.1 GF-Arbeitsvorrat Filterfix ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -651,7 +651,7 @@ body.photo-viewer-open{overflow:hidden}
 <header>
   <div><h1>Duschl Service</h1><small>Interne Objekt-Dokumentation</small></div>
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
-<span class="badge" style="margin-left:auto">v2.6.0 GF-Arbeitsvorrat</span></header>
+<span class="badge" style="margin-left:auto">v2.6.1 GF-Arbeitsvorrat Filterfix</span></header>
 <nav>
   <button onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button onclick="showSection('objects')">Objekte</button>
@@ -926,7 +926,7 @@ body.photo-viewer-open{overflow:hidden}
       <button type="button" onclick="cloudReloadObjects()">Objekte neu laden</button>
       <button type="button" onclick="cloudLogout()">Abmelden</button>
     </div>
-    <div class="muted" style="margin-top:8px">Teststufe 2.6.0: Objekte, Begehungen, Dokumentationen, Fotos und der Arbeitsvorrat werden zentral in Supabase gespeichert. Lokale IndexedDB-Fotos bleiben als Rückfall- und Migrationsquelle erhalten.</div>
+    <div class="muted" style="margin-top:8px">Teststufe 2.6.1: Objekte, Begehungen, Dokumentationen, Fotos und der Arbeitsvorrat werden zentral in Supabase gespeichert. Lokale IndexedDB-Fotos bleiben als Rückfall- und Migrationsquelle erhalten.</div>
   </div>
 
   <div class="card" style="margin-bottom:14px">
@@ -966,7 +966,7 @@ body.photo-viewer-open{overflow:hidden}
   </div>
   <div class="card" style="margin-top:14px">
     <h3>Lokale Daten</h3>
-    <p class="muted">Teststufe 2.6.0: Objekte, Begehungen, Dokumentationen und der Arbeitsvorrat werden zentral über Supabase gespeichert. Neue Fotos werden in Supabase Storage gespeichert; vorhandene lokale Fotos bleiben erhalten und werden beim nächsten Speichern einer Dokumentation hochgeladen.</p>
+    <p class="muted">Teststufe 2.6.1: Objekte, Begehungen, Dokumentationen und der Arbeitsvorrat werden zentral über Supabase gespeichert. Neue Fotos werden in Supabase Storage gespeichert; vorhandene lokale Fotos bleiben erhalten und werden beim nächsten Speichern einer Dokumentation hochgeladen.</p>
     <button class="danger" onclick="resetData()">Alle lokalen Daten löschen</button>
   </div>
 </section>
@@ -1773,7 +1773,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.6.0-gf-workqueue'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.6.1-gf-workqueue-filterfix'};
 }
 function load(){
   try{
@@ -1836,7 +1836,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.6.0-gf-workqueue'
+      version:'2.6.1-gf-workqueue-filterfix'
     };
 
     merged.findings.forEach(f=>{
@@ -1873,7 +1873,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.6.0-gf-workqueue';
+  db.version='2.6.1-gf-workqueue-filterfix';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -2107,35 +2107,35 @@ function taskKpis(tasks){
   };
 }
 
-function workQueueFiltersHtml(tasks){
+function workQueueFiltersHtml(tasks,selected={}){
   const owners=[...new Set(tasks.map(t=>(t.ownerName||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'de'));
-  const objects=[...new Map(tasks.map(t=>[t.objectId,db.objects.find(o=>o.id===t.objectId)?.name||'Unbekanntes Objekt'])).entries()]
+  const objects=(db.objects||[]).map(o=>[o.id,o.name||o.address||'Unbenanntes Objekt'])
     .sort((a,b)=>a[1].localeCompare(b[1],'de'));
   return `
     <div class="gf-filterbar">
       <select id="workFilterOwner" onchange="renderWorkQueue()">
         <option value="">Alle Verantwortlichen</option>
-        ${owners.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('')}
+        ${owners.map(x=>`<option value="${esc(x)}" ${selected.owner===x?'selected':''}>${esc(x)}</option>`).join('')}
       </select>
       <select id="workFilterObject" onchange="renderWorkQueue()">
         <option value="">Alle Objekte</option>
-        ${objects.map(([id,name])=>`<option value="${esc(id)}">${esc(name)}</option>`).join('')}
+        ${objects.map(([id,name])=>`<option value="${esc(id)}" ${selected.object===id?'selected':''}>${esc(name)}</option>`).join('')}
       </select>
       <select id="workFilterStatus" onchange="renderWorkQueue()">
-        <option value="">Alle offenen Status</option>
-        <option value="planned">Geplant</option>
-        <option value="due">Fällig</option>
-        <option value="in_progress">In Bearbeitung</option>
-        <option value="waiting">Wartet auf Material / Dritten</option>
-        <option value="completed">Erledigt</option>
-        <option value="cancelled">Abgebrochen</option>
+        <option value="" ${!selected.status?'selected':''}>Alle offenen Status</option>
+        <option value="planned" ${selected.status==='planned'?'selected':''}>Geplant</option>
+        <option value="due" ${selected.status==='due'?'selected':''}>Fällig</option>
+        <option value="in_progress" ${selected.status==='in_progress'?'selected':''}>In Bearbeitung</option>
+        <option value="waiting" ${selected.status==='waiting'?'selected':''}>Wartet auf Material / Dritten</option>
+        <option value="completed" ${selected.status==='completed'?'selected':''}>Erledigt</option>
+        <option value="cancelled" ${selected.status==='cancelled'?'selected':''}>Abgebrochen</option>
       </select>
       <select id="workFilterDue" onchange="renderWorkQueue()">
-        <option value="">Alle Fälligkeiten</option>
-        <option value="overdue">Überfällig</option>
-        <option value="today">Heute</option>
-        <option value="week">Diese Woche</option>
-        <option value="no_due">Ohne Termin</option>
+        <option value="" ${!selected.due?'selected':''}>Alle Fälligkeiten</option>
+        <option value="overdue" ${selected.due==='overdue'?'selected':''}>Überfällig</option>
+        <option value="today" ${selected.due==='today'?'selected':''}>Heute</option>
+        <option value="week" ${selected.due==='week'?'selected':''}>Diese Woche</option>
+        <option value="no_due" ${selected.due==='no_due'?'selected':''}>Ohne Termin</option>
       </select>
       <button type="button" class="secondary" onclick="resetWorkFilters()">Filter zurücksetzen</button>
     </div>`;
@@ -2181,7 +2181,7 @@ function renderWorkQueue(){
       <div class="gf-kpi"><strong>${k.week}</strong><span>Diese Woche</span></div>
       <div class="gf-kpi"><strong>${k.noOwner}</strong><span>Ohne Verantwortlichen</span></div>
     </div>
-    ${workQueueFiltersHtml(tasks)}
+    ${workQueueFiltersHtml(tasks,keep)}
     <div class="gf-worklist">
       ${filtered.length?filtered.map(t=>{
         const f=(db.findings||[]).find(x=>x.id===t.findingId)||{};
@@ -2212,9 +2212,6 @@ function renderWorkQueue(){
       }).join(''):`<div class="empty-state">Keine Aufgaben für die gewählten Filter.</div>`}
     </div>`;
 
-  // Restore selected filters after rerender
-  const map=[['workFilterOwner',keep.owner],['workFilterObject',keep.object],['workFilterStatus',keep.status],['workFilterDue',keep.due]];
-  map.forEach(([id,val])=>{const el=document.getElementById(id); if(el)el.value=val;});
 }
 function openWorkItem(id){
   const f=db.findings.find(x=>x.id===id);if(!f)return;
