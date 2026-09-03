@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 1.9.1 Arbeitsvorrat</title>
+<title>Duschl Service – Objekt-Dokumentation 2.0.0 Kundenbericht</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -38,7 +38,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 
 .photo-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.photo-item{position:relative;width:86px;height:86px}.photo-item img{width:86px;height:86px;object-fit:cover;border-radius:8px}.photo-remove{position:absolute;right:3px;top:3px;width:26px;height:26px;border-radius:50%;padding:0;line-height:22px;font-size:18px;background:#fff;border:1px solid #999}
 
-/* ===== Duschl Service Dark UI – v1.9.1 Arbeitsvorrat ===== */
+/* ===== Duschl Service Dark UI – v2.0.0 Kundenbericht ===== */
 :root{
   --bg:#07131d;
   --bg-soft:#0b1824;
@@ -245,7 +245,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* ===== Dark UI completion – v1.9.1 Arbeitsvorrat ===== */
+/* ===== Dark UI completion – v2.0.0 Kundenbericht ===== */
 body,main,.section,.content,.container,.wrap,.page{background:transparent!important;color:var(--text)!important}
 div[style*="background:#fff"],div[style*="background: #fff"],div[style*="background:white"],div[style*="background: white"],
 section[style*="background:#fff"],section[style*="background: #fff"],.card[style*="background:#fff"],.card[style*="background: #fff"]{
@@ -275,6 +275,64 @@ a{color:var(--accent-2)!important}
 .compact-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .filterbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:12px 0}
 .hidden-history{display:none}
+
+/* ===== Kundenbericht v2.0 ===== */
+.customer-report-header{
+  padding:22px 0 14px;
+  border-bottom:2px solid var(--accent);
+  margin-bottom:18px;
+}
+.customer-report-brand{
+  font-size:22px;
+  font-weight:800;
+  letter-spacing:.2px;
+}
+.customer-report-meta{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:12px;
+  margin:14px 0 20px;
+}
+.customer-doc{
+  break-inside:avoid;
+  page-break-inside:avoid;
+}
+.customer-photo-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+  margin-top:12px;
+}
+.customer-photo-block img{
+  width:100%;
+  max-height:280px;
+  object-fit:cover;
+  border-radius:10px;
+  border:1px solid var(--line);
+}
+.customer-photo-label{font-size:12px;font-weight:700;margin:0 0 5px}
+.customer-report-footer{margin-top:26px;padding-top:12px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+@media(max-width:640px){.customer-photo-grid{grid-template-columns:1fr}}
+
+@media print{
+  html,body{background:#fff!important;color:#111!important}
+  #reports.active{display:block!important}
+  #reports .card,
+  #reportContent .card,
+  .customer-doc{
+    background:#fff!important;
+    color:#111!important;
+    border:1px solid #d7d7d7!important;
+    box-shadow:none!important;
+  }
+  #reportContent h1,#reportContent h2,#reportContent h3,#reportContent h4,
+  #reportContent strong,#reportContent b,#reportContent label{color:#111!important}
+  #reportContent .muted,#reportContent small{color:#555!important}
+  #reportContent .badge{color:#111!important;background:#f2f2f2!important;border-color:#ccc!important}
+  .customer-report-header{border-bottom-color:#222!important}
+  .customer-photo-block img{border-color:#ccc!important}
+  .customer-report-footer{color:#555!important;border-top-color:#ccc!important}
+}
 </style>
 
 </head>
@@ -282,7 +340,7 @@ a{color:var(--accent-2)!important}
 <header>
   <div><h1>Duschl Service</h1><small>Interne Objekt-Dokumentation</small></div>
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
-<span class="badge" style="margin-left:auto">v1.9.1 Arbeitsvorrat</span></header>
+<span class="badge" style="margin-left:auto">v2.0.0 Kundenbericht</span></header>
 <nav>
   <button onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button onclick="showSection('objects')">Objekte</button>
@@ -470,7 +528,11 @@ a{color:var(--accent-2)!important}
 <section id="reports" class="section">
   <div class="row space no-print">
     <div><h2>Berichte</h2><div class="muted">Objektbezogene Dokumentation und Historie</div></div>
-    <button onclick="window.print()">Drucken / PDF</button>
+    <div class="row">
+      <button id="reportCustomerBtn" class="primary" onclick="showCustomerReport()">Kundenbericht erstellen</button>
+      <button id="reportInternalBtn" onclick="showInternalReport()" style="display:none">Interne Auswertung</button>
+      <button onclick="printCurrentReport()">Drucken / PDF</button>
+    </div>
   </div>
 
   <div class="card no-print" style="margin:14px 0">
@@ -723,7 +785,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'1.9.1-workqueue-fix'};
+  return {objects:[],inspections:[],findings:[],version:'2.0.0-customer-report'};
 }
 function load(){
   try{
@@ -785,7 +847,7 @@ function load(){
       objects:mergeById('objects'),
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
-      version:'1.9.1-workqueue-fix'
+      version:'2.0.0-customer-report'
     };
 
     merged.findings.forEach(f=>{
@@ -822,7 +884,7 @@ function load(){
 }
 
 function save(){
-  db.version='1.9.1-workqueue-fix';
+  db.version='2.0.0-customer-report';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -867,7 +929,7 @@ function renderDecisions(){
   if(!obj||!st||!pr||!list)return;
 
   const selectedObject=obj.value||'';
-  const selectedStatus=st.value||'pending';
+  const selectedStatus=st.value;
   const selectedPriority=pr.value||'';
 
   // Objektfilter aus Objektstamm + tatsächlich referenzierten Objekt-IDs aufbauen.
@@ -1253,6 +1315,64 @@ function renderFindings(){
   if(of)arr=arr.filter(x=>x.objectId===of);if(sf==='active')arr=arr.filter(x=>x.status!=='Erledigt');else if(sf)arr=arr.filter(x=>x.status===sf);if(df)arr=arr.filter(x=>(x.decisionStatus||'pending')===df);if(pf)arr=arr.filter(x=>x.priority===pf);if(tf)arr=arr.filter(x=>(x.type||'Feststellung')===tf);
   const el=document.getElementById('findingList'); if(el)el.innerHTML=arr.length?arr.map(f=>findingCard(f)).join(''):`<div class="empty">Keine Dokumentationen im gewählten Filter.</div>`;
 }
+
+let reportCustomerMode=false;
+
+function inspectionDateForFinding(f){
+  const i=(db.inspections||[]).find(x=>x.id===f.inspectionId);
+  return i?.startedAt||f.createdAt||f.updatedAt||0;
+}
+function reportDateText(ts){
+  if(!ts)return '—';
+  return new Date(ts).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+function customerPhotoHtml(f){
+  const before=(Array.isArray(f.beforePhotos)&&f.beforePhotos.length?f.beforePhotos:(f.beforePhoto?[f.beforePhoto]:[]));
+  const after=(Array.isArray(f.afterPhotos)&&f.afterPhotos.length?f.afterPhotos:(f.afterPhoto?[f.afterPhoto]:[]));
+  if(!before.length&&!after.length)return '';
+  const one=(arr,label)=>arr.length?`<div class="customer-photo-block"><div class="customer-photo-label">${label}</div>${arr.map((p,i)=>mediaImg(p,`${label} ${i+1}`,'', 'margin-bottom:8px')).join('')}</div>`:'';
+  return `<div class="customer-photo-grid">${one(before,'Vorher / Zustand')}${one(after,'Nachher / Abschluss')}</div>`;
+}
+function customerDocCard(f){
+  const type=f.type||'Feststellung';
+  const decision=f.decisionRequired===false?'not_required':(f.decisionStatus||'pending');
+  const completed=f.status==='Erledigt'&&f.completionType
+    ? `<p><b>Abschluss / Maßnahme:</b> ${esc(f.completionType)}${f.completionNote?' – '+esc(f.completionNote):''}</p>`:'';
+  return `<div class="card customer-doc">
+    <div class="row space">
+      <div><span class="badge">${esc(type)}</span> ${type==='Feststellung'?badgeP(f.priority||'P3'):''}</div>
+      <small class="muted">${reportDateText(inspectionDateForFinding(f))}</small>
+    </div>
+    <h3>${esc(f.title||type)}</h3>
+    ${f.area?`<div class="muted">${esc(f.area)}</div>`:''}
+    ${f.description?`<p>${esc(f.description)}</p>`:''}
+    ${type==='Leistung'&&f.activity?`<p><b>Durchgeführte Leistung:</b> ${esc(f.activity)}</p>`:''}
+    ${type==='Feststellung'&&f.action?`<p><b>Empfohlene Maßnahme:</b> ${esc(f.action)}</p>`:''}
+    ${type==='Feststellung'?`<p><b>Entscheidung Auftraggeber:</b> ${esc(decisionLabel(decision))}</p>`:''}
+    ${completed}
+    ${customerPhotoHtml(f)}
+  </div>`;
+}
+function showCustomerReport(){
+  const objectId=document.getElementById('reportObject')?.value||'';
+  if(!objectId){alert('Bitte zuerst ein Objekt auswählen.');return}
+  reportCustomerMode=true;
+  const a=document.getElementById('reportCustomerBtn'),b=document.getElementById('reportInternalBtn');
+  if(a)a.style.display='none';if(b)b.style.display='';
+  renderReport();
+}
+function showInternalReport(){
+  reportCustomerMode=false;
+  const a=document.getElementById('reportCustomerBtn'),b=document.getElementById('reportInternalBtn');
+  if(a)a.style.display='';if(b)b.style.display='none';
+  renderReport();
+}
+async function printCurrentReport(){
+  if(!document.getElementById('reportObject')?.value){alert('Bitte zuerst ein Objekt auswählen.');return}
+  await hydrateMediaImages(document.getElementById('reportContent'));
+  setTimeout(()=>window.print(),250);
+}
+
 function renderReport(){
   const objectId=document.getElementById('reportObject')?.value||'';
   const el=document.getElementById('reportContent'); if(!el)return;
@@ -1306,22 +1426,42 @@ function renderReport(){
   const urgentOpen=docs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&['P1','P2'].includes(f.priority)&&f.status!=='Erledigt').length;
   const pendingDecision=docs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.decisionRequired!==false&&(f.decisionStatus||'pending')==='pending').length;
 
-  el.innerHTML=`<div class="card">
-    <h2>${esc(o.name)}</h2>
-    <div>${esc(o.address||'')}</div>
-    <p>${esc(o.notes||'')}</p>
-    <hr>
-    <div class="grid g3">
-      <div><b>${inspections.length}</b><div class="muted">Begehungen im Zeitraum</div></div>
-      <div><b>${openFindings}</b><div class="muted">Feststellungen offen</div></div>
-      <div><b>${urgentOpen}</b><div class="muted">Sofort/Dringend offen</div></div>
+  if(reportCustomerMode){
+    const periodLabel=period?({30:'Letzte 30 Tage',90:'Letzte 90 Tage',365:'Letzte 12 Monate'}[period]||`${period} Tage`):'Gesamter dokumentierter Zeitraum';
+    const generated=new Date().toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+    el.innerHTML=`<div class="customer-report-header">
+      <div class="customer-report-brand">Duschl Service</div>
+      <h1 style="margin:8px 0 2px">Objekt- und Leistungsbericht</h1>
+      <div class="muted">Dokumentation für Auftraggeber</div>
     </div>
-    <div style="margin-top:10px"><b>${pendingDecision}</b> <span class="muted">Entscheidungen ausstehend</span></div>
-  </div>
-  <h3>Dokumentation</h3>
-  ${docs.length
-    ? docs.map(f=>findingCard(f).replace(/<div class="row"><button[\s\S]*?<\/div>\s*<\/div>$/,'</div>')).join('')
-    : '<div class="empty">Keine Dokumentationen für diese Filterkombination.</div>'}`;
+    <div class="customer-report-meta">
+      <div class="card"><b>Objekt</b><div>${esc(o.name)}</div>${o.address?`<div class="muted">${esc(o.address)}</div>`:''}</div>
+      <div class="card"><b>Berichtszeitraum</b><div>${esc(periodLabel)}</div></div>
+      <div class="card"><b>Erstellt am</b><div>${generated}</div></div>
+      <div class="card"><b>Dokumentationen</b><div>${docs.length}</div></div>
+    </div>
+    <h2>Dokumentation</h2>
+    ${docs.length?docs.map(customerDocCard).join(''):'<div class="empty">Keine kundenrelevanten Dokumentationen für diese Filterkombination.</div>'}
+    <div class="customer-report-footer">Duschl Service · Objekt- und Leistungsdokumentation · Dieser Bericht enthält ausschließlich kundenrelevante Informationen.</div>`;
+  }else{
+    el.innerHTML=`<div class="card">
+      <h2>${esc(o.name)}</h2>
+      <div>${esc(o.address||'')}</div>
+      <p>${esc(o.notes||'')}</p>
+      <hr>
+      <div class="grid g3">
+        <div><b>${inspections.length}</b><div class="muted">Begehungen im Zeitraum</div></div>
+        <div><b>${openFindings}</b><div class="muted">Feststellungen offen</div></div>
+        <div><b>${urgentOpen}</b><div class="muted">Sofort/Dringend offen</div></div>
+      </div>
+      <div style="margin-top:10px"><b>${pendingDecision}</b> <span class="muted">Entscheidungen ausstehend</span></div>
+    </div>
+    <h3>Dokumentation</h3>
+    ${docs.length
+      ? docs.map(f=>findingCard(f).replace(/<div class="row"><button[\s\S]*?<\/div>\s*<\/div>$/,'</div>')).join('')
+      : '<div class="empty">Keine Dokumentationen für diese Filterkombination.</div>'}`;
+  }
+  setTimeout(()=>hydrateMediaImages(el),0);
 }
 
 function resetReportFilters(){
