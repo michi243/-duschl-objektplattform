@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.4.1 Supabase Fotos</title>
+<title>Duschl Service – Objekt-Dokumentation 2.4.2 Supabase Fotos</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -386,7 +386,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.4.1 Supabase Fotos ===== */
+/* ===== v2.4.2 Supabase Fotos ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -422,7 +422,7 @@ a{color:var(--accent-2)!important}
 <header>
   <div><h1>Duschl Service</h1><small>Interne Objekt-Dokumentation</small></div>
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
-<span class="badge" style="margin-left:auto">v2.4.1 Supabase Fotos</span></header>
+<span class="badge" style="margin-left:auto">v2.4.2 Supabase Fotos</span></header>
 <nav>
   <button onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button onclick="showSection('objects')">Objekte</button>
@@ -697,12 +697,12 @@ a{color:var(--accent-2)!important}
       <button type="button" onclick="cloudReloadObjects()">Objekte neu laden</button>
       <button type="button" onclick="cloudLogout()">Abmelden</button>
     </div>
-    <div class="muted" style="margin-top:8px">Teststufe 2.4.0: Objekte, Begehungen, Dokumentationen und neue Fotos werden zentral in Supabase gespeichert. Lokale IndexedDB-Fotos bleiben als Rückfall- und Migrationsquelle erhalten.</div>
+    <div class="muted" style="margin-top:8px">Teststufe 2.4.2: Objekte, Begehungen, Dokumentationen und neue Fotos werden zentral in Supabase gespeichert. Lokale IndexedDB-Fotos bleiben als Rückfall- und Migrationsquelle erhalten.</div>
   </div>
 
   <div class="card" style="margin-bottom:14px">
     <h3>Supabase Foto-Voraussetzung</h3>
-    <div class="muted">Für v2.4.0 werden der private Storage-Bucket <b>objektplattform-media</b> und die Tabelle <b>finding_photos</b> benötigt. Ohne diese beiden Supabase-Bausteine bleibt die bisherige lokale Fotoquelle erhalten, neue Fotos können aber nicht zentral gespeichert werden.</div>
+    <div class="muted">v2.4.2 nutzt den bereits vorhandenen privaten Storage-Bucket <b>objektplattform-media</b> und die bereits vorhandene zentrale Tabelle <b>media</b>. Eine zusätzliche Foto-Tabelle ist nicht erforderlich.</div>
   </div>
   <div class="card" style="margin-bottom:14px">
     <h3>Speicherstatus</h3>
@@ -737,7 +737,7 @@ a{color:var(--accent-2)!important}
   </div>
   <div class="card" style="margin-top:14px">
     <h3>Lokale Daten</h3>
-    <p class="muted">Teststufe 2.4.0: Objekte, Begehungen und Dokumentationen werden zentral über Supabase gespeichert. Neue Fotos werden in Supabase Storage gespeichert; vorhandene lokale Fotos bleiben erhalten und werden beim nächsten Speichern einer Dokumentation hochgeladen.</p>
+    <p class="muted">Teststufe 2.4.2: Objekte, Begehungen und Dokumentationen werden zentral über Supabase gespeichert. Neue Fotos werden in Supabase Storage gespeichert; vorhandene lokale Fotos bleiben erhalten und werden beim nächsten Speichern einer Dokumentation hochgeladen.</p>
     <button class="danger" onclick="resetData()">Alle lokalen Daten löschen</button>
   </div>
 </section>
@@ -956,25 +956,45 @@ function cloudFindingToLocal(f,decision){
 
 async function cloudLoadPhotoRefs(){
   try{
-    const rows=await cloudRequest('finding_photos?select=id,finding_id,kind,storage_path,sort_order,created_at&order=sort_order.asc');
+    const rows=await cloudRequest('media?select=id,object_id,inspection_id,finding_id,phase,storage_path,original_filename,mime_type,file_size,created_at&finding_id=not.is.null&order=created_at.asc');
     const m=new Map();
     for(const p of (rows||[])){
+      if(!p.finding_id || !p.storage_path)continue;
       if(!m.has(p.finding_id))m.set(p.finding_id,{before:[],after:[]});
-      const g=p.kind==='after'?'after':'before';
+      const g=p.phase==='after'?'after':'before';
       m.get(p.finding_id)[g].push('cloudmedia:'+p.storage_path);
     }
     return m;
   }catch(e){
-    console.warn('Foto-Metadaten konnten nicht geladen werden. Tabelle finding_photos vorhanden?',e);
+    console.warn('Foto-Metadaten konnten nicht aus public.media geladen werden.',e);
     return new Map();
   }
 }
-async function cloudReplacePhotoRefs(findingId,beforeRefs,afterRefs){
-  await cloudRequest(`finding_photos?finding_id=eq.${encodeURIComponent(findingId)}`,{method:'DELETE'});
+async function cloudReplacePhotoRefs(findingId,data,beforeRefs,afterRefs){
+  const existing=await cloudRequest(`media?select=id,storage_path&finding_id=eq.${encodeURIComponent(findingId)}&media_type=eq.photo`);
+  const keep=new Set([...beforeRefs,...afterRefs].filter(isCloudMediaRef).map(cloudMediaPath));
+  for(const p of (existing||[])){
+    if(p.storage_path && !keep.has(p.storage_path)){
+      try{await cloudMediaDelete('cloudmedia:'+p.storage_path)}catch(_e){}
+    }
+  }
+  await cloudRequest(`media?finding_id=eq.${encodeURIComponent(findingId)}&media_type=eq.photo`,{method:'DELETE'});
   const rows=[];
-  beforeRefs.forEach((r,i)=>{if(isCloudMediaRef(r))rows.push({finding_id:findingId,kind:'before',storage_path:cloudMediaPath(r),sort_order:i})});
-  afterRefs.forEach((r,i)=>{if(isCloudMediaRef(r))rows.push({finding_id:findingId,kind:'after',storage_path:cloudMediaPath(r),sort_order:i})});
-  if(rows.length)await cloudRequest('finding_photos',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify(rows)});
+  beforeRefs.forEach((r,i)=>{
+    if(isCloudMediaRef(r))rows.push({
+      object_id:data.objectId||null,inspection_id:data.inspectionId||null,finding_id:findingId,
+      media_type:'photo',phase:'before',storage_path:cloudMediaPath(r),
+      original_filename:`before_${i+1}.jpg`,mime_type:'image/jpeg'
+    });
+  });
+  afterRefs.forEach((r,i)=>{
+    if(isCloudMediaRef(r))rows.push({
+      object_id:data.objectId||null,inspection_id:data.inspectionId||null,finding_id:findingId,
+      media_type:'photo',phase:'after',storage_path:cloudMediaPath(r),
+      original_filename:`after_${i+1}.jpg`,mime_type:'image/jpeg'
+    });
+  });
+  if(rows.length)await cloudRequest('media',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify(rows)});
 }
 
 async function cloudReloadFindings(){
@@ -1060,7 +1080,7 @@ async function cloudSaveFinding(id,data){
 async function cloudDeleteFinding(id){
   if(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||'')){
     try{
-      const photos=await cloudRequest(`finding_photos?select=storage_path&finding_id=eq.${encodeURIComponent(id)}`);
+      const photos=await cloudRequest(`media?select=storage_path&finding_id=eq.${encodeURIComponent(id)}&media_type=eq.photo`);
       for(const p of (photos||[]))try{await cloudMediaDelete('cloudmedia:'+p.storage_path)}catch(_e){}
     }catch(_e){}
     await cloudRequest(`findings?id=eq.${encodeURIComponent(id)}`,{method:'DELETE'});
@@ -1325,7 +1345,7 @@ async function bootStorage(){
 async function updateStorageStatus(moved=0,error=''){
   const el=document.getElementById('storageStatus');
   if(!el)return;
-  let text=error||'Bildspeicher aktiv: IndexedDB';
+  let text=error||'Lokaler Bild-Fallback aktiv: IndexedDB';
   if(moved)text+=` · ${moved} vorhandene Bilder ausgelagert`;
   if(navigator.storage?.estimate){
     try{
@@ -1339,7 +1359,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],version:'2.4.1-supabase-photos'};
+  return {objects:[],inspections:[],findings:[],version:'2.4.2-supabase-photos'};
 }
 function load(){
   try{
@@ -1401,7 +1421,7 @@ function load(){
       objects:mergeById('objects'),
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
-      version:'2.4.1-supabase-photos'
+      version:'2.4.2-supabase-photos'
     };
 
     merged.findings.forEach(f=>{
@@ -1438,7 +1458,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.4.1-supabase-photos';
+  db.version='2.4.2-supabase-photos';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -2419,6 +2439,7 @@ async function saveFinding(id){
   };
   try{
     if(!cloudSession?.access_token)throw new Error('Nicht angemeldet.');
+    cloudSetStatus('Dokumentation und Fotos werden gespeichert …','wait');
     const row=await cloudSaveFinding(id,data);
     const cloudLocal=cloudFindingToLocal(row,{
       required:decisionRequired,
@@ -2441,6 +2462,7 @@ async function saveFinding(id){
       db.findings.push({...cloudLocal});
     }
     try{localStorage.setItem(KEY,JSON.stringify(db))}catch(_e){}
+    cloudSetStatus(`Verbunden · Foto-Speicherung aktiv`,'ok');
     closeModal();renderAll();hydrateMediaImages();showSection('findings');
   }catch(e){
     console.error('Dokumentation in Supabase speichern fehlgeschlagen',e);
@@ -2475,11 +2497,6 @@ bootStorage();
 bootCloud();
 </script>
 
-<!--
-SUPABASE SETUP v2.4.1
-Der bestehende private Bucket objektplattform-media wird weiterverwendet.
-Es wird nur die Zuordnungstabelle finding_photos benötigt.
--->
 
 </body>
 </html>
