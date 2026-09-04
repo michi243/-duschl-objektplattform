@@ -472,7 +472,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.13.2 Passwortwechsel Flag-Fix ===== */
+/* ===== v2.14.0 Interner Arbeitsvorrat ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -693,7 +693,7 @@ body.photo-viewer-open{overflow:hidden}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.13.2 Passwortwechsel Flag-Fix</span></header>
+<span class="badge">v2.14.0 Interner Arbeitsvorrat</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1510,6 +1510,7 @@ function cloudFindingToLocal(f,decision){
     decisionComment:d.comment||'',
     decisionAmount:d.amount??'',
     workOwner:'',
+    workRequired:f.work_required===true,
     workOwnerId:null,
     workDueDate:'',
     workNote:'',
@@ -1631,7 +1632,7 @@ async function cloudSaveTaskForFinding(f,data){
     object_id:f.objectId,
     finding_id:f.id,
     title:f.title||'Zusatzmaßnahme',
-    task_type:'additional_measure',
+    task_type:(f.decisionRequired===false?'internal_work':'additional_measure'),
     status:data.status||'planned',
     owner_id:ownerId||null,
     owner_name:ownerName||null,
@@ -1668,7 +1669,7 @@ async function cloudDeleteTaskForFinding(findingId){
 
 async function cloudReloadFindings(){
   if(!cloudSession?.access_token)return;
-  const rows=await cloudRequest('findings?select=id,object_id,inspection_id,type,area,title,category,priority,description,recommended_action,activity,status,completion_type,completion_note,created_by,created_at,updated_at&order=created_at.desc');
+  const rows=await cloudRequest('findings?select=id,object_id,inspection_id,type,area,title,category,priority,description,recommended_action,activity,status,completion_type,completion_note,work_required,created_by,created_at,updated_at&order=created_at.desc');
   const decisions=await cloudRequest('decisions?select=id,finding_id,required,status,decided_by_name,decision_date,comment,amount,created_at,updated_at');
   const dm=new Map((decisions||[]).map(d=>[d.finding_id,d]));
   const pm=await cloudLoadPhotoRefs();
@@ -1704,6 +1705,7 @@ async function cloudSaveFinding(id,data){
     status:cloudFindingStatusToDb(data.status),
     completion_type:data.completionType||null,
     completion_note:data.completionNote||null,
+    work_required:data.workRequired===true,
     completed_at:data.status==='Erledigt'?new Date().toISOString():null,
     updated_at:new Date().toISOString()
   };
@@ -2541,7 +2543,9 @@ function gfTaskKpis(items){
   const open=items.filter(t=>{
     if(t.findingStatus==='Erledigt')return false;
     if(t.hasTask && ['completed','cancelled'].includes(t.status))return false;
-    return openDecisionStates.has(t.decisionStatus||'pending') || (t.hasTask && !['completed','cancelled'].includes(t.status));
+    return openDecisionStates.has(t.decisionStatus||'pending')
+      || (t.hasTask && !['completed','cancelled'].includes(t.status))
+      || (t.workRequired===true && !t.hasTask);
   });
   const activeTasks=open.filter(t=>t.hasTask && !['completed','cancelled'].includes(t.status));
   return {
@@ -2595,6 +2599,7 @@ function renderWorkQueue(){
         taskId:task?.id||'',
         hasTask:!!task,
         findingStatus:f.status||'Offen',
+        workRequired:f.workRequired===true,
         sourceType:task?'task':'finding'
       };
     });
@@ -2628,7 +2633,8 @@ function renderWorkQueue(){
       if(t.findingStatus==='Erledigt')return false;
       const activeTask=t.hasTask && !['completed','cancelled'].includes(t.status);
       const openDecision=openDecisionStates.has(t.decisionStatus||'pending');
-      if(!activeTask && !openDecision)return false;
+      const internalWork=t.workRequired===true && !t.hasTask;
+      if(!activeTask && !openDecision && !internalWork)return false;
     }
 
     return true;
@@ -2699,7 +2705,12 @@ function renderWorkQueue(){
           : (t.findingStatus==='Erledigt'?'Dokumentation erledigt':'Noch keine Aufgabe');
         const decisionStatus=decisionLabel(t.decisionStatus||'pending');
         const overdue=t.hasTask && gfTaskDerivedBucket(t)==='overdue';
-        const canPlan=!t.hasTask && t.decisionStatus==='approved' && t.findingStatus!=='Erledigt';
+        const canPlan=!t.hasTask
+          && t.findingStatus!=='Erledigt'
+          && (
+            t.decisionStatus==='approved'
+            || (t.workRequired===true && t.decisionStatus==='not_required')
+          );
 
         return `
           <div class="gf-workitem ${overdue?'is-overdue':''}">
@@ -3545,6 +3556,18 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
         <input id="fDecisionAmount" type="number" min="0" step="0.01" inputmode="decimal" value="${f.decisionAmount!==''&&f.decisionAmount!=null?esc(f.decisionAmount):''}" placeholder="optional">
       </div>
     </div>
+
+    <div id="internalWorkCard" class="card" style="margin-top:12px;background:#101f2a">
+      <h3 style="margin-top:0">Weitere Bearbeitung</h3>
+      <label>Ist eine weitere interne Bearbeitung erforderlich?</label>
+      <select id="fWorkRequired">
+        <option value="no" ${f.workRequired===true?'':'selected'}>Nein – reine Dokumentation</option>
+        <option value="yes" ${f.workRequired===true?'selected':''}>Ja – in den Arbeitsvorrat übernehmen</option>
+      </select>
+      <div class="muted" style="margin-top:6px">
+        Bei „Ja“ erscheint die Feststellung im Arbeitsvorrat. Dort können Verantwortlicher, Fälligkeit und Arbeitsstatus festgelegt werden.
+      </div>
+    </div>
   </div>
 
   <div id="serviceFields">
@@ -3706,6 +3729,8 @@ async function saveFinding(id){
   if(type==='Feststellung'&&!decisionRequired){decisionStatus='not_required';decisionBy='';decisionDate='';decisionComment='';decisionAmount=''}
   if(type==='Feststellung'&&decisionRequired&&decisionStatus==='not_required')decisionStatus='pending';
   const activity=document.getElementById('fActivity')?.value.trim()||'';
+  let workRequired=type==='Feststellung' && (document.getElementById('fWorkRequired')?.value==='yes');
+  if(type!=='Feststellung' || status==='Erledigt')workRequired=false;
   const completionType=document.getElementById('fCompletionType')?.value||'';
   if(type==='Leistung'&&!activity)return alert('Bitte die durchgeführte Tätigkeit dokumentieren.');
   if(status==='Erledigt'&&!completionType)return alert('Bitte eine Abschlussart wählen.');
@@ -3721,6 +3746,7 @@ async function saveFinding(id){
     description,action:type==='Feststellung'?(document.getElementById('fAction')?.value.trim()||''):'',
     activity,status,completionType,completionNote:document.getElementById('fCompletionNote')?.value.trim()||'',
     decisionRequired,decisionStatus,decisionBy,decisionDate,decisionComment,decisionAmount,
+    workRequired,
     beforePhoto:before,afterPhoto:after,beforePhotos,afterPhotos
   };
   try{
