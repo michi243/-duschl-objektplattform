@@ -481,7 +481,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.14.1 Ohne Begehungen ===== */
+/* ===== v2.14.2 Render-Fix ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -702,7 +702,7 @@ body.photo-viewer-open{overflow:hidden}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.14.1 Ohne Begehungen</span></header>
+<span class="badge">v2.14.2 Render-Fix</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -2923,7 +2923,7 @@ function renderDashboard(){
   const open=db.findings.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt');
   document.getElementById('kpiOpen').textContent=open.length;
   document.getElementById('kpiCritical').textContent=open.filter(f=>['P1','P2'].includes(f.priority)).length;
-  document.getElementById('kpiInspections').textContent=db.inspections.length;
+  const kpiInspections=document.getElementById('kpiInspections'); if(kpiInspections)kpiInspections.textContent=db.inspections.length;
   const box=document.getElementById('dashboardFindings');
   const rows=open.sort((a,b)=>a.priority.localeCompare(b.priority)||b.createdAt-a.createdAt).slice(0,8);
   box.innerHTML=rows.length?rows.map(f=>findingCard(f)).join(''):`<div class="empty">Keine offenen Feststellungen.</div>`;
