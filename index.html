@@ -262,6 +262,92 @@ a{color:var(--accent-2)!important}
 .photo-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .photo-save{padding:6px 8px!important;font-size:13px!important;background:#102230!important;color:#eaf2f7!important;border:1px solid #355166!important}
 
+
+/* v2.13.1 – klar lesbare Dialoge auf Mobilgeräten */
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:10000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  background:rgba(0,6,11,.82);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+.modal-dialog-dark{
+  width:min(560px,100%);
+  max-height:88vh;
+  overflow:auto;
+  box-sizing:border-box;
+  padding:22px;
+  border-radius:18px;
+  background:linear-gradient(180deg,#102432 0%,#0a1822 100%);
+  color:var(--text);
+  border:1px solid #395569;
+  box-shadow:0 20px 60px rgba(0,0,0,.55);
+}
+.modal-dialog-dark h2{
+  margin:0 0 10px;
+  color:#f6fbff!important;
+  line-height:1.25;
+}
+.modal-dialog-dark p{
+  line-height:1.45;
+}
+.modal-dialog-dark label{
+  display:block;
+  margin-top:14px;
+  margin-bottom:6px;
+}
+.modal-dialog-dark input{
+  min-height:48px;
+  font-size:16px!important;
+  background:#07131c!important;
+  color:#ffffff!important;
+  border:1px solid #47657a!important;
+}
+.modal-dialog-dark .credential-box{
+  margin-top:14px;
+  padding:14px;
+  border-radius:12px;
+  background:#07131c;
+  border:1px solid #2f4c60;
+}
+.modal-dialog-dark .password-display{
+  width:100%;
+  box-sizing:border-box;
+  min-height:52px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  font-size:19px!important;
+  font-weight:700;
+  letter-spacing:.4px;
+  color:#ffffff!important;
+  background:#0a1b27!important;
+  border:1px solid #5680a0!important;
+}
+.modal-dialog-dark .modal-actions{
+  display:flex;
+  gap:10px;
+  margin-top:18px;
+}
+.modal-dialog-dark .modal-actions button{
+  flex:1;
+  min-height:46px;
+}
+@media(max-width:520px){
+  .modal-backdrop{padding:12px}
+  .modal-dialog-dark{
+    padding:18px;
+    border-radius:15px;
+    max-height:90vh;
+  }
+  .modal-dialog-dark .modal-actions{
+    flex-direction:column;
+  }
+}
+
 </style>
 
 <style>
@@ -386,7 +472,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.13.0 Initialpasswort ===== */
+/* ===== v2.13.1 Dark Modal Fix ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -607,7 +693,7 @@ body.photo-viewer-open{overflow:hidden}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.13.0 Initialpasswort</span></header>
+<span class="badge">v2.13.1 Dark Modal Fix</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1051,15 +1137,25 @@ function showInitialPasswordResult(email,password){
   if(!root)return alert(`Benutzer wurde angelegt.\n\nBenutzername: ${email}\nInitialpasswort: ${password}`);
   root.innerHTML=`
     <div class="modal-backdrop" style="z-index:10020">
-      <div class="modal" style="max-width:520px">
-        <h2>Benutzer erfolgreich angelegt</h2>
-        <p class="muted">Das Initialpasswort wird nur jetzt angezeigt. Bitte getrennt und sicher an den Benutzer übermitteln.</p>
-        <label>Benutzername / E-Mail</label>
-        <input value="${esc(email)}" readonly>
-        <label style="margin-top:12px">Initialpasswort</label>
-        <input id="generatedInitialPassword" value="${esc(password)}" readonly style="font-family:monospace;font-size:17px">
-        <div class="row" style="gap:10px;margin-top:16px">
-          <button class="primary" onclick="copyInitialPassword()">Passwort kopieren</button>
+      <div class="modal-dialog-dark" role="dialog" aria-modal="true" aria-labelledby="initialPasswordTitle">
+        <h2 id="initialPasswordTitle">Benutzer erfolgreich angelegt</h2>
+        <p class="muted">Der Benutzer kann sich jetzt mit diesen Zugangsdaten anmelden. Das Initialpasswort wird nur hier angezeigt.</p>
+
+        <div class="credential-box">
+          <label>Benutzername / E-Mail</label>
+          <input value="${esc(email)}" readonly>
+
+          <label>Initialpasswort</label>
+          <input id="generatedInitialPassword" class="password-display" value="${esc(password)}" readonly>
+        </div>
+
+        <p style="margin:14px 0 0;color:#f1c75b">
+          <strong style="color:#f1c75b!important">Wichtig:</strong>
+          Initialpasswort sicher und getrennt an den Benutzer übermitteln. Beim ersten Login muss es geändert werden.
+        </p>
+
+        <div class="modal-actions">
+          <button class="primary" onclick="copyInitialPassword()">Initialpasswort kopieren</button>
           <button onclick="closeModal()">Schließen</button>
         </div>
       </div>
@@ -1084,16 +1180,22 @@ function showPasswordChangeGate(){
   if(!root)return;
   root.innerHTML=`
     <div class="modal-backdrop" style="z-index:10050">
-      <div class="modal" style="max-width:520px">
-        <h2>Passwort ändern</h2>
+      <div class="modal-dialog-dark" role="dialog" aria-modal="true" aria-labelledby="passwordChangeTitle">
+        <h2 id="passwordChangeTitle">Passwort ändern</h2>
         <p class="muted">Das Initialpasswort darf nicht weiterverwendet werden. Lege jetzt dein persönliches Passwort fest.</p>
+
         <label>Neues Passwort</label>
         <input id="firstLoginPassword1" type="password" autocomplete="new-password" placeholder="Mindestens 12 Zeichen">
-        <label style="margin-top:12px">Neues Passwort wiederholen</label>
+
+        <label>Neues Passwort wiederholen</label>
         <input id="firstLoginPassword2" type="password" autocomplete="new-password" placeholder="Passwort wiederholen">
+
         <div id="firstLoginPasswordMessage" class="muted" style="margin-top:10px"></div>
-        <button id="firstLoginPasswordBtn" class="primary" style="width:100%;margin-top:14px" onclick="completeFirstLoginPasswordChange()">Passwort ändern und fortfahren</button>
-        <button style="width:100%;margin-top:8px" onclick="cloudLogout()">Abmelden</button>
+
+        <div class="modal-actions">
+          <button id="firstLoginPasswordBtn" class="primary" onclick="completeFirstLoginPasswordChange()">Passwort ändern und fortfahren</button>
+          <button onclick="cloudLogout()">Abmelden</button>
+        </div>
       </div>
     </div>`;
   setTimeout(()=>document.getElementById('firstLoginPassword1')?.focus(),50);
