@@ -472,7 +472,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.13.1 Dark Modal Fix ===== */
+/* ===== v2.13.2 Passwortwechsel Flag-Fix ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -693,7 +693,7 @@ body.photo-viewer-open{overflow:hidden}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.13.1 Dark Modal Fix</span></header>
+<span class="badge">v2.13.2 Passwortwechsel Flag-Fix</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1231,11 +1231,10 @@ async function completeFirstLoginPasswordChange(){
     }
 
     await cloudRequest(
-      `profiles?id=eq.${encodeURIComponent(currentUserId())}`,
+      `rpc/complete_initial_password_change`,
       {
-        method:'PATCH',
-        headers:{'Prefer':'return=minimal'},
-        body:JSON.stringify({must_change_password:false})
+        method:'POST',
+        body:JSON.stringify({})
       }
     );
 
