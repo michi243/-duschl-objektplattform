@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.12.4 Bereinigt</title>
+<title>Duschl Service – Objekt-Dokumentation 2.12.5 Benutzeranlage ohne Objektzugriffe</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -386,7 +386,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.12.4 Bereinigt ===== */
+/* ===== v2.13.0 Initialpasswort ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -607,7 +607,7 @@ body.photo-viewer-open{overflow:hidden}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.12.4 Bereinigt</span></header>
+<span class="badge">v2.13.0 Initialpasswort</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -883,19 +883,17 @@ body.photo-viewer-open{overflow:hidden}
       <input id="newUserEmail" type="email" placeholder="name@firma.de" autocomplete="off">
     </label>
     <label>Rolle
-      <select id="newUserRole" onchange="renderNewUserObjectAssignments()">
+      <select id="newUserRole">
         <option value="object_manager">Objektbetreuer</option>
         <option value="customer">Auftraggeber</option>
       </select>
     </label>
   </div>
-  <h4 style="margin:14px 0 8px">Objektzugriffe</h4>
-  <div id="newUserObjectAssignments"></div>
   <div class="row" style="gap:10px;margin-top:14px">
-    <button class="primary" onclick="createUserAndInvite()">Benutzer anlegen & Einladung senden</button>
+    <button class="primary" onclick="createUserAndInvite()">Benutzer anlegen</button>
   </div>
   <p class="muted" style="margin-top:10px">
-    Der Benutzer erhält eine Einladungs-E-Mail und legt sein Passwort selbst fest. Objektzugriffe können direkt oder später vergeben werden.
+    Das System erzeugt ein einmaliges Initialpasswort. Der Benutzer muss dieses beim ersten Login ändern. Objektzugriffe werden anschließend separat in der Benutzerverwaltung vergeben.
   </p>
 </div>
 
@@ -1033,7 +1031,7 @@ async function cloudLoadCurrentProfile(){
   const uid=cloudSession?.user?.id;
   if(!uid)throw new Error('Benutzer-ID der Supabase-Sitzung fehlt.');
   const rows=await cloudRequest(
-    `profiles?select=id,full_name,email,role,active&id=eq.${encodeURIComponent(uid)}&limit=1`
+    `profiles?select=id,full_name,email,role,active,must_change_password&id=eq.${encodeURIComponent(uid)}&limit=1`
   );
   const p=rows?.[0];
   if(!p||p.active!==true)throw new Error('Kein aktives Benutzerprofil gefunden.');
@@ -1041,6 +1039,114 @@ async function cloudLoadCurrentProfile(){
   currentUserRole=String(p.role||cloudSession?.user?.user_metadata?.app_role||'').trim().toLowerCase();
   applyRoleUI();
   return p;
+}
+
+
+function mustChangePassword(){
+  return currentUserProfile?.must_change_password===true;
+}
+
+function showInitialPasswordResult(email,password){
+  const root=document.getElementById('modalRoot');
+  if(!root)return alert(`Benutzer wurde angelegt.\n\nBenutzername: ${email}\nInitialpasswort: ${password}`);
+  root.innerHTML=`
+    <div class="modal-backdrop" style="z-index:10020">
+      <div class="modal" style="max-width:520px">
+        <h2>Benutzer erfolgreich angelegt</h2>
+        <p class="muted">Das Initialpasswort wird nur jetzt angezeigt. Bitte getrennt und sicher an den Benutzer übermitteln.</p>
+        <label>Benutzername / E-Mail</label>
+        <input value="${esc(email)}" readonly>
+        <label style="margin-top:12px">Initialpasswort</label>
+        <input id="generatedInitialPassword" value="${esc(password)}" readonly style="font-family:monospace;font-size:17px">
+        <div class="row" style="gap:10px;margin-top:16px">
+          <button class="primary" onclick="copyInitialPassword()">Passwort kopieren</button>
+          <button onclick="closeModal()">Schließen</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function copyInitialPassword(){
+  const value=document.getElementById('generatedInitialPassword')?.value||'';
+  if(!value)return;
+  try{
+    await navigator.clipboard.writeText(value);
+    alert('Initialpasswort wurde kopiert.');
+  }catch(_e){
+    const el=document.getElementById('generatedInitialPassword');
+    el?.focus();el?.select();
+    alert('Bitte das markierte Initialpasswort kopieren.');
+  }
+}
+
+function showPasswordChangeGate(){
+  const root=document.getElementById('modalRoot');
+  if(!root)return;
+  root.innerHTML=`
+    <div class="modal-backdrop" style="z-index:10050">
+      <div class="modal" style="max-width:520px">
+        <h2>Passwort ändern</h2>
+        <p class="muted">Das Initialpasswort darf nicht weiterverwendet werden. Lege jetzt dein persönliches Passwort fest.</p>
+        <label>Neues Passwort</label>
+        <input id="firstLoginPassword1" type="password" autocomplete="new-password" placeholder="Mindestens 12 Zeichen">
+        <label style="margin-top:12px">Neues Passwort wiederholen</label>
+        <input id="firstLoginPassword2" type="password" autocomplete="new-password" placeholder="Passwort wiederholen">
+        <div id="firstLoginPasswordMessage" class="muted" style="margin-top:10px"></div>
+        <button id="firstLoginPasswordBtn" class="primary" style="width:100%;margin-top:14px" onclick="completeFirstLoginPasswordChange()">Passwort ändern und fortfahren</button>
+        <button style="width:100%;margin-top:8px" onclick="cloudLogout()">Abmelden</button>
+      </div>
+    </div>`;
+  setTimeout(()=>document.getElementById('firstLoginPassword1')?.focus(),50);
+}
+
+async function completeFirstLoginPasswordChange(){
+  const p1=document.getElementById('firstLoginPassword1')?.value||'';
+  const p2=document.getElementById('firstLoginPassword2')?.value||'';
+  const msg=document.getElementById('firstLoginPasswordMessage');
+  const btn=document.getElementById('firstLoginPasswordBtn');
+
+  if(p1.length<12){
+    if(msg){msg.textContent='Das neue Passwort muss mindestens 12 Zeichen lang sein.';msg.style.color='#ff8b91';}
+    return;
+  }
+  if(p1!==p2){
+    if(msg){msg.textContent='Die Passwörter stimmen nicht überein.';msg.style.color='#ff8b91';}
+    return;
+  }
+
+  if(btn){btn.disabled=true;btn.textContent='Passwort wird geändert…';}
+  if(msg){msg.textContent='Passwort wird geändert …';msg.style.color='';}
+
+  try{
+    const r=await fetch(`${SUPABASE_URL}/auth/v1/user`,{
+      method:'PUT',
+      headers:cloudHeaders(),
+      body:JSON.stringify({password:p1})
+    });
+    if(!r.ok){
+      const t=await r.text();
+      throw new Error(t||'Passwort konnte nicht geändert werden.');
+    }
+
+    await cloudRequest(
+      `profiles?id=eq.${encodeURIComponent(currentUserId())}`,
+      {
+        method:'PATCH',
+        headers:{'Prefer':'return=minimal'},
+        body:JSON.stringify({must_change_password:false})
+      }
+    );
+
+    if(currentUserProfile)currentUserProfile.must_change_password=false;
+    closeModal();
+    applyRoleUI();
+    await cloudReloadObjects();
+  }catch(e){
+    console.error(e);
+    if(msg){msg.textContent='Passwortänderung fehlgeschlagen: '+(e?.message||e);msg.style.color='#ff8b91';}
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Passwort ändern und fortfahren';}
+  }
 }
 
 function applyRoleUI(){
@@ -1159,6 +1265,10 @@ async function cloudLogin(){
     cloudShowGate(false);
     cloudAuthMessage('');
     await cloudLoadCurrentProfile();
+    if(mustChangePassword()){
+      showPasswordChangeGate();
+      return;
+    }
     await cloudReloadObjects();
   }catch(e){
     cloudAuthMessage(e.message||'Anmeldung fehlgeschlagen.',true);
@@ -1619,11 +1729,19 @@ async function bootCloud(){
   cloudShowGate(false);
   try{
     await cloudLoadCurrentProfile();
+    if(mustChangePassword()){
+      showPasswordChangeGate();
+      return;
+    }
     await cloudReloadObjects();
   }catch(_e){
     const ok=await cloudRefreshSession();
     if(ok){
       await cloudLoadCurrentProfile();
+      if(mustChangePassword()){
+        showPasswordChangeGate();
+        return;
+      }
       await cloudReloadObjects();
     }
     else cloudShowGate(true);
@@ -1906,7 +2024,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.12.4-bereinigt'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.12.5-user-create-no-objects'};
 }
 function load(){
   try{
@@ -1969,7 +2087,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.12.4-bereinigt'
+      version:'2.12.5-user-create-no-objects'
     };
 
     merged.findings.forEach(f=>{
@@ -2006,7 +2124,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.12.4-bereinigt';
+  db.version='2.12.5-user-create-no-objects';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -2621,30 +2739,19 @@ function loadUserAdminEditor(){
 </div><p class="muted" style="margin-top:12px">Passwort wird hier bewusst nicht verwaltet. Die E-Mail-Adresse ist die Benutzerkennung und Benachrichtigungsadresse.</p></div>`;
 }
 
-function renderNewUserObjectAssignments(){
-  const host=document.getElementById('newUserObjectAssignments');
-  if(!host)return;
-  const rows=(db.objects||[]).map(o=>`
-    <label class="row" style="gap:10px;align-items:center;margin:6px 0">
-      <input type="checkbox" class="newUserObjectAssignment" value="${esc(o.id)}">
-      <span>${esc(o.name||o.address||'Objekt')}</span>
-    </label>`).join('');
-  host.innerHTML=rows||'<p class="muted">Keine Objekte vorhanden.</p>';
-}
-
 async function createUserAndInvite(){
   if(!isAdminRole())return requireAdminUI('Benutzer anlegen');
   const fullName=document.getElementById('newUserFullName')?.value.trim()||'';
   const email=document.getElementById('newUserEmail')?.value.trim().toLowerCase()||'';
   const role=document.getElementById('newUserRole')?.value||'object_manager';
-  const objectIds=[...document.querySelectorAll('.newUserObjectAssignment:checked')].map(x=>x.value);
+  const objectIds=[]; // Objektzugriffe werden bewusst erst nach der Benutzeranlage vergeben.
 
   if(!fullName)return alert('Bitte einen Anzeigenamen eingeben.');
   if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return alert('Bitte eine gültige E-Mail-Adresse eingeben.');
   if(!['object_manager','customer'].includes(role))return alert('Ungültige Rolle.');
 
   const btn=event?.currentTarget;
-  if(btn){btn.disabled=true;btn.textContent='Einladung wird gesendet…';}
+  if(btn){btn.disabled=true;btn.textContent='Benutzer wird angelegt…';}
   try{
     const res=await fetch(`${SUPABASE_URL}/functions/v1/invite-user`,{
       method:'POST',
@@ -2656,22 +2763,22 @@ async function createUserAndInvite(){
       body:JSON.stringify({fullName,email,role,objectIds})
     });
 
-    const text=await res.text();
+    const responseText=await res.text();
     let data={};
-    try{data=text?JSON.parse(text):{};}catch{}
-    if(!res.ok)throw new Error(data?.error||text||`HTTP ${res.status}`);
+    try{data=responseText?JSON.parse(responseText):{};}catch{}
+    if(!res.ok || data?.ok===false)throw new Error(data?.error||responseText||`HTTP ${res.status}`);
+    if(!data?.initialPassword)throw new Error('Initialpasswort wurde von der Benutzerfunktion nicht zurückgegeben.');
 
     document.getElementById('newUserFullName').value='';
     document.getElementById('newUserEmail').value='';
-    document.querySelectorAll('.newUserObjectAssignment').forEach(x=>x.checked=false);
 
-    alert('Benutzer wurde angelegt. Die Einladungs-E-Mail wurde versendet.');
     await loadUserAdminData();
+    showInitialPasswordResult(data.email||email,data.initialPassword);
   }catch(e){
     console.error(e);
     alert('Benutzeranlage fehlgeschlagen: '+(e?.message||e));
   }finally{
-    if(btn){btn.disabled=false;btn.textContent='Benutzer anlegen & Einladung senden';}
+    if(btn){btn.disabled=false;btn.textContent='Benutzer anlegen';}
   }
 }
 
