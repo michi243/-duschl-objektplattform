@@ -2666,8 +2666,7 @@ async function createUserAndInvite(){
     document.querySelectorAll('.newUserObjectAssignment').forEach(x=>x.checked=false);
 
     alert('Benutzer wurde angelegt. Die Einladungs-E-Mail wurde versendet.');
-    await loadUserAdminData?.();
-    renderUserAdmin?.();
+    await loadUserAdminData();
   }catch(e){
     console.error(e);
     alert('Benutzeranlage fehlgeschlagen: '+(e?.message||e));
@@ -2710,8 +2709,7 @@ async function deleteSelectedUser(){
     if(!res.ok)throw new Error(data?.error||text||`HTTP ${res.status}`);
 
     alert('Benutzer wurde gelöscht.');
-    await loadUserAdminData?.();
-    renderUserAdmin?.();
+    await loadUserAdminData();
   }catch(e){
     console.error(e);
     alert('Benutzer konnte nicht gelöscht werden: '+(e?.message||e));
