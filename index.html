@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.12.5 Benutzeranlage ohne Objektzugriffe</title>
+<title>Duschl Service – Objektplattform v2.16.2 Meldungseingang</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -481,7 +481,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.16.1 Meldungseingang Fix ===== */
+/* ===== v2.16.2 Meldungseingang ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -790,7 +790,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.16.1 Meldungseingang Fix</span></header>
+<span class="badge">v2.16.2 Meldungseingang</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -2280,7 +2280,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.12.5-user-create-no-objects'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.16.2-meldungseingang'};
 }
 function load(){
   try{
@@ -2343,7 +2343,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.12.5-user-create-no-objects'
+      version:'2.16.2-meldungseingang'
     };
 
     merged.findings.forEach(f=>{
@@ -2380,7 +2380,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.12.5-user-create-no-objects';
+  db.version='2.16.2-meldungseingang';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
