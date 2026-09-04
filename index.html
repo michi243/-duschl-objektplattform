@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.11.3 Sicherung Admin</title>
+<title>Duschl Service – Objekt-Dokumentation 2.11.4 Dokumentation nur Objekt</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -386,7 +386,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.11.3 Sicherung Admin ===== */
+/* ===== v2.11.4 Dokumentation nur Objekt ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -607,7 +607,7 @@ body.photo-viewer-open{overflow:hidden}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.11.3 Sicherung Admin</span></header>
+<span class="badge">v2.11.4 Dokumentation nur Objekt</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -621,7 +621,7 @@ body.photo-viewer-open{overflow:hidden}
 
 <main>
 <section id="dashboard" class="section active">
-  <div class="row space"><div><h2>Übersicht</h2><div class="muted">Dein aktueller Dokumentationsstand</div></div><button class="primary" onclick="openFindingModal()">+ Dokumentation</button></div>
+  <div class="row space"><div><h2>Übersicht</h2><div class="muted">Dein aktueller Dokumentationsstand</div></div></div>
   <div class="grid g3" style="margin-top:14px">
     <div class="card"><div class="muted">Objekte</div><div class="kpi" id="kpiObjects">0</div></div>
     <div class="card"><div class="muted">Offene Feststellungen</div><div class="kpi" id="kpiOpen">0</div></div>
@@ -643,7 +643,7 @@ body.photo-viewer-open{overflow:hidden}
       <h2>Objektakte & Historie</h2>
       <div class="muted">Aktueller Stand je Objekt mit den letzten Einsätzen und vollständiger Historie bei Bedarf</div>
     </div>
-    <button class="primary" onclick="openFindingModal()">+ Dokumentation</button>
+    
   </div>
 
   <div class="filterbar">
@@ -704,12 +704,10 @@ body.photo-viewer-open{overflow:hidden}
     <label for="customerObjectSelect">Objekt auswählen</label>
     <select id="customerObjectSelect" onchange="setCustomerObjectContext(this.value)"></select>
   </div>
-  <div class="row" style="margin-top:12px">
-    <button class="primary" onclick="openCustomerDocumentation()">Dokumentation erfassen</button>
-  </div>
+  
 </div>
 
-  <div class="row space"><div><h2>Dokumentation</h2><div class="muted">Feststellungen und Leistungsnachweise</div></div><button class="primary" onclick="openFindingModal()">+ Dokumentation</button></div>
+  <div class="row space"><div><h2>Dokumentation</h2><div class="muted" style="margin-top:-4px;margin-bottom:12px">Übersicht und Filter aller Dokumentationen. Neue Dokumentationen werden über „Objekte“ angelegt.</div><div class="muted">Feststellungen und Leistungsnachweise</div></div></div>
   <div class="grid g3" style="margin:14px 0">
     <div><label>Objekt</label><select id="filterObject" onchange="renderFindings()"><option value="">Alle</option></select></div>
     <div><label>Status</label><select id="filterStatus" onchange="renderFindings()"><option value="active">Offen + In Bearbeitung</option><option value="">Alle</option><option>Offen</option><option>In Bearbeitung</option><option>Erledigt</option></select>
@@ -939,7 +937,7 @@ body.photo-viewer-open{overflow:hidden}
 </section>
 </main>
 
-<button class="fab" onclick="openFindingModal()">+ Dokumentation</button>
+
 <div id="modalRoot"></div>
 
 <script>
@@ -1864,7 +1862,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.11.3-admin-backup-only'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.11.4-documentation-object-only'};
 }
 function load(){
   try{
@@ -1927,7 +1925,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.11.3-admin-backup-only'
+      version:'2.11.4-documentation-object-only'
     };
 
     merged.findings.forEach(f=>{
@@ -1964,7 +1962,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.11.3-admin-backup-only';
+  db.version='2.11.4-documentation-object-only';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -2742,12 +2740,7 @@ function setCustomerObjectContext(id){
 }
 
 function openCustomerDocumentation(){
-  ensureCustomerObjectContext();
-  if(!customerCurrentObjectId){
-    alert('Bitte zuerst das Objekt auswählen.');
-    return;
-  }
-  openFindingModal(customerCurrentObjectId,'');
+  alert('Neue Dokumentationen werden ausschließlich über „Objekte“ angelegt.');
 }
 
 function renderFindings(){
@@ -3082,6 +3075,10 @@ async function deleteInspection(id){
 }
 
 function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
+  if(!editId&&!prefObj){
+    alert('Bitte zuerst unter „Objekte“ das gewünschte Objekt öffnen und dort „Dokumentation erfassen“ wählen.');
+    return;
+  }
   if(editId){
     const existingFinding=db.findings.find(x=>x.id===editId);
     if(existingFinding&&!canEditFindingUI(existingFinding)){
