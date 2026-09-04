@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.11.4 Dokumentation nur Objekt</title>
+<title>Duschl Service – Objekt-Dokumentation 2.11.5 Aufgabeninhaber Dokumentation</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -386,7 +386,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.11.4 Dokumentation nur Objekt ===== */
+/* ===== v2.11.5 Aufgabeninhaber Dokumentation ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -607,7 +607,7 @@ body.photo-viewer-open{overflow:hidden}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.11.4 Dokumentation nur Objekt</span></header>
+<span class="badge">v2.11.5 Aufgabeninhaber Dokumentation</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -969,9 +969,16 @@ function canUseSettingsUI(){return isAdminRole()}
 function canSeeInternalPersonnelUI(){return !isCustomerRole()}
 function customerSafeText(v){return isCustomerRole()?'':(v||'')}
 function currentUserId(){return currentUserProfile?.id||cloudSession?.user?.id||''}
+function isAssignedTaskOwnerUI(f){
+  if(!f||!isObjectManagerRole())return false;
+  const t=(db.tasks||[]).find(x=>x.findingId===f.id);
+  return !!(t?.ownerId&&t.ownerId===currentUserId());
+}
 function canEditFindingUI(f){
   if(!f)return canCreateDocumentationUI();
-  return isAdminRole()||((isObjectManagerRole()||isCustomerRole())&&f.createdBy&&f.createdBy===currentUserId());
+  return isAdminRole()
+    || ((isObjectManagerRole()||isCustomerRole())&&f.createdBy&&f.createdBy===currentUserId())
+    || isAssignedTaskOwnerUI(f);
 }
 function canEditInspectionUI(i){
   if(!i)return canCreateDocumentationUI();
@@ -1372,13 +1379,17 @@ async function cloudFindProfileByName(name){
 async function cloudSaveTaskForFinding(f,data){
   if(!f?.id||!f?.objectId)throw new Error('Feststellung oder Objekt fehlt.');
   const ownerName=(data.ownerName||'').trim();
+  let ownerProfile=null;
+  if(ownerName){
+    ownerProfile=await cloudFindProfileByName(ownerName);
+  }
   const payload={
     object_id:f.objectId,
     finding_id:f.id,
     title:f.title||'Zusatzmaßnahme',
     task_type:'additional_measure',
     status:data.status||'planned',
-    owner_id:null,
+    owner_id:ownerProfile?.id||null,
     owner_name:ownerName||null,
     due_date:data.dueDate||null,
     work_note:data.workNote||null,
@@ -1862,7 +1873,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.11.4-documentation-object-only'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.11.5-task-owner-documentation'};
 }
 function load(){
   try{
@@ -1925,7 +1936,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.11.4-documentation-object-only'
+      version:'2.11.5-task-owner-documentation'
     };
 
     merged.findings.forEach(f=>{
@@ -1962,7 +1973,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.11.4-documentation-object-only';
+  db.version='2.11.5-task-owner-documentation';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -2479,7 +2490,7 @@ function openWorkItem(id){
   modal(`<h2>${task?'Aufgabe bearbeiten':'Aufgabe planen'}</h2>
     <div class="muted">${esc(objectName(f.objectId))} · ${esc(f.title||'')}</div>
     <label>Arbeitsstatus<select id="wiStatus">${statusOptions}</select></label>
-    <label>Verantwortlich<input id="wiOwner" value="${esc(owner)}" placeholder="Mitarbeiter / Team"></label>
+    <label>Verantwortlicher Objektbetreuer<input id="wiOwner" value="${esc(owner)}" placeholder="Exakter Profilname des Objektbetreuers"></label><div class="muted">Die Zuordnung wird mit dem Benutzerkonto verknüpft. Nur der zugewiesene Objektbetreuer erhält zusätzlich Bearbeitungsrechte an dieser Dokumentation.</div>
     <label>Fällig am<input id="wiDue" type="date" value="${esc(due)}"></label>
     <label>Arbeitsinformation<textarea id="wiNote" placeholder="Hinweise für die Ausführung">${esc(note)}</textarea></label>
     <div class="row"><button class="primary" onclick="saveWorkItem('${id}')">Speichern</button><button onclick="closeModal()">Abbrechen</button></div>`);
@@ -2696,7 +2707,7 @@ function findingCard(f){
     ${type==='Leistung'&&f.activity?`<p><b>Durchgeführt:</b> ${esc(f.activity)}</p>`:''}
     ${type==='Feststellung'&&f.action?`<p><b>Empfehlung:</b> ${esc(f.action)}</p>`:''}
     ${f.status==='Erledigt'&&f.completionType?`<p><b>Abschluss:</b> ${esc(f.completionType)}${f.completionNote?' – '+esc(f.completionNote):''}</p>`:''}
-    <div class="row">${canEditFindingUI(f)?`<button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}')">Bearbeiten</button>${f.status!=='Erledigt'?`<button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}',true)">Abschließen</button>`:''}`:`<span class="muted">Nur durch Ersteller oder Admin/GF änderbar.</span>`}</div>
+    <div class="row">${canEditFindingUI(f)?`<button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}')">Bearbeiten</button>${f.status!=='Erledigt'?`<button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}',true)">Abschließen</button>`:''}`:`<span class="muted">Nur durch Ersteller, zugewiesenen Objektbetreuer oder Admin/GF änderbar.</span>`}</div>
   </div>`;
 }
 let customerCurrentObjectId='';
