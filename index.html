@@ -481,7 +481,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.17.0 Meldungsbearbeitung ===== */
+/* ===== v2.17.1 Meldungsbearbeitung Fix ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -790,7 +790,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.17.0 Meldungsbearbeitung</span></header>
+<span class="badge">v2.17.1 Meldungsbearbeitung Fix</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -3456,7 +3456,7 @@ function renderResidentReports(){
         <button type="button" onclick="openResidentReportDetails('${r.id}')">Details</button>
         ${!r.converted_to_finding_id&&!finalState?`<button type="button" class="primary" onclick="convertResidentReportToFinding('${r.id}')">Dokumentieren</button>`:''}
         ${!finalState?`<button type="button" onclick="openResidentReportCloseModal('${r.id}','closed')">Schließen</button>`:''}
-        ${!finalState?`<button type="button" class="danger" onclick="openResidentReportCloseModal('${r.id}','rejected')">Verwerfen</button>`:''}
+        ${!finalState&&!r.converted_to_finding_id?`<button type="button" class="danger" onclick="openResidentReportCloseModal('${r.id}','rejected')">Verwerfen</button>`:''}
         ${r.converted_to_finding_id?`<button type="button" onclick="openResidentConvertedFinding('${r.converted_to_finding_id}')">Dokumentation öffnen</button>`:''}
       </div>
     </div>`;
@@ -3486,7 +3486,7 @@ function openResidentReportDetails(id){
     <div class="row" style="margin-top:14px">
       ${!r.converted_to_finding_id&&!['closed','rejected','completed'].includes(r.status||'')?`<button class="primary" onclick="closeModal();convertResidentReportToFinding('${r.id}')">Dokumentieren</button>`:''}
       ${!['closed','rejected','completed'].includes(r.status||'')?`<button onclick="closeModal();openResidentReportCloseModal('${r.id}','closed')">Schließen</button>`:''}
-      ${!['closed','rejected','completed'].includes(r.status||'')?`<button class="danger" onclick="closeModal();openResidentReportCloseModal('${r.id}','rejected')">Verwerfen</button>`:''}
+      ${!r.converted_to_finding_id&&!['closed','rejected','completed'].includes(r.status||'')?`<button class="danger" onclick="closeModal();openResidentReportCloseModal('${r.id}','rejected')">Verwerfen</button>`:''}
       <button onclick="closeModal()">Abbrechen</button>
     </div>`);
 }
@@ -3574,7 +3574,7 @@ async function convertResidentReportToFinding(id){
   if(!r.object_id)return alert('Der Meldung ist kein Objekt zugeordnet.');
 
   const ok=confirm(
-    'Diese Meldung als offizielle Dokumentation übernehmen?\\n\\n'+
+    'Diese Meldung als offizielle Dokumentation übernehmen?\n\n'+
     'Es wird eine Feststellung am Objekt angelegt und mit der ursprünglichen Meldung verknüpft.'
   );
   if(!ok)return;
