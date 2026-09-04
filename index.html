@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.11.0 Ohne Begehung</title>
+<title>Duschl Service – Objekt-Dokumentation 2.11.1 Weiterleitung Dokumentation</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -386,7 +386,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.11.0 Ohne Begehung ===== */
+/* ===== v2.11.1 Weiterleitung Dokumentation ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -607,7 +607,7 @@ body.photo-viewer-open{overflow:hidden}
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.11.0 Ohne Begehung</span></header>
+<span class="badge">v2.11.1 Weiterleitung Dokumentation</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -643,7 +643,7 @@ body.photo-viewer-open{overflow:hidden}
       <h2>Objektakte & Historie</h2>
       <div class="muted">Aktueller Stand je Objekt mit den letzten Einsätzen und vollständiger Historie bei Bedarf</div>
     </div>
-    <button class="primary" onclick="openInspectionModal()">+ Begehung / Einsatz</button>
+    <button class="primary" onclick="openFindingModal()">+ Dokumentation</button>
   </div>
 
   <div class="filterbar">
@@ -1862,7 +1862,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.11.0-no-inspection-ui'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.11.1-documentation-routing'};
 }
 function load(){
   try{
@@ -1925,7 +1925,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.11.0-no-inspection-ui'
+      version:'2.11.1-documentation-routing'
     };
 
     merged.findings.forEach(f=>{
@@ -1962,7 +1962,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.11.0-no-inspection-ui';
+  db.version='2.11.1-documentation-routing';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -2551,7 +2551,7 @@ function renderObjects(){
     return `<div class="card">
       <div class="row space"><div><h3 style="margin:0">${esc(o.name)}</h3><div class="muted">${esc(o.address||'')}</div></div><span class="badge">${open} offen</span></div>
       <p>${esc(o.notes||'')}</p>
-      <div class="row"><button onclick="openInspectionModal('${o.id}')">Dokumentation erfassen</button>${canManageObjectsUI()?`<button onclick="openObjectModal('${o.id}')">Bearbeiten</button>`:''}<button onclick="showObjectReport('${o.id}')">Bericht</button></div>
+      <div class="row"><button onclick="openFindingModal('${o.id}','')">Dokumentation erfassen</button>${canManageObjectsUI()?`<button onclick="openObjectModal('${o.id}')">Bearbeiten</button>`:''}<button onclick="showObjectReport('${o.id}')">Bericht</button></div>
     </div>`;
   }).join(''):`<div class="empty">Noch kein Objekt angelegt.</div>`;
 }
@@ -2627,7 +2627,7 @@ function renderObjectFiles(){
             <span class="stat-chip">${inspections.length} Einsätze</span>
           </div>
         </div>
-        <button onclick="openInspectionModal('', '${o.id}')">+ Einsatz</button>
+        <button onclick="openFindingModal('${o.id}','')">+ Dokumentation</button>
       </div>
       <div class="timeline">
         ${lastHtml||'<div class="muted">Keine Einsätze im gewählten Filter.</div>'}
