@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.10.2 Auftraggeber-Dokumentation</title>
+<title>Duschl Service – Objekt-Dokumentation 2.10.3 Objektkontext</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -386,7 +386,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.10.2 Auftraggeber-Dokumentation ===== */
+/* ===== v2.10.3 Objektkontext ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -607,7 +607,7 @@ body.photo-viewer-open{overflow:hidden}
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.10.2 Auftraggeber-Dokumentation</span></header>
+<span class="badge">v2.10.3 Objektkontext</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -696,6 +696,19 @@ body.photo-viewer-open{overflow:hidden}
 </section>
 
 <section id="findings" class="section">
+<div id="customerObjectContext" class="card" style="display:none;margin-bottom:14px">
+  <div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em">Aktuelles Objekt</div>
+  <div id="customerObjectContextName" style="font-size:20px;font-weight:800;margin-top:4px">—</div>
+  <div id="customerObjectContextAddress" class="muted" style="margin-top:3px"></div>
+  <div id="customerObjectContextSelectWrap" style="margin-top:12px">
+    <label for="customerObjectSelect">Objekt auswählen</label>
+    <select id="customerObjectSelect" onchange="setCustomerObjectContext(this.value)"></select>
+  </div>
+  <div class="row" style="margin-top:12px">
+    <button class="primary" onclick="openCustomerDocumentation()">Dokumentation erfassen</button>
+  </div>
+</div>
+
   <div class="row space"><div><h2>Dokumentation</h2><div class="muted">Feststellungen und Leistungsnachweise</div></div><button class="primary" onclick="openFindingModal()">+ Dokumentation</button></div>
   <div class="grid g3" style="margin:14px 0">
     <div><label>Objekt</label><select id="filterObject" onchange="renderFindings()"><option value="">Alle</option></select></div>
@@ -1842,7 +1855,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.10.2-customer-documentation'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.10.3-object-context'};
 }
 function load(){
   try{
@@ -1905,7 +1918,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.10.2-customer-documentation'
+      version:'2.10.3-object-context'
     };
 
     merged.findings.forEach(f=>{
@@ -1942,7 +1955,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.10.2-customer-documentation';
+  db.version='2.10.3-object-context';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -2647,7 +2660,57 @@ function findingCard(f){
     <div class="row">${canEditFindingUI(f)?`<button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}')">Bearbeiten</button>${f.status!=='Erledigt'?`<button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}',true)">Abschließen</button>`:''}`:`<span class="muted">Nur durch Ersteller oder Admin/GF änderbar.</span>`}</div>
   </div>`;
 }
+let customerCurrentObjectId='';
+
+function customerAssignedObjects(){ return (db.objects||[]); }
+
+function ensureCustomerObjectContext(){
+  if(!isCustomerRole())return;
+  const objs=customerAssignedObjects();
+  if(!objs.length){customerCurrentObjectId='';return;}
+  if(!customerCurrentObjectId||!objs.some(o=>o.id===customerCurrentObjectId)){
+    customerCurrentObjectId=objs.length===1?objs[0].id:'';
+  }
+}
+
+function renderCustomerObjectContext(){
+  const box=document.getElementById('customerObjectContext');
+  if(!box)return;
+  if(!isCustomerRole()){box.style.display='none';return;}
+  box.style.display='';
+  ensureCustomerObjectContext();
+  const objs=customerAssignedObjects();
+  const sel=document.getElementById('customerObjectSelect');
+  if(sel){
+    sel.innerHTML=`<option value="">${objs.length>1?'Bitte Objekt auswählen':'Objekt auswählen'}</option>`+
+      objs.map(o=>`<option value="${o.id}" ${o.id===customerCurrentObjectId?'selected':''}>${esc(o.name)}</option>`).join('');
+    const wrap=document.getElementById('customerObjectContextSelectWrap');
+    if(wrap)wrap.style.display=objs.length===1?'none':'';
+  }
+  const o=objs.find(x=>x.id===customerCurrentObjectId);
+  document.getElementById('customerObjectContextName').textContent=o?.name||'Kein Objekt ausgewählt';
+  const zipcity=[o?.postalCode,o?.city].filter(Boolean).join(' ');
+  const addr=[o?.street,zipcity].filter(Boolean).join(' · ');
+  document.getElementById('customerObjectContextAddress').textContent=addr||'';
+}
+
+function setCustomerObjectContext(id){
+  customerCurrentObjectId=id||'';
+  renderCustomerObjectContext();
+  renderFindings();
+}
+
+function openCustomerDocumentation(){
+  ensureCustomerObjectContext();
+  if(!customerCurrentObjectId){
+    alert('Bitte zuerst das Objekt auswählen.');
+    return;
+  }
+  openFindingModal(customerCurrentObjectId,'');
+}
+
 function renderFindings(){
+  renderCustomerObjectContext();
   const df=document.getElementById('filterDecision')?.value||'';
   const of=document.getElementById('filterObject')?.value||'', sf=document.getElementById('filterStatus')?.value||'', pf=document.getElementById('filterPriority')?.value||'', tf=document.getElementById('filterType')?.value||'';
   let arr=[...db.findings].sort((a,b)=>b.createdAt-a.createdAt);
