@@ -481,7 +481,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.16.0 Meldungseingang ===== */
+/* ===== v2.17.0 Meldungsbearbeitung ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -790,7 +790,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.16.0 Meldungseingang</span></header>
+<span class="badge">v2.17.0 Meldungsbearbeitung</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -934,7 +934,8 @@ body.public-report-mode>#photoViewer{display:none!important}
       <select id="residentReportStatusFilter" onchange="renderResidentReports()">
         <option value="">Alle Status</option>
         <option value="received">Eingegangen</option>
-        <option value="reviewed">Geprüft</option>
+        <option value="internal_action">Dokumentiert / intern übernommen</option>
+        <option value="rejected">Verworfen</option>
         <option value="completed">Abgeschlossen</option>
         <option value="closed">Geschlossen</option>
       </select>
@@ -1649,6 +1650,7 @@ function cloudFindingToLocal(f,decision){
     id:f.id,
     objectId:f.object_id,
     inspectionId:f.inspection_id||'',
+    sourceResidentReportId:f.source_resident_report_id||'',
     type:cloudFindingTypeToLocal(f.type),
     area:f.area||'',
     title:f.title||'',
@@ -1826,7 +1828,7 @@ async function cloudDeleteTaskForFinding(findingId){
 
 async function cloudReloadFindings(){
   if(!cloudSession?.access_token)return;
-  const rows=await cloudRequest('findings?select=id,object_id,inspection_id,type,area,title,category,priority,description,recommended_action,activity,status,completion_type,completion_note,work_required,created_by,created_at,updated_at&order=created_at.desc');
+  const rows=await cloudRequest('findings?select=id,object_id,inspection_id,source_resident_report_id,type,area,title,category,priority,description,recommended_action,activity,status,completion_type,completion_note,work_required,created_by,created_at,updated_at&order=created_at.desc');
   const decisions=await cloudRequest('decisions?select=id,finding_id,required,status,decided_by_name,decision_date,comment,amount,created_at,updated_at');
   const dm=new Map((decisions||[]).map(d=>[d.finding_id,d]));
   const pm=await cloudLoadPhotoRefs();
@@ -3391,10 +3393,13 @@ function residentReportStatusLabel(status){
     new:'Eingegangen',
     reviewed:'Geprüft',
     in_review:'In Prüfung',
+    internal_action:'Dokumentiert / intern übernommen',
+    forwarded_to_management:'An Auftraggeber weitergegeben',
+    approval_required:'Freigabe erforderlich',
+    approved:'Freigegeben',
     completed:'Abgeschlossen',
     closed:'Geschlossen',
-    rejected:'Verworfen',
-    converted:'Übernommen'
+    rejected:'Verworfen'
   })[status]||status||'Eingegangen';
 }
 
@@ -3417,7 +3422,7 @@ function renderResidentReports(){
     .filter(r=>(!statusFilter||r.status===statusFilter)&&(!objectId||r.object_id===objectId));
 
   const openCount=(cloudResidentReports||[])
-    .filter(r=>!['completed','closed','rejected','converted'].includes(r.status||'received')).length;
+    .filter(r=>!['completed','closed','rejected'].includes(r.status||'received')).length;
 
   const navCount=document.getElementById('residentReportNavCount');
   if(navCount)navCount.textContent=openCount;
@@ -3430,6 +3435,7 @@ function renderResidentReports(){
   list.innerHTML=rows.map(r=>{
     const obj=(db.objects||[]).find(o=>o.id===r.object_id);
     const when=r.received_at||r.created_at;
+    const finalState=['closed','rejected','completed'].includes(r.status||'');
     return `<div class="card">
       <div class="row space">
         <div>
@@ -3444,9 +3450,226 @@ function renderResidentReports(){
         ${r.resident_email?' · '+esc(r.resident_email):''}
         ${when?' · '+esc(fmt(when)):''}
       </div>
-      ${r.converted_to_finding_id?'<div class="muted" style="margin-top:8px">Bereits als Dokumentation übernommen.</div>':''}
+      ${r.internal_assessment?`<div class="card" style="margin-top:10px"><strong>Interne Dokumentation</strong><div style="margin-top:5px">${esc(r.internal_assessment)}</div></div>`:''}
+      ${r.converted_to_finding_id?'<div class="muted" style="margin-top:8px">Mit offizieller Dokumentation verknüpft.</div>':''}
+      <div class="row" style="margin-top:12px">
+        <button type="button" onclick="openResidentReportDetails('${r.id}')">Details</button>
+        ${!r.converted_to_finding_id&&!finalState?`<button type="button" class="primary" onclick="convertResidentReportToFinding('${r.id}')">Dokumentieren</button>`:''}
+        ${!finalState?`<button type="button" onclick="openResidentReportCloseModal('${r.id}','closed')">Schließen</button>`:''}
+        ${!finalState?`<button type="button" class="danger" onclick="openResidentReportCloseModal('${r.id}','rejected')">Verwerfen</button>`:''}
+        ${r.converted_to_finding_id?`<button type="button" onclick="openResidentConvertedFinding('${r.converted_to_finding_id}')">Dokumentation öffnen</button>`:''}
+      </div>
     </div>`;
   }).join('');
+}
+
+function getResidentReportById(id){
+  return (cloudResidentReports||[]).find(r=>r.id===id)||null;
+}
+
+function openResidentReportDetails(id){
+  const r=getResidentReportById(id); if(!r)return;
+  const obj=(db.objects||[]).find(o=>o.id===r.object_id);
+  modal(`<div class="row space">
+      <div><h2>Meldung prüfen</h2><div class="muted">${esc(obj?.name||'Objekt')} · ${esc(r.report_no||'')}</div></div>
+      <button onclick="closeModal()">✕</button>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <p><strong>Status</strong><br>${esc(residentReportStatusLabel(r.status))}</p>
+      <p><strong>Kategorie</strong><br>${esc(r.category||'—')}</p>
+      <p><strong>Bereich / Ort</strong><br>${esc(r.location_detail||'—')}</p>
+      <p><strong>Beschreibung</strong><br>${esc(r.description||'—')}</p>
+      <p><strong>Melder</strong><br>${esc(r.resident_name||'—')}${r.resident_email?'<br>'+esc(r.resident_email):''}</p>
+      <p><strong>Eingang</strong><br>${esc(fmt(r.received_at||r.created_at))}</p>
+      ${r.internal_assessment?`<p><strong>Interne Dokumentation</strong><br>${esc(r.internal_assessment)}</p>`:''}
+    </div>
+    <div class="row" style="margin-top:14px">
+      ${!r.converted_to_finding_id&&!['closed','rejected','completed'].includes(r.status||'')?`<button class="primary" onclick="closeModal();convertResidentReportToFinding('${r.id}')">Dokumentieren</button>`:''}
+      ${!['closed','rejected','completed'].includes(r.status||'')?`<button onclick="closeModal();openResidentReportCloseModal('${r.id}','closed')">Schließen</button>`:''}
+      ${!['closed','rejected','completed'].includes(r.status||'')?`<button class="danger" onclick="closeModal();openResidentReportCloseModal('${r.id}','rejected')">Verwerfen</button>`:''}
+      <button onclick="closeModal()">Abbrechen</button>
+    </div>`);
+}
+
+function openResidentReportCloseModal(id,targetStatus){
+  const r=getResidentReportById(id); if(!r)return;
+  const isReject=targetStatus==='rejected';
+  const title=isReject?'Meldung verwerfen':'Meldung schließen';
+  const examples=isReject
+    ? 'z. B. Spam, falsches Objekt, nicht sachbezogen'
+    : 'z. B. kein Handlungsbedarf, bereits erledigt, Duplikat';
+  modal(`<div class="row space"><h2>${title}</h2><button onclick="closeModal()">✕</button></div>
+    <div class="muted">Die ursprüngliche Meldung bleibt erhalten. Die Begründung wird intern dokumentiert.</div>
+    <label>Begründung *</label>
+    <textarea id="rrCloseReason" maxlength="1500" placeholder="${examples}"></textarea>
+    <div class="row" style="margin-top:14px">
+      <button class="${isReject?'danger':'primary'}" onclick="saveResidentReportClosure('${id}','${targetStatus}')">${isReject?'Verwerfen':'Schließen'}</button>
+      <button onclick="closeModal()">Abbrechen</button>
+    </div>`);
+}
+
+async function logResidentReportEvent(reportId,eventType,status,note){
+  try{
+    await cloudRequest('resident_report_events',{
+      method:'POST',
+      headers:{'Prefer':'return=minimal'},
+      body:JSON.stringify({
+        resident_report_id:reportId,
+        event_type:eventType,
+        status,
+        internal_note:note||null,
+        email_sent:false,
+        created_by:currentUserId()||null
+      })
+    });
+  }catch(e){
+    console.warn('Meldungsereignis konnte nicht protokolliert werden',e);
+  }
+}
+
+async function saveResidentReportClosure(id,targetStatus){
+  const r=getResidentReportById(id); if(!r)return;
+  const reason=(document.getElementById('rrCloseReason')?.value||'').trim();
+  if(!reason)return alert('Bitte eine Begründung eingeben.');
+
+  const isReject=targetStatus==='rejected';
+  const now=new Date().toISOString();
+  try{
+    cloudSetStatus('Meldung wird dokumentiert …','wait');
+    const payload={
+      status:targetStatus,
+      internal_assessment:reason,
+      reviewed_at:r.reviewed_at||now,
+      closed_at:now,
+      updated_at:now
+    };
+    await cloudRequest(`resident_reports?id=eq.${encodeURIComponent(id)}`,{
+      method:'PATCH',
+      headers:{'Prefer':'return=minimal'},
+      body:JSON.stringify(payload)
+    });
+
+    await logResidentReportEvent(
+      id,
+      isReject?'rejected':'closed',
+      targetStatus,
+      reason
+    );
+
+    closeModal();
+    await cloudLoadResidentReports();
+    renderResidentReports();
+    cloudSetStatus('Verbunden · Meldung dokumentiert','ok');
+  }catch(e){
+    console.error('Meldung abschließen fehlgeschlagen',e);
+    alert('Meldung konnte nicht gespeichert werden: '+(e.message||e));
+  }
+}
+
+async function convertResidentReportToFinding(id){
+  const r=getResidentReportById(id); if(!r)return;
+  if(r.converted_to_finding_id){
+    return openResidentConvertedFinding(r.converted_to_finding_id);
+  }
+  if(!r.object_id)return alert('Der Meldung ist kein Objekt zugeordnet.');
+
+  const ok=confirm(
+    'Diese Meldung als offizielle Dokumentation übernehmen?\\n\\n'+
+    'Es wird eine Feststellung am Objekt angelegt und mit der ursprünglichen Meldung verknüpft.'
+  );
+  if(!ok)return;
+
+  try{
+    cloudSetStatus('Meldung wird als Dokumentation übernommen …','wait');
+
+    // Doppelerstellung verhindern: vorhandene Verknüpfung über source_resident_report_id wiederverwenden.
+    const existing=await cloudRequest(
+      `findings?select=id&source_resident_report_id=eq.${encodeURIComponent(id)}&limit=1`
+    );
+    let findingId=existing?.[0]?.id||'';
+
+    if(!findingId){
+      const title=(r.category||'Bewohnermeldung').trim()||'Bewohnermeldung';
+      const rows=await cloudRequest('findings',{
+        method:'POST',
+        headers:{'Prefer':'return=representation'},
+        body:JSON.stringify({
+          object_id:r.object_id,
+          inspection_id:null,
+          source_resident_report_id:r.id,
+          type:'finding',
+          area:r.location_detail||null,
+          title,
+          category:'Funktion',
+          priority:'P3',
+          description:r.description||null,
+          recommended_action:null,
+          activity:null,
+          status:'open',
+          work_required:false,
+          created_by:currentUserId()||null,
+          updated_at:new Date().toISOString()
+        })
+      });
+      findingId=rows?.[0]?.id||'';
+      if(!findingId)throw new Error('Dokumentation wurde nicht von Supabase zurückgegeben.');
+
+      // Neue Dokumentation startet bewusst ohne Auftraggeberentscheidung.
+      await cloudRequest('decisions',{
+        method:'POST',
+        headers:{'Prefer':'return=minimal'},
+        body:JSON.stringify({
+          finding_id:findingId,
+          required:false,
+          status:'not_required',
+          updated_at:new Date().toISOString()
+        })
+      });
+    }
+
+    const now=new Date().toISOString();
+    const assessment='Als offizielle Dokumentation übernommen.';
+    await cloudRequest(`resident_reports?id=eq.${encodeURIComponent(id)}`,{
+      method:'PATCH',
+      headers:{'Prefer':'return=minimal'},
+      body:JSON.stringify({
+        status:'internal_action',
+        internal_assessment:assessment,
+        converted_to_finding_id:findingId,
+        reviewed_at:r.reviewed_at||now,
+        updated_at:now
+      })
+    });
+
+    await logResidentReportEvent(id,'converted_to_finding','internal_action',assessment);
+
+    await cloudReloadFindings();
+    await cloudLoadResidentReports();
+    closeModal();
+    renderResidentReports();
+    cloudSetStatus('Verbunden · Meldung als Dokumentation übernommen','ok');
+
+    const f=(db.findings||[]).find(x=>x.id===findingId);
+    if(f)openFindingModal(f.objectId,'',f.id);
+    else showSection('findings');
+  }catch(e){
+    console.error('Meldung übernehmen fehlgeschlagen',e);
+    alert('Meldung konnte nicht als Dokumentation übernommen werden: '+(e.message||e));
+  }
+}
+
+function openResidentConvertedFinding(findingId){
+  const f=(db.findings||[]).find(x=>x.id===findingId);
+  if(!f){
+    alert('Die verknüpfte Dokumentation wird neu geladen.');
+    cloudReloadFindings().then(()=>{
+      const x=(db.findings||[]).find(y=>y.id===findingId);
+      if(x)openFindingModal(x.objectId,'',x.id);
+      else alert('Verknüpfte Dokumentation wurde nicht gefunden.');
+    }).catch(e=>alert('Dokumentation konnte nicht geladen werden: '+(e.message||e)));
+    return;
+  }
+  openFindingModal(f.objectId,'',f.id);
 }
 
 function renderReport(){
