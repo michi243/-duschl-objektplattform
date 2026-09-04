@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.11.7 Benutzer Anzeigename</title>
+<title>Duschl Service – Objekt-Dokumentation 2.11.8 Anzeigename editierbar</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -386,7 +386,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.11.7 Benutzer Anzeigename ===== */
+/* ===== v2.11.8 Anzeigename editierbar ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -607,7 +607,7 @@ body.photo-viewer-open{overflow:hidden}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.11.7 Benutzer Anzeigename</span></header>
+<span class="badge">v2.11.8 Anzeigename editierbar</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1870,7 +1870,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.11.7-user-display-name'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.11.8-editable-display-name'};
 }
 function load(){
   try{
@@ -1933,7 +1933,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.11.7-user-display-name'
+      version:'2.11.8-editable-display-name'
     };
 
     merged.findings.forEach(f=>{
@@ -1970,7 +1970,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.11.7-user-display-name';
+  db.version='2.11.8-editable-display-name';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -2578,16 +2578,20 @@ function loadUserAdminEditor(){
   const legacyEmployee=p.role==='employee'?'<option value="employee" selected disabled>Mitarbeiter (Alt) – bitte auf eine der 3 Rollen umstellen</option>':'';
   const roleOptions=legacyEmployee+roles.map(([v,l])=>`<option value="${v}" ${p.role===v?'selected':''}>${l}</option>`).join('');
   const objectRows=(db.objects||[]).map(o=>`<label class="row" style="gap:10px;align-items:center;margin:8px 0"><input type="checkbox" class="userObjectAssignment" value="${esc(o.id)}" ${assigned.has(o.id)?'checked':''}><span><strong>${esc(o.name||'Objekt')}</strong>${o.street||o.city?`<br><span class="muted">${esc([o.street,[o.postal_code,o.city].filter(Boolean).join(' ')].filter(Boolean).join(', '))}</span>`:''}</span></label>`).join('')||'<p class="muted">Keine Objekte vorhanden.</p>';
-  ed.innerHTML=`<div class="card"><h3>${esc(p.email||p.full_name||'Benutzer')}</h3>${p.full_name&&p.email?`<p class="muted">${esc(p.full_name)}</p>`:''}<div class="grid2"><label>Rolle<select id="userAdminRole">${roleOptions}</select></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminActive" type="checkbox" ${p.active!==false?'checked':''}><span>Benutzer aktiv</span></label></div><h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px"><button onclick="saveUserAdminPermissions()">Speichern</button></div><p class="muted" style="margin-top:12px">Passwort wird hier bewusst nicht verwaltet. Die E-Mail-Adresse ist die Benutzerkennung und Benachrichtigungsadresse.</p></div>`;
+  ed.innerHTML=`<div class="card"><h3>${esc(p.email||p.full_name||'Benutzer')}</h3><div class="grid2"><label>Anzeigename<input id="userAdminFullName" value="${esc(p.full_name||'')}" placeholder="z. B. Hans Müller"></label><label>Rolle<select id="userAdminRole">${roleOptions}</select></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminActive" type="checkbox" ${p.active!==false?'checked':''}><span>Benutzer aktiv</span></label></div><h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px"><button onclick="saveUserAdminPermissions()">Speichern</button></div><p class="muted" style="margin-top:12px">Passwort wird hier bewusst nicht verwaltet. Die E-Mail-Adresse ist die Benutzerkennung und Benachrichtigungsadresse.</p></div>`;
 }
 async function saveUserAdminPermissions(){
   if(!isAdminRole())return requireAdminUI('Benutzer & Berechtigungen');
-  const uid=document.getElementById('userAdminSelect')?.value,role=document.getElementById('userAdminRole')?.value,active=!!document.getElementById('userAdminActive')?.checked;
+  const uid=document.getElementById('userAdminSelect')?.value,
+        fullName=document.getElementById('userAdminFullName')?.value.trim()||'',
+        role=document.getElementById('userAdminRole')?.value,
+        active=!!document.getElementById('userAdminActive')?.checked;
   if(!uid||!role)return alert('Benutzer und Rolle fehlen.');
+  if(!fullName)return alert('Bitte einen Anzeigenamen eingeben.');
   if(uid===currentUserProfile?.id&&(!active||role!=='platform_admin'))return alert('Der aktuell angemeldete Administrator kann sich nicht selbst deaktivieren oder seine Administratorrolle entfernen.');
   const checked=[...document.querySelectorAll('.userObjectAssignment:checked')].map(x=>x.value);
   try{
-    await cloudRequest('profiles?id=eq.'+encodeURIComponent(uid),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({role,active})});
+    await cloudRequest('profiles?id=eq.'+encodeURIComponent(uid),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({full_name:fullName,role,active})});
     const existing=userAdminAssignments.filter(a=>a.user_id===uid);
     for(const a of existing){
       const should=checked.includes(a.object_id);
