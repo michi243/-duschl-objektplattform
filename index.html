@@ -348,6 +348,15 @@ a{color:var(--accent-2)!important}
   }
 }
 
+
+/* v2.14.1 – Begehungen vollständig aus der aktiven Oberfläche entfernt.
+   Datenmodell/inspection_id bleiben ausschließlich zur Abwärtskompatibilität bestehen. */
+#navInspections,
+#inspections,
+[data-section="inspections"] {
+  display:none !important;
+}
+
 </style>
 
 <style>
@@ -472,7 +481,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.14.0 Interner Arbeitsvorrat ===== */
+/* ===== v2.14.1 Ohne Begehungen ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -693,11 +702,10 @@ body.photo-viewer-open{overflow:hidden}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.14.0 Interner Arbeitsvorrat</span></header>
+<span class="badge">v2.14.1 Ohne Begehungen</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
-  <button id="navInspections" onclick="showSection('inspections')">Begehungen</button>
   <button id="navFindings" onclick="showSection('findings')">Dokumentation</button>
 <button id="navDecisions" onclick="showSection('decisions')">Entscheidungen <span id="decisionNavCount" class="badge" style="margin-left:4px">0</span></button>
   <button id="navWorkqueue" onclick="showSection('workqueue')">Arbeitsvorrat</button><button id="navReports" onclick="showSection('reports')">Berichte</button>
@@ -712,7 +720,6 @@ body.photo-viewer-open{overflow:hidden}
     <div class="card"><div class="muted">Objekte</div><div class="kpi" id="kpiObjects">0</div></div>
     <div class="card"><div class="muted">Offene Feststellungen</div><div class="kpi" id="kpiOpen">0</div></div>
     <div class="card"><div class="muted">Sofort / Dringend offen</div><div class="kpi" id="kpiCritical">0</div></div>
-    <div class="card"><div class="muted">Begehungen</div><div class="kpi" id="kpiInspections">0</div></div>
   </div>
   <h3>Offene Punkte</h3>
   <div id="dashboardFindings" class="grid"></div>
@@ -721,64 +728,6 @@ body.photo-viewer-open{overflow:hidden}
 <section id="objects" class="section">
   <div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand</div></div><button id="addObjectBtn" class="primary" onclick="openObjectModal()">+ Objekt</button></div>
   <div id="objectList" class="grid g2" style="margin-top:14px"></div>
-</section>
-
-<section id="inspections" class="section">
-  <div class="row space">
-    <div>
-      <h2>Objektakte & Historie</h2>
-      <div class="muted">Aktueller Stand je Objekt mit den letzten Einsätzen und vollständiger Historie bei Bedarf</div>
-    </div>
-    
-  </div>
-
-  <div class="filterbar">
-    <div>
-      <label>Objekt</label>
-      <select id="historyObjectFilter" onchange="renderObjectFiles()">
-        <option value="">Alle Objekte</option>
-      </select>
-    </div>
-    <div>
-      <label>Zeitraum</label>
-      <select id="historyPeriodFilter" onchange="renderObjectFiles()">
-        <option value="all">Gesamter Zeitraum</option>
-        <option value="30">Letzte 30 Tage</option>
-        <option value="90">Letzte 90 Tage</option>
-        <option value="365">Letzte 12 Monate</option>
-      </select>
-    </div>
-    <div>
-      <label>Dokumentation</label>
-      <select id="historyTypeFilter" onchange="renderObjectFiles()">
-        <option value="">Alle</option>
-        <option value="Feststellung">Feststellungen</option>
-        <option value="Leistung">Leistungen</option>
-      </select>
-    </div>
-    <div>
-      <label>Status</label>
-      <select id="historyStatusFilter" onchange="renderObjectFiles()">
-        <option value="">Alle</option>
-        <option value="active">Offen + In Bearbeitung</option>
-        <option value="Offen">Offen</option>
-        <option value="In Bearbeitung">In Bearbeitung</option>
-        <option value="Erledigt">Erledigt</option>
-      </select>
-      <label>Auftraggeber-Entscheidung</label>
-      <select id="historyDecisionFilter" onchange="renderObjectFiles()">
-        <option value="">Alle Entscheidungen</option>
-        <option value="pending">Entscheidung ausstehend</option>
-        <option value="approved">Beauftragt</option>
-        <option value="rejected">Nicht beauftragt</option>
-        <option value="deferred">Zurückgestellt</option>
-        <option value="question">Rückfrage erforderlich</option>
-        <option value="thirdparty">An Dritten vergeben</option>
-      </select>
-    </div>
-  </div>
-
-  <div id="objectFiles"></div>
 </section>
 
 <section id="findings" class="section">
@@ -1001,7 +950,7 @@ body.photo-viewer-open{overflow:hidden}
       <button type="button" onclick="cloudReloadObjects()">Objekte neu laden</button>
       <button type="button" onclick="cloudLogout()">Abmelden</button>
     </div>
-    <div class="muted" style="margin-top:8px">Teststufe 2.8.1: Objekte, Begehungen, Dokumentationen, Fotos und der Arbeitsvorrat werden zentral in Supabase gespeichert. Lokale IndexedDB-Fotos bleiben als Rückfall- und Migrationsquelle erhalten.</div>
+    <div class="muted" style="margin-top:8px">Objekte, Dokumentationen, Fotos und der Arbeitsvorrat werden zentral in Supabase gespeichert. Lokale IndexedDB-Fotos bleiben als Rückfall- und Migrationsquelle erhalten.</div>
   </div>
 
   <div class="card" style="margin-bottom:14px">
@@ -1029,7 +978,7 @@ body.photo-viewer-open{overflow:hidden}
   <div class="grid g2">
     <div class="card">
       <h3>Sicherung exportieren</h3>
-      <p class="muted">Lädt alle Objekte, Begehungen und Dokumentationen als JSON-Datei herunter.</p>
+      <p class="muted">Lädt alle Objekte und Dokumentationen als JSON-Datei herunter.</p>
       <button class="primary" onclick="exportData()">Sicherung erstellen</button>
     </div>
     <div class="card">
@@ -1041,7 +990,7 @@ body.photo-viewer-open{overflow:hidden}
   </div>
   <div class="card" style="margin-top:14px">
     <h3>Lokale Daten</h3>
-    <p class="muted">Teststufe 2.8.1: Objekte, Begehungen, Dokumentationen und der Arbeitsvorrat werden zentral über Supabase gespeichert. Neue Fotos werden in Supabase Storage gespeichert; vorhandene lokale Fotos bleiben erhalten und werden beim nächsten Speichern einer Dokumentation hochgeladen.</p>
+    <p class="muted">Objekte, Dokumentationen und der Arbeitsvorrat werden zentral über Supabase gespeichert. Neue Fotos werden in Supabase Storage gespeichert; vorhandene lokale Fotos bleiben erhalten und werden beim nächsten Speichern einer Dokumentation hochgeladen.</p>
     <button class="danger" onclick="resetData()">Alle lokalen Daten löschen</button>
   </div>
 </section>
@@ -1267,7 +1216,7 @@ function applyRoleUI(){
 
   // Verbindliches 3-Rollen-Modell:
   // Admin/GF = Gesamtsteuerung; Objektbetreuer = operative Umsetzung;
-  // Auftraggeber = eigene Begehungen/Dokumentation + Freigaben.
+  // Auftraggeber = eigene Dokumentation + Freigaben.
   show('navDashboard',true);
   show('navObjects',true);
   show('navInspections',false);
@@ -1787,7 +1736,7 @@ async function cloudReloadObjects(){
     db.inspections=(inspectionRows||[]).map(cloudInspectionToLocal);
     await cloudReloadFindings();
     renderAll();
-    cloudSetStatus(`Verbunden · ${db.objects.length} Objekt(e) · ${db.inspections.length} Begehung(en) · ${db.findings.filter(f=>f.cloud).length} Dokumentation(en) · ${(db.tasks||[]).length} Aufgabe(n) zentral`,'ok');
+    cloudSetStatus(`Verbunden · ${db.objects.length} Objekt(e) · ${db.findings.filter(f=>f.cloud).length} Dokumentation(en) · ${(db.tasks||[]).length} Aufgabe(n) zentral`,'ok');
   }catch(e){
     console.error('Objekte laden fehlgeschlagen',e);
     cloudSetStatus('Verbindungsfehler: '+(e.message||e),'bad');
@@ -2495,7 +2444,7 @@ function showRecoveryStatus(){
   const el=document.getElementById('recoveryStatus');
   if(!el)return;
   if(!r){el.textContent='Kein historischer Datenstand gefunden.';return}
-  el.innerHTML=`Gefunden: <strong>${r.objects}</strong> Objekte, <strong>${r.inspections}</strong> Begehungen, <strong>${r.findings}</strong> Dokumentationen.<br><span class="muted">Zusammengeführt aus ${r.sources.length} lokal vorhandenen Datenständen.</span>`;
+  el.innerHTML=`Gefunden: <strong>${r.objects}</strong> Objekte, <strong>${r.findings}</strong> Dokumentationen.<br><span class="muted">Zusammengeführt aus ${r.sources.length} lokal vorhandenen Datenständen.</span>`;
 }
 
 function dateOnly(v){
