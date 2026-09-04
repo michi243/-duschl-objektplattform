@@ -481,7 +481,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.15.1 QR-Fehlerdiagnose ===== */
+/* ===== v2.16.0 Meldungseingang ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -790,11 +790,12 @@ body.public-report-mode>#photoViewer{display:none!important}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.15.1 QR-Fehlerdiagnose</span></header>
+<span class="badge">v2.16.0 Meldungseingang</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
   <button id="navFindings" onclick="showSection('findings')">Dokumentation</button>
+  <button id="navResidentReports" onclick="showSection('residentReports')">Meldungen <span id="residentReportNavCount" class="badge" style="margin-left:4px">0</span></button>
 <button id="navDecisions" onclick="showSection('decisions')">Entscheidungen <span id="decisionNavCount" class="badge" style="margin-left:4px">0</span></button>
   <button id="navWorkqueue" onclick="showSection('workqueue')">Arbeitsvorrat</button><button id="navReports" onclick="showSection('reports')">Berichte</button>
   <button id="navUsers" onclick="showSection('users')">Benutzer & Berechtigungen</button>
@@ -909,6 +910,25 @@ body.public-report-mode>#photoViewer{display:none!important}
     </div>
   </div>
   <div id="workQueue"></div>
+</section>
+
+
+<section id="residentReports" class="section">
+  <div class="row space">
+    <div><h2>Meldungen</h2><div class="muted">Öffentlich eingegangene Hinweise zur internen Prüfung</div></div>
+    <button onclick="cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+e.message))">Aktualisieren</button>
+  </div>
+  <div class="filters">
+    <select id="residentReportObjectFilter" onchange="renderResidentReports()"><option value="">Alle Objekte</option></select>
+    <select id="residentReportStatusFilter" onchange="renderResidentReports()">
+      <option value="">Alle Status</option>
+      <option value="received">Eingegangen</option>
+      <option value="reviewed">Geprüft</option>
+      <option value="completed">Abgeschlossen</option>
+      <option value="closed">Geschlossen</option>
+    </select>
+  </div>
+  <div id="residentReportList" class="grid" style="margin-top:14px"></div>
 </section>
 
 <section id="reports" class="section">
@@ -1393,6 +1413,7 @@ function applyRoleUI(){
   show('navObjects',true);
   show('navInspections',false);
   show('navFindings',true);
+  show('navResidentReports',!isCustomerRole());
   show('navWorkqueue',canUseWorkQueueUI());
   show('navReports',true);
   show('navDecisions',canUseDecisionsUI());
@@ -1898,6 +1919,14 @@ async function cloudDeleteFinding(id){
     await cloudRequest(`findings?id=eq.${encodeURIComponent(id)}`,{method:'DELETE'});
   }
 }
+
+async function cloudLoadResidentReports(){
+  if(!cloudEnabled())return [];
+  const rows=await cloudRequest('resident_reports?select=id,report_no,object_id,resident_name,resident_email,category,description,status,internal_assessment,requires_management,converted_to_finding_id,received_at,reviewed_at,completed_at,closed_at,consent_given,location_detail,created_at,updated_at&order=received_at.desc.nullslast,created_at.desc');
+  cloudResidentReports=Array.isArray(rows)?rows:[];
+  return cloudResidentReports;
+}
+
 async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
   cloudSetStatus('Supabase wird geladen …','wait');
@@ -1907,6 +1936,7 @@ async function cloudReloadObjects(){
     const inspectionRows=await cloudRequest('inspections?select=id,object_id,started_at,ended_at,notes,created_by,created_at,updated_at&order=started_at.desc');
     db.inspections=(inspectionRows||[]).map(cloudInspectionToLocal);
     await cloudReloadFindings();
+    await cloudLoadResidentReports().catch(e=>console.warn("Meldungen laden fehlgeschlagen",e));
     renderAll();
     cloudSetStatus(`Verbunden · ${db.objects.length} Objekt(e) · ${db.findings.filter(f=>f.cloud).length} Dokumentation(en) · ${(db.tasks||[]).length} Aufgabe(n) zentral`,'ok');
   }catch(e){
@@ -2368,7 +2398,7 @@ function showSection(id){
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('primary'));
   [...document.querySelectorAll('nav button')].find(b=>b.getAttribute('onclick')?.includes(`'${id}'`))?.classList.add('primary');
-  if(id==='reports')renderReport();if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='users')loadUserAdminData();
+  if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+e.message));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='users')loadUserAdminData();
 }
 function priorityLabel(p){
   return ({P1:'Sofort',P2:'Dringend',P3:'Planbar',P4:'Beobachten'})[p]||p||'';
@@ -3082,7 +3112,7 @@ async function saveUserAdminPermissions(){
 
 function renderAll(){
   renderDashboard();renderObjects();renderInspections();renderSelects();renderFindings();renderReport();
-if(canUseDecisionsUI())renderDecisions();if(canUseWorkQueueUI())renderWorkQueue();
+if(canUseDecisionsUI())renderDecisions();if(canUseWorkQueueUI())renderWorkQueue();if(!isCustomerRole())renderResidentReports();
   const ro=document.getElementById('reportObject');
   if(ro){
     const rv=ro.value;
@@ -3332,6 +3362,39 @@ async function printCurrentReport(){
   if(!document.getElementById('reportObject')?.value){alert('Bitte zuerst ein Objekt auswählen.');return}
   await hydrateMediaImages(document.getElementById('reportContent'));
   setTimeout(()=>window.print(),250);
+}
+
+
+function residentReportStatusLabel(status){
+  return ({received:'Eingegangen',new:'Eingegangen',reviewed:'Geprüft',in_review:'In Prüfung',completed:'Abgeschlossen',closed:'Geschlossen',rejected:'Verworfen',converted:'Übernommen'})[status]||status||'Eingegangen';
+}
+function renderResidentReports(){
+  const list=document.getElementById('residentReportList'); if(!list)return;
+  const of=document.getElementById('residentReportObjectFilter');
+  if(of){
+    const keep=of.value;
+    of.innerHTML='<option value="">Alle Objekte</option>'+db.objects.map(o=>`<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('');
+    of.value=keep;
+  }
+  const sf=document.getElementById('residentReportStatusFilter')?.value||'';
+  const oid=of?.value||'';
+  const rows=(cloudResidentReports||[]).filter(r=>(!sf||r.status===sf)&&(!oid||r.object_id===oid));
+  const open=(cloudResidentReports||[]).filter(r=>!['completed','closed','rejected','converted'].includes(r.status||'received')).length;
+  const badge=document.getElementById('residentReportNavCount'); if(badge)badge.textContent=open;
+  if(!rows.length){list.innerHTML='<div class="empty">Keine Meldungen im gewählten Filter.</div>';return;}
+  list.innerHTML=rows.map(r=>{
+    const obj=db.objects.find(o=>o.id===r.object_id);
+    const when=r.received_at||r.created_at;
+    return `<div class="card">
+      <div class="row space">
+        <div><b>${esc(r.category||'Meldung')}</b><div class="muted">${esc(obj?.name||'Objekt')} · ${esc(r.location_detail||'Ort nicht angegeben')}</div></div>
+        <span class="badge">${esc(residentReportStatusLabel(r.status))}</span>
+      </div>
+      <div style="margin-top:10px">${esc(r.description||'')}</div>
+      <div class="muted" style="margin-top:10px">${esc(r.resident_name||'')}${r.resident_email?' · '+esc(r.resident_email):''}${when?' · '+esc(fmt(when)):''}</div>
+      ${r.converted_to_finding_id?'<div class="muted" style="margin-top:8px">Bereits als Dokumentation übernommen.</div>':''}
+    </div>`;
+  }).join('');
 }
 
 function renderReport(){
