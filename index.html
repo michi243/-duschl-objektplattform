@@ -607,7 +607,7 @@ body.photo-viewer-open{overflow:hidden}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.12.2 Benutzer löschen</span></header>
+<span class="badge">v2.12.3 Auftraggeber + Benutzername</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -984,9 +984,17 @@ const ROLE_LABELS={
   customer:'Auftraggeber'
 };
 
-function isAdminRole(){return currentUserRole==='platform_admin'}
-function isObjectManagerRole(){return ['object_manager','staff'].includes(currentUserRole)}
-function isCustomerRole(){return currentUserRole==='customer'}
+function effectiveUserRole(){
+  return String(
+    currentUserProfile?.role ||
+    currentUserRole ||
+    cloudSession?.user?.user_metadata?.app_role ||
+    ''
+  ).trim().toLowerCase();
+}
+function isAdminRole(){return effectiveUserRole()==='platform_admin'}
+function isObjectManagerRole(){return ['object_manager','staff'].includes(effectiveUserRole())}
+function isCustomerRole(){return effectiveUserRole()==='customer'}
 function canManageObjectsUI(){return isAdminRole()}
 function canUseDecisionsUI(){return isAdminRole()||isCustomerRole()}
 function canUseWorkQueueUI(){return isAdminRole()||isObjectManagerRole()}
@@ -1030,16 +1038,18 @@ async function cloudLoadCurrentProfile(){
   const p=rows?.[0];
   if(!p||p.active!==true)throw new Error('Kein aktives Benutzerprofil gefunden.');
   currentUserProfile=p;
-  currentUserRole=p.role||'';
+  currentUserRole=String(p.role||cloudSession?.user?.user_metadata?.app_role||'').trim().toLowerCase();
   applyRoleUI();
   return p;
 }
 
 function applyRoleUI(){
-  const role=currentUserRole||'';
+  const role=effectiveUserRole();
   const rb=document.getElementById('roleBadge');
   if(rb){
-    rb.textContent=ROLE_LABELS[role]||role||'Unbekannte Rolle';
+    const displayName=(currentUserProfile?.full_name||cloudSession?.user?.user_metadata?.full_name||cloudSession?.user?.email||'').trim();
+    const roleLabel=ROLE_LABELS[role]||role||'Unbekannte Rolle';
+    rb.textContent=displayName ? `${displayName} · ${roleLabel}` : roleLabel;
     rb.style.display=role?'':'none';
   }
 
