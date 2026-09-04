@@ -481,7 +481,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.15.0 QR-Meldeseite ===== */
+/* ===== v2.15.1 QR-Fehlerdiagnose ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -790,7 +790,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.15.0 QR-Meldeseite</span></header>
+<span class="badge">v2.15.1 QR-Fehlerdiagnose</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1122,6 +1122,7 @@ function publicReportMessage(text,type='bad'){
   if(!el)return;
   el.className='public-report-message '+type;
   el.textContent=text;
+  el.style.display=text?'block':'none';
 }
 
 async function submitPublicResidentReport(){
@@ -1170,7 +1171,8 @@ async function submitPublicResidentReport(){
     if(wrap)wrap.innerHTML='<div class="public-report-success"><strong>Meldung wurde übermittelt.</strong><div class="muted">Duschl Service prüft Ihre Meldung. Vielen Dank für Ihren Hinweis.</div></div>';
   }catch(e){
     console.error('Öffentliche Meldung fehlgeschlagen',e);
-    publicReportMessage('Die Meldung konnte nicht gesendet werden. Bitte versuchen Sie es erneut.');
+    const detail=(e&&e.message)?e.message:String(e||'Unbekannter Fehler');
+    publicReportMessage('Senden fehlgeschlagen: '+detail);
     if(btn){btn.disabled=false;btn.textContent='Meldung absenden';}
   }
 }
