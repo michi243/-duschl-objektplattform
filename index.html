@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.9.4 E-Mail-Benutzer</title>
+<title>Duschl Service – Objekt-Dokumentation 2.10.1 Werkvertrag-Auftraggeber</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -386,7 +386,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.9.4 E-Mail-Benutzer ===== */
+/* ===== v2.10.1 Werkvertrag-Auftraggeber ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -607,7 +607,7 @@ body.photo-viewer-open{overflow:hidden}
   <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.9.4 E-Mail-Benutzer</span></header>
+<span class="badge">v2.10.1 Werkvertrag-Auftraggeber</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -779,7 +779,7 @@ body.photo-viewer-open{overflow:hidden}
 
 <section id="reports" class="section">
   <div class="row space no-print">
-    <div><h2>Berichte</h2><div class="muted">Objektbezogene Dokumentation und Historie</div></div>
+    <div><h2>Berichte</h2><p id="customerPrivacyNote" class="muted" style="display:none">Auftraggeberansicht: interne Personal- und Bearbeiterdaten werden nicht angezeigt.</p><div class="muted">Objektbezogene Dokumentation und Historie</div></div>
     <div class="row">
       <button id="reportCustomerBtn" class="primary" onclick="showCustomerReport()">Kundenbericht erstellen</button>
       <button id="reportInternalBtn" onclick="showInternalReport()" style="display:none">Interne Auswertung</button>
@@ -940,18 +940,32 @@ let currentUserProfile=null;
 let currentUserRole='';
 
 const ROLE_LABELS={
-  platform_admin:'Administrator',
+  platform_admin:'Administrator / GF',
   staff:'Objektbetreuer (Legacy)',
   object_manager:'Objektbetreuer',
-  employee:'Mitarbeiter',
+  employee:'Mitarbeiter (Alt)',
   customer:'Auftraggeber'
 };
 
 function isAdminRole(){return currentUserRole==='platform_admin'}
 function isObjectManagerRole(){return ['object_manager','staff'].includes(currentUserRole)}
+function isCustomerRole(){return currentUserRole==='customer'}
 function canManageObjectsUI(){return isAdminRole()}
-function canUseDecisionsUI(){return isAdminRole()||currentUserRole==='customer'}
+function canUseDecisionsUI(){return isAdminRole()||isCustomerRole()}
+function canUseWorkQueueUI(){return isAdminRole()||isObjectManagerRole()}
+function canCreateDocumentationUI(){return isAdminRole()||isObjectManagerRole()||isCustomerRole()}
 function canUseSettingsUI(){return isAdminRole()}
+function canSeeInternalPersonnelUI(){return !isCustomerRole()}
+function customerSafeText(v){return isCustomerRole()?'':(v||'')}
+function currentUserId(){return currentUserProfile?.id||cloudSession?.user?.id||''}
+function canEditFindingUI(f){
+  if(!f)return canCreateDocumentationUI();
+  return isAdminRole()||((isObjectManagerRole()||isCustomerRole())&&f.createdBy&&f.createdBy===currentUserId());
+}
+function canEditInspectionUI(i){
+  if(!i)return canCreateDocumentationUI();
+  return isAdminRole()||((isObjectManagerRole()||isCustomerRole())&&i.createdBy&&i.createdBy===currentUserId());
+}
 
 async function cloudLoadCurrentProfile(){
   if(!cloudSession?.access_token){
@@ -960,7 +974,7 @@ async function cloudLoadCurrentProfile(){
   const uid=cloudSession?.user?.id;
   if(!uid)throw new Error('Benutzer-ID der Supabase-Sitzung fehlt.');
   const rows=await cloudRequest(
-    `profiles?select=id,full_name,role,active&id=eq.${encodeURIComponent(uid)}&limit=1`
+    `profiles?select=id,full_name,email,role,active&id=eq.${encodeURIComponent(uid)}&limit=1`
   );
   const p=rows?.[0];
   if(!p||p.active!==true)throw new Error('Kein aktives Benutzerprofil gefunden.');
@@ -983,19 +997,26 @@ function applyRoleUI(){
     if(el)el.classList.toggle('hidden',!yes);
   };
 
-  // v2.8.0: UI-Ausprägung zunächst vollständig für Admin + Objektbetreuer.
+  // Verbindliches 3-Rollen-Modell:
+  // Admin/GF = Gesamtsteuerung; Objektbetreuer = operative Umsetzung;
+  // Auftraggeber = eigene Begehungen/Dokumentation + Freigaben.
   show('navDashboard',true);
   show('navObjects',true);
   show('navInspections',true);
   show('navFindings',true);
-  show('navWorkqueue',true);
+  show('navWorkqueue',canUseWorkQueueUI());
   show('navReports',true);
   show('navDecisions',canUseDecisionsUI());
   show('navUsers',isAdminRole());
   show('navSettings',canUseSettingsUI());
   show('addObjectBtn',canManageObjectsUI());
+  const privacyNote=document.getElementById('customerPrivacyNote');
+  if(privacyNote)privacyNote.style.display=isCustomerRole()?'':'none';
 
   if(!canUseDecisionsUI() && document.getElementById('decisions')?.classList.contains('active')){
+    showSection('dashboard');
+  }
+  if(!canUseWorkQueueUI() && document.getElementById('workqueue')?.classList.contains('active')){
     showSection('dashboard');
   }
   if(!isAdminRole() && document.getElementById('users')?.classList.contains('active')) showSection('dashboard');
@@ -1132,6 +1153,7 @@ function cloudInspectionToLocal(i){
     startedAt:i.started_at?new Date(i.started_at).getTime():Date.now(),
     endedAt:i.ended_at?new Date(i.ended_at).getTime():null,
     notes:i.notes||'',
+    createdBy:i.created_by||'',
     createdAt:i.created_at?new Date(i.created_at).getTime():Date.now(),
     updatedAt:i.updated_at?new Date(i.updated_at).getTime():Date.now(),
     cloud:true
@@ -1139,7 +1161,7 @@ function cloudInspectionToLocal(i){
 }
 async function cloudReloadInspections(){
   if(!cloudSession?.access_token)return;
-  const rows=await cloudRequest('inspections?select=id,object_id,started_at,ended_at,notes,created_at,updated_at&order=started_at.desc');
+  const rows=await cloudRequest('inspections?select=id,object_id,started_at,ended_at,notes,created_by,created_at,updated_at&order=started_at.desc');
   db.inspections=(rows||[]).map(cloudInspectionToLocal);
   renderAll();
 }
@@ -1149,6 +1171,7 @@ async function cloudSaveInspection(id,data){
     notes:data.notes||null,
     updated_at:new Date().toISOString()
   };
+  if(!id)payload.created_by=currentUserId();
   if(id){
     const rows=await cloudRequest(`inspections?id=eq.${encodeURIComponent(id)}`,{
       method:'PATCH',
@@ -1222,6 +1245,7 @@ function cloudFindingToLocal(f,decision){
     afterPhoto:'',
     beforePhotos:[],
     afterPhotos:[],
+    createdBy:f.created_by||'',
     createdAt:f.created_at?new Date(f.created_at).getTime():Date.now(),
     updatedAt:f.updated_at?new Date(f.updated_at).getTime():Date.now(),
     cloud:true
@@ -1369,7 +1393,7 @@ async function cloudDeleteTaskForFinding(findingId){
 
 async function cloudReloadFindings(){
   if(!cloudSession?.access_token)return;
-  const rows=await cloudRequest('findings?select=id,object_id,inspection_id,type,area,title,category,priority,description,recommended_action,activity,status,completion_type,completion_note,created_at,updated_at&order=created_at.desc');
+  const rows=await cloudRequest('findings?select=id,object_id,inspection_id,type,area,title,category,priority,description,recommended_action,activity,status,completion_type,completion_note,created_by,created_at,updated_at&order=created_at.desc');
   const decisions=await cloudRequest('decisions?select=id,finding_id,required,status,decided_by_name,decision_date,comment,amount,created_at,updated_at');
   const dm=new Map((decisions||[]).map(d=>[d.finding_id,d]));
   const pm=await cloudLoadPhotoRefs();
@@ -1410,6 +1434,7 @@ async function cloudSaveFinding(id,data){
   };
   let row;
   const isCloudId=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||'');
+  if(!isCloudId)payload.created_by=currentUserId();
   if(isCloudId){
     const rows=await cloudRequest(`findings?id=eq.${encodeURIComponent(id)}`,{
       method:'PATCH',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)
@@ -1440,7 +1465,7 @@ async function cloudSaveFinding(id,data){
   }
 
   // Decision is a separate normalized table in the Supabase schema.
-  // Objektbetreuer/Mitarbeiter dürfen dokumentieren, aber keine Auftraggeberentscheidung schreiben.
+  // Objektbetreuer dokumentiert operativ; Auftraggeber und Admin/GF dürfen Auftraggeberentscheidungen schreiben.
   if(data.type==='Feststellung' && canUseDecisionsUI()){
     const decisionPayload={
       finding_id:row.id,
@@ -1481,7 +1506,7 @@ async function cloudReloadObjects(){
   try{
     const rows=await cloudRequest('objects?select=id,name,street,postal_code,city,notes,created_at,updated_at&active=eq.true&order=name.asc');
     db.objects=(rows||[]).map(cloudObjectToLocal);
-    const inspectionRows=await cloudRequest('inspections?select=id,object_id,started_at,ended_at,notes,created_at,updated_at&order=started_at.desc');
+    const inspectionRows=await cloudRequest('inspections?select=id,object_id,started_at,ended_at,notes,created_by,created_at,updated_at&order=started_at.desc');
     db.inspections=(inspectionRows||[]).map(cloudInspectionToLocal);
     await cloudReloadFindings();
     renderAll();
@@ -1817,7 +1842,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.9.4-email-users'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.10.1-customer-no-personnel'};
 }
 function load(){
   try{
@@ -1880,7 +1905,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.9.4-email-users'
+      version:'2.10.1-customer-no-personnel'
     };
 
     merged.findings.forEach(f=>{
@@ -1917,7 +1942,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.9.4-email-users';
+  db.version='2.10.1-customer-no-personnel';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -1929,6 +1954,7 @@ function objectName(id){return db.objects.find(x=>x.id===id)?.name||'—'}
 function inspectionName(id){const i=db.inspections.find(x=>x.id===id);return i?`${objectName(i.objectId)} · ${fmt(i.startedAt)}`:'—'}
 function showSection(id){
   if(id==='decisions'&&!canUseDecisionsUI())return requireDecisionUI();
+  if(id==='workqueue'&&!canUseWorkQueueUI()){alert('Der Arbeitsvorrat ist nur für Admin/GF und Objektbetreuer freigegeben.');return;}
   if(id==='users'&&!isAdminRole())return requireAdminUI('Benutzer & Berechtigungen');
   if(id==='settings'&&!canUseSettingsUI())return requireAdminUI('Daten & Administration');
   document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
@@ -2225,6 +2251,11 @@ function resetGFWorkFilters(){
 }
 
 function renderWorkQueue(){
+  if(!canUseWorkQueueUI()){
+    const host=document.getElementById('workqueueList')||document.getElementById('gfWorkQueue');
+    if(host)host.innerHTML='<div class="empty">Für diese Rolle nicht freigegeben.</div>';
+    return;
+  }
   const root=document.getElementById('workQueue')||document.getElementById('workQueueList');
   if(!root)return;
 
@@ -2383,6 +2414,7 @@ function renderWorkQueue(){
     </div>`;
 }
 function openWorkItem(id){
+  if(!canUseWorkQueueUI()){alert('Aufgabenplanung ist für diese Rolle nicht freigegeben.');return;}
   const f=db.findings.find(x=>x.id===id);if(!f)return;
   const task=(db.tasks||[]).find(t=>t.findingId===id);
   const status=task?.status||f.taskStatus||'planned';
@@ -2403,6 +2435,7 @@ function openWorkItem(id){
 function openPlanTask(id){openWorkItem(id);}
 
 async function saveWorkItem(id){
+  if(!canUseWorkQueueUI()){alert('Aufgabenbearbeitung ist für diese Rolle nicht freigegeben.');return;}
   const f=db.findings.find(x=>x.id===id);if(!f)return;
   const ownerName=document.getElementById('wiOwner')?.value.trim()||'';
   const dueDate=document.getElementById('wiDue')?.value||'';
@@ -2444,10 +2477,11 @@ function loadUserAdminEditor(){
   if(!ed)return;if(!uid){ed.innerHTML='';return}
   const p=userAdminProfiles.find(x=>x.id===uid);if(!p){ed.innerHTML='';return}
   const assigned=new Set(userAdminAssignments.filter(a=>a.user_id===uid&&a.active!==false).map(a=>a.object_id));
-  const roles=[['platform_admin','Administrator / GF'],['object_manager','Objektbetreuer'],['employee','Mitarbeiter'],['customer','Auftraggeber / Kunde']];
-  const roleOptions=roles.map(([v,l])=>`<option value="${v}" ${p.role===v?'selected':''}>${l}</option>`).join('');
+  const roles=[['platform_admin','Administrator / GF'],['object_manager','Objektbetreuer'],['customer','Auftraggeber']];
+  const legacyEmployee=p.role==='employee'?'<option value="employee" selected disabled>Mitarbeiter (Alt) – bitte auf eine der 3 Rollen umstellen</option>':'';
+  const roleOptions=legacyEmployee+roles.map(([v,l])=>`<option value="${v}" ${p.role===v?'selected':''}>${l}</option>`).join('');
   const objectRows=(db.objects||[]).map(o=>`<label class="row" style="gap:10px;align-items:center;margin:8px 0"><input type="checkbox" class="userObjectAssignment" value="${esc(o.id)}" ${assigned.has(o.id)?'checked':''}><span><strong>${esc(o.name||'Objekt')}</strong>${o.street||o.city?`<br><span class="muted">${esc([o.street,[o.postal_code,o.city].filter(Boolean).join(' ')].filter(Boolean).join(', '))}</span>`:''}</span></label>`).join('')||'<p class="muted">Keine Objekte vorhanden.</p>';
-  ed.innerHTML=`<div class="card"><h3>${esc(p.email||p.full_name||'Benutzer')}</h3>${p.full_name&&p.email?`<p class="muted">${esc(p.full_name)}</p>`:''}<div class="grid2"><label>Rolle<select id="userAdminRole">${roleOptions}</select></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminActive" type="checkbox" ${p.active!==false?'checked':''}><span>Benutzer aktiv</span></label></div><h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px"><button onclick="saveUserAdminPermissions()">Speichern</button></div><p class="muted" style="margin-top:12px">Passwort und E-Mail werden hier bewusst nicht verwaltet.</p></div>`;
+  ed.innerHTML=`<div class="card"><h3>${esc(p.email||p.full_name||'Benutzer')}</h3>${p.full_name&&p.email?`<p class="muted">${esc(p.full_name)}</p>`:''}<div class="grid2"><label>Rolle<select id="userAdminRole">${roleOptions}</select></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminActive" type="checkbox" ${p.active!==false?'checked':''}><span>Benutzer aktiv</span></label></div><h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px"><button onclick="saveUserAdminPermissions()">Speichern</button></div><p class="muted" style="margin-top:12px">Passwort wird hier bewusst nicht verwaltet. Die E-Mail-Adresse ist die Benutzerkennung und Benachrichtigungsadresse.</p></div>`;
 }
 async function saveUserAdminPermissions(){
   if(!isAdminRole())return requireAdminUI('Benutzer & Berechtigungen');
@@ -2471,7 +2505,7 @@ async function saveUserAdminPermissions(){
 
 function renderAll(){
   renderDashboard();renderObjects();renderInspections();renderSelects();renderFindings();renderReport();
-if(canUseDecisionsUI())renderDecisions();renderWorkQueue();
+if(canUseDecisionsUI())renderDecisions();if(canUseWorkQueueUI())renderWorkQueue();
   const ro=document.getElementById('reportObject');
   if(ro){
     const rv=ro.value;
@@ -2551,8 +2585,8 @@ function renderObjectFiles(){
         </div>
         ${f.length?`<div class="muted" style="margin-top:5px">${f.slice(0,3).map(x=>esc(x.title)).join(' · ')}${f.length>3?' · …':''}</div>`:''}
         <div class="compact-actions">
-          <button onclick="openInspectionModal('${i.id}')">Öffnen</button>
-          ${inspectionClosed(i)?`<button onclick="reopenInspection('${i.id}')">Wieder öffnen</button>`:`<button onclick="openFindingModal('${o.id}','${i.id}')">+ Dokumentation</button>`}
+          ${canEditInspectionUI(i)?`<button onclick="openInspectionModal('${i.id}')">Öffnen</button>`:'<span class="muted">Begehung eines anderen Benutzers</span>'}
+          ${canEditInspectionUI(i)&&inspectionClosed(i)?`<button onclick="reopenInspection('${i.id}')">Wieder öffnen</button>`:(!inspectionClosed(i)?`<button onclick="openFindingModal('${o.id}','${i.id}')">+ Dokumentation</button>`:'')}
         </div>
       </div>`;
     };
@@ -2610,7 +2644,7 @@ function findingCard(f){
     ${type==='Leistung'&&f.activity?`<p><b>Durchgeführt:</b> ${esc(f.activity)}</p>`:''}
     ${type==='Feststellung'&&f.action?`<p><b>Empfehlung:</b> ${esc(f.action)}</p>`:''}
     ${f.status==='Erledigt'&&f.completionType?`<p><b>Abschluss:</b> ${esc(f.completionType)}${f.completionNote?' – '+esc(f.completionNote):''}</p>`:''}
-    <div class="row"><button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}')">Bearbeiten</button>${f.status!=='Erledigt'?`<button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}',true)">Abschließen</button>`:''}</div>
+    <div class="row">${canEditFindingUI(f)?`<button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}')">Bearbeiten</button>${f.status!=='Erledigt'?`<button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}',true)">Abschließen</button>`:''}`:`<span class="muted">Nur durch Ersteller oder Admin/GF änderbar.</span>`}</div>
   </div>`;
 }
 function renderFindings(){
@@ -2833,6 +2867,13 @@ async function deleteObject(id){
 }
 
 function openInspectionModal(pref='',prefObj=''){
+  if(pref){
+    const existingInspection=db.inspections.find(x=>x.id===pref);
+    if(existingInspection&&!canEditInspectionUI(existingInspection)){
+      alert('Diese Begehung darf nur durch den Ersteller oder Admin/GF geändert werden.');
+      return;
+    }
+  }
   if(!db.objects.length){alert('Bitte zuerst ein Objekt anlegen.');showSection('objects');return}
   const existing=db.inspections.find(x=>x.id===pref);
   const objectId=existing?.objectId||prefObj||(!existing?pref:'')||'';
@@ -2866,6 +2907,7 @@ async function startInspection(){
 }
 async function saveInspection(id){
   const i=db.inspections.find(x=>x.id===id); if(!i)return;
+  if(!canEditInspectionUI(i)){alert('Diese Begehung darf nur durch den Ersteller oder Admin/GF geändert werden.');return;}
   const objectId=document.getElementById('iObject').value;
   const notes=document.getElementById('iNotes').value.trim();
   try{
@@ -2888,6 +2930,7 @@ async function closeInspection(id){
   }
 }
 async function closeInspectionAndRefresh(id){
+  const i=db.inspections.find(x=>x.id===id);if(!canEditInspectionUI(i)){alert('Diese Begehung darf nur durch den Ersteller oder Admin/GF abgeschlossen werden.');return;}
   if(!confirm('Begehung / Auftrag abschließen? Danach können keine neuen Dokumentationen mehr angelegt werden.'))return;
   try{
     await cloudSetInspectionClosed(id,true);
@@ -2901,6 +2944,7 @@ async function closeInspectionAndRefresh(id){
 }
 async function reopenInspection(id){
   const i=db.inspections.find(x=>x.id===id); if(!i)return;
+  if(!canEditInspectionUI(i)){alert('Diese Begehung darf nur durch den Ersteller oder Admin/GF wieder geöffnet werden.');return;}
   if(!confirm('Abgeschlossene Begehung / Auftrag wieder öffnen? Danach können wieder neue Dokumentationen angelegt werden.'))return;
   try{
     await cloudSetInspectionClosed(id,false);
@@ -2934,6 +2978,17 @@ async function deleteInspection(id){
 }
 
 function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
+  if(editId){
+    const existingFinding=db.findings.find(x=>x.id===editId);
+    if(existingFinding&&!canEditFindingUI(existingFinding)){
+      alert('Diese Dokumentation darf nur durch den Ersteller oder Admin/GF geändert werden. Auftraggeberentscheidungen erfolgen im Bereich „Entscheidungen“.');
+      return;
+    }
+  }
+  if(!editId&&!canCreateDocumentationUI()){
+    alert('Dokumentation ist für diese Rolle nicht freigegeben.');
+    return;
+  }
   const linkedInspection=prefInsp?db.inspections.find(x=>x.id===prefInsp):null;
   if(!editId && linkedInspection && inspectionClosed(linkedInspection)){
     alert('Diese Begehung / dieser Auftrag ist abgeschlossen. Neue Dokumentationen können erst nach ausdrücklichem Wiederöffnen angelegt werden.');
@@ -3135,6 +3190,9 @@ async function handlePhotoSelection(w,input){
  input.value='';renderPhotoDraft(w);hydrateMediaImages();
 }
 async function saveFinding(id){
+  const existingForPermission=id?db.findings.find(x=>x.id===id):null;
+  if(id&&!canEditFindingUI(existingForPermission)){alert('Diese Dokumentation darf nur durch den Ersteller oder Admin/GF geändert werden.');return;}
+  if(!id&&!canCreateDocumentationUI()){alert('Dokumentation ist für diese Rolle nicht freigegeben.');return;}
   const mayEditDecision=canUseDecisionsUI();
   const decisionRequiredValue=mayEditDecision?(document.getElementById('fDecisionRequired')?.value||''):'yes';
   let decisionRequired=mayEditDecision?(decisionRequiredValue==='yes'):true;
