@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.11.5 Aufgabeninhaber Dokumentation</title>
+<title>Duschl Service – Objekt-Dokumentation 2.11.7 Benutzer Anzeigename</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -386,7 +386,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.11.5 Aufgabeninhaber Dokumentation ===== */
+/* ===== v2.11.7 Benutzer Anzeigename ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -607,7 +607,7 @@ body.photo-viewer-open{overflow:hidden}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.11.5 Aufgabeninhaber Dokumentation</span></header>
+<span class="badge">v2.11.7 Benutzer Anzeigename</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1378,18 +1378,15 @@ async function cloudFindProfileByName(name){
 }
 async function cloudSaveTaskForFinding(f,data){
   if(!f?.id||!f?.objectId)throw new Error('Feststellung oder Objekt fehlt.');
+  const ownerId=(data.ownerId||'').trim();
   const ownerName=(data.ownerName||'').trim();
-  let ownerProfile=null;
-  if(ownerName){
-    ownerProfile=await cloudFindProfileByName(ownerName);
-  }
   const payload={
     object_id:f.objectId,
     finding_id:f.id,
     title:f.title||'Zusatzmaßnahme',
     task_type:'additional_measure',
     status:data.status||'planned',
-    owner_id:ownerProfile?.id||null,
+    owner_id:ownerId||null,
     owner_name:ownerName||null,
     due_date:data.dueDate||null,
     work_note:data.workNote||null,
@@ -1873,7 +1870,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.11.5-task-owner-documentation'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.11.7-user-display-name'};
 }
 function load(){
   try{
@@ -1936,7 +1933,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.11.5-task-owner-documentation'
+      version:'2.11.7-user-display-name'
     };
 
     merged.findings.forEach(f=>{
@@ -1973,7 +1970,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.11.5-task-owner-documentation';
+  db.version='2.11.7-user-display-name';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -2420,7 +2417,7 @@ function renderWorkQueue(){
       </label>
 
       <label>Verantwortlich
-        <input id="gfWorkOwner" list="gfWorkOwnerList" value="${esc(current.owner)}" placeholder="Name" onchange="renderWorkQueue()">
+        <input id="gfWorkOwner" list="gfWorkOwnerList" value="${esc(current.owner)}" placeholder="z. B. Hans Müller" onchange="renderWorkQueue()">
         <datalist id="gfWorkOwnerList">${ownerNames.map(x=>`<option value="${esc(x)}"></option>`).join('')}</datalist>
       </label>
 
@@ -2476,21 +2473,56 @@ function renderWorkQueue(){
       }).join('') : `<div class="empty-state">Keine Vorgänge für die gewählten Filter.</div>`}
     </div>`;
 }
-function openWorkItem(id){
+async function cloudLoadAssignableObjectManagers(objectId){
+  const assignments=await cloudRequest(`object_user_assignments?select=user_id&object_id=eq.${encodeURIComponent(objectId)}&active=eq.true`);
+  const ids=[...new Set((assignments||[]).map(a=>a.user_id).filter(Boolean))];
+  if(!ids.length)return [];
+  const rows=await cloudRequest(`profiles?select=id,full_name,email,role,active&id=in.(${ids.map(x=>encodeURIComponent(x)).join(',')})&active=eq.true`);
+  return (rows||[])
+    .filter(p=>p.role==='object_manager'||p.role==='staff')
+    .sort((a,b)=>(a.full_name||a.email||'').localeCompare(b.full_name||b.email||'','de'));
+}
+
+async function openWorkItem(id){
   if(!canUseWorkQueueUI()){alert('Aufgabenplanung ist für diese Rolle nicht freigegeben.');return;}
   const f=db.findings.find(x=>x.id===id);if(!f)return;
   const task=(db.tasks||[]).find(t=>t.findingId===id);
   const status=task?.status||f.taskStatus||'planned';
-  const owner=task?.ownerName||f.workOwner||'';
+  const currentOwnerId=task?.ownerId||f.workOwnerId||'';
+  const currentOwnerName=task?.ownerName||f.workOwner||'';
   const due=task?.dueDate||f.workDueDate||'';
   const note=task?.workNote||f.workNote||'';
   const statusOptions=Object.entries(TASK_STATUS_LABELS)
     .map(([v,l])=>`<option value="${v}" ${status===v?'selected':''}>${esc(l)}</option>`)
     .join('');
+
+  let managers=[];
+  try{
+    if(cloudSession?.access_token)managers=await cloudLoadAssignableObjectManagers(f.objectId);
+  }catch(e){
+    console.error('Objektbetreuer konnten nicht geladen werden',e);
+  }
+
+  const ownerOptions=[
+    `<option value="">Nicht zugeordnet</option>`,
+    ...managers.map(p=>{
+      const label=(p.full_name||p.email||p.id).trim();
+      return `<option value="${esc(p.id)}" data-name="${esc(label)}" ${currentOwnerId===p.id?'selected':''}>${esc(label)}</option>`;
+    })
+  ].join('');
+
+  const legacyHint=(!currentOwnerId&&currentOwnerName)
+    ? `<div class="muted" style="margin-top:6px">Bisherige Freitext-Zuordnung: <b>${esc(currentOwnerName)}</b>. Bitte jetzt einen echten Objektbetreuer auswählen.</div>`
+    : '';
+
   modal(`<h2>${task?'Aufgabe bearbeiten':'Aufgabe planen'}</h2>
     <div class="muted">${esc(objectName(f.objectId))} · ${esc(f.title||'')}</div>
     <label>Arbeitsstatus<select id="wiStatus">${statusOptions}</select></label>
-    <label>Verantwortlicher Objektbetreuer<input id="wiOwner" value="${esc(owner)}" placeholder="Exakter Profilname des Objektbetreuers"></label><div class="muted">Die Zuordnung wird mit dem Benutzerkonto verknüpft. Nur der zugewiesene Objektbetreuer erhält zusätzlich Bearbeitungsrechte an dieser Dokumentation.</div>
+    <label>Verantwortlicher Objektbetreuer
+      <select id="wiOwnerId">${ownerOptions}</select>
+    </label>
+    ${legacyHint}
+    <div class="muted">Es werden nur aktive Objektbetreuer angezeigt, die diesem Objekt zugeordnet sind. Die Auswahl wird technisch über die Benutzer-ID gespeichert.</div>
     <label>Fällig am<input id="wiDue" type="date" value="${esc(due)}"></label>
     <label>Arbeitsinformation<textarea id="wiNote" placeholder="Hinweise für die Ausführung">${esc(note)}</textarea></label>
     <div class="row"><button class="primary" onclick="saveWorkItem('${id}')">Speichern</button><button onclick="closeModal()">Abbrechen</button></div>`);
@@ -2500,14 +2532,16 @@ function openPlanTask(id){openWorkItem(id);}
 async function saveWorkItem(id){
   if(!canUseWorkQueueUI()){alert('Aufgabenbearbeitung ist für diese Rolle nicht freigegeben.');return;}
   const f=db.findings.find(x=>x.id===id);if(!f)return;
-  const ownerName=document.getElementById('wiOwner')?.value.trim()||'';
+  const ownerSelect=document.getElementById('wiOwnerId');
+  const ownerId=ownerSelect?.value||'';
+  const ownerName=ownerId ? (ownerSelect?.selectedOptions?.[0]?.dataset?.name||ownerSelect?.selectedOptions?.[0]?.textContent||'').trim() : '';
   const dueDate=document.getElementById('wiDue')?.value||'';
   const workNote=document.getElementById('wiNote')?.value.trim()||'';
   const status=document.getElementById('wiStatus')?.value||'planned';
   try{
     if(!cloudSession?.access_token)throw new Error('Nicht angemeldet.');
     cloudSetStatus('Arbeitsvorrat wird zentral gespeichert …','wait');
-    await cloudSaveTaskForFinding(f,{ownerName,dueDate,workNote,status});
+    await cloudSaveTaskForFinding(f,{ownerId,ownerName,dueDate,workNote,status});
     cloudSetStatus('Verbunden · Arbeitsvorrat zentral','ok');
     closeModal();renderAll();showSection('workqueue');
   }catch(e){
