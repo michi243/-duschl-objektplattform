@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.11.1 Weiterleitung Dokumentation</title>
+<title>Duschl Service – Objekt-Dokumentation 2.11.3 Sicherung Admin</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -386,7 +386,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.11.1 Weiterleitung Dokumentation ===== */
+/* ===== v2.11.3 Sicherung Admin ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -604,10 +604,10 @@ body.photo-viewer-open{overflow:hidden}
 
 <header>
   <div><h1>Duschl Service</h1><small>Interne Objekt-Dokumentation</small></div>
-  <button onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
+  <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.11.1 Weiterleitung Dokumentation</span></header>
+<span class="badge">v2.11.3 Sicherung Admin</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1030,6 +1030,8 @@ function applyRoleUI(){
   show('navUsers',isAdminRole());
   show('navSettings',canUseSettingsUI());
   show('addObjectBtn',canManageObjectsUI());
+  const backupBtn=document.getElementById('backupBtn')||document.querySelector('[data-backup-button="1"]');
+  if(backupBtn)backupBtn.style.display=isAdminRole()?'':'none';
   const privacyNote=document.getElementById('customerPrivacyNote');
   if(privacyNote)privacyNote.style.display=isCustomerRole()?'':'none';
 
@@ -1862,7 +1864,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.11.1-documentation-routing'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.11.3-admin-backup-only'};
 }
 function load(){
   try{
@@ -1925,7 +1927,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.11.1-documentation-routing'
+      version:'2.11.3-admin-backup-only'
     };
 
     merged.findings.forEach(f=>{
@@ -1962,7 +1964,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.11.1-documentation-routing';
+  db.version='2.11.3-admin-backup-only';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -2077,7 +2079,7 @@ function renderDecisions(){
       ${f.action?`<div style="margin-top:6px"><strong>Empfehlung:</strong> ${esc(f.action)}</div>`:''}
       <div class="row" style="margin-top:12px">
         <button class="primary" onclick="openDecisionModal('${f.id}')">${(f.decisionStatus||'pending')==='pending'?'Entscheidung treffen':'Entscheidung bearbeiten'}</button>
-        <button onclick="openFindingModal('${f.objectId||''}','${f.inspectionId||''}','${f.id}')">Feststellung öffnen</button>
+        <button onclick="${isCustomerRole()?`openFindingReadOnly('${f.id}')`:`openFindingModal('${f.objectId||''}','${f.inspectionId||''}','${f.id}')`}">Vorgang öffnen</button>
       </div>
     </div>`;
   }).join('');
@@ -2091,6 +2093,37 @@ function resetDecisionFilters(){
   if(s)s.value='pending';
   if(p)p.value='';
   renderDecisions();
+}
+
+
+function openFindingReadOnly(id){
+  const f=db.findings.find(x=>x.id===id); if(!f)return;
+  const o=db.objects.find(x=>x.id===f.objectId);
+  const before=[...(f.beforePhotos||[])];
+  if(f.beforePhoto&&!before.includes(f.beforePhoto))before.unshift(f.beforePhoto);
+  const after=[...(f.afterPhotos||[])];
+  if(f.afterPhoto&&!after.includes(f.afterPhoto))after.unshift(f.afterPhoto);
+  const photos=[...before,...after].filter(Boolean);
+  modal(`<div class="row space">
+      <div>
+        <h2>Vorgang</h2>
+        <div class="muted">${esc(o?.name||'')} · ${fmt(f.createdAt||f.updatedAt)}</div>
+      </div>
+      <button onclick="closeModal()">✕</button>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="row">${badgeP(f.priority)}<span class="badge">${esc(decisionLabel(f.decisionStatus||'pending'))}</span></div>
+      <h3 style="margin:10px 0 6px">${esc(f.title||f.description||'Dokumentation')}</h3>
+      ${f.area?`<div class="muted">${esc(f.area)}</div>`:''}
+      ${f.description?`<p><strong>Feststellung</strong><br>${esc(f.description)}</p>`:''}
+      ${f.action?`<p><strong>Empfehlung</strong><br>${esc(f.action)}</p>`:''}
+      ${f.activity?`<p><strong>Leistung</strong><br>${esc(f.activity)}</p>`:''}
+      ${photos.length?`<div class="photo-grid" style="margin-top:10px">${photos.map(p=>mediaImg(p,'Dokumentationsfoto','thumb')).join('')}</div>`:''}
+    </div>
+    <div class="row" style="margin-top:14px">
+      ${canUseDecisionsUI()?`<button class="primary" onclick="closeModal();setTimeout(()=>openDecisionModal('${f.id}'),50)">Entscheidung treffen</button>`:''}
+      <button onclick="closeModal()">Schließen</button>
+    </div>`);
 }
 
 function openDecisionModal(id){
