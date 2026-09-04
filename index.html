@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objekt-Dokumentation 2.11.8 Anzeigename editierbar</title>
+<title>Duschl Service – Objekt-Dokumentation 2.12.0 Benutzeranlage</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -386,7 +386,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.11.8 Anzeigename editierbar ===== */
+/* ===== v2.12.0 Benutzeranlage ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -607,7 +607,7 @@ body.photo-viewer-open{overflow:hidden}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.11.8 Anzeigename editierbar</span></header>
+<span class="badge">v2.12.0 Benutzeranlage</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -873,6 +873,32 @@ body.photo-viewer-open{overflow:hidden}
 <section id="users" class="section">
   <div class="card">
     <h2>Benutzer & Berechtigungen</h2>
+<div class="card" style="margin-bottom:16px">
+  <h3>Neuen Benutzer anlegen</h3>
+  <div class="grid2">
+    <label>Anzeigename
+      <input id="newUserFullName" placeholder="z. B. Hans Müller">
+    </label>
+    <label>E-Mail / Benutzername
+      <input id="newUserEmail" type="email" placeholder="name@firma.de" autocomplete="off">
+    </label>
+    <label>Rolle
+      <select id="newUserRole" onchange="renderNewUserObjectAssignments()">
+        <option value="object_manager">Objektbetreuer</option>
+        <option value="customer">Auftraggeber</option>
+      </select>
+    </label>
+  </div>
+  <h4 style="margin:14px 0 8px">Objektzugriffe</h4>
+  <div id="newUserObjectAssignments"></div>
+  <div class="row" style="gap:10px;margin-top:14px">
+    <button class="primary" onclick="createUserAndInvite()">Benutzer anlegen & Einladung senden</button>
+  </div>
+  <p class="muted" style="margin-top:10px">
+    Der Benutzer erhält eine Einladungs-E-Mail und legt sein Passwort selbst fest.
+  </p>
+</div>
+
     <p class="muted">Bestehende Benutzer verwalten: Rolle, Aktivstatus und Objektzugriffe.</p>
     <div class="row" style="gap:10px;align-items:end;flex-wrap:wrap">
       <label style="min-width:260px;flex:1">Benutzer
@@ -1870,7 +1896,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.11.8-editable-display-name'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.12.0-user-create'};
 }
 function load(){
   try{
@@ -1933,7 +1959,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.11.8-editable-display-name'
+      version:'2.12.0-user-create'
     };
 
     merged.findings.forEach(f=>{
@@ -1970,7 +1996,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.11.8-editable-display-name';
+  db.version='2.12.0-user-create';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -2580,6 +2606,63 @@ function loadUserAdminEditor(){
   const objectRows=(db.objects||[]).map(o=>`<label class="row" style="gap:10px;align-items:center;margin:8px 0"><input type="checkbox" class="userObjectAssignment" value="${esc(o.id)}" ${assigned.has(o.id)?'checked':''}><span><strong>${esc(o.name||'Objekt')}</strong>${o.street||o.city?`<br><span class="muted">${esc([o.street,[o.postal_code,o.city].filter(Boolean).join(' ')].filter(Boolean).join(', '))}</span>`:''}</span></label>`).join('')||'<p class="muted">Keine Objekte vorhanden.</p>';
   ed.innerHTML=`<div class="card"><h3>${esc(p.email||p.full_name||'Benutzer')}</h3><div class="grid2"><label>Anzeigename<input id="userAdminFullName" value="${esc(p.full_name||'')}" placeholder="z. B. Hans Müller"></label><label>Rolle<select id="userAdminRole">${roleOptions}</select></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminActive" type="checkbox" ${p.active!==false?'checked':''}><span>Benutzer aktiv</span></label></div><h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px"><button onclick="saveUserAdminPermissions()">Speichern</button></div><p class="muted" style="margin-top:12px">Passwort wird hier bewusst nicht verwaltet. Die E-Mail-Adresse ist die Benutzerkennung und Benachrichtigungsadresse.</p></div>`;
 }
+
+function renderNewUserObjectAssignments(){
+  const host=document.getElementById('newUserObjectAssignments');
+  if(!host)return;
+  const rows=(db.objects||[]).map(o=>`
+    <label class="row" style="gap:10px;align-items:center;margin:6px 0">
+      <input type="checkbox" class="newUserObjectAssignment" value="${esc(o.id)}">
+      <span>${esc(o.name||o.address||'Objekt')}</span>
+    </label>`).join('');
+  host.innerHTML=rows||'<p class="muted">Keine Objekte vorhanden.</p>';
+}
+
+async function createUserAndInvite(){
+  if(!isAdminRole())return requireAdminUI('Benutzer anlegen');
+  const fullName=document.getElementById('newUserFullName')?.value.trim()||'';
+  const email=document.getElementById('newUserEmail')?.value.trim().toLowerCase()||'';
+  const role=document.getElementById('newUserRole')?.value||'object_manager';
+  const objectIds=[...document.querySelectorAll('.newUserObjectAssignment:checked')].map(x=>x.value);
+
+  if(!fullName)return alert('Bitte einen Anzeigenamen eingeben.');
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return alert('Bitte eine gültige E-Mail-Adresse eingeben.');
+  if(!['object_manager','customer'].includes(role))return alert('Ungültige Rolle.');
+  if(!objectIds.length)return alert('Bitte mindestens ein Objekt zuordnen.');
+
+  const btn=event?.currentTarget;
+  if(btn){btn.disabled=true;btn.textContent='Einladung wird gesendet…';}
+  try{
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/invite-user`,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':`Bearer ${cloudSession?.access_token||''}`,
+        'apikey':SUPABASE_PUBLISHABLE_KEY
+      },
+      body:JSON.stringify({fullName,email,role,objectIds})
+    });
+
+    const text=await res.text();
+    let data={};
+    try{data=text?JSON.parse(text):{};}catch{}
+    if(!res.ok)throw new Error(data?.error||text||`HTTP ${res.status}`);
+
+    document.getElementById('newUserFullName').value='';
+    document.getElementById('newUserEmail').value='';
+    document.querySelectorAll('.newUserObjectAssignment').forEach(x=>x.checked=false);
+
+    alert('Benutzer wurde angelegt. Die Einladungs-E-Mail wurde versendet.');
+    await loadUserAdminData?.();
+    renderUserAdmin?.();
+  }catch(e){
+    console.error(e);
+    alert('Benutzeranlage fehlgeschlagen: '+(e?.message||e));
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Benutzer anlegen & Einladung senden';}
+  }
+}
+
 async function saveUserAdminPermissions(){
   if(!isAdminRole())return requireAdminUI('Benutzer & Berechtigungen');
   const uid=document.getElementById('userAdminSelect')?.value,
