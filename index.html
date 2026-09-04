@@ -481,7 +481,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.16.0 Meldungseingang ===== */
+/* ===== v2.16.1 Meldungseingang Fix ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -790,7 +790,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.16.0 Meldungseingang</span></header>
+<span class="badge">v2.16.1 Meldungseingang Fix</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1197,6 +1197,8 @@ async function submitPublicResidentReport(){
   }
 }
 
+
+let cloudResidentReports=[];
 
 let currentUserProfile=null;
 let currentUserRole='';
@@ -1921,7 +1923,7 @@ async function cloudDeleteFinding(id){
 }
 
 async function cloudLoadResidentReports(){
-  if(!cloudEnabled())return [];
+  if(!cloudSession?.access_token)return [];
   const rows=await cloudRequest('resident_reports?select=id,report_no,object_id,resident_name,resident_email,category,description,status,internal_assessment,requires_management,converted_to_finding_id,received_at,reviewed_at,completed_at,closed_at,consent_given,location_detail,created_at,updated_at&order=received_at.desc.nullslast,created_at.desc');
   cloudResidentReports=Array.isArray(rows)?rows:[];
   return cloudResidentReports;
