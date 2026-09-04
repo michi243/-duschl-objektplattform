@@ -481,7 +481,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.14.2 Render-Fix ===== */
+/* ===== v2.14.3 Entscheidungsstatus bewahren ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -702,7 +702,7 @@ body.photo-viewer-open{overflow:hidden}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.14.2 Render-Fix</span></header>
+<span class="badge">v2.14.3 Entscheidungsstatus bewahren</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -3660,10 +3660,17 @@ async function saveFinding(id){
   if(id&&!canEditFindingUI(existingForPermission)){alert('Diese Dokumentation darf nur durch den Ersteller oder Admin/GF geändert werden.');return;}
   if(!id&&!canCreateDocumentationUI()){alert('Dokumentation ist für diese Rolle nicht freigegeben.');return;}
   const mayEditDecision=canUseDecisionsUI();
-  const decisionRequiredValue=mayEditDecision?(document.getElementById('fDecisionRequired')?.value||''):'yes';
-  let decisionRequired=mayEditDecision?(decisionRequiredValue==='yes'):true;
   const existingFindingForDecision=db.findings.find(x=>x.id===id);
-  let decisionStatus=mayEditDecision?(document.getElementById('fDecisionStatus')?.value||'pending'):(existingFindingForDecision?.decisionStatus||'pending');
+  const preservedDecisionRequired=existingFindingForDecision?.decisionRequired===false ? false : true;
+  const decisionRequiredValue=mayEditDecision
+    ? (document.getElementById('fDecisionRequired')?.value||'')
+    : (preservedDecisionRequired?'yes':'no');
+  let decisionRequired=mayEditDecision
+    ? (decisionRequiredValue==='yes')
+    : preservedDecisionRequired;
+  let decisionStatus=mayEditDecision
+    ? (document.getElementById('fDecisionStatus')?.value||'pending')
+    : (existingFindingForDecision?.decisionStatus||(preservedDecisionRequired?'pending':'not_required'));
   let decisionBy=mayEditDecision?(document.getElementById('fDecisionBy')?.value.trim()||''):(existingFindingForDecision?.decisionBy||'');
   let decisionDate=mayEditDecision?(document.getElementById('fDecisionDate')?.value||''):(existingFindingForDecision?.decisionDate||'');
   let decisionComment=mayEditDecision?(document.getElementById('fDecisionComment')?.value.trim()||''):(existingFindingForDecision?.decisionComment||'');
