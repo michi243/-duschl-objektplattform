@@ -481,7 +481,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.18.0 Bewohnerfotos ===== */
+/* ===== v2.18.1 QR-Code je Objekt ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -806,7 +806,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.18.0 Bewohnerfotos</span></header>
+<span class="badge">v2.18.1 QR-Code je Objekt</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1136,6 +1136,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 
 
 <div id="modalRoot"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
 
 <script>
 
@@ -3345,7 +3347,7 @@ function renderObjects(){
     return `<div class="card">
       <div class="row space"><div><h3 style="margin:0">${esc(o.name)}</h3><div class="muted">${esc(o.address||'')}</div></div><span class="badge">${open} offen</span></div>
       <p>${esc(o.notes||'')}</p>
-      <div class="row"><button onclick="openFindingModal('${o.id}','')">Dokumentation erfassen</button>${canManageObjectsUI()?`<button onclick="openObjectModal('${o.id}')">Bearbeiten</button>`:''}<button onclick="showObjectReport('${o.id}')">Bericht</button></div>
+      <div class="row"><button onclick="openFindingModal('${o.id}','')">Dokumentation erfassen</button>${!isCustomerRole()?`<button onclick="openObjectQrCode('${o.id}')">QR-Code erstellen</button>`:''}${canManageObjectsUI()?`<button onclick="openObjectModal('${o.id}')">Bearbeiten</button>`:''}<button onclick="showObjectReport('${o.id}')">Bericht</button></div>
     </div>`;
   }).join(''):`<div class="empty">Noch kein Objekt angelegt.</div>`;
 }
@@ -3978,6 +3980,125 @@ function modal(html){document.getElementById('modalRoot').innerHTML=`<div class=
 function closeModal(){
   const root=document.getElementById('modalRoot');
   if(root)root.innerHTML='';
+}
+
+
+function objectPublicReportUrl(objectId){
+  const base='https://michi243.github.io/-duschl-objektplattform/';
+  return `${base}?meldung=${encodeURIComponent(objectId)}`;
+}
+
+async function openObjectQrCode(objectId){
+  if(isCustomerRole()){
+    alert('QR-Codes für Bewohnermeldungen sind für diese Rolle nicht freigegeben.');
+    return;
+  }
+
+  const o=(db.objects||[]).find(x=>x.id===objectId);
+  if(!o)return alert('Objekt wurde nicht gefunden.');
+
+  if(typeof QRCode==='undefined'){
+    alert('QR-Code-Bibliothek konnte nicht geladen werden. Bitte Internetverbindung prüfen und die Seite neu laden.');
+    return;
+  }
+
+  const url=objectPublicReportUrl(objectId);
+
+  modal(`<div class="row space">
+      <div>
+        <h2>QR-Code Bewohnermeldung</h2>
+        <div class="muted">${esc(o.name||'Objekt')}</div>
+      </div>
+      <button onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="card" style="margin-top:12px;text-align:center">
+      <canvas id="objectQrCanvas" width="320" height="320" style="width:min(320px,100%);height:auto;background:#fff;border-radius:12px;padding:10px"></canvas>
+      <div style="margin-top:12px"><strong>${esc(o.name||'Objekt')}</strong></div>
+      ${o.address?`<div class="muted" style="margin-top:4px">${esc(o.address)}</div>`:''}
+      <div class="muted" style="margin-top:10px;font-size:12px;word-break:break-all">${esc(url)}</div>
+    </div>
+
+    <div class="row" style="margin-top:14px">
+      <button class="primary" onclick="downloadObjectQrCode('${objectId}')">QR-Code herunterladen</button>
+      <button onclick="printObjectQrCode('${objectId}')">Drucken</button>
+      <button onclick="copyObjectReportLink('${objectId}')">Link kopieren</button>
+      <button onclick="closeModal()">Schließen</button>
+    </div>`);
+
+  const canvas=document.getElementById('objectQrCanvas');
+  try{
+    await QRCode.toCanvas(canvas,url,{
+      width:320,
+      margin:2,
+      errorCorrectionLevel:'M',
+      color:{dark:'#000000',light:'#ffffff'}
+    });
+  }catch(e){
+    console.error('QR-Code konnte nicht erzeugt werden',e);
+    alert('QR-Code konnte nicht erzeugt werden: '+(e.message||e));
+  }
+}
+
+async function downloadObjectQrCode(objectId){
+  const o=(db.objects||[]).find(x=>x.id===objectId);
+  const canvas=document.getElementById('objectQrCanvas');
+  if(!o||!canvas)return;
+
+  const safeName=(o.name||'Objekt')
+    .replace(/[^\p{L}\p{N}_-]+/gu,'_')
+    .replace(/^_+|_+$/g,'')
+    .slice(0,60) || 'Objekt';
+
+  const a=document.createElement('a');
+  a.download=`QR_Bewohnermeldung_${safeName}.png`;
+  a.href=canvas.toDataURL('image/png');
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+function printObjectQrCode(objectId){
+  const o=(db.objects||[]).find(x=>x.id===objectId);
+  const canvas=document.getElementById('objectQrCanvas');
+  if(!o||!canvas)return;
+
+  const url=objectPublicReportUrl(objectId);
+  const img=canvas.toDataURL('image/png');
+  const w=window.open('','_blank','noopener,noreferrer');
+  if(!w){
+    alert('Druckansicht konnte nicht geöffnet werden. Bitte Pop-ups für diese Seite zulassen.');
+    return;
+  }
+
+  w.document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>QR-Code ${esc(o.name||'Objekt')}</title>
+    <style>
+      body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;text-align:center;padding:32px;color:#111}
+      img{width:320px;max-width:90%;height:auto}
+      h1{font-size:24px;margin-bottom:4px}
+      .muted{color:#555;margin-bottom:18px}
+      .hint{margin:20px auto 0;max-width:520px;font-size:16px;line-height:1.45}
+      .url{font-size:10px;color:#777;word-break:break-all;margin-top:20px}
+      @media print{button{display:none}}
+    </style></head><body>
+      <h1>Duschl Service</h1>
+      <div class="muted">${esc(o.name||'Objekt')}${o.address?' · '+esc(o.address):''}</div>
+      <img src="${img}" alt="QR-Code Bewohnermeldung">
+      <div class="hint"><strong>Anliegen oder Schaden melden</strong><br>QR-Code mit dem Smartphone scannen und Meldung direkt an Duschl Service senden.</div>
+      <div class="url">${esc(url)}</div>
+      <script>window.onload=()=>setTimeout(()=>window.print(),150);<\/script>
+    </body></html>`);
+  w.document.close();
+}
+
+async function copyObjectReportLink(objectId){
+  const url=objectPublicReportUrl(objectId);
+  try{
+    await navigator.clipboard.writeText(url);
+    alert('Meldelink wurde kopiert.');
+  }catch(_e){
+    prompt('Meldelink kopieren:',url);
+  }
 }
 
 function openObjectModal(id=''){
