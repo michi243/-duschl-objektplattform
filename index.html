@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objektplattform v2.18.5</title>
+<title>Duschl Service – Objektplattform v2.18.6</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -481,7 +481,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.18.5 Datenschutz Bewohnermeldung ===== */
+/* ===== v2.18.6 Datenschutz Bewohnermeldung ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -806,7 +806,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.18.5 Session-Härtung</span></header>
+<span class="badge">v2.18.6 Testbenutzer</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1059,6 +1059,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <select id="newUserRole">
         <option value="object_manager">Objektbetreuer</option>
         <option value="customer">Auftraggeber</option>
+        <option value="test_user">Testbenutzer</option>
       </select>
     </label>
   </div>
@@ -1141,7 +1142,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 
 <script id="duschl-qr-local-v2183">
 /*
- * Lokale QR-Code-Erzeugung für Duschl Service v2.18.5.
+ * Lokale QR-Code-Erzeugung für Duschl Service v2.18.6.
  * Basis: QRCode for JavaScript, Kazuhiko Arase, MIT License.
  * Vollständig inline eingebettet – keine CDN-/Netzwerkabhängigkeit.
  */
@@ -2783,7 +2784,8 @@ const ROLE_LABELS={
   staff:'Objektbetreuer (Legacy)',
   object_manager:'Objektbetreuer',
   employee:'Mitarbeiter (Alt)',
-  customer:'Auftraggeber'
+  customer:'Auftraggeber',
+  test_user:'Testbenutzer'
 };
 
 function effectiveUserRole(){
@@ -2797,28 +2799,30 @@ function effectiveUserRole(){
 function isAdminRole(){return effectiveUserRole()==='platform_admin'}
 function isObjectManagerRole(){return ['object_manager','staff'].includes(effectiveUserRole())}
 function isCustomerRole(){return effectiveUserRole()==='customer'}
+function isTestUserRole(){return effectiveUserRole()==='test_user'}
 function canManageObjectsUI(){return isAdminRole()}
-function canUseDecisionsUI(){return isAdminRole()||isCustomerRole()}
-function canUseWorkQueueUI(){return isAdminRole()||isObjectManagerRole()}
-function canCreateDocumentationUI(){return isAdminRole()||isObjectManagerRole()||isCustomerRole()}
+function canUseDecisionsUI(){return isAdminRole()||isCustomerRole()||isTestUserRole()}
+function canUseWorkQueueUI(){return isAdminRole()||isObjectManagerRole()||isTestUserRole()}
+function canCreateDocumentationUI(){return isAdminRole()||isObjectManagerRole()||isCustomerRole()||isTestUserRole()}
 function canUseSettingsUI(){return isAdminRole()}
-function canSeeInternalPersonnelUI(){return !isCustomerRole()}
+function canSeeInternalPersonnelUI(){return !isCustomerRole()&&!isTestUserRole()}
 function customerSafeText(v){return isCustomerRole()?'':(v||'')}
 function currentUserId(){return currentUserProfile?.id||cloudSession?.user?.id||''}
 function isAssignedTaskOwnerUI(f){
-  if(!f||!isObjectManagerRole())return false;
+  if(!f||!(isObjectManagerRole()||isTestUserRole()))return false;
   const t=(db.tasks||[]).find(x=>x.findingId===f.id);
   return !!(t?.ownerId&&t.ownerId===currentUserId());
 }
 function canEditFindingUI(f){
   if(!f)return canCreateDocumentationUI();
   return isAdminRole()
+    || isTestUserRole()
     || ((isObjectManagerRole()||isCustomerRole())&&f.createdBy&&f.createdBy===currentUserId())
     || isAssignedTaskOwnerUI(f);
 }
 function canEditInspectionUI(i){
   if(!i)return canCreateDocumentationUI();
-  return isAdminRole()||((isObjectManagerRole()||isCustomerRole())&&i.createdBy&&i.createdBy===currentUserId());
+  return isAdminRole()||isTestUserRole()||((isObjectManagerRole()||isCustomerRole())&&i.createdBy&&i.createdBy===currentUserId());
 }
 
 function formatDocumentationTimestamp(f){
@@ -2983,14 +2987,14 @@ function applyRoleUI(){
     if(el)el.classList.toggle('hidden',!yes);
   };
 
-  // Verbindliches 3-Rollen-Modell:
+  // Verbindliches Rollenmodell:
   // Admin/GF = Gesamtsteuerung; Objektbetreuer = operative Umsetzung;
-  // Auftraggeber = eigene Dokumentation + Freigaben.
+  // Auftraggeber = eigene Dokumentation + Freigaben; Testbenutzer = isolierte Testobjekte.
   show('navDashboard',true);
   show('navObjects',true);
   show('navInspections',false);
   show('navFindings',true);
-  show('navResidentReports',!isCustomerRole());
+  show('navResidentReports',!isCustomerRole()&&!isTestUserRole());
   show('navWorkqueue',canUseWorkQueueUI());
   show('navReports',true);
   show('navDecisions',canUseDecisionsUI());
@@ -3181,6 +3185,7 @@ function cloudObjectToLocal(o){
     name:o.name||'',
     address,
     notes:o.notes||'',
+    isTest:o.is_test===true,
     createdAt:o.created_at?new Date(o.created_at).getTime():Date.now(),
     updatedAt:o.updated_at?new Date(o.updated_at).getTime():Date.now(),
     cloud:true
@@ -3551,7 +3556,7 @@ async function cloudDeleteFinding(id){
 
 async function cloudLoadResidentReports(){
   // Datenschutz: Auftraggeber erhalten keine Bewohnermeldungen oder Melderdaten.
-  if(isCustomerRole()){
+  if(isCustomerRole()||isTestUserRole()){
     cloudResidentReports=[];
     cloudResidentReportMedia=[];
     return cloudResidentReports;
@@ -3581,12 +3586,12 @@ async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
   cloudSetStatus('Supabase wird geladen …','wait');
   try{
-    const rows=await cloudRequest('objects?select=id,name,street,postal_code,city,notes,created_at,updated_at&active=eq.true&order=name.asc');
+    const rows=await cloudRequest('objects?select=id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&order=name.asc');
     db.objects=(rows||[]).map(cloudObjectToLocal);
     const inspectionRows=await cloudRequest('inspections?select=id,object_id,started_at,ended_at,notes,created_by,created_at,updated_at&order=started_at.desc');
     db.inspections=(inspectionRows||[]).map(cloudInspectionToLocal);
     await cloudReloadFindings();
-    if(!isCustomerRole()){try{await cloudLoadResidentReports();}catch(e){console.warn('Meldungen konnten nicht geladen werden',e);}}else{cloudResidentReports=[];cloudResidentReportMedia=[];}
+    if(!isCustomerRole()&&!isTestUserRole()){try{await cloudLoadResidentReports();}catch(e){console.warn('Meldungen konnten nicht geladen werden',e);}}else{cloudResidentReports=[];cloudResidentReportMedia=[];}
     renderAll();
     cloudSetStatus(`Verbunden · ${db.objects.length} Objekt(e) · ${db.findings.filter(f=>f.cloud).length} Dokumentation(en) · ${(db.tasks||[]).length} Aufgabe(n) zentral`,'ok');
   }catch(e){
@@ -3603,6 +3608,7 @@ async function cloudSaveObject(id,data){
     postal_code:addr.postal_code,
     city:addr.city,
     notes:data.notes||null,
+    is_test:data.isTest===true,
     updated_at:new Date().toISOString()
   };
   if(id){
@@ -3931,7 +3937,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.18.5'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.18.6'};
 }
 function load(){
   try{
@@ -3994,7 +4000,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.18.5'
+      version:'2.18.6'
     };
 
     merged.findings.forEach(f=>{
@@ -4031,7 +4037,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.18.5';
+  db.version='2.18.6';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -4544,6 +4550,9 @@ function renderWorkQueue(){
     </div>`;
 }
 async function cloudLoadAssignableObjectManagers(objectId){
+  if(isTestUserRole()){
+    return currentUserProfile?[currentUserProfile]:[];
+  }
   const assignments=await cloudRequest(`object_user_assignments?select=user_id&object_id=eq.${encodeURIComponent(objectId)}&active=eq.true`);
   const ids=[...new Set((assignments||[]).map(a=>a.user_id).filter(Boolean))];
   if(!ids.length)return [];
@@ -4645,10 +4654,10 @@ function loadUserAdminEditor(){
   if(!ed)return;if(!uid){ed.innerHTML='';return}
   const p=userAdminProfiles.find(x=>x.id===uid);if(!p){ed.innerHTML='';return}
   const assigned=new Set(userAdminAssignments.filter(a=>a.user_id===uid&&a.active!==false).map(a=>a.object_id));
-  const roles=[['platform_admin','Administrator / GF'],['object_manager','Objektbetreuer'],['customer','Auftraggeber']];
+  const roles=[['platform_admin','Administrator / GF'],['object_manager','Objektbetreuer'],['customer','Auftraggeber'],['test_user','Testbenutzer']];
   const legacyEmployee=p.role==='employee'?'<option value="employee" selected disabled>Mitarbeiter (Alt) – bitte auf eine der 3 Rollen umstellen</option>':'';
   const roleOptions=legacyEmployee+roles.map(([v,l])=>`<option value="${v}" ${p.role===v?'selected':''}>${l}</option>`).join('');
-  const objectRows=(db.objects||[]).map(o=>`<label class="row" style="gap:10px;align-items:center;margin:8px 0"><input type="checkbox" class="userObjectAssignment" value="${esc(o.id)}" ${assigned.has(o.id)?'checked':''}><span><strong>${esc(o.name||'Objekt')}</strong>${o.street||o.city?`<br><span class="muted">${esc([o.street,[o.postal_code,o.city].filter(Boolean).join(' ')].filter(Boolean).join(', '))}</span>`:''}</span></label>`).join('')||'<p class="muted">Keine Objekte vorhanden.</p>';
+  const objectRows=(db.objects||[]).map(o=>`<label class="row" style="gap:10px;align-items:center;margin:8px 0"><input type="checkbox" class="userObjectAssignment" value="${esc(o.id)}" ${assigned.has(o.id)?'checked':''} ${p.role==='test_user'&&!o.isTest?'disabled':''}><span><strong>${esc(o.name||'Objekt')}</strong>${o.isTest?' <span class="badge">TEST</span>':''}${o.address?`<br><span class="muted">${esc(o.address)}</span>`:''}</span></label>`).join('')||'<p class="muted">Keine Objekte vorhanden.</p>';
   ed.innerHTML=`<div class="card"><h3>${esc(p.email||p.full_name||'Benutzer')}</h3><div class="grid2"><label>Anzeigename<input id="userAdminFullName" value="${esc(p.full_name||'')}" placeholder="z. B. Hans Müller"></label><label>Rolle<select id="userAdminRole">${roleOptions}</select></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminActive" type="checkbox" ${p.active!==false?'checked':''}><span>Benutzer aktiv</span></label></div><h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px">
   <button onclick="saveUserAdminPermissions()">Speichern</button>
   <button class="danger" onclick="deleteSelectedUser()">Benutzer löschen</button>
@@ -4664,7 +4673,7 @@ async function createUserAndInvite(){
 
   if(!fullName)return alert('Bitte einen Anzeigenamen eingeben.');
   if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return alert('Bitte eine gültige E-Mail-Adresse eingeben.');
-  if(!['object_manager','customer'].includes(role))return alert('Ungültige Rolle.');
+  if(!['object_manager','customer','test_user'].includes(role))return alert('Ungültige Rolle.');
 
   const btn=event?.currentTarget;
   if(btn){btn.disabled=true;btn.textContent='Benutzer wird angelegt…';}
@@ -4676,7 +4685,7 @@ async function createUserAndInvite(){
         'Authorization':`Bearer ${cloudSession?.access_token||''}`,
         'apikey':SUPABASE_PUBLISHABLE_KEY
       },
-      body:JSON.stringify({fullName,email,role,objectIds})
+      body:JSON.stringify({fullName,email,role:(role==='test_user'?'object_manager':role),objectIds})
     });
 
     const responseText=await res.text();
@@ -4684,6 +4693,17 @@ async function createUserAndInvite(){
     try{data=responseText?JSON.parse(responseText):{};}catch{}
     if(!res.ok || data?.ok===false)throw new Error(data?.error||responseText||`HTTP ${res.status}`);
     if(!data?.initialPassword)throw new Error('Initialpasswort wurde von der Benutzerfunktion nicht zurückgegeben.');
+
+    // Die bestehende Edge Function kennt nur Objektbetreuer/Auftraggeber.
+    // Testbenutzer wird unmittelbar danach serverseitig im Profil gesetzt; das Profil ist für die App maßgeblich.
+    if(role==='test_user'){
+      const profiles=await cloudRequest(`profiles?select=id,email,role&email=eq.${encodeURIComponent(email)}&limit=1`);
+      const profile=profiles?.[0];
+      if(!profile?.id)throw new Error('Testbenutzer wurde angelegt, das Profil konnte aber nicht gefunden werden.');
+      await cloudRequest(`profiles?id=eq.${encodeURIComponent(profile.id)}`,{
+        method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({role:'test_user'})
+      });
+    }
 
     document.getElementById('newUserFullName').value='';
     document.getElementById('newUserEmail').value='';
@@ -4749,6 +4769,10 @@ async function saveUserAdminPermissions(){
   if(!fullName)return alert('Bitte einen Anzeigenamen eingeben.');
   if(uid===currentUserProfile?.id&&(!active||role!=='platform_admin'))return alert('Der aktuell angemeldete Administrator kann sich nicht selbst deaktivieren oder seine Administratorrolle entfernen.');
   const checked=[...document.querySelectorAll('.userObjectAssignment:checked')].map(x=>x.value);
+  if(role==='test_user'){
+    const invalid=checked.filter(id=>!(db.objects||[]).find(o=>o.id===id&&o.isTest===true));
+    if(invalid.length)return alert('Testbenutzer dürfen ausschließlich Testobjekten zugeordnet werden. Bitte produktive Objektzuordnungen entfernen.');
+  }
   try{
     await cloudRequest('profiles?id=eq.'+encodeURIComponent(uid),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({full_name:fullName,role,active})});
     const existing=userAdminAssignments.filter(a=>a.user_id===uid);
@@ -4765,7 +4789,7 @@ async function saveUserAdminPermissions(){
 
 function renderAll(){
   renderDashboard();renderObjects();renderInspections();renderSelects();renderFindings();renderReport();
-if(canUseDecisionsUI())renderDecisions();if(canUseWorkQueueUI())renderWorkQueue();if(!isCustomerRole())renderResidentReports();
+if(canUseDecisionsUI())renderDecisions();if(canUseWorkQueueUI())renderWorkQueue();if(!isCustomerRole()&&!isTestUserRole())renderResidentReports();
   const ro=document.getElementById('reportObject');
   if(ro){
     const rv=ro.value;
@@ -4788,9 +4812,9 @@ function renderObjects(){
   el.innerHTML=db.objects.length?db.objects.map(o=>{
     const fs=db.findings.filter(f=>f.objectId===o.id), open=fs.filter(f=>f.status!=='Erledigt').length;
     return `<div class="card">
-      <div class="row space"><div><h3 style="margin:0">${esc(o.name)}</h3><div class="muted">${esc(o.address||'')}</div></div><span class="badge">${open} offen</span></div>
+      <div class="row space"><div><h3 style="margin:0">${esc(o.name)} ${o.isTest?'<span class="badge" style="margin-left:6px">TEST</span>':''}</h3><div class="muted">${esc(o.address||'')}</div></div><span class="badge">${open} offen</span></div>
       <p>${esc(o.notes||'')}</p>
-      <div class="row"><button onclick="openFindingModal('${o.id}','')">Dokumentation erfassen</button>${!isCustomerRole()?`<button onclick="openObjectQrCode('${o.id}')">QR-Code erstellen</button>`:''}${canManageObjectsUI()?`<button onclick="openObjectModal('${o.id}')">Bearbeiten</button>`:''}<button onclick="showObjectReport('${o.id}')">Bericht</button></div>
+      <div class="row"><button onclick="openFindingModal('${o.id}','')">Dokumentation erfassen</button>${!isCustomerRole()&&!isTestUserRole()?`<button onclick="openObjectQrCode('${o.id}')">QR-Code erstellen</button>`:''}${canManageObjectsUI()?`<button onclick="openObjectModal('${o.id}')">Bearbeiten</button>`:''}<button onclick="showObjectReport('${o.id}')">Bericht</button></div>
     </div>`;
   }).join(''):`<div class="empty">Noch kein Objekt angelegt.</div>`;
 }
@@ -5569,11 +5593,12 @@ async function copyObjectReportLink(objectId){
 
 function openObjectModal(id=''){
   if(!requireAdminUI(id?'Objekt bearbeiten':'Objekt anlegen'))return;
-  const o=db.objects.find(x=>x.id===id)||{id:'',name:'',address:'',notes:''};
+  const o=db.objects.find(x=>x.id===id)||{id:'',name:'',address:'',notes:'',isTest:false};
   modal(`<div class="row space"><h2>${id?'Objekt bearbeiten':'Objekt anlegen'}</h2><button onclick="closeModal()">✕</button></div>
   <label>Objektbezeichnung *</label><input id="oName" value="${esc(o.name)}" placeholder="z. B. WEG Musterstraße 12">
   <label>Adresse</label><input id="oAddress" value="${esc(o.address)}" placeholder="Straße, PLZ Ort">
   <label>Notizen</label><textarea id="oNotes">${esc(o.notes)}</textarea>
+  <label class="row" style="gap:10px;align-items:center;margin-top:14px"><input id="oIsTest" type="checkbox" ${o.isTest?'checked':''}><span><strong>Testobjekt</strong><br><span class="muted">Nur für Testbenutzer freigegebene, nicht produktive Daten.</span></span></label>
   <div class="row" style="margin-top:14px"><button class="primary" onclick="saveObject('${id}')">Speichern</button>${id?`<button class="danger" onclick="deleteObject('${id}')">Löschen</button>`:''}</div>`);
 }
 async function saveObject(id){
@@ -5583,7 +5608,8 @@ async function saveObject(id){
   const data={
     name,
     address:document.getElementById('oAddress').value.trim(),
-    notes:document.getElementById('oNotes').value.trim()
+    notes:document.getElementById('oNotes').value.trim(),
+    isTest:!!document.getElementById('oIsTest')?.checked
   };
   try{
     const row=await cloudSaveObject(id,data);
