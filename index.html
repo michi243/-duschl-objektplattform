@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objektplattform v2.18.6</title>
+<title>Duschl Service – Objektplattform v2.18.7</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -481,7 +481,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.18.6 Datenschutz Bewohnermeldung ===== */
+/* ===== v2.18.7 Datenschutz Bewohnermeldung ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -806,7 +806,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.18.6 Testbenutzer</span></header>
+<span class="badge">v2.18.7 Erstellertransparenz</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1142,7 +1142,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 
 <script id="duschl-qr-local-v2183">
 /*
- * Lokale QR-Code-Erzeugung für Duschl Service v2.18.6.
+ * Lokale QR-Code-Erzeugung für Duschl Service v2.18.7.
  * Basis: QRCode for JavaScript, Kazuhiko Arase, MIT License.
  * Vollständig inline eingebettet – keine CDN-/Netzwerkabhängigkeit.
  */
@@ -2488,6 +2488,7 @@ const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
 let cloudSession=null;
+let cloudFindingCreatorNames=new Map();
 
 let publicResidentReportMode=false;
 let publicResidentObjectId='';
@@ -3443,6 +3444,37 @@ async function cloudDeleteTaskForFinding(findingId){
   db.tasks=(db.tasks||[]).filter(t=>t.findingId!==findingId);
 }
 
+async function cloudLoadFindingCreatorNames(){
+  if(!cloudSession?.access_token || isCustomerRole()){
+    cloudFindingCreatorNames=new Map();
+    return;
+  }
+  try{
+    const rows=await cloudRequest('rpc/get_accessible_finding_creators',{
+      method:'POST',
+      body:JSON.stringify({})
+    });
+    cloudFindingCreatorNames=new Map((rows||[]).map(r=>[r.finding_id,(r.creator_name||'').trim()]));
+  }catch(e){
+    console.warn('Erstellernamen konnten nicht geladen werden.',e);
+    cloudFindingCreatorNames=new Map();
+  }
+}
+function findingCreatorName(f){
+  if(!f||isCustomerRole())return '';
+  const fromCloud=(cloudFindingCreatorNames.get(f.id)||'').trim();
+  if(fromCloud)return fromCloud;
+  if(f.createdBy&&f.createdBy===currentUserId()){
+    return (currentUserProfile?.full_name||cloudSession?.user?.user_metadata?.full_name||cloudSession?.user?.email||'').trim();
+  }
+  return '';
+}
+function findingCreatorMetaHtml(f){
+  if(!f||isCustomerRole())return '';
+  const name=findingCreatorName(f)||'Unbekannter Benutzer';
+  return `<div class="muted" style="margin-top:4px">Erstellt von: <b>${esc(name)}</b> · ${esc(fmt(f.createdAt))}</div>`;
+}
+
 async function cloudReloadFindings(){
   if(!cloudSession?.access_token)return;
   const rows=await cloudRequest('findings?select=id,object_id,inspection_id,source_resident_report_id,type,area,title,category,priority,description,recommended_action,activity,status,completion_type,completion_note,work_required,created_by,created_at,updated_at&order=created_at.desc');
@@ -3462,6 +3494,7 @@ async function cloudReloadFindings(){
   const cloudIds=new Set(cloudRows.map(f=>f.id));
   const localOnly=(db.findings||[]).filter(f=>!f.cloud && !cloudIds.has(f.id));
   db.findings=[...cloudRows,...localOnly];
+  await cloudLoadFindingCreatorNames();
   await cloudLoadTasks();
   renderAll();
   hydrateMediaImages();
@@ -3937,7 +3970,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.18.6'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.18.7'};
 }
 function load(){
   try{
@@ -4000,7 +4033,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.18.6'
+      version:'2.18.7'
     };
 
     merged.findings.forEach(f=>{
@@ -4037,7 +4070,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.18.6';
+  db.version='2.18.7';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -4923,6 +4956,7 @@ function findingCard(f){
     <div class="row space"><div><span class="badge">${esc(type)}</span> ${type==='Feststellung'?badgeP(f.priority||'P3'):''} ${statusBadge(f.status)}</div><small class="muted">${fmt(f.createdAt)}</small></div>
     <h3 style="margin-bottom:5px">${esc(f.title)}</h3>
     <div class="muted">${esc(objectName(f.objectId))}${f.area?' · '+esc(f.area):''}</div>
+    ${findingCreatorMetaHtml(f)}
     ${(before||after)?`${f.type==='Feststellung'?`<div class="muted">Auftraggeber: ${esc(decisionLabel(f.decisionStatus||'pending'))}</div>`:''}<div class="row" style="margin-top:10px">${before?`<div><small class="muted">Vorher</small><br>${mediaImg(before,'Vorher','thumb')}</div>`:''}${after?`<div><small class="muted">Nachher</small><br>${mediaImg(after,'Nachher','thumb')}</div>`:''}</div>`:''}
     ${f.description?`<p>${esc(f.description)}</p>`:''}
     ${type==='Leistung'&&f.activity?`<p><b>Durchgeführt:</b> ${esc(f.activity)}</p>`:''}
@@ -5774,6 +5808,7 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   const objOpts=db.objects.map(o=>`<option value="${o.id}" ${o.id===f.objectId?'selected':''}>${esc(o.name)}</option>`).join('');
   const inspOpts=db.inspections.filter(i=>!f.objectId||i.objectId===f.objectId).map(i=>`<option value="${i.id}" ${i.id===f.inspectionId?'selected':''}>${esc(inspectionName(i.id))}</option>`).join('');
   modal(`<div class="row space"><h2>${editId?'Dokumentation bearbeiten':'Dokumentation erfassen'}</h2><button onclick="closeModal()">✕</button></div>
+  ${editId?findingCreatorMetaHtml(f):''}
   <label>Objekt *</label><select id="fObject" onchange="refreshInspectionOptions()">${objOpts}</select>
   <input type="hidden" id="fInspection" value="${f.inspectionId||''}">
   <label>Dokumentationstyp *</label><select id="fType" onchange="toggleDocType()">${['Feststellung','Leistung'].map(x=>`<option ${x===f.type?'selected':''}>${x}</option>`).join('')}</select>
