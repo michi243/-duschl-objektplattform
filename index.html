@@ -481,7 +481,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.17.1 Meldungsbearbeitung Fix ===== */
+/* ===== v2.18.0 Bewohnerfotos ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -712,7 +712,16 @@ body.public-report-mode>main,
 body.public-report-mode>#authGate,
 body.public-report-mode>#modalRoot,
 body.public-report-mode>#photoViewer{display:none!important}
-@media(max-width:520px){#publicReportPage{padding:14px 10px 30px}.public-report-card{padding:16px;border-radius:15px}}
+.public-report-photo-box{margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#0a1722}
+.public-report-photo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.public-report-photo-item{position:relative;aspect-ratio:1/1;border:1px solid #334a5b;border-radius:10px;overflow:hidden;background:#07131d}
+.public-report-photo-item img{width:100%;height:100%;object-fit:cover;display:block}
+.public-report-photo-remove{position:absolute;top:5px;right:5px;width:30px;height:30px;padding:0!important;border-radius:50%!important;background:rgba(7,19,29,.92)!important;color:#fff!important;border:1px solid #60788a!important}
+.public-report-photo-help{font-size:12px;color:var(--muted);margin-top:7px;line-height:1.4}
+@media(max-width:520px){
+  #publicReportPage{padding:14px 10px 30px}.public-report-card{padding:16px;border-radius:15px}
+  .public-report-photo-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
 </style>
 
 </head>
@@ -754,6 +763,13 @@ body.public-report-mode>#photoViewer{display:none!important}
         <label for="prDescription">Beschreibung *</label>
         <textarea id="prDescription" maxlength="2000" placeholder="Was ist aufgefallen? Wo genau befindet sich das Problem?"></textarea>
 
+        <div class="public-report-photo-box">
+          <label for="prPhotos" style="margin-top:0">Fotos</label>
+          <input id="prPhotos" type="file" accept="image/*" multiple onchange="handlePublicReportPhotos(this)">
+          <div class="public-report-photo-help">Optional · maximal 3 Bilder · maximal 10 MB je Bild. Kamera oder Fotomediathek möglich.</div>
+          <div id="prPhotoGrid" class="public-report-photo-grid"></div>
+        </div>
+
         <div class="public-report-consent">
           <input id="prConsent" type="checkbox">
           <label for="prConsent">Ich stimme der Verarbeitung meiner Angaben zur Bearbeitung dieser Meldung zu. *</label>
@@ -790,7 +806,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.17.1 Meldungsbearbeitung Fix</span></header>
+<span class="badge">v2.18.0 Bewohnerfotos</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1159,6 +1175,65 @@ function publicReportMessage(text,type='bad'){
   el.style.display=text?'block':'none';
 }
 
+
+let publicReportFiles=[];
+let publicReportPreviewUrls=[];
+
+function clearPublicReportPreviewUrls(){
+  for(const url of publicReportPreviewUrls){try{URL.revokeObjectURL(url)}catch(_e){}}
+  publicReportPreviewUrls=[];
+}
+
+function renderPublicReportPhotoPreview(){
+  const grid=document.getElementById('prPhotoGrid'); if(!grid)return;
+  clearPublicReportPreviewUrls();
+  grid.innerHTML=publicReportFiles.map((file,i)=>{
+    const url=URL.createObjectURL(file); publicReportPreviewUrls.push(url);
+    return `<div class="public-report-photo-item"><img src="${url}" alt="Foto ${i+1}"><button class="public-report-photo-remove" type="button" aria-label="Foto entfernen" onclick="removePublicReportPhoto(${i})">×</button></div>`;
+  }).join('');
+}
+
+function removePublicReportPhoto(index){
+  publicReportFiles.splice(index,1);
+  renderPublicReportPhotoPreview();
+  const input=document.getElementById('prPhotos'); if(input)input.value='';
+}
+
+function handlePublicReportPhotos(input){
+  const selected=[...(input?.files||[])];
+  if(!selected.length)return;
+  const maxSize=10*1024*1024;
+  const allowed=new Set(['image/jpeg','image/png','image/webp','image/heic','image/heif']);
+  for(const file of selected){
+    if(publicReportFiles.length>=3){publicReportMessage('Es können maximal 3 Fotos hinzugefügt werden.');break;}
+    const mime=(file.type||'').toLowerCase();
+    if(!allowed.has(mime)){publicReportMessage(`„${file.name}“ hat ein nicht unterstütztes Bildformat.`);continue;}
+    if(file.size>maxSize){publicReportMessage(`„${file.name}“ ist größer als 10 MB.`);continue;}
+    publicReportFiles.push(file);
+  }
+  input.value='';
+  renderPublicReportPhotoPreview();
+  if(publicReportFiles.length)publicReportMessage('', 'bad');
+}
+
+async function uploadPublicResidentReportPhotos(reportId,publicStatusToken){
+  for(let i=0;i<publicReportFiles.length;i++){
+    const file=publicReportFiles[i];
+    const fd=new FormData();
+    fd.append('report_id',reportId);
+    fd.append('public_status_token',publicStatusToken);
+    fd.append('file',file,file.name||`foto_${i+1}.jpg`);
+    const r=await fetch(`${SUPABASE_URL}/functions/v1/upload-resident-report-photo`,{
+      method:'POST',
+      headers:{'apikey':SUPABASE_PUBLISHABLE_KEY},
+      body:fd
+    });
+    const raw=await r.text();
+    let data={}; try{data=raw?JSON.parse(raw):{}}catch(_e){}
+    if(!r.ok||data?.success!==true)throw new Error(data?.error||raw||`Foto ${i+1}: HTTP ${r.status}`);
+  }
+}
+
 async function submitPublicResidentReport(){
   if(!publicResidentObjectId)return publicReportMessage('Der Objektlink ist ungültig.');
   const name=(document.getElementById('prName')?.value||'').trim();
@@ -1172,19 +1247,18 @@ async function submitPublicResidentReport(){
   if(!description)return publicReportMessage('Bitte beschreiben Sie Ihre Meldung.');
   if(!consent)return publicReportMessage('Bitte bestätigen Sie die Datenschutzeinwilligung.');
   if(email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return publicReportMessage('Bitte prüfen Sie die E-Mail-Adresse.');
+  if(publicReportFiles.length>3)return publicReportMessage('Es können maximal 3 Fotos hinzugefügt werden.');
 
   const btn=document.getElementById('prSubmit');
-  if(btn){btn.disabled=true;btn.textContent='Meldung wird gesendet …';}
+  if(btn){btn.disabled=true;btn.textContent=publicReportFiles.length?'Meldung und Fotos werden gesendet …':'Meldung wird gesendet …';}
   publicReportMessage('', 'bad');
   const msg=document.getElementById('prMessage'); if(msg)msg.style.display='none';
 
+  let reportCreated=false;
   try{
-    const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/create_public_resident_report`,{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/create_public_resident_report_with_token`,{
       method:'POST',
-      headers:{
-        'apikey':SUPABASE_PUBLISHABLE_KEY,
-        'Content-Type':'application/json'
-      },
+      headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},
       body:JSON.stringify({
         p_object_id:publicResidentObjectId,
         p_resident_name:name,
@@ -1197,22 +1271,130 @@ async function submitPublicResidentReport(){
     });
     const raw=await r.text();
     if(!r.ok){
-      let detail=raw;
-      try{detail=JSON.parse(raw)?.message||raw}catch(_e){}
+      let detail=raw; try{detail=JSON.parse(raw)?.message||raw}catch(_e){}
       throw new Error(detail||`HTTP ${r.status}`);
     }
+
+    let rows=[]; try{rows=raw?JSON.parse(raw):[]}catch(_e){}
+    const result=Array.isArray(rows)?rows[0]:rows;
+    const reportId=result?.report_id||result?.id||'';
+    const publicStatusToken=result?.public_status_token||'';
+    if(!reportId||!publicStatusToken)throw new Error('Die Meldung wurde angelegt, aber die Upload-Berechtigung wurde nicht zurückgegeben.');
+    reportCreated=true;
+
+    const hadPhotos=publicReportFiles.length>0;
+    if(hadPhotos)await uploadPublicResidentReportPhotos(reportId,publicStatusToken);
+
+    clearPublicReportPreviewUrls();
+    publicReportFiles=[];
+
     const wrap=document.getElementById('publicReportFormWrap');
-    if(wrap)wrap.innerHTML='<div class="public-report-success"><strong>Meldung wurde übermittelt.</strong><div class="muted">Duschl Service prüft Ihre Meldung. Vielen Dank für Ihren Hinweis.</div></div>';
+    if(wrap)wrap.innerHTML=`<div class="public-report-success"><strong>Meldung wurde übermittelt.</strong><div class="muted">${hadPhotos?'Meldung und Fotos wurden an Duschl Service übermittelt.':'Duschl Service prüft Ihre Meldung. Vielen Dank für Ihren Hinweis.'}</div></div>`;
   }catch(e){
     console.error('Öffentliche Meldung fehlgeschlagen',e);
     const detail=(e&&e.message)?e.message:String(e||'Unbekannter Fehler');
-    publicReportMessage('Senden fehlgeschlagen: '+detail);
+    if(reportCreated){
+      publicReportMessage('Die Meldung wurde gespeichert, aber mindestens ein Foto konnte nicht hochgeladen werden. Bitte senden Sie die Meldung nicht erneut. Technischer Hinweis: '+detail);
+    }else{
+      publicReportMessage('Senden fehlgeschlagen: '+detail);
+    }
     if(btn){btn.disabled=false;btn.textContent='Meldung absenden';}
   }
 }
 
 
 let cloudResidentReports=[];
+let cloudResidentReportMedia=[];
+
+const RESIDENT_REPORT_PHOTO_BUCKET='resident-report-media';
+
+async function cloudLoadResidentReportMedia(){
+  if(!cloudSession?.access_token){
+    cloudResidentReportMedia=[];
+    return cloudResidentReportMedia;
+  }
+  const rows=await cloudRequest(
+    'resident_report_media?select=id,resident_report_id,storage_path,file_name,mime_type,file_size,created_at&order=created_at.asc'
+  );
+  cloudResidentReportMedia=Array.isArray(rows)?rows:[];
+  return cloudResidentReportMedia;
+}
+
+function residentReportMediaFor(reportId){
+  return (cloudResidentReportMedia||[]).filter(x=>x.resident_report_id===reportId);
+}
+
+async function cloudResidentReportMediaGet(path){
+  const r=await cloudStorageRequest(
+    `object/authenticated/${RESIDENT_REPORT_PHOTO_BUCKET}/${path}`,
+    {method:'GET'}
+  );
+  return await r.blob();
+}
+
+function residentReportMediaImg(media,alt='Meldungsfoto',cls='thumb',style=''){
+  if(!media?.storage_path)return '';
+  return `<img class="${cls}" data-resident-media-path="${esc(media.storage_path)}" alt="${esc(alt)}" data-photo-viewer="1" onclick="openPhotoViewer(this)" role="button" tabindex="0" ${style?`style="${style}"`:''}>`;
+}
+
+async function hydrateResidentReportImages(root=document){
+  const imgs=[...root.querySelectorAll('img[data-resident-media-path]')];
+  for(const img of imgs){
+    const path=img.getAttribute('data-resident-media-path');
+    if(!path||img.dataset.mediaLoaded==='1'||!cloudSession?.access_token)continue;
+    try{
+      const blob=await cloudResidentReportMediaGet(path);
+      if(blob){
+        const url=URL.createObjectURL(blob);
+        img.src=url;
+        img.dataset.mediaLoaded='1';
+        img.addEventListener('load',()=>setTimeout(()=>URL.revokeObjectURL(url),5000),{once:true});
+      }
+    }catch(e){console.error('Bewohnerfoto laden fehlgeschlagen',e)}
+  }
+}
+
+function fileExtensionFromMedia(media,blob){
+  const mime=(media?.mime_type||blob?.type||'').toLowerCase();
+  if(mime.includes('png'))return 'png';
+  if(mime.includes('webp'))return 'webp';
+  if(mime.includes('heic'))return 'heic';
+  if(mime.includes('heif'))return 'heif';
+  return 'jpg';
+}
+
+async function copyResidentReportPhotosToFinding(reportId,findingId,objectId){
+  const photos=residentReportMediaFor(reportId).slice(0,3);
+  for(const media of photos){
+    if(!media?.storage_path)continue;
+    const blob=await cloudResidentReportMediaGet(media.storage_path);
+    const ext=fileExtensionFromMedia(media,blob);
+    const targetPath=`${findingId}/before/resident_${media.id}.${ext}`;
+
+    const existing=await cloudRequest(
+      `media?select=id&finding_id=eq.${encodeURIComponent(findingId)}&storage_path=eq.${encodeURIComponent(targetPath)}&limit=1`
+    );
+    if(existing?.[0]?.id)continue;
+
+    await cloudMediaPut(targetPath,blob);
+    await cloudRequest('media',{
+      method:'POST',
+      headers:{'Prefer':'return=minimal'},
+      body:JSON.stringify({
+        object_id:objectId||null,
+        inspection_id:null,
+        finding_id:findingId,
+        media_type:'photo',
+        phase:'before',
+        storage_path:targetPath,
+        original_filename:media.file_name||`Bewohnermeldung_${media.id}.${ext}`,
+        mime_type:media.mime_type||blob.type||'image/jpeg',
+        file_size:media.file_size||blob.size||null
+      })
+    });
+  }
+}
+
 
 let currentUserProfile=null;
 let currentUserRole='';
@@ -1946,6 +2128,7 @@ async function cloudLoadResidentReports(){
     'resident_reports?select=id,report_no,object_id,resident_name,resident_email,category,description,status,internal_assessment,requires_management,converted_to_finding_id,received_at,reviewed_at,completed_at,closed_at,consent_given,location_detail,created_at,updated_at&order=received_at.desc.nullslast,created_at.desc'
   );
   cloudResidentReports=Array.isArray(rows)?rows:[];
+  try{await cloudLoadResidentReportMedia();}catch(e){console.warn('Meldungsfotos konnten nicht geladen werden',e);cloudResidentReportMedia=[];}
   return cloudResidentReports;
 }
 
@@ -2201,11 +2384,14 @@ async function openPhotoViewer(img){
     let blob=null;
     const localRef=img.getAttribute('data-media-ref');
     const cloudRef=img.getAttribute('data-cloud-media-ref');
+    const residentPath=img.getAttribute('data-resident-media-path');
 
     if(localRef){
       blob=await mediaGet(mediaId(localRef));
     }else if(cloudRef){
       blob=await cloudMediaGet(cloudRef);
+    }else if(residentPath){
+      blob=await cloudResidentReportMediaGet(residentPath);
     }
 
     if(blob){
@@ -3141,7 +3327,7 @@ if(canUseDecisionsUI())renderDecisions();if(canUseWorkQueueUI())renderWorkQueue(
     ro.innerHTML='<option value="">Bitte wählen</option>'+db.objects.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
     ro.value=rv;
   }
-showRecoveryStatus();setTimeout(()=>hydrateMediaImages(),0);}
+showRecoveryStatus();setTimeout(()=>{hydrateMediaImages();hydrateResidentReportImages();},0);}
 function renderDashboard(){
   document.getElementById('kpiObjects').textContent=db.objects.length;
   const open=db.findings.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt');
@@ -3450,6 +3636,7 @@ function renderResidentReports(){
         ${r.resident_email?' · '+esc(r.resident_email):''}
         ${when?' · '+esc(fmt(when)):''}
       </div>
+      ${residentReportMediaFor(r.id).length?`<div style="margin-top:10px"><strong>Fotos der Meldung</strong><div class="photo-grid">${residentReportMediaFor(r.id).map((m,i)=>residentReportMediaImg(m,`Meldungsfoto ${i+1}`,'thumb')).join('')}</div></div>`:''}
       ${r.internal_assessment?`<div class="card" style="margin-top:10px"><strong>Interne Dokumentation</strong><div style="margin-top:5px">${esc(r.internal_assessment)}</div></div>`:''}
       ${r.converted_to_finding_id?'<div class="muted" style="margin-top:8px">Mit offizieller Dokumentation verknüpft.</div>':''}
       <div class="row" style="margin-top:12px">
@@ -3461,6 +3648,7 @@ function renderResidentReports(){
       </div>
     </div>`;
   }).join('');
+  setTimeout(()=>hydrateResidentReportImages(list),0);
 }
 
 function getResidentReportById(id){
@@ -3481,6 +3669,7 @@ function openResidentReportDetails(id){
       <p><strong>Beschreibung</strong><br>${esc(r.description||'—')}</p>
       <p><strong>Melder</strong><br>${esc(r.resident_name||'—')}${r.resident_email?'<br>'+esc(r.resident_email):''}</p>
       <p><strong>Eingang</strong><br>${esc(fmt(r.received_at||r.created_at))}</p>
+      ${residentReportMediaFor(r.id).length?`<p><strong>Fotos der Meldung</strong></p><div class="photo-grid">${residentReportMediaFor(r.id).map((m,i)=>residentReportMediaImg(m,`Meldungsfoto ${i+1}`,'thumb')).join('')}</div>`:''}
       ${r.internal_assessment?`<p><strong>Interne Dokumentation</strong><br>${esc(r.internal_assessment)}</p>`:''}
     </div>
     <div class="row" style="margin-top:14px">
@@ -3489,6 +3678,7 @@ function openResidentReportDetails(id){
       ${!r.converted_to_finding_id&&!['closed','rejected','completed'].includes(r.status||'')?`<button class="danger" onclick="closeModal();openResidentReportCloseModal('${r.id}','rejected')">Verwerfen</button>`:''}
       <button onclick="closeModal()">Abbrechen</button>
     </div>`);
+  setTimeout(()=>hydrateResidentReportImages(document.getElementById('modalRoot')),0);
 }
 
 function openResidentReportCloseModal(id,targetStatus){
@@ -3626,6 +3816,11 @@ async function convertResidentReportToFinding(id){
         })
       });
     }
+
+    // Bewohnerfotos werden beim Übernehmen als Vorher-Fotos in den regulären
+    // Dokumentationsspeicher kopiert. Dadurch bleiben Dokumentation und spätere
+    // Löschung personenbezogener Meldedaten technisch voneinander entkoppelt.
+    await copyResidentReportPhotosToFinding(r.id,findingId,r.object_id);
 
     const now=new Date().toISOString();
     const assessment='Als offizielle Dokumentation übernommen.';
