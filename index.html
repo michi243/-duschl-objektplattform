@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objektplattform v2.18.4</title>
+<title>Duschl Service – Objektplattform v2.18.5</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -481,7 +481,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.18.4 Datenschutz Bewohnermeldung ===== */
+/* ===== v2.18.5 Datenschutz Bewohnermeldung ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -806,7 +806,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.18.4 Datenschutz Bewohnermeldung</span></header>
+<span class="badge">v2.18.5 Session-Härtung</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1141,7 +1141,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 
 <script id="duschl-qr-local-v2183">
 /*
- * Lokale QR-Code-Erzeugung für Duschl Service v2.18.4.
+ * Lokale QR-Code-Erzeugung für Duschl Service v2.18.5.
  * Basis: QRCode for JavaScript, Kazuhiko Arase, MIT License.
  * Vollständig inline eingebettet – keine CDN-/Netzwerkabhängigkeit.
  */
@@ -3027,8 +3027,11 @@ function requireDecisionUI(){
   return false;
 }
 
+function cloudPublicHeaders(extra={}){
+  return {'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json',...extra};
+}
 function cloudHeaders(extra={}){
-  const h={'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json',...extra};
+  const h=cloudPublicHeaders(extra);
   if(cloudSession?.access_token)h['Authorization']='Bearer '+cloudSession.access_token;
   return h;
 }
@@ -3052,21 +3055,46 @@ function cloudStoreSession(s){
 function cloudLoadStoredSession(){
   try{return JSON.parse(localStorage.getItem(SUPABASE_SESSION_KEY)||'null')}catch(_e){return null}
 }
+function cloudHandleSessionLoss(message='Sitzung abgelaufen. Bitte erneut anmelden.'){
+  cloudStoreSession(null);
+  currentUserProfile=null;
+  currentUserRole='';
+  applyRoleUI();
+  cloudSetStatus('Nicht angemeldet','bad');
+  cloudShowGate(true);
+  cloudAuthMessage(message,true);
+}
 async function cloudRefreshSession(){
   const s=cloudLoadStoredSession();
-  if(!s?.refresh_token)return false;
+  if(!s?.refresh_token){
+    cloudHandleSessionLoss();
+    return false;
+  }
   try{
     const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{
       method:'POST',
-      headers:cloudHeaders(),
+      headers:cloudPublicHeaders(),
       body:JSON.stringify({refresh_token:s.refresh_token})
     });
-    if(!r.ok)throw new Error(await r.text());
-    const n=await r.json();cloudStoreSession(n);return true;
+    const text=await r.text();
+    if(!r.ok)throw new Error(text||`HTTP ${r.status}`);
+    const n=text?JSON.parse(text):null;
+    if(!n?.access_token)throw new Error('Keine neue Sitzung erhalten.');
+    cloudStoreSession(n);
+    return true;
   }catch(e){
     console.warn('Session-Aktualisierung fehlgeschlagen',e);
-    cloudStoreSession(null);return false;
+    cloudHandleSessionLoss();
+    return false;
   }
+}
+async function cloudEnsureFreshSession(bufferSeconds=30){
+  if(!cloudSession?.access_token)return false;
+  const expiresAt=Number(cloudSession.expires_at||0);
+  if(expiresAt && expiresAt*1000<=Date.now()+bufferSeconds*1000){
+    return await cloudRefreshSession();
+  }
+  return true;
 }
 async function cloudLogin(){
   const email=document.getElementById('authEmail')?.value.trim();
@@ -3076,7 +3104,7 @@ async function cloudLogin(){
   try{
     const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`,{
       method:'POST',
-      headers:cloudHeaders(),
+      headers:cloudPublicHeaders(),
       body:JSON.stringify({email,password})
     });
     if(!r.ok)throw new Error('Anmeldung fehlgeschlagen.');
@@ -3107,21 +3135,44 @@ async function cloudLogout(){
 }
 async function cloudRequest(path,options={},retry=true){
   if(!cloudSession?.access_token)throw new Error('Nicht angemeldet.');
+
+  if(retry){
+    const fresh=await cloudEnsureFreshSession();
+    if(!fresh)throw new Error('Sitzung abgelaufen. Bitte erneut anmelden.');
+  }
+
   const r=await fetch(`${SUPABASE_URL}/rest/v1/${path}`,{
     ...options,
     headers:cloudHeaders({...(options.headers||{})})
   });
-  if(r.status===401 && retry){
+
+  const text=r.status===204?'':await r.text();
+  const ct=r.headers.get('content-type')||'';
+  let data=text;
+  if(text && ct.includes('application/json')){
+    try{data=JSON.parse(text)}catch(_e){data=text}
+  }
+
+  const code=(data && typeof data==='object')?String(data.code||''):'';
+  const detail=(data && typeof data==='object')
+    ?[data.message,data.details,data.hint].filter(Boolean).join(' ')
+    :String(data||'');
+  const jwtExpired=(r.status===401 || code==='PGRST303' || /jwt\s*(is\s*)?expired|expired\s+jwt/i.test(detail));
+
+  if(jwtExpired && retry){
     const ok=await cloudRefreshSession();
     if(ok)return cloudRequest(path,options,false);
+    throw new Error('Sitzung abgelaufen. Bitte erneut anmelden.');
   }
+
   if(!r.ok){
-    const msg=await r.text();
+    const msg=(data && typeof data==='object')
+      ?(data.message||data.details||data.error||text)
+      :text;
     throw new Error(msg||`HTTP ${r.status}`);
   }
   if(r.status===204)return null;
-  const ct=r.headers.get('content-type')||'';
-  return ct.includes('application/json')?await r.json():await r.text();
+  return data;
 }
 function cloudObjectToLocal(o){
   const address=[o.street,o.postal_code,o.city].filter(Boolean).join(', ');
@@ -3880,7 +3931,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.18.4'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.18.5'};
 }
 function load(){
   try{
@@ -3943,7 +3994,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.18.4'
+      version:'2.18.5'
     };
 
     merged.findings.forEach(f=>{
@@ -3980,7 +4031,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.18.4';
+  db.version='2.18.5';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
