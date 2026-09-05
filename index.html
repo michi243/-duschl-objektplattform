@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objektplattform v2.18.7</title>
+<title>Duschl Service – Objektplattform v2.18.8</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -481,7 +481,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.18.7 Datenschutz Bewohnermeldung ===== */
+/* ===== v2.18.8 Datenschutz Bewohnermeldung ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -798,15 +798,17 @@ body.public-report-mode>#photoViewer{display:none!important}
     <input id="authPassword" type="password" autocomplete="current-password" placeholder="Supabase-Benutzerpasswort">
     <div id="authMessage" class="muted" style="margin:10px 0"></div>
     <button class="primary" style="width:100%" onclick="cloudLogin()">Anmelden</button>
+    <div class="muted" style="margin-top:10px;text-align:center">Passwort vergessen? Bitte Administrator kontaktieren.</div>
   </div>
 </div>
 
 <header>
   <div><h1>Duschl Service</h1><small>Interne Objekt-Dokumentation</small></div>
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
+  <button id="headerPasswordBtn" onclick="showVoluntaryPasswordChange()">Passwort ändern</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.18.7 Erstellertransparenz</span></header>
+<span class="badge">v2.18.8 Passwortverwaltung</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1142,7 +1144,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 
 <script id="duschl-qr-local-v2183">
 /*
- * Lokale QR-Code-Erzeugung für Duschl Service v2.18.7.
+ * Lokale QR-Code-Erzeugung für Duschl Service v2.18.8.
  * Basis: QRCode for JavaScript, Kazuhiko Arase, MIT License.
  * Vollständig inline eingebettet – keine CDN-/Netzwerkabhängigkeit.
  */
@@ -2973,6 +2975,74 @@ async function completeFirstLoginPasswordChange(){
   }
 }
 
+function showVoluntaryPasswordChange(){
+  if(!cloudSession?.access_token)return cloudShowGate(true);
+  showGeneralPasswordChangeGate(false);
+}
+
+function showGeneralPasswordChangeGate(isRecovery=false){
+  const root=document.getElementById('modalRoot');
+  if(!root)return;
+  root.innerHTML=`
+    <div class="modal-backdrop" style="z-index:10050">
+      <div class="modal-dialog-dark" role="dialog" aria-modal="true" aria-labelledby="generalPasswordTitle">
+        <h2 id="generalPasswordTitle">${isRecovery?'Neues Passwort festlegen':'Passwort ändern'}</h2>
+        <p class="muted">${isRecovery?'Lege jetzt ein neues persönliches Passwort fest.':'Lege ein neues persönliches Passwort fest.'}</p>
+        <label>Neues Passwort</label>
+        <input id="generalPassword1" type="password" autocomplete="new-password" placeholder="Mindestens 12 Zeichen">
+        <label>Neues Passwort wiederholen</label>
+        <input id="generalPassword2" type="password" autocomplete="new-password" placeholder="Passwort wiederholen">
+        <div id="generalPasswordMessage" class="muted" style="margin-top:10px"></div>
+        <div class="modal-actions">
+          <button id="generalPasswordBtn" class="primary" onclick="completeGeneralPasswordChange(${isRecovery?'true':'false'})">Passwort speichern</button>
+          ${isRecovery?'<button onclick="cloudLogout()">Abbrechen</button>':'<button onclick="closeModal()">Abbrechen</button>'}
+        </div>
+      </div>
+    </div>`;
+  setTimeout(()=>document.getElementById('generalPassword1')?.focus(),50);
+}
+
+async function completeGeneralPasswordChange(isRecovery=false){
+  const p1=document.getElementById('generalPassword1')?.value||'';
+  const p2=document.getElementById('generalPassword2')?.value||'';
+  const msg=document.getElementById('generalPasswordMessage');
+  const btn=document.getElementById('generalPasswordBtn');
+  if(p1.length<12){if(msg){msg.textContent='Das neue Passwort muss mindestens 12 Zeichen lang sein.';msg.style.color='#ff8b91';}return;}
+  if(p1!==p2){if(msg){msg.textContent='Die Passwörter stimmen nicht überein.';msg.style.color='#ff8b91';}return;}
+  if(btn){btn.disabled=true;btn.textContent='Passwort wird gespeichert…';}
+  try{
+    const r=await fetch(`${SUPABASE_URL}/auth/v1/user`,{method:'PUT',headers:cloudHeaders(),body:JSON.stringify({password:p1})});
+    const text=await r.text();
+    if(!r.ok)throw new Error(text||'Passwort konnte nicht geändert werden.');
+    closeModal();
+    if(isRecovery){
+      history.replaceState(null,'',location.pathname+location.search);
+      await cloudLoadCurrentProfile();
+      await cloudReloadObjects();
+    }
+    alert('Passwort wurde erfolgreich geändert.');
+  }catch(e){
+    if(msg){msg.textContent='Passwortänderung fehlgeschlagen: '+(e?.message||e);msg.style.color='#ff8b91';}
+  }finally{if(btn){btn.disabled=false;btn.textContent='Passwort speichern';}}
+}
+
+function cloudRecoverySessionFromUrl(){
+  const raw=(location.hash||'').replace(/^#/,'');
+  if(!raw)return null;
+  const p=new URLSearchParams(raw);
+  if(p.get('type')!=='recovery' || !p.get('access_token'))return null;
+  const expiresIn=Number(p.get('expires_in')||3600);
+  return {
+    access_token:p.get('access_token'),
+    refresh_token:p.get('refresh_token')||'',
+    token_type:p.get('token_type')||'bearer',
+    expires_in:expiresIn,
+    expires_at:Math.floor(Date.now()/1000)+expiresIn,
+    user:null,
+    _password_recovery:true
+  };
+}
+
 function applyRoleUI(){
   const role=effectiveUserRole();
   const rb=document.getElementById('roleBadge');
@@ -3663,7 +3733,14 @@ async function cloudDeleteObject(id){
   await cloudRequest(`objects?id=eq.${encodeURIComponent(id)}`,{method:'DELETE'});
 }
 async function bootCloud(){
-  cloudSession=cloudLoadStoredSession();
+  const recoverySession=cloudRecoverySessionFromUrl();
+  cloudSession=recoverySession||cloudLoadStoredSession();
+  if(recoverySession){
+    cloudStoreSession(recoverySession);
+    cloudShowGate(false);
+    showGeneralPasswordChangeGate(true);
+    return;
+  }
   if(!cloudSession){
     cloudSetStatus('Nicht angemeldet','bad');
     cloudShowGate(true);
@@ -3970,7 +4047,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.18.7'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.18.8'};
 }
 function load(){
   try{
@@ -4033,7 +4110,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.18.7'
+      version:'2.18.8'
     };
 
     merged.findings.forEach(f=>{
@@ -4070,7 +4147,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.18.7';
+  db.version='2.18.8';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
