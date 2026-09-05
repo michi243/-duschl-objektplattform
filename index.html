@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objektplattform v2.18.9</title>
+<title>Duschl Service – Objektplattform v2.18.10</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -481,7 +481,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.18.9 Datenschutz Bewohnermeldung ===== */
+/* ===== v2.18.10 Datenschutz Bewohnermeldung ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -808,7 +808,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   <button id="headerPasswordBtn" onclick="showVoluntaryPasswordChange()">Passwort ändern</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.18.9 Passwortverwaltung</span></header>
+<span class="badge">v2.18.10 Passwortverwaltung</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1131,7 +1131,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   </div>
   <div class="card" style="margin-top:14px">
     <h3>Objektdaten bereinigen</h3>
-    <p class="muted">Setzt ein Objekt auf einen sauberen Ausgangszustand zurück. Dokumentationen, Entscheidungen, Aufgaben, zugehörige Medien und technische Alt-Begehungen werden gelöscht. Objektstammdaten und Benutzerzuordnungen bleiben erhalten.</p>
+    <p class="muted">Setzt ein Objekt auf einen sauberen Ausgangszustand zurück. Dokumentationen, Entscheidungen, Aufgaben, zugehörige Medien, technische Alt-Begehungen sowie Bewohnermeldungen inklusive Ereignissen und Fotos werden gelöscht. Objektstammdaten und Benutzerzuordnungen bleiben erhalten.</p>
     <label>Objekt auswählen</label>
     <select id="cleanupObjectSelect" onchange="previewObjectCleanup()"><option value="">Bitte auswählen</option></select>
     <div id="cleanupPreview" class="muted" style="margin-top:10px">Bitte zuerst ein Objekt auswählen.</div>
@@ -1155,7 +1155,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 
 <script id="duschl-qr-local-v2183">
 /*
- * Lokale QR-Code-Erzeugung für Duschl Service v2.18.9.
+ * Lokale QR-Code-Erzeugung für Duschl Service v2.18.10.
  * Basis: QRCode for JavaScript, Kazuhiko Arase, MIT License.
  * Vollständig inline eingebettet – keine CDN-/Netzwerkabhängigkeit.
  */
@@ -4158,7 +4158,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.18.8';
+  db.version='2.18.10';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -5732,7 +5732,15 @@ async function getObjectCleanupPreview(objectId){
   if(findingIds.length){
     decisions=await cloudRequest(`decisions?select=id,finding_id&finding_id=in.(${findingIds.map(x=>encodeURIComponent(x)).join(',')})`)||[];
   }
-  return {findings,tasks,media,inspections,decisions};
+  const residentReports=await cloudRequest(`resident_reports?select=id&object_id=eq.${encodeURIComponent(objectId)}`)||[];
+  const residentReportIds=residentReports.map(x=>x.id);
+  let residentEvents=[],residentMedia=[];
+  if(residentReportIds.length){
+    const ids=residentReportIds.map(x=>encodeURIComponent(x)).join(',');
+    residentEvents=await cloudRequest(`resident_report_events?select=id,resident_report_id&resident_report_id=in.(${ids})`)||[];
+    residentMedia=await cloudRequest(`resident_report_media?select=id,resident_report_id,storage_path&resident_report_id=in.(${ids})`)||[];
+  }
+  return {findings,tasks,media,inspections,decisions,residentReports,residentEvents,residentMedia};
 }
 async function previewObjectCleanup(){
   const sel=document.getElementById('cleanupObjectSelect');
@@ -5748,11 +5756,17 @@ async function previewObjectCleanup(){
   box.textContent='Daten werden gezählt …';
   try{
     const p=await getObjectCleanupPreview(objectId);
-    box.innerHTML=`<strong>${esc(o?.name||'Objekt')}</strong><br>${p.findings.length} Dokumentationen · ${p.decisions.length} Entscheidungen · ${p.tasks.length} Aufgaben · ${p.media.length} Medien · ${p.inspections.length} technische Alt-Begehungen<br><span class="muted">Objektstammdaten und Benutzerzuordnungen bleiben erhalten.</span>`;
+    box.innerHTML=`<strong>${esc(o?.name||'Objekt')}</strong><br>${p.findings.length} Dokumentationen · ${p.decisions.length} Entscheidungen · ${p.tasks.length} Aufgaben · ${p.media.length} Dokumentationsmedien · ${p.inspections.length} technische Alt-Begehungen · ${p.residentReports.length} Bewohnermeldungen · ${p.residentEvents.length} Meldungsereignisse · ${p.residentMedia.length} Meldungsfotos<br><span class="muted">Objektstammdaten und Benutzerzuordnungen bleiben erhalten.</span>`;
     btn.disabled=false;
   }catch(e){
     box.textContent='Vorschau konnte nicht geladen werden: '+(e.message||e);
   }
+}
+async function deleteResidentReportStoragePath(path){
+  if(!path)return;
+  await cloudStorageRequest(`object/${RESIDENT_REPORT_PHOTO_BUCKET}`,{
+    method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefixes:[path]})
+  });
 }
 async function cleanupObjectData(){
   if(!requireAdminUI('Objektdaten bereinigen'))return;
@@ -5762,25 +5776,31 @@ async function cleanupObjectData(){
   const typed=document.getElementById('cleanupConfirmName')?.value.trim()||'';
   if(typed!==o.name)return alert('Sicherheitsbestätigung stimmt nicht. Bitte die Objektbezeichnung exakt eingeben: '+o.name);
   const p=await getObjectCleanupPreview(objectId);
-  const total=p.findings.length+p.decisions.length+p.tasks.length+p.media.length+p.inspections.length;
-  if(!confirm(`Wirklich ${total} Datensätze/Medien für „${o.name}“ dauerhaft bereinigen?\n\nObjektstammdaten und Benutzerzuordnungen bleiben erhalten.`))return;
+  const total=p.findings.length+p.decisions.length+p.tasks.length+p.media.length+p.inspections.length+p.residentReports.length+p.residentEvents.length+p.residentMedia.length;
+  if(!confirm(`Wirklich ${total} Datensätze/Medien für „${o.name}“ dauerhaft bereinigen?\n\nBewohnermeldungen inklusive Ereignissen und Fotos werden ebenfalls gelöscht. Objektstammdaten und Benutzerzuordnungen bleiben erhalten.`))return;
   const btn=document.getElementById('cleanupObjectBtn');
   if(btn){btn.disabled=true;btn.textContent='Bereinigung läuft …';}
   try{
-    for(const m of p.media){if(m.storage_path)try{await cloudMediaDelete('cloudmedia:'+m.storage_path)}catch(e){console.warn('Storage-Datei konnte nicht gelöscht werden',m.storage_path,e)}}
+    for(const m of p.media){if(m.storage_path)await cloudMediaDelete('cloudmedia:'+m.storage_path)}
+    for(const m of p.residentMedia){if(m.storage_path)await deleteResidentReportStoragePath(m.storage_path)}
+    for(const e of p.residentEvents)await cloudRequest(`resident_report_events?id=eq.${encodeURIComponent(e.id)}`,{method:'DELETE'});
+    for(const m of p.residentMedia)await cloudRequest(`resident_report_media?id=eq.${encodeURIComponent(m.id)}`,{method:'DELETE'});
+    for(const r of p.residentReports)await cloudRequest(`resident_reports?id=eq.${encodeURIComponent(r.id)}`,{method:'DELETE'});
     for(const d of p.decisions)await cloudRequest(`decisions?id=eq.${encodeURIComponent(d.id)}`,{method:'DELETE'});
     for(const t of p.tasks)await cloudRequest(`tasks?id=eq.${encodeURIComponent(t.id)}`,{method:'DELETE'});
     for(const m of p.media)await cloudRequest(`media?id=eq.${encodeURIComponent(m.id)}`,{method:'DELETE'});
     for(const f of p.findings)await cloudRequest(`findings?id=eq.${encodeURIComponent(f.id)}`,{method:'DELETE'});
     for(const i of p.inspections)await cloudRequest(`inspections?id=eq.${encodeURIComponent(i.id)}`,{method:'DELETE'});
-    // Lokale Rückfall-/Migrationsdaten für dieses Objekt ebenfalls entfernen; Objekt selbst bleibt bestehen.
     db.findings=(db.findings||[]).filter(f=>f.objectId!==objectId);
     db.inspections=(db.inspections||[]).filter(i=>i.objectId!==objectId);
     db.tasks=(db.tasks||[]).filter(t=>t.objectId!==objectId);
+    cloudResidentReports=(cloudResidentReports||[]).filter(r=>r.object_id!==objectId);
+    const removedReportIds=new Set(p.residentReports.map(r=>r.id));
+    cloudResidentReportMedia=(cloudResidentReportMedia||[]).filter(m=>!removedReportIds.has(m.resident_report_id));
     save();
     await cloudReloadObjects();
     renderCleanupObjectOptions();
-    alert(`Objektdaten für „${o.name}“ wurden bereinigt. Objektstammdaten und Benutzerzuordnungen bleiben erhalten.`);
+    alert(`Objektdaten für „${o.name}“ wurden bereinigt – einschließlich Bewohnermeldungen, Ereignissen und Meldungsfotos. Objektstammdaten und Benutzerzuordnungen bleiben erhalten.`);
   }catch(e){
     console.error(e);
     alert('Bereinigung abgebrochen: '+(e.message||e)+'\n\nBitte Datenbestand vor einem erneuten Versuch prüfen.');
