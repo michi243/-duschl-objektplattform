@@ -481,7 +481,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.18.1 QR-Code je Objekt ===== */
+/* ===== v2.18.2 Meldungsfotos + QR-Fallback ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -806,7 +806,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.18.1 QR-Code je Objekt</span></header>
+<span class="badge">v2.18.2 Meldungsfotos + QR-Fallback</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1137,7 +1137,6 @@ body.public-report-mode>#photoViewer{display:none!important}
 
 <div id="modalRoot"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
 
 <script>
 
@@ -1315,10 +1314,45 @@ async function cloudLoadResidentReportMedia(){
     cloudResidentReportMedia=[];
     return cloudResidentReportMedia;
   }
-  const rows=await cloudRequest(
-    'resident_report_media?select=id,resident_report_id,storage_path,file_name,mime_type,file_size,created_at&order=created_at.asc'
-  );
+
+  const url=`${SUPABASE_URL}/rest/v1/resident_report_media?select=id,resident_report_id,storage_path,file_name,mime_type,file_size,created_at&order=created_at.asc`;
+  let r=await fetch(url,{
+    method:'GET',
+    headers:{
+      'apikey':SUPABASE_PUBLISHABLE_KEY,
+      'Authorization':'Bearer '+cloudSession.access_token,
+      'Accept':'application/json'
+    }
+  });
+
+  if(r.status===401){
+    const ok=await cloudRefreshSession();
+    if(ok){
+      r=await fetch(url,{
+        method:'GET',
+        headers:{
+          'apikey':SUPABASE_PUBLISHABLE_KEY,
+          'Authorization':'Bearer '+cloudSession.access_token,
+          'Accept':'application/json'
+        }
+      });
+    }
+  }
+
+  const raw=await r.text();
+  if(!r.ok){
+    throw new Error(raw||`resident_report_media HTTP ${r.status}`);
+  }
+
+  let rows=[];
+  try{rows=raw?JSON.parse(raw):[]}catch(e){
+    throw new Error('Antwort von resident_report_media ist kein gültiges JSON.');
+  }
+
   cloudResidentReportMedia=Array.isArray(rows)?rows:[];
+  const list=document.getElementById('residentReportList');
+  if(list)delete list.dataset.mediaLoadError;
+  console.info('Meldungsfotos geladen:',cloudResidentReportMedia.length);
   return cloudResidentReportMedia;
 }
 
@@ -2130,7 +2164,16 @@ async function cloudLoadResidentReports(){
     'resident_reports?select=id,report_no,object_id,resident_name,resident_email,category,description,status,internal_assessment,requires_management,converted_to_finding_id,received_at,reviewed_at,completed_at,closed_at,consent_given,location_detail,created_at,updated_at&order=received_at.desc.nullslast,created_at.desc'
   );
   cloudResidentReports=Array.isArray(rows)?rows:[];
-  try{await cloudLoadResidentReportMedia();}catch(e){console.warn('Meldungsfotos konnten nicht geladen werden',e);cloudResidentReportMedia=[];}
+  try{
+    await cloudLoadResidentReportMedia();
+  }catch(e){
+    console.error('Meldungsfotos konnten nicht geladen werden',e);
+    cloudResidentReportMedia=[];
+    const list=document.getElementById('residentReportList');
+    if(list){
+      list.dataset.mediaLoadError=(e?.message||String(e||'Unbekannter Fehler'));
+    }
+  }
   return cloudResidentReports;
 }
 
@@ -3615,6 +3658,11 @@ function renderResidentReports(){
   const navCount=document.getElementById('residentReportNavCount');
   if(navCount)navCount.textContent=openCount;
 
+  const mediaLoadError=list.dataset.mediaLoadError||'';
+  if(mediaLoadError){
+    console.warn('Meldungsfoto-Ladefehler:',mediaLoadError);
+  }
+
   if(!rows.length){
     list.innerHTML='<div class="empty">Keine Meldungen im gewählten Filter.</div>';
     return;
@@ -3983,6 +4031,53 @@ function closeModal(){
 }
 
 
+
+let qrLibraryLoadPromise=null;
+
+function loadScriptOnce(src){
+  return new Promise((resolve,reject)=>{
+    const existing=[...document.scripts].find(s=>s.src===src);
+    if(existing){
+      if(typeof QRCode!=='undefined')return resolve();
+      existing.addEventListener('load',()=>resolve(),{once:true});
+      existing.addEventListener('error',()=>reject(new Error('QR-Bibliothek konnte nicht geladen werden.')),{once:true});
+      return;
+    }
+    const s=document.createElement('script');
+    s.src=src;
+    s.async=true;
+    s.onload=()=>resolve();
+    s.onerror=()=>reject(new Error('QR-Bibliothek konnte nicht geladen werden: '+src));
+    document.head.appendChild(s);
+  });
+}
+
+async function ensureQrCodeLibrary(){
+  if(typeof QRCode!=='undefined' && typeof QRCode.toCanvas==='function')return true;
+  if(qrLibraryLoadPromise)return qrLibraryLoadPromise;
+
+  qrLibraryLoadPromise=(async()=>{
+    const sources=[
+      'https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js',
+      'https://unpkg.com/qrcode@1.5.4/build/qrcode.min.js'
+    ];
+    let lastError=null;
+    for(const src of sources){
+      try{
+        await loadScriptOnce(src);
+        if(typeof QRCode!=='undefined' && typeof QRCode.toCanvas==='function')return true;
+      }catch(e){
+        lastError=e;
+        console.warn(e);
+      }
+    }
+    qrLibraryLoadPromise=null;
+    throw lastError||new Error('QR-Code-Bibliothek konnte nicht geladen werden.');
+  })();
+
+  return qrLibraryLoadPromise;
+}
+
 function objectPublicReportUrl(objectId){
   const base='https://michi243.github.io/-duschl-objektplattform/';
   return `${base}?meldung=${encodeURIComponent(objectId)}`;
@@ -3997,8 +4092,11 @@ async function openObjectQrCode(objectId){
   const o=(db.objects||[]).find(x=>x.id===objectId);
   if(!o)return alert('Objekt wurde nicht gefunden.');
 
-  if(typeof QRCode==='undefined'){
-    alert('QR-Code-Bibliothek konnte nicht geladen werden. Bitte Internetverbindung prüfen und die Seite neu laden.');
+  try{
+    await ensureQrCodeLibrary();
+  }catch(e){
+    console.error('QR-Code-Bibliothek konnte nicht geladen werden',e);
+    alert('QR-Code konnte nicht geladen werden. Bitte Verbindung prüfen und später erneut versuchen.');
     return;
   }
 
