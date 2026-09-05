@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objektplattform v2.18.3</title>
+<title>Duschl Service – Objektplattform v2.18.4</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -481,7 +481,7 @@ a{color:var(--accent-2)!important}
 
 
 <style>
-/* ===== v2.18.3 QR lokal eingebettet ===== */
+/* ===== v2.18.4 Datenschutz Bewohnermeldung ===== */
 #authGate{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -772,12 +772,12 @@ body.public-report-mode>#photoViewer{display:none!important}
 
         <div class="public-report-consent">
           <input id="prConsent" type="checkbox">
-          <label for="prConsent">Ich stimme der Verarbeitung meiner Angaben zur Bearbeitung dieser Meldung zu. *</label>
+          <label for="prConsent">Ich habe die <a href="https://www.duschl-service.de/datenschutzerklarung" target="_blank" rel="noopener noreferrer">Datenschutzhinweise zur Bewohnermeldung</a> zur Kenntnis genommen. *</label>
         </div>
 
         <div class="public-report-note">
           Ihre Meldung geht zunächst ausschließlich an Duschl Service und wird dort geprüft.
-          Sie erhalten dadurch keinen Zugang zur Objektplattform.
+          Name und E-Mail-Adresse werden dem Auftraggeber nicht angezeigt. Sie erhalten dadurch keinen Zugang zur Objektplattform.
         </div>
 
         <button id="prSubmit" class="primary public-report-submit" type="button" onclick="submitPublicResidentReport()">Meldung absenden</button>
@@ -806,7 +806,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.18.3 QR lokal eingebettet</span></header>
+<span class="badge">v2.18.4 Datenschutz Bewohnermeldung</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1141,7 +1141,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 
 <script id="duschl-qr-local-v2183">
 /*
- * Lokale QR-Code-Erzeugung für Duschl Service v2.18.3.
+ * Lokale QR-Code-Erzeugung für Duschl Service v2.18.4.
  * Basis: QRCode for JavaScript, Kazuhiko Arase, MIT License.
  * Vollständig inline eingebettet – keine CDN-/Netzwerkabhängigkeit.
  */
@@ -2589,7 +2589,7 @@ async function submitPublicResidentReport(){
 
   if(!name)return publicReportMessage('Bitte geben Sie Ihren Namen ein.');
   if(!description)return publicReportMessage('Bitte beschreiben Sie Ihre Meldung.');
-  if(!consent)return publicReportMessage('Bitte bestätigen Sie die Datenschutzeinwilligung.');
+  if(!consent)return publicReportMessage('Bitte bestätigen Sie, dass Sie die Datenschutzhinweise zur Kenntnis genommen haben.');
   if(email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return publicReportMessage('Bitte prüfen Sie die E-Mail-Adresse.');
   if(publicReportFiles.length>3)return publicReportMessage('Es können maximal 3 Fotos hinzugefügt werden.');
 
@@ -3499,6 +3499,12 @@ async function cloudDeleteFinding(id){
 }
 
 async function cloudLoadResidentReports(){
+  // Datenschutz: Auftraggeber erhalten keine Bewohnermeldungen oder Melderdaten.
+  if(isCustomerRole()){
+    cloudResidentReports=[];
+    cloudResidentReportMedia=[];
+    return cloudResidentReports;
+  }
   if(!cloudSession?.access_token){
     cloudResidentReports=[];
     return cloudResidentReports;
@@ -3529,7 +3535,7 @@ async function cloudReloadObjects(){
     const inspectionRows=await cloudRequest('inspections?select=id,object_id,started_at,ended_at,notes,created_by,created_at,updated_at&order=started_at.desc');
     db.inspections=(inspectionRows||[]).map(cloudInspectionToLocal);
     await cloudReloadFindings();
-    try{await cloudLoadResidentReports();}catch(e){console.warn('Meldungen konnten nicht geladen werden',e);}
+    if(!isCustomerRole()){try{await cloudLoadResidentReports();}catch(e){console.warn('Meldungen konnten nicht geladen werden',e);}}else{cloudResidentReports=[];cloudResidentReportMedia=[];}
     renderAll();
     cloudSetStatus(`Verbunden · ${db.objects.length} Objekt(e) · ${db.findings.filter(f=>f.cloud).length} Dokumentation(en) · ${(db.tasks||[]).length} Aufgabe(n) zentral`,'ok');
   }catch(e){
@@ -3874,7 +3880,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.18.3'};
+  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.18.4'};
 }
 function load(){
   try{
@@ -3937,7 +3943,7 @@ function load(){
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.18.3'
+      version:'2.18.4'
     };
 
     merged.findings.forEach(f=>{
@@ -3974,7 +3980,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.18.3';
+  db.version='2.18.4';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -4978,6 +4984,11 @@ function residentReportStatusLabel(status){
 }
 
 function renderResidentReports(){
+  if(isCustomerRole()){
+    const list=document.getElementById('residentReportList');
+    if(list)list.innerHTML='';
+    return;
+  }
   const list=document.getElementById('residentReportList');
   if(!list)return;
 
@@ -5049,6 +5060,7 @@ function getResidentReportById(id){
 }
 
 function openResidentReportDetails(id){
+  if(isCustomerRole())return alert('Kein Zugriff auf Bewohnermeldungen.');
   const r=getResidentReportById(id); if(!r)return;
   const obj=(db.objects||[]).find(o=>o.id===r.object_id);
   modal(`<div class="row space">
@@ -5075,6 +5087,7 @@ function openResidentReportDetails(id){
 }
 
 function openResidentReportCloseModal(id,targetStatus){
+  if(isCustomerRole())return alert('Kein Zugriff auf Bewohnermeldungen.');
   const r=getResidentReportById(id); if(!r)return;
   const isReject=targetStatus==='rejected';
   const title=isReject?'Meldung verwerfen':'Meldung schließen';
@@ -5111,6 +5124,7 @@ async function logResidentReportEvent(reportId,eventType,status,note){
 }
 
 async function saveResidentReportClosure(id,targetStatus){
+  if(isCustomerRole())return alert('Kein Zugriff auf Bewohnermeldungen.');
   const r=getResidentReportById(id); if(!r)return;
   const reason=(document.getElementById('rrCloseReason')?.value||'').trim();
   if(!reason)return alert('Bitte eine Begründung eingeben.');
@@ -5150,6 +5164,7 @@ async function saveResidentReportClosure(id,targetStatus){
 }
 
 async function convertResidentReportToFinding(id){
+  if(isCustomerRole())return alert('Kein Zugriff auf Bewohnermeldungen.');
   const r=getResidentReportById(id); if(!r)return;
   if(r.converted_to_finding_id){
     return openResidentConvertedFinding(r.converted_to_finding_id);
