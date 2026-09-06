@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objektplattform v2.18.12</title>
+<title>Duschl Service – Objektplattform v2.18.13</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -808,7 +808,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   <button id="headerPasswordBtn" onclick="showVoluntaryPasswordChange()">Passwort ändern</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.18.12 Meldungseingang</span></header>
+<span class="badge">v2.18.13 Admin-Vertretung</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1156,7 +1156,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 
 <script id="duschl-qr-local-v2183">
 /*
- * Lokale QR-Code-Erzeugung für Duschl Service v2.18.12.
+ * Lokale QR-Code-Erzeugung für Duschl Service v2.18.13.
  * Basis: QRCode for JavaScript, Kazuhiko Arase, MIT License.
  * Vollständig inline eingebettet – keine CDN-/Netzwerkabhängigkeit.
  */
@@ -2812,15 +2812,18 @@ function effectiveUserRole(){
   ).trim().toLowerCase();
 }
 function isAdminRole(){return effectiveUserRole()==='platform_admin'}
+function isAdminDelegate(){return currentUserProfile?.admin_delegate===true&&!isAdminRole()}
+function hasOperationalAdminAccess(){return isAdminRole()||isAdminDelegate()}
+function canManageUsersUI(){return isAdminRole()||isAdminDelegate()}
 function isObjectManagerRole(){return ['object_manager','staff'].includes(effectiveUserRole())}
 function isCustomerRole(){return effectiveUserRole()==='customer'}
 function isTestUserRole(){return effectiveUserRole()==='test_user'}
-function canManageObjectsUI(){return isAdminRole()}
+function canManageObjectsUI(){return hasOperationalAdminAccess()}
 function canUseDecisionsUI(){return isAdminRole()||isCustomerRole()||isTestUserRole()}
-function canUseWorkQueueUI(){return isAdminRole()||isObjectManagerRole()||isTestUserRole()}
+function canUseWorkQueueUI(){return hasOperationalAdminAccess()||isObjectManagerRole()||isTestUserRole()}
 function canCreateDocumentationUI(){return isAdminRole()||isObjectManagerRole()||isCustomerRole()||isTestUserRole()}
 function canUseSettingsUI(){return isAdminRole()}
-function canSeeInternalPersonnelUI(){return !isCustomerRole()&&!isTestUserRole()}
+function canSeeInternalPersonnelUI(){return hasOperationalAdminAccess()||(!isCustomerRole()&&!isTestUserRole())}
 function customerSafeText(v){return isCustomerRole()?'':(v||'')}
 function currentUserId(){return currentUserProfile?.id||cloudSession?.user?.id||''}
 function isAssignedTaskOwnerUI(f){
@@ -2830,14 +2833,14 @@ function isAssignedTaskOwnerUI(f){
 }
 function canEditFindingUI(f){
   if(!f)return canCreateDocumentationUI();
-  return isAdminRole()
+  return hasOperationalAdminAccess()
     || isTestUserRole()
     || ((isObjectManagerRole()||isCustomerRole())&&f.createdBy&&f.createdBy===currentUserId())
     || isAssignedTaskOwnerUI(f);
 }
 function canEditInspectionUI(i){
   if(!i)return canCreateDocumentationUI();
-  return isAdminRole()||isTestUserRole()||((isObjectManagerRole()||isCustomerRole())&&i.createdBy&&i.createdBy===currentUserId());
+  return hasOperationalAdminAccess()||isTestUserRole()||((isObjectManagerRole()||isCustomerRole())&&i.createdBy&&i.createdBy===currentUserId());
 }
 
 function formatDocumentationTimestamp(f){
@@ -2854,7 +2857,7 @@ async function cloudLoadCurrentProfile(){
   const uid=cloudSession?.user?.id;
   if(!uid)throw new Error('Benutzer-ID der Supabase-Sitzung fehlt.');
   const rows=await cloudRequest(
-    `profiles?select=id,full_name,email,role,active,must_change_password&id=eq.${encodeURIComponent(uid)}&limit=1`
+    `profiles?select=id,full_name,email,role,active,must_change_password,admin_delegate&id=eq.${encodeURIComponent(uid)}&limit=1`
   );
   const p=rows?.[0];
   if(!p||p.active!==true)throw new Error('Kein aktives Benutzerprofil gefunden.');
@@ -3060,7 +3063,7 @@ function applyRoleUI(){
   const rb=document.getElementById('roleBadge');
   if(rb){
     const displayName=(currentUserProfile?.full_name||cloudSession?.user?.user_metadata?.full_name||cloudSession?.user?.email||'').trim();
-    const roleLabel=ROLE_LABELS[role]||role||'Unbekannte Rolle';
+    const roleLabel=(ROLE_LABELS[role]||role||'Unbekannte Rolle')+(isAdminDelegate()?' · Admin-Vertretung':'');
     rb.textContent=displayName ? `${displayName} · ${roleLabel}` : roleLabel;
     rb.style.display=role?'':'none';
   }
@@ -3081,7 +3084,7 @@ function applyRoleUI(){
   show('navWorkqueue',canUseWorkQueueUI());
   show('navReports',true);
   show('navDecisions',canUseDecisionsUI());
-  show('navUsers',isAdminRole());
+  show('navUsers',canManageUsersUI());
   show('navSettings',canUseSettingsUI());
   show('addObjectBtn',canManageObjectsUI());
   const backupBtn=document.getElementById('backupBtn')||document.querySelector('[data-backup-button="1"]');
@@ -3095,7 +3098,7 @@ function applyRoleUI(){
   if(!canUseWorkQueueUI() && document.getElementById('workqueue')?.classList.contains('active')){
     showSection('dashboard');
   }
-  if(!isAdminRole() && document.getElementById('users')?.classList.contains('active')) showSection('dashboard');
+  if(!canManageUsersUI() && document.getElementById('users')?.classList.contains('active')) showSection('dashboard');
   if(!canUseSettingsUI() && document.getElementById('settings')?.classList.contains('active')){
     showSection('dashboard');
   }
@@ -4159,7 +4162,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.18.12';
+  db.version='2.18.13';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -4173,7 +4176,7 @@ function showSection(id){
   if(id==='inspections')id='findings';
   if(id==='decisions'&&!canUseDecisionsUI())return requireDecisionUI();
   if(id==='workqueue'&&!canUseWorkQueueUI()){alert('Der Arbeitsvorrat ist nur für Admin/GF und Objektbetreuer freigegeben.');return;}
-  if(id==='users'&&!isAdminRole())return requireAdminUI('Benutzer & Berechtigungen');
+  if(id==='users'&&!canManageUsersUI())return requireAdminUI('Benutzer & Berechtigungen');
   if(id==='settings'&&!canUseSettingsUI())return requireAdminUI('Daten & Administration');
   document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -4756,12 +4759,12 @@ let userAdminProfiles=[];
 let userAdminAssignments=[];
 
 async function loadUserAdminData(){
-  if(!isAdminRole())return;
+  if(!canManageUsersUI())return;
   const sel=document.getElementById('userAdminSelect'),ed=document.getElementById('userAdminEditor');
   if(!sel||!ed)return;
   ed.innerHTML='<div class="card"><p class="muted">Benutzerdaten werden geladen …</p></div>';
   try{
-    userAdminProfiles=await cloudRequest('profiles?select=id,full_name,email,role,active&order=email.asc')||[];
+    userAdminProfiles=await cloudRequest('profiles?select=id,full_name,email,role,active,admin_delegate&order=email.asc')||[];
     
   userAdminProfiles=(userAdminProfiles||[]).filter(p=>!p.deleted_at);userAdminAssignments=await cloudRequest('object_user_assignments?select=id,object_id,user_id,active')||[];
     const keep=sel.value;
@@ -4771,7 +4774,7 @@ async function loadUserAdminData(){
   }catch(e){ed.innerHTML=`<div class="card"><h3>Fehler</h3><p>${esc(e.message)}</p></div>`}
 }
 function loadUserAdminEditor(){
-  if(!isAdminRole())return;
+  if(!canManageUsersUI())return;
   const uid=document.getElementById('userAdminSelect')?.value,ed=document.getElementById('userAdminEditor');
   if(!ed)return;if(!uid){ed.innerHTML='';return}
   const p=userAdminProfiles.find(x=>x.id===uid);if(!p){ed.innerHTML='';return}
@@ -4780,9 +4783,9 @@ function loadUserAdminEditor(){
   const legacyEmployee=p.role==='employee'?'<option value="employee" selected disabled>Mitarbeiter (Alt) – bitte auf eine der 3 Rollen umstellen</option>':'';
   const roleOptions=legacyEmployee+roles.map(([v,l])=>`<option value="${v}" ${p.role===v?'selected':''}>${l}</option>`).join('');
   const objectRows=(db.objects||[]).map(o=>`<label class="row" style="gap:10px;align-items:center;margin:8px 0"><input type="checkbox" class="userObjectAssignment" value="${esc(o.id)}" ${assigned.has(o.id)?'checked':''} ${p.role==='test_user'&&!o.isTest?'disabled':''}><span><strong>${esc(o.name||'Objekt')}</strong>${o.isTest?' <span class="badge">TEST</span>':''}${o.address?`<br><span class="muted">${esc(o.address)}</span>`:''}</span></label>`).join('')||'<p class="muted">Keine Objekte vorhanden.</p>';
-  ed.innerHTML=`<div class="card"><h3>${esc(p.email||p.full_name||'Benutzer')}</h3><div class="grid2"><label>Anzeigename<input id="userAdminFullName" value="${esc(p.full_name||'')}" placeholder="z. B. Hans Müller"></label><label>Rolle<select id="userAdminRole">${roleOptions}</select></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminActive" type="checkbox" ${p.active!==false?'checked':''}><span>Benutzer aktiv</span></label></div><h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px">
+  ed.innerHTML=`<div class="card"><h3>${esc(p.email||p.full_name||'Benutzer')}</h3><div class="grid2"><label>Anzeigename<input id="userAdminFullName" value="${esc(p.full_name||'')}" placeholder="z. B. Hans Müller"></label><label>Rolle<select id="userAdminRole">${roleOptions}</select></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminActive" type="checkbox" ${p.active!==false?'checked':''}><span>Benutzer aktiv</span></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminDelegate" type="checkbox" ${p.admin_delegate===true?'checked':''} ${!isAdminRole()?'disabled':''}><span>Admin-Vertretung</span></label></div><p class="muted">Admin-Vertretung: objektübergreifender operativer Zugriff inkl. Meldungen, Arbeitsvorrat, Objekte sowie Benutzer-/Objektzuweisungen. Datenbereinigung, Benutzerlöschung, Backup und Systemadministration bleiben beim Administrator / GF.</p><h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px">
   <button onclick="saveUserAdminPermissions()">Speichern</button>
-  <button class="danger" onclick="deleteSelectedUser()">Benutzer löschen</button>
+  ${isAdminRole()?'<button class="danger" onclick="deleteSelectedUser()">Benutzer löschen</button>':''}
 </div><p class="muted" style="margin-top:12px">Passwort wird hier bewusst nicht verwaltet. Die E-Mail-Adresse ist die Benutzerkennung und Benachrichtigungsadresse.</p></div>`;
 }
 
@@ -4882,13 +4885,16 @@ async function deleteSelectedUser(){
 }
 
 async function saveUserAdminPermissions(){
-  if(!isAdminRole())return requireAdminUI('Benutzer & Berechtigungen');
+  if(!canManageUsersUI())return requireAdminUI('Benutzer & Berechtigungen');
   const uid=document.getElementById('userAdminSelect')?.value,
         fullName=document.getElementById('userAdminFullName')?.value.trim()||'',
         role=document.getElementById('userAdminRole')?.value,
-        active=!!document.getElementById('userAdminActive')?.checked;
+        active=!!document.getElementById('userAdminActive')?.checked,
+        adminDelegate=isAdminRole()&&!!document.getElementById('userAdminDelegate')?.checked;
   if(!uid||!role)return alert('Benutzer und Rolle fehlen.');
   if(!fullName)return alert('Bitte einen Anzeigenamen eingeben.');
+  const targetProfile=userAdminProfiles.find(x=>x.id===uid);
+  if(isAdminDelegate()&&(targetProfile?.role==='platform_admin'||role==='platform_admin'))return alert('Administrator-/GF-Rechte können nur vom Administrator / GF verwaltet werden.');
   if(uid===currentUserProfile?.id&&(!active||role!=='platform_admin'))return alert('Der aktuell angemeldete Administrator kann sich nicht selbst deaktivieren oder seine Administratorrolle entfernen.');
   const checked=[...document.querySelectorAll('.userObjectAssignment:checked')].map(x=>x.value);
   if(role==='test_user'){
@@ -4896,7 +4902,7 @@ async function saveUserAdminPermissions(){
     if(invalid.length)return alert('Testbenutzer dürfen ausschließlich Testobjekten zugeordnet werden. Bitte produktive Objektzuordnungen entfernen.');
   }
   try{
-    await cloudRequest('profiles?id=eq.'+encodeURIComponent(uid),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({full_name:fullName,role,active})});
+    await cloudRequest('profiles?id=eq.'+encodeURIComponent(uid),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(isAdminRole()?{full_name:fullName,role,active,admin_delegate:adminDelegate}:{full_name:fullName,role,active})});
     const existing=userAdminAssignments.filter(a=>a.user_id===uid);
     for(const a of existing){
       const should=checked.includes(a.object_id);
