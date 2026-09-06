@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objektplattform v2.18.22</title>
+<title>Duschl Service – Objektplattform v2.18.23</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -358,7 +358,7 @@ a{color:var(--accent-2)!important}
 }
 
 
-/* ===== v2.18.22 Responsive Topbar + Hamburger-Menü ===== */
+/* ===== v2.18.23 Responsive Topbar + Hamburger-Menü ===== */
 .app-topbar{height:64px;padding:10px 16px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;z-index:60!important}
 .menu-toggle{width:44px;height:44px;padding:10px!important;display:flex;flex-direction:column;justify-content:center;gap:5px;background:transparent!important;border-color:transparent!important;box-shadow:none!important;flex:0 0 auto}
 .menu-toggle span{display:block;width:22px;height:2px;border-radius:2px;background:#fff}
@@ -384,7 +384,7 @@ main{padding-top:18px}
 @media print{.app-menu,.app-menu-backdrop,.app-topbar{display:none!important}}
 
 
-/* ===== v2.18.22 Interaktive Kennzahlen ===== */
+/* ===== v2.18.23 Interaktive Kennzahlen ===== */
 .kpi-action,.gf-kpi.is-action{position:relative;cursor:pointer;transition:transform .12s ease,border-color .12s ease,background .12s ease;user-select:none}
 .kpi-action:hover,.gf-kpi.is-action:hover{border-color:var(--accent);transform:translateY(-1px)}
 .kpi-action:active,.gf-kpi.is-action:active{transform:translateY(0)}
@@ -848,7 +848,6 @@ body.public-report-mode>#photoViewer{display:none!important}
   </div>
   <div class="topbar-meta">
     <div id="roleBadge" class="topbar-user" style="display:none" aria-label="Angemeldeter Benutzer"></div>
-    <span class="badge version-badge">v2.18.22</span>
   </div>
 </header>
 <div id="appMenuBackdrop" class="app-menu-backdrop" onclick="closeAppMenu()"></div>
@@ -857,6 +856,7 @@ body.public-report-mode>#photoViewer{display:none!important}
     <div>
       <strong>Menü</strong>
       <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
+      <div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.23</div>
     </div>
     <button class="menu-close" type="button" aria-label="Menü schließen" onclick="closeAppMenu()">×</button>
   </div>
@@ -4332,7 +4332,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.18.22';
+  db.version='2.18.23';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -4738,15 +4738,29 @@ function gfWorkFilters(){
 }
 let gfWorkQuickFilter='';
 function applyGFWorkKpiFilter(mode){
-  const counts=gfTaskKpis((db.findings||[]).filter(f=>(f.type||'Feststellung')==='Feststellung').map(f=>{
-    const task=(db.tasks||[]).find(t=>t.findingId===f.id);
-    return {status:task?.status||'',decisionStatus:f.decisionStatus||(f.decisionRequired===false?'not_required':'pending'),implementationResponsibility:f.decisionImplementation||'',ownerName:task?.ownerName||f.workOwner||'',dueDate:task?.dueDate||f.workDueDate||'',hasTask:!!task,findingStatus:f.status||'Offen',workRequired:f.workRequired===true};
-  }));
+  const selectedObject=document.getElementById('gfWorkObject')?.value||'';
+  const sourceItems=(db.findings||[])
+    .filter(f=>(f.type||'Feststellung')==='Feststellung')
+    .filter(f=>!selectedObject || f.objectId===selectedObject)
+    .map(f=>{
+      const task=(db.tasks||[]).find(t=>t.findingId===f.id);
+      return {status:task?.status||'',decisionStatus:f.decisionStatus||(f.decisionRequired===false?'not_required':'pending'),implementationResponsibility:f.decisionImplementation||'',ownerName:task?.ownerName||f.workOwner||'',dueDate:task?.dueDate||f.workDueDate||'',hasTask:!!task,findingStatus:f.status||'Offen',workRequired:f.workRequired===true};
+    });
+  const counts=gfTaskKpis(sourceItems);
   const count=mode==='open'?counts.open:mode==='overdue'?counts.overdue:mode==='week'?counts.week:mode==='noOwner'?counts.noOwner:0;
   if(count<=0)return;
-  ['gfWorkObject','gfWorkStatus','gfWorkDecision','gfWorkOwner','gfWorkDue'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+
+  ['gfWorkStatus','gfWorkDecision','gfWorkOwner','gfWorkDue'].forEach(id=>{
+    const e=document.getElementById(id);
+    if(e)e.value='';
+  });
+
   gfWorkQuickFilter=mode;
   renderWorkQueue();
+
+  requestAnimationFrame(()=>{
+    document.querySelector('.gf-worklist')?.scrollIntoView({behavior:'smooth',block:'start'});
+  });
 }
 function resetGFWorkFilters(){
   gfWorkQuickFilter='';
