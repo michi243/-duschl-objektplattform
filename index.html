@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objektplattform v2.18.21</title>
+<title>Duschl Service – Objektplattform v2.18.22</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -358,7 +358,7 @@ a{color:var(--accent-2)!important}
 }
 
 
-/* ===== v2.18.21 Responsive Topbar + Hamburger-Menü ===== */
+/* ===== v2.18.22 Responsive Topbar + Hamburger-Menü ===== */
 .app-topbar{height:64px;padding:10px 16px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;z-index:60!important}
 .menu-toggle{width:44px;height:44px;padding:10px!important;display:flex;flex-direction:column;justify-content:center;gap:5px;background:transparent!important;border-color:transparent!important;box-shadow:none!important;flex:0 0 auto}
 .menu-toggle span{display:block;width:22px;height:2px;border-radius:2px;background:#fff}
@@ -382,6 +382,16 @@ main{padding-top:18px}
 @media(max-width:680px){.app-topbar{height:58px;padding:8px 10px!important}.menu-toggle{width:40px;height:40px;padding:8px!important}.app-brand-mark{width:32px;height:32px;border-radius:9px;font-size:20px}.app-brand h1{font-size:15px!important}.app-brand small{display:none!important}.topbar-meta{gap:4px}.topbar-meta .version-badge{display:none!important}.topbar-user{padding:3px 7px 3px 4px;gap:6px;max-width:150px}.topbar-user-avatar{width:29px;height:29px;flex-basis:29px;font-size:10px}.topbar-user-name{font-size:11px;max-width:92px}.topbar-user-role{display:none}.app-menu{width:min(330px,92vw)}main{padding:12px!important}.grid.g3{grid-template-columns:repeat(2,minmax(0,1fr))!important}.kpi{font-size:25px}.card{padding:12px!important}}
 @media(max-width:390px){.app-brand h1{font-size:13px!important}.app-brand-mark{display:none}.topbar-user{max-width:128px}.topbar-user-name{max-width:74px}.grid.g3{grid-template-columns:1fr!important}}
 @media print{.app-menu,.app-menu-backdrop,.app-topbar{display:none!important}}
+
+
+/* ===== v2.18.22 Interaktive Kennzahlen ===== */
+.kpi-action,.gf-kpi.is-action{position:relative;cursor:pointer;transition:transform .12s ease,border-color .12s ease,background .12s ease;user-select:none}
+.kpi-action:hover,.gf-kpi.is-action:hover{border-color:var(--accent);transform:translateY(-1px)}
+.kpi-action:active,.gf-kpi.is-action:active{transform:translateY(0)}
+.kpi-action:focus-visible,.gf-kpi.is-action:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.kpi-action.is-disabled,.gf-kpi.is-disabled{cursor:default;opacity:.62;pointer-events:none}
+.kpi-chevron{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:28px;color:var(--muted);line-height:1}
+.gf-kpi.is-action{padding-right:38px}.gf-kpi .kpi-chevron{right:12px}
 
 </style>
 
@@ -838,7 +848,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   </div>
   <div class="topbar-meta">
     <div id="roleBadge" class="topbar-user" style="display:none" aria-label="Angemeldeter Benutzer"></div>
-    <span class="badge version-badge">v2.18.21</span>
+    <span class="badge version-badge">v2.18.22</span>
   </div>
 </header>
 <div id="appMenuBackdrop" class="app-menu-backdrop" onclick="closeAppMenu()"></div>
@@ -876,7 +886,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   <div class="grid g3" style="margin-top:14px">
     <div class="card"><div class="muted">Objekte</div><div class="kpi" id="kpiObjects">0</div></div>
     <div class="card"><div class="muted">Offene Feststellungen</div><div class="kpi" id="kpiOpen">0</div></div>
-    <div class="card"><div class="muted">Sofort / Dringend offen</div><div class="kpi" id="kpiCritical">0</div></div>
+    <div class="card kpi-action" id="kpiCriticalCard" role="button" tabindex="0" aria-label="Sofort oder dringend offene Feststellungen anzeigen" onclick="openCriticalFindings()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openCriticalFindings();}"><span class="kpi-chevron">›</span><div class="muted">Sofort / Dringend offen</div><div class="kpi" id="kpiCritical">0</div></div>
   </div>
   <h3>Offene Punkte</h3>
   <div id="dashboardFindings" class="grid"></div>
@@ -912,7 +922,7 @@ body.public-report-mode>#photoViewer{display:none!important}
         <option value="question">Rückfrage erforderlich</option>
         <option value="thirdparty">An Dritten vergeben</option>
       </select></div>
-    <div><label>Priorität</label><select id="filterPriority" onchange="renderFindings()"><option value="">Alle</option><option value="P1">Sofort</option><option value="P2">Dringend</option><option value="P3">Planbar</option><option value="P4">Beobachten</option></select></div>
+    <div><label>Priorität</label><select id="filterPriority" onchange="renderFindings()"><option value="">Alle</option><option value="critical">Sofort + Dringend</option><option value="P1">Sofort</option><option value="P2">Dringend</option><option value="P3">Planbar</option><option value="P4">Beobachten</option></select></div>
     <div><label>Typ</label><select id="filterType" onchange="renderFindings()"><option value="">Alle</option><option>Feststellung</option><option>Leistung</option></select></div>
   </div>
   <div id="findingList" class="grid"></div>
@@ -4322,7 +4332,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.18.21';
+  db.version='2.18.22';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -4726,7 +4736,20 @@ function gfWorkFilters(){
     due:document.getElementById('gfWorkDue')?.value||''
   };
 }
+let gfWorkQuickFilter='';
+function applyGFWorkKpiFilter(mode){
+  const counts=gfTaskKpis((db.findings||[]).filter(f=>(f.type||'Feststellung')==='Feststellung').map(f=>{
+    const task=(db.tasks||[]).find(t=>t.findingId===f.id);
+    return {status:task?.status||'',decisionStatus:f.decisionStatus||(f.decisionRequired===false?'not_required':'pending'),implementationResponsibility:f.decisionImplementation||'',ownerName:task?.ownerName||f.workOwner||'',dueDate:task?.dueDate||f.workDueDate||'',hasTask:!!task,findingStatus:f.status||'Offen',workRequired:f.workRequired===true};
+  }));
+  const count=mode==='open'?counts.open:mode==='overdue'?counts.overdue:mode==='week'?counts.week:mode==='noOwner'?counts.noOwner:0;
+  if(count<=0)return;
+  ['gfWorkObject','gfWorkStatus','gfWorkDecision','gfWorkOwner','gfWorkDue'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  gfWorkQuickFilter=mode;
+  renderWorkQueue();
+}
 function resetGFWorkFilters(){
+  gfWorkQuickFilter='';
   ['gfWorkObject','gfWorkStatus','gfWorkDecision','gfWorkOwner','gfWorkDue'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   renderWorkQueue();
 }
@@ -4741,6 +4764,7 @@ function renderWorkQueue(){
   if(!root)return;
 
   const current=gfWorkFilters();
+  const quick=gfWorkQuickFilter;
   const tasks=(db.tasks||[]).map(t=>({...t}));
   const taskByFinding=new Map(tasks.filter(t=>t.findingId).map(t=>[t.findingId,t]));
 
@@ -4793,6 +4817,10 @@ function renderWorkQueue(){
       if(!t.hasTask || gfTaskDerivedBucket(t)!==current.due)return false;
     }
 
+    if(quick==='overdue' && (!t.hasTask || gfTaskDerivedBucket(t)!=='overdue'))return false;
+    if(quick==='week' && (!t.hasTask || !['today','week'].includes(gfTaskDerivedBucket(t))))return false;
+    if(quick==='noOwner' && (!t.hasTask || ['completed','cancelled'].includes(t.status) || (t.ownerName||'').trim()))return false;
+
     // Ohne explizite Statusfilter: nur tatsächlich offene/relevante Vorgänge.
     if(!current.status && !current.decision){
       if(t.findingStatus==='Erledigt')return false;
@@ -4813,22 +4841,22 @@ function renderWorkQueue(){
 
   root.innerHTML=`
     <div class="gf-kpis">
-      <div class="gf-kpi"><span>Offene Vorgänge</span><strong>${k.open}</strong></div>
-      <div class="gf-kpi"><span>Überfällig</span><strong>${k.overdue}</strong></div>
-      <div class="gf-kpi"><span>Diese Woche</span><strong>${k.week}</strong></div>
-      <div class="gf-kpi"><span>Aufgaben ohne Verantwortlichen</span><strong>${k.noOwner}</strong></div>
+      <div class="gf-kpi ${k.open?'is-action':'is-disabled'}" role="button" tabindex="${k.open?'0':'-1'}" onclick="applyGFWorkKpiFilter('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();applyGFWorkKpiFilter('open');}"><span class="kpi-chevron">›</span><span>Offene Vorgänge</span><strong>${k.open}</strong></div>
+      <div class="gf-kpi ${k.overdue?'is-action':'is-disabled'}" role="button" tabindex="${k.overdue?'0':'-1'}" onclick="applyGFWorkKpiFilter('overdue')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();applyGFWorkKpiFilter('overdue');}"><span class="kpi-chevron">›</span><span>Überfällig</span><strong>${k.overdue}</strong></div>
+      <div class="gf-kpi ${k.week?'is-action':'is-disabled'}" role="button" tabindex="${k.week?'0':'-1'}" onclick="applyGFWorkKpiFilter('week')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();applyGFWorkKpiFilter('week');}"><span class="kpi-chevron">›</span><span>Diese Woche</span><strong>${k.week}</strong></div>
+      <div class="gf-kpi ${k.noOwner?'is-action':'is-disabled'}" role="button" tabindex="${k.noOwner?'0':'-1'}" onclick="applyGFWorkKpiFilter('noOwner')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();applyGFWorkKpiFilter('noOwner');}"><span class="kpi-chevron">›</span><span>Aufgaben ohne Verantwortlichen</span><strong>${k.noOwner}</strong></div>
     </div>
 
     <div class="gf-filterbox">
       <label>Objekt
-        <select id="gfWorkObject" onchange="renderWorkQueue()">
+        <select id="gfWorkObject" onchange="gfWorkQuickFilter='';renderWorkQueue()">
           <option value="">Alle Objekte</option>
           ${objects.map(o=>`<option value="${esc(o.id)}" ${current.object===o.id?'selected':''}>${esc(o.name||o.address||'Unbenanntes Objekt')}</option>`).join('')}
         </select>
       </label>
 
       <label>Arbeitsstatus
-        <select id="gfWorkStatus" onchange="renderWorkQueue()">
+        <select id="gfWorkStatus" onchange="gfWorkQuickFilter='';renderWorkQueue()">
           <option value="" ${!current.status?'selected':''}>Alle offenen Arbeitsstatus</option>
           <option value="no_task" ${current.status==='no_task'?'selected':''}>Noch keine Aufgabe</option>
           ${Object.entries(TASK_STATUS_LABELS).map(([v,l])=>`<option value="${v}" ${current.status===v?'selected':''}>${esc(l)}</option>`).join('')}
@@ -4836,19 +4864,19 @@ function renderWorkQueue(){
       </label>
 
       <label>Entscheidungsstatus
-        <select id="gfWorkDecision" onchange="renderWorkQueue()">
+        <select id="gfWorkDecision" onchange="gfWorkQuickFilter='';renderWorkQueue()">
           <option value="" ${!current.decision?'selected':''}>Alle Entscheidungsstatus</option>
           ${Object.entries(DECISION_STATUS_LABELS).map(([value,label])=>`<option value="${value}" ${current.decision===value?'selected':''}>${esc(label)}</option>`).join('')}
         </select>
       </label>
 
       <label>Verantwortlich
-        <input id="gfWorkOwner" list="gfWorkOwnerList" value="${esc(current.owner)}" placeholder="z. B. Hans Müller" onchange="renderWorkQueue()">
+        <input id="gfWorkOwner" list="gfWorkOwnerList" value="${esc(current.owner)}" placeholder="z. B. Hans Müller" onchange="gfWorkQuickFilter='';renderWorkQueue()">
         <datalist id="gfWorkOwnerList">${ownerNames.map(x=>`<option value="${esc(x)}"></option>`).join('')}</datalist>
       </label>
 
       <label>Fälligkeit
-        <select id="gfWorkDue" onchange="renderWorkQueue()">
+        <select id="gfWorkDue" onchange="gfWorkQuickFilter='';renderWorkQueue()">
           <option value="" ${!current.due?'selected':''}>Alle Fälligkeiten</option>
           <option value="overdue" ${current.due==='overdue'?'selected':''}>Überfällig</option>
           <option value="today" ${current.due==='today'?'selected':''}>Heute</option>
@@ -5155,11 +5183,25 @@ if(canUseDecisionsUI())renderDecisions();if(canUseWorkQueueUI())renderWorkQueue(
     ro.value=rv;
   }
 showRecoveryStatus();setTimeout(()=>{hydrateMediaImages();hydrateResidentReportImages();},0);}
+function openCriticalFindings(){
+  const count=Number(document.getElementById('kpiCritical')?.textContent||0);
+  if(count<=0)return;
+  showSection('findings');
+  const status=document.getElementById('filterStatus'); if(status)status.value='active';
+  const priority=document.getElementById('filterPriority'); if(priority)priority.value='critical';
+  const type=document.getElementById('filterType'); if(type)type.value='Feststellung';
+  const decision=document.getElementById('filterDecision'); if(decision)decision.value='';
+  renderFindings();
+}
+
 function renderDashboard(){
   document.getElementById('kpiObjects').textContent=db.objects.length;
   const open=db.findings.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt');
   document.getElementById('kpiOpen').textContent=open.length;
-  document.getElementById('kpiCritical').textContent=open.filter(f=>['P1','P2'].includes(f.priority)).length;
+  const criticalCount=open.filter(f=>['P1','P2'].includes(f.priority)).length;
+  document.getElementById('kpiCritical').textContent=criticalCount;
+  const criticalCard=document.getElementById('kpiCriticalCard');
+  if(criticalCard){criticalCard.classList.toggle('is-disabled',criticalCount===0);criticalCard.setAttribute('aria-disabled',criticalCount===0?'true':'false');}
   const kpiInspections=document.getElementById('kpiInspections'); if(kpiInspections)kpiInspections.textContent=db.inspections.length;
   const box=document.getElementById('dashboardFindings');
   const rows=open.sort((a,b)=>a.priority.localeCompare(b.priority)||b.createdAt-a.createdAt).slice(0,8);
@@ -5339,7 +5381,7 @@ function renderFindings(){
   const df=document.getElementById('filterDecision')?.value||'';
   const of=document.getElementById('filterObject')?.value||'', sf=document.getElementById('filterStatus')?.value||'', pf=document.getElementById('filterPriority')?.value||'', tf=document.getElementById('filterType')?.value||'';
   let arr=[...db.findings].sort((a,b)=>b.createdAt-a.createdAt);
-  if(of)arr=arr.filter(x=>x.objectId===of);if(sf==='active')arr=arr.filter(x=>x.status!=='Erledigt');else if(sf)arr=arr.filter(x=>x.status===sf);if(df)arr=arr.filter(x=>(x.decisionStatus||'pending')===df);if(pf)arr=arr.filter(x=>x.priority===pf);if(tf)arr=arr.filter(x=>(x.type||'Feststellung')===tf);
+  if(of)arr=arr.filter(x=>x.objectId===of);if(sf==='active')arr=arr.filter(x=>x.status!=='Erledigt');else if(sf)arr=arr.filter(x=>x.status===sf);if(df)arr=arr.filter(x=>(x.decisionStatus||'pending')===df);if(pf==='critical')arr=arr.filter(x=>['P1','P2'].includes(x.priority));else if(pf)arr=arr.filter(x=>x.priority===pf);if(tf)arr=arr.filter(x=>(x.type||'Feststellung')===tf);
   const el=document.getElementById('findingList'); if(el)el.innerHTML=arr.length?arr.map(f=>findingCard(f)).join(''):`<div class="empty">Keine Dokumentationen im gewählten Filter.</div>`;
 }
 
