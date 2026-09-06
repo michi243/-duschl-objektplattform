@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objektplattform v2.18.10</title>
+<title>Duschl Service – Objektplattform v2.18.11</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -808,7 +808,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   <button id="headerPasswordBtn" onclick="showVoluntaryPasswordChange()">Passwort ändern</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.18.10 Passwortverwaltung</span></header>
+<span class="badge">v2.18.11 Leistungsdokumentation</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1155,7 +1155,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 
 <script id="duschl-qr-local-v2183">
 /*
- * Lokale QR-Code-Erzeugung für Duschl Service v2.18.10.
+ * Lokale QR-Code-Erzeugung für Duschl Service v2.18.11.
  * Basis: QRCode for JavaScript, Kazuhiko Arase, MIT License.
  * Vollständig inline eingebettet – keine CDN-/Netzwerkabhängigkeit.
  */
@@ -4158,7 +4158,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.18.10';
+  db.version='2.18.11';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -6009,10 +6009,10 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   </div>
 
   <div id="currentPhotoBlock" class="card" style="margin-top:12px">
-    <label>Aktuelles Foto</label>
-    <div class="muted" style="margin-bottom:8px">Kamera oder Fotomediathek auswählen.</div>
+    <label>Foto vorher</label>
+    <div class="muted" style="margin-bottom:8px">Ausgangszustand dokumentieren · Kamera oder Fotomediathek auswählen.</div>
     <input type="file" id="fBeforePhoto" accept="image/*" multiple onchange="handlePhotoSelection('before',this)"><div class="muted" id="beforePhotoCount">Max. 5 Bilder</div><div class="muted">Über „In Fotos sichern“ an die Fotomediathek übergeben.</div><div id="beforePhotoPreview" class="photo-grid"></div>
-    ${(f.beforePhoto||f.photo)?`${mediaImg(f.beforePhoto||f.photo,'Aktuelles Foto','thumb','margin-top:8px')}`:''}
+    ${(f.beforePhoto||f.photo)?`${mediaImg(f.beforePhoto||f.photo,'Foto vorher','thumb','margin-top:8px')}`:''}
   </div>
 
   <div id="findingActionFields">
@@ -6059,6 +6059,7 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   </div>
 
   <div id="serviceFields">
+    <div class="muted" style="margin:10px 0 4px">Leistungsnachweis: Tätigkeit dokumentieren. Bei dokumentationspflichtigen Leistungen Vorher- und Nachher-Bilder erfassen; bei einfachen Routinetätigkeiten können die Bilder leer bleiben.</div>
     <label>Durchgeführte Tätigkeiten *</label>
     <select id="fActivityPreset" onchange="applyActivityPreset()">
       <option value="">Tätigkeit hinzufügen …</option>
@@ -6073,10 +6074,10 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   </div>
 
   <div id="afterPhotoBlock" class="card" style="margin-top:12px">
-    <label>Foto danach</label>
-    <div class="muted" style="margin-bottom:8px">Kamera oder Fotomediathek auswählen.</div>
+    <label>Foto nachher</label>
+    <div class="muted" style="margin-bottom:8px">Ergebnis dokumentieren · Kamera oder Fotomediathek auswählen.</div>
     <input type="file" id="fAfterPhoto" accept="image/*" multiple onchange="handlePhotoSelection('after',this)"><div class="muted" id="afterPhotoCount">Max. 5 Bilder</div><div class="muted">Über „In Fotos sichern“ an die Fotomediathek übergeben.</div><div id="afterPhotoPreview" class="photo-grid"></div>
-    ${f.afterPhoto?`${mediaImg(f.afterPhoto,'Foto danach','thumb','margin-top:8px')}`:''}
+    ${f.afterPhoto?`${mediaImg(f.afterPhoto,'Foto nachher','thumb','margin-top:8px')}`:''}
   </div>
   <label>Status</label><select id="fStatus" onchange="toggleCompletion()">${['Offen','In Bearbeitung','Erledigt'].map(x=>`<option ${x===(forceClose?'Erledigt':f.status)?'selected':''}>${x}</option>`).join('')}</select>
   <div id="completionFields" class="card" style="margin-top:12px;background:#f7f9fa">
