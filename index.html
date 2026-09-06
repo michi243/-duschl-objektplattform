@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objektplattform v2.18.14</title>
+<title>Duschl Service – Objektplattform v2.18.15</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -809,14 +809,14 @@ body.public-report-mode>#photoViewer{display:none!important}
   <button id="headerPasswordBtn" onclick="showVoluntaryPasswordChange()">Passwort ändern</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.18.14 Zentrale Aktualisierung</span></header>
+<span class="badge">v2.18.15 Statuszähler</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
   <button id="navFindings" onclick="showSection('findings')">Dokumentation</button>
   <button id="navResidentReports" onclick="showSection('residentReports')">Meldungen <span id="residentReportNavCount" class="badge" style="margin-left:4px">0</span></button>
 <button id="navDecisions" onclick="showSection('decisions')">Entscheidungen <span id="decisionNavCount" class="badge" style="margin-left:4px">0</span></button>
-  <button id="navWorkqueue" onclick="showSection('workqueue')">Arbeitsvorrat</button><button id="navReports" onclick="showSection('reports')">Berichte</button>
+  <button id="navWorkqueue" onclick="showSection('workqueue')">Arbeitsvorrat <span id="workqueueNavCount" class="badge" style="margin-left:4px">0</span></button><button id="navReports" onclick="showSection('reports')">Berichte</button>
   <button id="navUsers" onclick="showSection('users')">Benutzer & Berechtigungen</button>
   <button id="navSettings" onclick="showSection('settings')">Daten</button>
 </nav>
@@ -1157,7 +1157,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 
 <script id="duschl-qr-local-v2183">
 /*
- * Lokale QR-Code-Erzeugung für Duschl Service v2.18.14.
+ * Lokale QR-Code-Erzeugung für Duschl Service v2.18.15.
  * Basis: QRCode for JavaScript, Kazuhiko Arase, MIT License.
  * Vollständig inline eingebettet – keine CDN-/Netzwerkabhängigkeit.
  */
@@ -4189,7 +4189,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.18.14';
+  db.version='2.18.15';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -4567,6 +4567,8 @@ function renderWorkQueue(){
     });
 
   const k=gfTaskKpis(items);
+  const workNavCount=document.getElementById('workqueueNavCount');
+  if(workNavCount)workNavCount.textContent=k.open;
   const objects=(db.objects||[]).slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'','de'));
   const ownerNames=[...new Set(items.map(t=>(t.ownerName||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'de'));
 
@@ -5289,7 +5291,6 @@ function renderResidentReports(){
         <button type="button" onclick="openResidentReportDetails('${r.id}')">Details</button>
         ${!r.converted_to_finding_id&&!finalState?`<button type="button" class="primary" onclick="convertResidentReportToFinding('${r.id}')">Dokumentieren</button>`:''}
         ${!finalState?`<button type="button" onclick="openResidentReportCloseModal('${r.id}','closed')">Schließen</button>`:''}
-        ${!finalState&&!r.converted_to_finding_id?`<button type="button" class="danger" onclick="openResidentReportCloseModal('${r.id}','rejected')">Verwerfen</button>`:''}
         ${r.converted_to_finding_id?`<button type="button" onclick="openResidentConvertedFinding('${r.converted_to_finding_id}')">Dokumentation öffnen</button>`:''}
       </div>
     </div>`;
@@ -5322,7 +5323,6 @@ function openResidentReportDetails(id){
     <div class="row" style="margin-top:14px">
       ${!r.converted_to_finding_id&&!['closed','rejected','completed'].includes(r.status||'')?`<button class="primary" onclick="closeModal();convertResidentReportToFinding('${r.id}')">Dokumentieren</button>`:''}
       ${!['closed','rejected','completed'].includes(r.status||'')?`<button onclick="closeModal();openResidentReportCloseModal('${r.id}','closed')">Schließen</button>`:''}
-      ${!r.converted_to_finding_id&&!['closed','rejected','completed'].includes(r.status||'')?`<button class="danger" onclick="closeModal();openResidentReportCloseModal('${r.id}','rejected')">Verwerfen</button>`:''}
       <button onclick="closeModal()">Abbrechen</button>
     </div>`);
   setTimeout(()=>hydrateResidentReportImages(document.getElementById('modalRoot')),0);
@@ -5331,17 +5331,14 @@ function openResidentReportDetails(id){
 function openResidentReportCloseModal(id,targetStatus){
   if(isCustomerRole())return alert('Kein Zugriff auf Bewohnermeldungen.');
   const r=getResidentReportById(id); if(!r)return;
-  const isReject=targetStatus==='rejected';
-  const title=isReject?'Meldung verwerfen':'Meldung schließen';
-  const examples=isReject
-    ? 'z. B. Spam, falsches Objekt, nicht sachbezogen'
-    : 'z. B. kein Handlungsbedarf, bereits erledigt, Duplikat';
+  const title='Meldung schließen';
+  const examples='z. B. kein Handlungsbedarf, bereits erledigt, Duplikat oder nicht relevant';
   modal(`<div class="row space"><h2>${title}</h2><button onclick="closeModal()">✕</button></div>
     <div class="muted">Die ursprüngliche Meldung bleibt erhalten. Die Begründung wird intern dokumentiert.</div>
     <label>Begründung *</label>
     <textarea id="rrCloseReason" maxlength="1500" placeholder="${examples}"></textarea>
     <div class="row" style="margin-top:14px">
-      <button class="${isReject?'danger':'primary'}" onclick="saveResidentReportClosure('${id}','${targetStatus}')">${isReject?'Verwerfen':'Schließen'}</button>
+      <button class="primary" onclick="saveResidentReportClosure('${id}','closed')">Schließen</button>
       <button onclick="closeModal()">Abbrechen</button>
     </div>`);
 }
