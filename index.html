@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objektplattform v2.18.18</title>
+<title>Duschl Service – Objektplattform v2.18.19</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -809,7 +809,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   <button id="headerPasswordBtn" onclick="showVoluntaryPasswordChange()">Passwort ändern</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.18.18 Admin-Vertretung zentral</span></header>
+<span class="badge">v2.18.19 Benutzeraktivität</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1106,6 +1106,17 @@ body.public-report-mode>#photoViewer{display:none!important}
   </div>
 
   <div class="card" style="margin-bottom:14px">
+    <div class="row space" style="align-items:center">
+      <div>
+        <h3 style="margin:0">Aktive Benutzer</h3>
+        <div class="muted" style="margin-top:6px">Zeigt die letzte Aktivität angemeldeter Benutzer. Online = Aktivität innerhalb der letzten 5 Minuten.</div>
+      </div>
+      <button type="button" onclick="loadUserActivity()">Aktualisieren</button>
+    </div>
+    <div id="userActivityList" class="muted" style="margin-top:12px">Aktivitätsdaten werden geladen …</div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
     <h3>Datensicherung</h3>
     <div class="muted">Vor weiteren Änderungen kannst du den aktuell wiederhergestellten Master-Datenbestand als JSON sichern.</div>
     <button type="button" onclick="downloadMasterBackup()">Master-Backup herunterladen</button>
@@ -1157,7 +1168,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 
 <script id="duschl-qr-local-v2183">
 /*
- * Lokale QR-Code-Erzeugung für Duschl Service v2.18.18.
+ * Lokale QR-Code-Erzeugung für Duschl Service v2.18.19.
  * Basis: QRCode for JavaScript, Kazuhiko Arase, MIT License.
  * Vollständig inline eingebettet – keine CDN-/Netzwerkabhängigkeit.
  */
@@ -2858,13 +2869,14 @@ async function cloudLoadCurrentProfile(){
   const uid=cloudSession?.user?.id;
   if(!uid)throw new Error('Benutzer-ID der Supabase-Sitzung fehlt.');
   const rows=await cloudRequest(
-    `profiles?select=id,full_name,email,role,active,must_change_password,admin_delegate&id=eq.${encodeURIComponent(uid)}&limit=1`
+    `profiles?select=id,full_name,email,role,active,must_change_password,admin_delegate,last_seen_at&id=eq.${encodeURIComponent(uid)}&limit=1`
   );
   const p=rows?.[0];
   if(!p||p.active!==true)throw new Error('Kein aktives Benutzerprofil gefunden.');
   currentUserProfile=p;
   currentUserRole=String(p.role||cloudSession?.user?.user_metadata?.app_role||'').trim().toLowerCase();
   applyRoleUI();
+  startUserActivityHeartbeat();
   return p;
 }
 
@@ -3214,6 +3226,7 @@ async function cloudLogin(){
   }
 }
 async function cloudLogout(){
+  stopUserActivityHeartbeat();
   try{
     if(cloudSession?.access_token)await fetch(`${SUPABASE_URL}/auth/v1/logout`,{method:'POST',headers:cloudHeaders()});
   }catch(_e){}
@@ -3703,6 +3716,70 @@ async function cloudLoadResidentReports(){
   return cloudResidentReports;
 }
 
+let userActivityHeartbeatTimer=null;
+
+async function touchUserActivity(){
+  if(!cloudSession?.access_token||!currentUserProfile?.id)return;
+  try{
+    await cloudRequest('rpc/touch_last_seen',{
+      method:'POST',
+      headers:{Prefer:'return=minimal'},
+      body:JSON.stringify({})
+    });
+    if(currentUserProfile)currentUserProfile.last_seen_at=new Date().toISOString();
+  }catch(e){
+    console.warn('Benutzeraktivität konnte nicht aktualisiert werden',e);
+  }
+}
+
+function startUserActivityHeartbeat(){
+  if(userActivityHeartbeatTimer)clearInterval(userActivityHeartbeatTimer);
+  touchUserActivity();
+  userActivityHeartbeatTimer=setInterval(()=>{
+    if(document.visibilityState==='visible')touchUserActivity();
+  },120000);
+}
+
+function stopUserActivityHeartbeat(){
+  if(userActivityHeartbeatTimer){clearInterval(userActivityHeartbeatTimer);userActivityHeartbeatTimer=null;}
+}
+
+function userActivityState(lastSeen){
+  if(!lastSeen)return {label:'Noch keine Aktivität',cls:''};
+  const age=Date.now()-new Date(lastSeen).getTime();
+  if(!Number.isFinite(age))return {label:'Unbekannt',cls:''};
+  if(age<=5*60*1000)return {label:'Online',cls:'p4'};
+  if(age<=30*60*1000)return {label:'Kürzlich aktiv',cls:'p2'};
+  return {label:'Offline',cls:''};
+}
+
+function formatLastSeen(lastSeen){
+  if(!lastSeen)return 'Noch nicht erfasst';
+  const d=new Date(lastSeen);
+  if(Number.isNaN(d.getTime()))return 'Unbekannt';
+  return d.toLocaleDateString('de-DE')+', '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+}
+
+async function loadUserActivity(){
+  const box=document.getElementById('userActivityList');
+  if(!box||!isAdminRole())return;
+  box.innerHTML='<span class="muted">Aktivitätsdaten werden geladen …</span>';
+  try{
+    await touchUserActivity();
+    const rows=await cloudRequest('profiles?select=id,full_name,email,role,active,admin_delegate,last_seen_at&active=eq.true&order=full_name.asc.nullslast,email.asc');
+    const items=Array.isArray(rows)?rows:[];
+    if(!items.length){box.innerHTML='<div class="empty">Keine aktiven Benutzerkonten vorhanden.</div>';return;}
+    box.innerHTML=`<div style="overflow-x:auto"><table><thead><tr><th>Benutzer</th><th>Rolle</th><th>Admin-Vertretung</th><th>Status</th><th>Letzte Aktivität</th></tr></thead><tbody>${items.map(p=>{
+      const st=userActivityState(p.last_seen_at);
+      const name=p.full_name||p.email||'Unbekannter Benutzer';
+      return `<tr><td><strong>${esc(name)}</strong>${p.email&&p.email!==name?`<div class="muted">${esc(p.email)}</div>`:''}</td><td>${esc(ROLE_LABELS[p.role]||p.role||'—')}</td><td>${p.admin_delegate===true?'Ja':'Nein'}</td><td><span class="badge ${st.cls}">${esc(st.label)}</span></td><td>${esc(formatLastSeen(p.last_seen_at))}</td></tr>`;
+    }).join('')}</tbody></table></div>`;
+  }catch(e){
+    console.error('Benutzeraktivität laden fehlgeschlagen',e);
+    box.innerHTML=`<span style="color:#ff8b91">Aktivitätsdaten konnten nicht geladen werden: ${esc(e.message||e)}</span>`;
+  }
+}
+
 async function refreshAllCloudData(){
   if(!cloudSession?.access_token){
     alert('Bitte zuerst anmelden.');
@@ -3718,6 +3795,7 @@ async function refreshAllCloudData(){
     await cloudReloadObjects();
     // Benutzer/Zuweisungen nur laden, wenn die aktuelle Berechtigung dies zulässt.
     if(canManageUsersUI())await loadUserAdminData();
+    if(isAdminRole())await loadUserActivity();
     renderAll();
     cloudSetStatus('Verbunden · Daten zentral aktualisiert','ok');
   }catch(e){
@@ -4191,7 +4269,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.18.18';
+  db.version='2.18.19';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -4211,7 +4289,7 @@ function showSection(id){
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('primary'));
   [...document.querySelectorAll('nav button')].find(b=>b.getAttribute('onclick')?.includes(`'${id}'`))?.classList.add('primary');
-  if(id==='settings')renderCleanupObjectOptions();if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='users')loadUserAdminData();
+  if(id==='settings'){renderCleanupObjectOptions();loadUserActivity();}if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='users')loadUserAdminData();
 }
 function priorityLabel(p){
   return ({P1:'Sofort',P2:'Dringend',P3:'Planbar',P4:'Beobachten'})[p]||p||'';
