@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objektplattform v2.18.25</title>
+<title>Duschl Service – Objektplattform v2.18.26</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -358,7 +358,7 @@ a{color:var(--accent-2)!important}
 }
 
 
-/* ===== v2.18.25 Responsive Topbar + Hamburger-Menü ===== */
+/* ===== v2.18.26 Responsive Topbar + Hamburger-Menü ===== */
 /* Rollenbasierte Menüpunkte werden vollständig ausgeblendet, nicht deaktiviert dargestellt. */
 .app-topbar{height:64px;padding:10px 16px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;z-index:60!important}
 .menu-toggle{width:44px;height:44px;padding:10px!important;display:flex;flex-direction:column;justify-content:center;gap:5px;background:transparent!important;border-color:transparent!important;box-shadow:none!important;flex:0 0 auto}
@@ -374,10 +374,10 @@ a{color:var(--accent-2)!important}
 .app-menu.open{transform:translateX(0)}
 .app-menu-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 6px 14px;border-bottom:1px solid var(--line-soft);margin-bottom:8px}.app-menu-head strong{font-size:18px}.menu-close{width:40px;height:40px;padding:0!important;border-radius:10px!important;font-size:28px;line-height:1;background:transparent!important;border-color:transparent!important}
 .app-menu nav{display:flex!important;flex-direction:column!important;flex-wrap:nowrap!important;gap:4px!important;position:static!important;top:auto!important;background:transparent!important;border:0!important;padding:6px 0!important;overflow:visible!important;z-index:auto!important}
-.app-menu nav button{width:100%;min-height:46px;display:grid!important;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;text-align:left;gap:10px!important;padding:9px 11px!important;border-radius:10px!important;color:#c4d0d9!important}
+.app-menu nav button{width:100%;min-height:46px;display:grid!important;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;text-align:left;gap:10px!important;padding:9px 11px!important;border-radius:10px!important;color:#c4d0d9!important}.app-menu nav button.hidden{display:none!important}
 .app-menu nav button.primary{background:linear-gradient(90deg,rgba(47,143,255,.26),rgba(47,143,255,.10))!important;border-color:rgba(88,168,255,.24)!important;box-shadow:inset 3px 0 0 var(--accent)!important}
 .nav-icon{width:28px;text-align:center;font-size:18px;color:#d7e3eb}.nav-count{justify-self:end;min-width:26px;text-align:center;padding:3px 7px!important}
-.app-menu-actions{margin-top:auto;border-top:1px solid var(--line-soft);padding-top:10px;display:grid;gap:5px}.app-menu-actions button{width:100%;display:flex;align-items:center;gap:10px;justify-content:flex-start;text-align:left;background:transparent!important;border-color:transparent!important;color:#c4d0d9!important;box-shadow:none!important}.app-menu-actions button:hover{background:#102231!important}
+.app-menu-actions{margin-top:auto;border-top:1px solid var(--line-soft);padding-top:10px;display:grid;gap:5px}.app-menu-actions button{width:100%;display:flex;align-items:center;gap:10px;justify-content:flex-start;text-align:left;background:transparent!important;border-color:transparent!important;color:#c4d0d9!important;box-shadow:none!important}.app-menu-actions button.hidden{display:none!important}.app-menu-actions button:hover{background:#102231!important}
 body.menu-open{overflow:hidden}
 main{padding-top:18px}
 @media(max-width:680px){.app-topbar{height:58px;padding:8px 10px!important}.menu-toggle{width:40px;height:40px;padding:8px!important}.app-brand-mark{width:32px;height:32px;border-radius:9px;font-size:20px}.app-brand h1{font-size:15px!important}.app-brand small{display:none!important}.topbar-meta{gap:4px}.topbar-meta .version-badge{display:none!important}.topbar-user{padding:3px 7px 3px 4px;gap:6px;max-width:150px}.topbar-user-avatar{width:29px;height:29px;flex-basis:29px;font-size:10px}.topbar-user-name{font-size:11px;max-width:92px}.topbar-user-role{display:none}.app-menu{width:min(330px,92vw)}main{padding:12px!important}.grid.g3{grid-template-columns:repeat(2,minmax(0,1fr))!important}.kpi{font-size:25px}.card{padding:12px!important}}
@@ -385,7 +385,7 @@ main{padding-top:18px}
 @media print{.app-menu,.app-menu-backdrop,.app-topbar{display:none!important}}
 
 
-/* ===== v2.18.25 Interaktive Kennzahlen ===== */
+/* ===== v2.18.26 Interaktive Kennzahlen ===== */
 .kpi-action,.gf-kpi.is-action{position:relative;cursor:pointer;transition:transform .12s ease,border-color .12s ease,background .12s ease;user-select:none}
 .kpi-action:hover,.gf-kpi.is-action:hover{border-color:var(--accent);transform:translateY(-1px)}
 .kpi-action:active,.gf-kpi.is-action:active{transform:translateY(0)}
@@ -857,7 +857,7 @@ body.public-report-mode>#photoViewer{display:none!important}
     <div>
       <strong>Menü</strong>
       <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-      <div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.25</div>
+      <div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.26</div>
     </div>
     <button class="menu-close" type="button" aria-label="Menü schließen" onclick="closeAppMenu()">×</button>
   </div>
@@ -4359,7 +4359,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.18.25';
+  db.version='2.18.26';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
