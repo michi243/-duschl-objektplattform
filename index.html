@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objektplattform v2.18.20</title>
+<title>Duschl Service – Objektplattform v2.18.21</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -358,7 +358,7 @@ a{color:var(--accent-2)!important}
 }
 
 
-/* ===== v2.18.20 Responsive Topbar + Hamburger-Menü ===== */
+/* ===== v2.18.21 Responsive Topbar + Hamburger-Menü ===== */
 .app-topbar{height:64px;padding:10px 16px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;z-index:60!important}
 .menu-toggle{width:44px;height:44px;padding:10px!important;display:flex;flex-direction:column;justify-content:center;gap:5px;background:transparent!important;border-color:transparent!important;box-shadow:none!important;flex:0 0 auto}
 .menu-toggle span{display:block;width:22px;height:2px;border-radius:2px;background:#fff}
@@ -366,6 +366,7 @@ a{color:var(--accent-2)!important}
 .app-brand-mark{width:36px;height:36px;border-radius:10px;background:rgba(47,143,255,.16);border:1px solid rgba(88,168,255,.35);display:grid;place-items:center;color:var(--accent-2);font-size:23px;font-weight:800}
 .app-brand h1{font-size:17px!important;line-height:1.05;margin:0!important;white-space:nowrap}.app-brand small{font-size:12px!important}
 .topbar-meta{margin-left:auto;display:flex;align-items:center;justify-content:flex-end;gap:7px;min-width:0}.topbar-meta .badge{white-space:nowrap}.topbar-meta .version-badge{padding:5px 8px!important;font-size:11px!important}
+.topbar-user{display:flex;align-items:center;gap:8px;min-width:0;padding:4px 9px 4px 5px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:rgba(255,255,255,.06);color:#fff;max-width:280px}.topbar-user-avatar{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;flex:0 0 32px;background:#2f8fff;color:#fff;font-size:12px;font-weight:800;letter-spacing:.2px}.topbar-user-copy{min-width:0;display:flex;flex-direction:column;line-height:1.12}.topbar-user-name{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}.topbar-user-role{font-size:10px;color:#b8c6d1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}.topbar-user-delegate{color:#8fc5ff}.menu-user-card{display:flex;align-items:center;gap:10px;margin:4px 4px 10px;padding:10px;border:1px solid var(--line-soft);border-radius:12px;background:#0d2030}.menu-user-card .topbar-user-avatar{width:36px;height:36px;flex-basis:36px}.menu-user-card .topbar-user-name{font-size:14px}.menu-user-card .topbar-user-role{font-size:11px}
 .app-menu-backdrop{position:fixed;inset:0;background:rgba(0,6,11,.62);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);z-index:70;opacity:0;visibility:hidden;transition:opacity .2s ease,visibility .2s ease}
 .app-menu-backdrop.open{opacity:1;visibility:visible}
 .app-menu{position:fixed;left:0;top:0;bottom:0;width:min(340px,88vw);z-index:80;background:linear-gradient(180deg,#0d1b27,#07131d);border-right:1px solid var(--line);box-shadow:18px 0 45px rgba(0,0,0,.35);transform:translateX(-102%);transition:transform .22s ease;display:flex;flex-direction:column;padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom));overflow:auto}
@@ -378,8 +379,8 @@ a{color:var(--accent-2)!important}
 .app-menu-actions{margin-top:auto;border-top:1px solid var(--line-soft);padding-top:10px;display:grid;gap:5px}.app-menu-actions button{width:100%;display:flex;align-items:center;gap:10px;justify-content:flex-start;text-align:left;background:transparent!important;border-color:transparent!important;color:#c4d0d9!important;box-shadow:none!important}.app-menu-actions button:hover{background:#102231!important}
 body.menu-open{overflow:hidden}
 main{padding-top:18px}
-@media(max-width:680px){.app-topbar{height:58px;padding:8px 10px!important}.menu-toggle{width:40px;height:40px;padding:8px!important}.app-brand-mark{width:32px;height:32px;border-radius:9px;font-size:20px}.app-brand h1{font-size:15px!important}.app-brand small{font-size:11px!important}.topbar-meta #roleBadge{display:none!important}.topbar-meta .version-badge{font-size:10px!important;padding:4px 6px!important}.app-menu{width:min(330px,92vw)}main{padding:12px!important}.grid.g3{grid-template-columns:repeat(2,minmax(0,1fr))!important}.kpi{font-size:25px}.card{padding:12px!important}}
-@media(max-width:390px){.topbar-meta .version-badge{display:none!important}.app-brand h1{font-size:14px!important}.grid.g3{grid-template-columns:1fr!important}}
+@media(max-width:680px){.app-topbar{height:58px;padding:8px 10px!important}.menu-toggle{width:40px;height:40px;padding:8px!important}.app-brand-mark{width:32px;height:32px;border-radius:9px;font-size:20px}.app-brand h1{font-size:15px!important}.app-brand small{display:none!important}.topbar-meta{gap:4px}.topbar-meta .version-badge{display:none!important}.topbar-user{padding:3px 7px 3px 4px;gap:6px;max-width:150px}.topbar-user-avatar{width:29px;height:29px;flex-basis:29px;font-size:10px}.topbar-user-name{font-size:11px;max-width:92px}.topbar-user-role{display:none}.app-menu{width:min(330px,92vw)}main{padding:12px!important}.grid.g3{grid-template-columns:repeat(2,minmax(0,1fr))!important}.kpi{font-size:25px}.card{padding:12px!important}}
+@media(max-width:390px){.app-brand h1{font-size:13px!important}.app-brand-mark{display:none}.topbar-user{max-width:128px}.topbar-user-name{max-width:74px}.grid.g3{grid-template-columns:1fr!important}}
 @media print{.app-menu,.app-menu-backdrop,.app-topbar{display:none!important}}
 
 </style>
@@ -836,8 +837,8 @@ body.public-report-mode>#photoViewer{display:none!important}
     <div><h1>Duschl Service</h1><small>Objektplattform</small></div>
   </div>
   <div class="topbar-meta">
-    <span id="roleBadge" class="badge" style="display:none"></span>
-    <span class="badge version-badge">v2.18.20</span>
+    <div id="roleBadge" class="topbar-user" style="display:none" aria-label="Angemeldeter Benutzer"></div>
+    <span class="badge version-badge">v2.18.21</span>
   </div>
 </header>
 <div id="appMenuBackdrop" class="app-menu-backdrop" onclick="closeAppMenu()"></div>
@@ -849,6 +850,7 @@ body.public-report-mode>#photoViewer{display:none!important}
     </div>
     <button class="menu-close" type="button" aria-label="Menü schließen" onclick="closeAppMenu()">×</button>
   </div>
+  <div id="menuUserIdentity" class="menu-user-card" style="display:none"></div>
   <nav>
     <button id="navDashboard" onclick="showSection('dashboard')" class="primary"><span class="nav-icon">⌂</span><span>Dashboard</span></button>
     <button id="navObjects" onclick="showSection('objects')"><span class="nav-icon">▦</span><span>Objekte</span></button>
@@ -3121,11 +3123,15 @@ function cloudRecoverySessionFromUrl(){
 function applyRoleUI(){
   const role=effectiveUserRole();
   const rb=document.getElementById('roleBadge');
-  if(rb){
+  const menuIdentity=document.getElementById('menuUserIdentity');
+  if(rb||menuIdentity){
     const displayName=(currentUserProfile?.full_name||cloudSession?.user?.user_metadata?.full_name||cloudSession?.user?.email||'').trim();
-    const roleLabel=(ROLE_LABELS[role]||role||'Unbekannte Rolle')+(isAdminDelegate()?' · Admin-Vertretung':'');
-    rb.textContent=displayName ? `${displayName} · ${roleLabel}` : roleLabel;
-    rb.style.display=role?'':'none';
+    const roleLabel=(ROLE_LABELS[role]||role||'Unbekannte Rolle');
+    const delegateLabel=isAdminDelegate()?' · Admin-Vertretung':'';
+    const initials=(displayName||roleLabel||'?').split(/\s+/).filter(Boolean).slice(0,2).map(v=>v.charAt(0).toUpperCase()).join('').slice(0,2)||'?';
+    const identityHtml=`<span class="topbar-user-avatar">${esc(initials)}</span><span class="topbar-user-copy"><span class="topbar-user-name">${esc(displayName||'Angemeldet')}</span><span class="topbar-user-role${isAdminDelegate()?' topbar-user-delegate':''}">${esc(roleLabel+delegateLabel)}</span></span>`;
+    if(rb){rb.innerHTML=identityHtml;rb.style.display=role?'flex':'none';rb.title=`Angemeldet als ${displayName||'Benutzer'} · ${roleLabel}${delegateLabel}`;}
+    if(menuIdentity){menuIdentity.innerHTML=identityHtml;menuIdentity.style.display=role?'flex':'none';}
   }
 
   const show=(id,yes)=>{
@@ -4316,7 +4322,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.18.20';
+  db.version='2.18.21';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
