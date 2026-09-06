@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objektplattform v2.18.15</title>
+<title>Duschl Service – Objektplattform v2.18.16</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -809,7 +809,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   <button id="headerPasswordBtn" onclick="showVoluntaryPasswordChange()">Passwort ändern</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.18.15 Statuszähler</span></header>
+<span class="badge">v2.18.16 Entscheider-Nachweis</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -1157,7 +1157,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 
 <script id="duschl-qr-local-v2183">
 /*
- * Lokale QR-Code-Erzeugung für Duschl Service v2.18.15.
+ * Lokale QR-Code-Erzeugung für Duschl Service v2.18.16.
  * Basis: QRCode for JavaScript, Kazuhiko Arase, MIT License.
  * Vollständig inline eingebettet – keine CDN-/Netzwerkabhängigkeit.
  */
@@ -3369,7 +3369,10 @@ function cloudFindingToLocal(f,decision){
     decisionRequired:d.required!==undefined?!!d.required:(f.type==='finding'),
     decisionStatus:d.status||(f.type==='finding'?'pending':'not_required'),
     decisionBy:d.decided_by_name||'',
+    decisionById:d.decided_by||'',
+    decisionAt:d.decided_at||'',
     decisionDate:d.decision_date||'',
+    decisionImplementation:d.implementation_responsibility||'',
     decisionComment:d.comment||'',
     decisionAmount:d.amount??'',
     workOwner:'',
@@ -3564,7 +3567,7 @@ function findingCreatorMetaHtml(f){
 async function cloudReloadFindings(){
   if(!cloudSession?.access_token)return;
   const rows=await cloudRequest('findings?select=id,object_id,inspection_id,source_resident_report_id,type,area,title,category,priority,description,recommended_action,activity,status,completion_type,completion_note,work_required,created_by,created_at,updated_at&order=created_at.desc');
-  const decisions=await cloudRequest('decisions?select=id,finding_id,required,status,decided_by_name,decision_date,comment,amount,created_at,updated_at');
+  const decisions=await cloudRequest('decisions?select=id,finding_id,required,status,decided_by,decided_by_name,decided_at,decision_date,implementation_responsibility,comment,amount,created_at,updated_at');
   const dm=new Map((decisions||[]).map(d=>[d.finding_id,d]));
   const pm=await cloudLoadPhotoRefs();
   const cloudRows=(rows||[]).map(f=>{
@@ -3643,8 +3646,7 @@ async function cloudSaveFinding(id,data){
       finding_id:row.id,
       required:!!data.decisionRequired,
       status:data.decisionRequired?(data.decisionStatus||'pending'):'not_required',
-      decided_by_name:data.decisionBy||null,
-      decision_date:data.decisionDate||null,
+      implementation_responsibility:data.decisionImplementation||null,
       comment:data.decisionComment||null,
       amount:data.decisionAmount===''||data.decisionAmount==null?null:Number(data.decisionAmount),
       updated_at:new Date().toISOString()
@@ -4189,7 +4191,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.18.15';
+  db.version='2.18.16';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -4227,6 +4229,12 @@ const DECISION_STATUS_LABELS={
 };
 function decisionLabel(v){
   return DECISION_STATUS_LABELS[v]||DECISION_STATUS_LABELS.pending;
+}
+function decisionMetaHtml(f){
+  if(!f||!f.decisionBy||['pending','not_required'].includes(f.decisionStatus||'pending'))return '';
+  const when=f.decisionAt?fmt(f.decisionAt):(f.decisionDate||'');
+  const implementation=f.decisionImplementation?` · Umsetzung: ${esc(decisionImplementationLabel(f.decisionImplementation))}`:'';
+  return `<div class="muted" style="margin-top:6px">Entschieden von: <b>${esc(f.decisionBy)}</b>${when?` · ${esc(when)}`:''}${implementation}</div>`;
 }
 function inspectionClosed(i){return !!(i && i.endedAt)}
 
@@ -4302,6 +4310,7 @@ function renderDecisions(){
       ${photo?`${mediaImg(photo,'Dokumentationsfoto','', 'width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin:8px 0')}`:''}
       ${f.description?`<div><strong>Feststellung:</strong> ${esc(f.description)}</div>`:''}
       ${f.action?`<div style="margin-top:6px"><strong>Empfehlung:</strong> ${esc(f.action)}</div>`:''}
+      ${decisionMetaHtml(f)}
       <div class="row" style="margin-top:12px">
         <button class="primary" onclick="openDecisionModal('${f.id}')">${(f.decisionStatus||'pending')==='pending'?'Entscheidung treffen':'Entscheidung bearbeiten'}</button>
         <button onclick="${isCustomerRole()?`openFindingReadOnly('${f.id}')`:`openFindingModal('${f.objectId||''}','${f.inspectionId||''}','${f.id}')`}">Vorgang öffnen</button>
@@ -4342,6 +4351,7 @@ function openFindingReadOnly(id){
       ${f.area?`<div class="muted">${esc(f.area)}</div>`:''}
       ${f.description?`<p><strong>Feststellung</strong><br>${esc(f.description)}</p>`:''}
       ${f.action?`<p><strong>Empfehlung</strong><br>${esc(f.action)}</p>`:''}
+      ${decisionMetaHtml(f)}
       ${f.activity?`<p><strong>Leistung</strong><br>${esc(f.activity)}</p>`:''}
       ${photos.length?`<div class="photo-grid" style="margin-top:10px">${photos.map(p=>mediaImg(p,'Dokumentationsfoto','thumb')).join('')}</div>`:''}
     </div>
@@ -4351,6 +4361,22 @@ function openFindingReadOnly(id){
     </div>`);
 }
 
+function decisionActorDisplay(f){
+  if(f?.decisionBy)return f.decisionBy;
+  return (currentUserProfile?.full_name||cloudSession?.user?.user_metadata?.full_name||cloudSession?.user?.email||'Angemeldeter Benutzer').trim();
+}
+function decisionImplementationLabel(v){
+  return ({duschl_service:'Duschl Service',third_party:'Dritter'})[v]||'';
+}
+function toggleDecisionImplementation(){
+  const status=document.getElementById('dStatus')?.value||'';
+  const wrap=document.getElementById('dImplementationWrap');
+  if(wrap)wrap.classList.toggle('hidden',!['approved','thirdparty'].includes(status));
+  if(status==='thirdparty'){
+    const el=document.getElementById('dImplementation');
+    if(el)el.value='third_party';
+  }
+}
 function openDecisionModal(id){
   if(!requireDecisionUI())return;
   const f=db.findings.find(x=>x.id===id); if(!f)return;
@@ -4358,6 +4384,8 @@ function openDecisionModal(id){
   const options=Object.entries(DECISION_STATUS_LABELS)
     .map(([v,l])=>`<option value="${v}" ${(f.decisionStatus||'pending')===v?'selected':''}>${esc(l)}</option>`)
     .join('');
+  const actor=decisionActorDisplay(f);
+  const decidedTime=f.decisionAt?fmt(f.decisionAt):(f.decisionDate?esc(f.decisionDate):'Wird beim Speichern automatisch gesetzt');
   modal(`<div class="row space"><div><h2>Entscheidung treffen</h2><div class="muted">${esc(o?.name||'')}</div></div><button onclick="closeModal()">✕</button></div>
     <div class="card" style="margin-top:12px">
       <div class="row">${badgeP(f.priority)}<span class="badge">${esc(f.category||'Feststellung')}</span></div>
@@ -4365,28 +4393,40 @@ function openDecisionModal(id){
       ${f.action?`<p><strong>Empfehlung:</strong><br>${esc(f.action)}</p>`:''}
     </div>
     <label>Entscheidung *</label>
-    <select id="dStatus">${options}</select>
-    <label>Entscheider / Auftraggeber</label>
-    <input id="dBy" value="${esc(f.decisionBy||'')}" placeholder="Name / Ansprechpartner">
-    <label>Entscheidungsdatum</label>
-    <input id="dDate" type="date" value="${esc(f.decisionDate||new Date().toISOString().slice(0,10))}">
+    <select id="dStatus" onchange="toggleDecisionImplementation()">${options}</select>
+    <div id="dImplementationWrap">
+      <label>Wer setzt die Maßnahme um? *</label>
+      <select id="dImplementation">
+        <option value="" ${!f.decisionImplementation?'selected':''}>Bitte wählen</option>
+        <option value="duschl_service" ${f.decisionImplementation==='duschl_service'?'selected':''}>Duschl Service</option>
+        <option value="third_party" ${f.decisionImplementation==='third_party'?'selected':''}>Dritter</option>
+      </select>
+      <div class="muted" style="margin-top:5px">Nur „Duschl Service“ führt den Vorgang in den operativen Arbeitsvorrat.</div>
+    </div>
+    <label>Entschieden von</label>
+    <input value="${esc(actor)}" readonly>
+    <div class="muted" style="margin-top:5px">Der angemeldete Benutzer wird serverseitig protokolliert und kann nicht überschrieben werden.</div>
+    <label>Entscheidungszeitpunkt</label>
+    <input value="${esc(decidedTime)}" readonly>
     <label>Kommentar / Begründung</label>
     <textarea id="dComment" placeholder="z. B. Austausch freigegeben">${esc(f.decisionComment||'')}</textarea>
     <label>Freigabebetrag (€)</label>
     <input id="dAmount" type="number" min="0" step="0.01" inputmode="decimal" value="${f.decisionAmount!==''&&f.decisionAmount!=null?esc(f.decisionAmount):''}" placeholder="optional">
     <div class="row" style="margin-top:14px"><button class="primary" onclick="saveDecision('${id}')">Entscheidung speichern</button><button onclick="closeModal()">Abbrechen</button></div>`);
+  toggleDecisionImplementation();
 }
 
 async function saveDecision(id){
   if(!requireDecisionUI())return;
   const f=db.findings.find(x=>x.id===id); if(!f)return;
   const status=document.getElementById('dStatus')?.value||'pending';
-  const by=document.getElementById('dBy')?.value.trim()||'';
-  const date=document.getElementById('dDate')?.value||'';
+  const implementation=document.getElementById('dImplementation')?.value||'';
   const comment=document.getElementById('dComment')?.value.trim()||'';
   const amountRaw=document.getElementById('dAmount')?.value??'';
   const amount=amountRaw===''?'':Number(amountRaw);
   const required=status!=='not_required';
+  if(['approved','thirdparty'].includes(status) && !implementation)return alert('Bitte auswählen, wer die Maßnahme umsetzt.');
+  const effectiveImplementation=status==='thirdparty'?'third_party':(['approved'].includes(status)?implementation:'');
 
   try{
     if(!cloudSession?.access_token)throw new Error('Nicht angemeldet.');
@@ -4396,8 +4436,7 @@ async function saveDecision(id){
       finding_id:f.id,
       required,
       status:required?status:'not_required',
-      decided_by_name:by||null,
-      decision_date:date||null,
+      implementation_responsibility:effectiveImplementation||null,
       comment:comment||null,
       amount:amount===''?null:amount,
       updated_at:new Date().toISOString()
@@ -4419,8 +4458,11 @@ async function saveDecision(id){
 
     f.decisionRequired=required;
     f.decisionStatus=required?status:'not_required';
-    f.decisionBy=by;
-    f.decisionDate=date;
+    f.decisionBy=(currentUserProfile?.full_name||cloudSession?.user?.email||'').trim();
+    f.decisionById=currentUserId();
+    f.decisionAt=new Date().toISOString();
+    f.decisionDate=new Date().toISOString().slice(0,10);
+    f.decisionImplementation=effectiveImplementation;
     f.decisionComment=comment;
     f.decisionAmount=amount;
     f.decisionUpdatedAt=Date.now();
@@ -4505,7 +4547,8 @@ function gfTaskKpis(items){
   const open=items.filter(t=>{
     if(t.findingStatus==='Erledigt')return false;
     if(t.hasTask && ['completed','cancelled'].includes(t.status))return false;
-    return openDecisionStates.has(t.decisionStatus||'pending')
+    const externalImplementation=t.implementationResponsibility==='third_party';
+    return (!externalImplementation && openDecisionStates.has(t.decisionStatus||'pending'))
       || (t.hasTask && !['completed','cancelled'].includes(t.status))
       || (t.workRequired===true && !t.hasTask);
   });
@@ -4555,6 +4598,7 @@ function renderWorkQueue(){
         title:task?.title||f.title||'Dokumentation',
         status:task?.status||'',
         decisionStatus:f.decisionStatus||(f.decisionRequired===false?'not_required':'pending'),
+        implementationResponsibility:f.decisionImplementation||'',
         ownerName:task?.ownerName||f.workOwner||'',
         dueDate:task?.dueDate||f.workDueDate||'',
         workNote:task?.workNote||f.workNote||'',
@@ -4596,7 +4640,7 @@ function renderWorkQueue(){
     if(!current.status && !current.decision){
       if(t.findingStatus==='Erledigt')return false;
       const activeTask=t.hasTask && !['completed','cancelled'].includes(t.status);
-      const openDecision=openDecisionStates.has(t.decisionStatus||'pending');
+      const openDecision=t.implementationResponsibility!=='third_party' && openDecisionStates.has(t.decisionStatus||'pending');
       const internalWork=t.workRequired===true && !t.hasTask;
       if(!activeTask && !openDecision && !internalWork)return false;
     }
@@ -4672,7 +4716,7 @@ function renderWorkQueue(){
         const canPlan=!t.hasTask
           && t.findingStatus!=='Erledigt'
           && (
-            t.decisionStatus==='approved'
+            (t.decisionStatus==='approved' && t.implementationResponsibility!=='third_party')
             || (t.workRequired===true && t.decisionStatus==='not_required')
           );
 
@@ -6071,15 +6115,24 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
 
       <div id="decisionDetailFields">
         <label>Entscheidungsstatus</label>
-        <select id="fDecisionStatus">
+        <select id="fDecisionStatus" onchange="toggleFindingDecisionImplementation()">
           ${Object.entries(DECISION_STATUS_LABELS)
             .filter(([v])=>v!=='not_required')
             .map(([v,l])=>`<option value="${v}" ${v===(f.decisionStatus||'pending')?'selected':''}>${esc(l)}</option>`).join('')}
         </select>
-        <label>Entscheider / Auftraggeber</label>
-        <input id="fDecisionBy" value="${esc(f.decisionBy||'')}" placeholder="Name / Ansprechpartner">
-        <label>Entscheidungsdatum</label>
-        <input id="fDecisionDate" type="date" value="${esc(f.decisionDate||'')}">
+        <div id="fDecisionImplementationWrap">
+          <label>Wer setzt die Maßnahme um? *</label>
+          <select id="fDecisionImplementation">
+            <option value="" ${!f.decisionImplementation?'selected':''}>Bitte wählen</option>
+            <option value="duschl_service" ${f.decisionImplementation==='duschl_service'?'selected':''}>Duschl Service</option>
+            <option value="third_party" ${f.decisionImplementation==='third_party'?'selected':''}>Dritter</option>
+          </select>
+        </div>
+        <label>Entschieden von</label>
+        <input value="${esc(decisionActorDisplay(f))}" readonly>
+        <div class="muted" style="margin-top:5px">Wird beim Speichern aus dem angemeldeten Benutzer übernommen.</div>
+        <label>Entscheidungszeitpunkt</label>
+        <input value="${esc(f.decisionAt?fmt(f.decisionAt):(f.decisionDate||'Wird automatisch gesetzt'))}" readonly>
         <label>Kommentar / Begründung</label>
         <textarea id="fDecisionComment" placeholder="z. B. Austausch freigegeben">${esc(f.decisionComment||'')}</textarea>
         <label>Freigabebetrag (€)</label>
@@ -6144,6 +6197,13 @@ function toggleDecisionRequired(){
   const type=document.getElementById('fType')?.value||'Feststellung';
   const required=document.getElementById('fDecisionRequired')?.value==='yes';
   document.getElementById('decisionDetailFields')?.classList.toggle('hidden',type!=='Feststellung'||!required);
+  toggleFindingDecisionImplementation();
+}
+function toggleFindingDecisionImplementation(){
+  const status=document.getElementById('fDecisionStatus')?.value||'';
+  const wrap=document.getElementById('fDecisionImplementationWrap');
+  if(wrap)wrap.classList.toggle('hidden',!['approved','thirdparty'].includes(status));
+  if(status==='thirdparty'){const el=document.getElementById('fDecisionImplementation');if(el)el.value='third_party';}
 }
 function toggleCompletion(){
   const done=document.getElementById('fStatus')?.value==='Erledigt';
@@ -6253,8 +6313,9 @@ async function saveFinding(id){
   let decisionStatus=mayEditDecision
     ? (document.getElementById('fDecisionStatus')?.value||'pending')
     : (existingFindingForDecision?.decisionStatus||(preservedDecisionRequired?'pending':'not_required'));
-  let decisionBy=mayEditDecision?(document.getElementById('fDecisionBy')?.value.trim()||''):(existingFindingForDecision?.decisionBy||'');
-  let decisionDate=mayEditDecision?(document.getElementById('fDecisionDate')?.value||''):(existingFindingForDecision?.decisionDate||'');
+  let decisionBy=existingFindingForDecision?.decisionBy||'';
+  let decisionDate=existingFindingForDecision?.decisionDate||'';
+  let decisionImplementation=mayEditDecision?(document.getElementById('fDecisionImplementation')?.value||''):(existingFindingForDecision?.decisionImplementation||'');
   let decisionComment=mayEditDecision?(document.getElementById('fDecisionComment')?.value.trim()||''):(existingFindingForDecision?.decisionComment||'');
   const decisionAmountRaw=mayEditDecision?document.getElementById('fDecisionAmount')?.value:existingFindingForDecision?.decisionAmount;
   let decisionAmount=decisionAmountRaw===''||decisionAmountRaw==null?'':Number(decisionAmountRaw);
@@ -6263,9 +6324,12 @@ async function saveFinding(id){
   const title=document.getElementById('fTitle').value.trim();if(!title)return alert('Bitte Titel eingeben.');
   const type=document.getElementById('fType').value, status=document.getElementById('fStatus').value;
   if(type==='Feststellung'&&mayEditDecision&&!decisionRequiredValue)return alert('Bitte auswählen, ob eine Entscheidung des Auftraggebers erforderlich ist.');
-  if(type!=='Feststellung'){decisionRequired=false;decisionStatus='not_required';decisionBy='';decisionDate='';decisionComment='';decisionAmount=''}
-  if(type==='Feststellung'&&!decisionRequired){decisionStatus='not_required';decisionBy='';decisionDate='';decisionComment='';decisionAmount=''}
+  if(type!=='Feststellung'){decisionRequired=false;decisionStatus='not_required';decisionBy='';decisionDate='';decisionImplementation='';decisionComment='';decisionAmount=''}
+  if(type==='Feststellung'&&!decisionRequired){decisionStatus='not_required';decisionBy='';decisionDate='';decisionImplementation='';decisionComment='';decisionAmount=''}
   if(type==='Feststellung'&&decisionRequired&&decisionStatus==='not_required')decisionStatus='pending';
+  if(type==='Feststellung'&&decisionRequired&&mayEditDecision&&['approved','thirdparty'].includes(decisionStatus)&&!decisionImplementation)return alert('Bitte auswählen, wer die Maßnahme umsetzt.');
+  if(decisionStatus==='thirdparty')decisionImplementation='third_party';
+  if(!['approved','thirdparty'].includes(decisionStatus))decisionImplementation='';
   const activity=document.getElementById('fActivity')?.value.trim()||'';
   let workRequired=type==='Feststellung' && (document.getElementById('fWorkRequired')?.value==='yes');
   if(type!=='Feststellung' || status==='Erledigt')workRequired=false;
@@ -6283,7 +6347,7 @@ async function saveFinding(id){
     priority:type==='Feststellung'?(document.getElementById('fPriority')?.value||'P4'):'P4',
     description,action:type==='Feststellung'?(document.getElementById('fAction')?.value.trim()||''):'',
     activity,status,completionType,completionNote:document.getElementById('fCompletionNote')?.value.trim()||'',
-    decisionRequired,decisionStatus,decisionBy,decisionDate,decisionComment,decisionAmount,
+    decisionRequired,decisionStatus,decisionBy,decisionDate,decisionImplementation,decisionComment,decisionAmount,
     workRequired,
     beforePhoto:before,afterPhoto:after,beforePhotos,afterPhotos
   };
@@ -6291,11 +6355,16 @@ async function saveFinding(id){
     if(!cloudSession?.access_token)throw new Error('Nicht angemeldet.');
     cloudSetStatus('Dokumentation und Fotos werden gespeichert …','wait');
     const row=await cloudSaveFinding(id,data);
+    const isRecordedDecision=decisionRequired && !['pending','not_required','quote_sent'].includes(decisionStatus);
+    const nowIso=new Date().toISOString();
     const cloudLocal=cloudFindingToLocal(row,{
       required:decisionRequired,
       status:decisionRequired?decisionStatus:'not_required',
-      decided_by_name:decisionBy,
-      decision_date:decisionDate,
+      decided_by_name:isRecordedDecision?((currentUserProfile?.full_name||cloudSession?.user?.email||'').trim()):(decisionBy||''),
+      decided_by:isRecordedDecision?currentUserId():(existingFindingForDecision?.decisionById||''),
+      decided_at:isRecordedDecision?nowIso:(existingFindingForDecision?.decisionAt||''),
+      decision_date:isRecordedDecision?nowIso.slice(0,10):(decisionDate||''),
+      implementation_responsibility:decisionImplementation,
       comment:decisionComment,
       amount:decisionAmount
     });
