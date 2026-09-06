@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objektplattform v2.18.13</title>
+<title>Duschl Service – Objektplattform v2.18.14</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -805,10 +805,11 @@ body.public-report-mode>#photoViewer{display:none!important}
 <header>
   <div><h1>Duschl Service</h1><small>Interne Objekt-Dokumentation</small></div>
   <button id="backupBtn" onclick="exportData()" style="background:#fff;color:#12324a">Sicherung</button>
+  <button id="globalRefreshBtn" onclick="refreshAllCloudData()" title="Alle zentralen Daten neu laden">↻ Aktualisieren</button>
   <button id="headerPasswordBtn" onclick="showVoluntaryPasswordChange()">Passwort ändern</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.18.13 Admin-Vertretung</span></header>
+<span class="badge">v2.18.14 Zentrale Aktualisierung</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -937,7 +938,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2>Meldungen</h2>
       <div class="muted">Öffentlich eingegangene Hinweise zur internen Prüfung</div>
     </div>
-    <button type="button" onclick="cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)))">Aktualisieren</button>
+
   </div>
 
   <div class="grid g2" style="margin-top:14px">
@@ -1156,7 +1157,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 
 <script id="duschl-qr-local-v2183">
 /*
- * Lokale QR-Code-Erzeugung für Duschl Service v2.18.13.
+ * Lokale QR-Code-Erzeugung für Duschl Service v2.18.14.
  * Basis: QRCode for JavaScript, Kazuhiko Arase, MIT License.
  * Vollständig inline eingebettet – keine CDN-/Netzwerkabhängigkeit.
  */
@@ -3700,6 +3701,32 @@ async function cloudLoadResidentReports(){
   return cloudResidentReports;
 }
 
+async function refreshAllCloudData(){
+  if(!cloudSession?.access_token){
+    alert('Bitte zuerst anmelden.');
+    return;
+  }
+  const btn=document.getElementById('globalRefreshBtn');
+  const oldText=btn?.textContent||'↻ Aktualisieren';
+  if(btn){btn.disabled=true;btn.textContent='↻ Lädt …';}
+  try{
+    // Profil zuerst aktualisieren, damit geänderte Rollen/Berechtigungen sofort wirksam werden.
+    await cloudLoadCurrentProfile();
+    // Zentrale Fachdaten: Objekte, Dokumentationen, Entscheidungen, Aufgaben, Fotos und Meldungen.
+    await cloudReloadObjects();
+    // Benutzer/Zuweisungen nur laden, wenn die aktuelle Berechtigung dies zulässt.
+    if(canManageUsersUI())await loadUserAdminData();
+    renderAll();
+    cloudSetStatus('Verbunden · Daten zentral aktualisiert','ok');
+  }catch(e){
+    console.error('Zentrale Aktualisierung fehlgeschlagen',e);
+    cloudSetStatus('Aktualisierung fehlgeschlagen: '+(e.message||e),'bad');
+    alert('Daten konnten nicht vollständig aktualisiert werden: '+(e.message||e));
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=oldText;}
+  }
+}
+
 async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
   cloudSetStatus('Supabase wird geladen …','wait');
@@ -4162,7 +4189,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.18.13';
+  db.version='2.18.14';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
