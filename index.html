@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objektplattform v2.18.11</title>
+<title>Duschl Service – Objektplattform v2.18.12</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -808,7 +808,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   <button id="headerPasswordBtn" onclick="showVoluntaryPasswordChange()">Passwort ändern</button>
   <button id="headerLogoutBtn" onclick="cloudLogout()">Abmelden</button>
 <span id="roleBadge" class="badge" style="margin-left:auto;display:none"></span>
-<span class="badge">v2.18.11 Leistungsdokumentation</span></header>
+<span class="badge">v2.18.12 Meldungseingang</span></header>
 <nav>
   <button id="navDashboard" onclick="showSection('dashboard')" class="primary">Dashboard</button>
   <button id="navObjects" onclick="showSection('objects')">Objekte</button>
@@ -950,7 +950,8 @@ body.public-report-mode>#photoViewer{display:none!important}
     <div>
       <label>Status</label>
       <select id="residentReportStatusFilter" onchange="renderResidentReports()">
-        <option value="">Alle Status</option>
+        <option value="active" selected>Offen / zu bearbeiten</option>
+        <option value="">Alle Meldungen</option>
         <option value="received">Eingegangen</option>
         <option value="internal_action">Dokumentiert / intern übernommen</option>
         <option value="rejected">Verworfen</option>
@@ -1155,7 +1156,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 
 <script id="duschl-qr-local-v2183">
 /*
- * Lokale QR-Code-Erzeugung für Duschl Service v2.18.11.
+ * Lokale QR-Code-Erzeugung für Duschl Service v2.18.12.
  * Basis: QRCode for JavaScript, Kazuhiko Arase, MIT License.
  * Vollständig inline eingebettet – keine CDN-/Netzwerkabhängigkeit.
  */
@@ -4158,7 +4159,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.18.11';
+  db.version='2.18.12';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -5200,11 +5201,22 @@ function renderResidentReports(){
   const statusFilter=document.getElementById('residentReportStatusFilter')?.value||'';
   const objectId=objectFilter?.value||'';
 
+  // Meldungen ist der operative Eingangskorb. Bereits in eine offizielle
+  // Dokumentation übernommene oder abgeschlossene Meldungen bleiben historisch
+  // erhalten, werden aber in der Standardansicht nicht mehr angezeigt.
+  const inactiveStatuses=['internal_action','completed','closed','rejected'];
   const rows=(cloudResidentReports||[])
-    .filter(r=>(!statusFilter||r.status===statusFilter)&&(!objectId||r.object_id===objectId));
+    .filter(r=>{
+      const status=r.status||'received';
+      const statusMatch=statusFilter==='active'
+        ? !inactiveStatuses.includes(status)
+        : (!statusFilter||status===statusFilter);
+      return statusMatch&&(!objectId||r.object_id===objectId);
+    });
 
+  // Der Navigationszähler zeigt ausschließlich noch zu bearbeitende Meldungen.
   const openCount=(cloudResidentReports||[])
-    .filter(r=>!['completed','closed','rejected'].includes(r.status||'received')).length;
+    .filter(r=>!inactiveStatuses.includes(r.status||'received')).length;
 
   const navCount=document.getElementById('residentReportNavCount');
   if(navCount)navCount.textContent=openCount;
