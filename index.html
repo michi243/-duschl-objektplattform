@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.39</title>
+<title>Duschl Service – Objektplattform v2.18.40</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -359,7 +359,7 @@ a{color:var(--accent-2)!important}
 }
 
 
-/* ===== v2.18.39 Responsive Topbar + Hamburger-Menü ===== */
+/* ===== v2.18.40 Responsive Topbar + Hamburger-Menü ===== */
 /* Rollenbasierte Menüpunkte werden vollständig ausgeblendet, nicht deaktiviert dargestellt. */
 .app-topbar{height:64px;padding:10px 16px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;z-index:60!important}
 .menu-toggle{width:44px;height:44px;padding:10px!important;display:flex;flex-direction:column;justify-content:center;gap:5px;background:transparent!important;border-color:transparent!important;box-shadow:none!important;flex:0 0 auto}
@@ -386,7 +386,7 @@ main{padding-top:18px}
 @media print{.app-menu,.app-menu-backdrop,.app-topbar{display:none!important}}
 
 
-/* ===== v2.18.39 Interaktive Kennzahlen ===== */
+/* ===== v2.18.40 Interaktive Kennzahlen ===== */
 .kpi-action,.gf-kpi.is-action{position:relative;cursor:pointer;transition:transform .12s ease,border-color .12s ease,background .12s ease;user-select:none}
 .kpi-action:hover,.gf-kpi.is-action:hover{border-color:var(--accent);transform:translateY(-1px)}
 .kpi-action:active,.gf-kpi.is-action:active{transform:translateY(0)}
@@ -396,7 +396,7 @@ main{padding-top:18px}
 .gf-kpi.is-action{padding-right:38px}.gf-kpi .kpi-chevron{right:12px}
 
 
-/* ===== v2.18.39 Persönliches Dashboard / Mitteilungen ===== */
+/* ===== v2.18.40 Persönliches Dashboard / Mitteilungen ===== */
 .dashboard-messages-wrap{margin-top:16px;padding:16px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,rgba(47,143,255,.08),rgba(47,143,255,.025))}
 .dashboard-message-card{position:relative;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#0d1f2b;color:var(--text);box-shadow:0 8px 20px rgba(0,0,0,.16)}
 .dashboard-message-card.unread{background:linear-gradient(180deg,#102636,#0d1f2b);border-color:rgba(47,143,255,.72);box-shadow:inset 3px 0 0 var(--accent),0 8px 20px rgba(0,0,0,.18)}
@@ -777,7 +777,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 }
 </style>
 <style>
-/* ===== v2.18.39 Spracheingabe ===== */
+/* ===== v2.18.40 Spracheingabe ===== */
 .speech-field-host{
   position:relative;
 }
@@ -892,7 +892,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.39</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.40</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1221,6 +1221,22 @@ body.public-report-mode>#photoViewer{display:none!important}
 <input accept="application/json" id="importFile" type="file"/>
 <button onclick="importData()" style="margin-top:10px">Importieren</button>
 </div>
+</div>
+<div class="card" style="margin-top:14px" id="softResetCard">
+<h3>Daten gezielt zurücksetzen</h3>
+<p class="muted">Nur der Administrator / GF kann operative Daten dauerhaft löschen. Benutzerkonten, Rollen und Systemeinstellungen bleiben erhalten. Vor dem Reset sollte eine Sicherung erstellt werden.</p>
+<div class="grid g2" style="margin-top:12px">
+<label class="row" style="gap:10px;align-items:flex-start;margin:0"><input type="checkbox" class="soft-reset-option" id="softResetObjects" onchange="updateSoftResetUI()"><span><strong>Objekte</strong><br><span class="muted">Alle Objektstammdaten inklusive Zuordnungen und aller objektbezogenen Daten.</span></span></label>
+<label class="row" style="gap:10px;align-items:flex-start;margin:0"><input type="checkbox" class="soft-reset-option" id="softResetDocumentation" onchange="updateSoftResetUI()"><span><strong>Dokumentationen</strong><br><span class="muted">Feststellungen, Leistungen, Entscheidungen, Arbeitsvorrat, technische Alt-Begehungen und Dokumentationsfotos.</span></span></label>
+<label class="row" style="gap:10px;align-items:flex-start;margin:0"><input type="checkbox" class="soft-reset-option" id="softResetReports" onchange="updateSoftResetUI()"><span><strong>Meldungen</strong><br><span class="muted">Bewohnermeldungen inklusive Ereignissen und Meldungsfotos.</span></span></label>
+<label class="row" style="gap:10px;align-items:flex-start;margin:0"><input type="checkbox" class="soft-reset-option" id="softResetMessages" onchange="updateSoftResetUI()"><span><strong>Mitteilungen</strong><br><span class="muted">Persönliche Mitteilungen inklusive Antworten und Lesestatus.</span></span></label>
+<label class="row" style="gap:10px;align-items:flex-start;margin:0"><input type="checkbox" class="soft-reset-option" id="softResetTestData" onchange="updateSoftResetUI()"><span><strong>Test-/Demodaten</strong><br><span class="muted">Alle als TEST markierten Objekte inklusive ihrer zugehörigen Dokumentationen, Meldungen, Medien und Objektzuordnungen.</span></span></label>
+<label class="row" style="gap:10px;align-items:flex-start;margin:0"><input type="checkbox" id="softResetAll" onchange="toggleSoftResetAll(this.checked)"><span><strong>Alle operativen Daten</strong><br><span class="muted">Wählt Objekte, Dokumentationen, Meldungen und Mitteilungen gemeinsam aus.</span></span></label>
+</div>
+<div class="muted" id="softResetSummary" style="margin-top:12px">Noch keine Datenkategorie ausgewählt.</div>
+<label>Sicherheitsbestätigung</label>
+<input autocomplete="off" id="softResetConfirm" placeholder="RESET eingeben" type="text" oninput="updateSoftResetUI()"/>
+<button class="danger" disabled id="softResetBtn" onclick="executeSoftReset()" style="margin-top:10px" type="button">Ausgewählte Daten dauerhaft löschen</button>
 </div>
 <div class="card" style="margin-top:14px">
 <h3>Objektdaten bereinigen</h3>
@@ -3560,6 +3576,7 @@ function applyRoleUI(){
   show('navDecisions',hasAppRole && canUseDecisionsUI());
   show('navUsers',hasAppRole && canManageUsersUI());
   show('navSettings',hasAppRole && canUseSettingsUI());
+  const softResetCard=document.getElementById('softResetCard');if(softResetCard)softResetCard.style.display=isAdminRole()?'':'none';
   show('addObjectBtn',canManageObjectsUI());
   const backupBtn=document.getElementById('backupBtn')||document.querySelector('[data-backup-button="1"]');
   if(backupBtn)backupBtn.style.display=isAdminRole()?'':'none';
@@ -4475,6 +4492,35 @@ async function mediaDelete(id){
     tx.oncomplete=()=>resolve();
     tx.onerror=()=>reject(tx.error);
   });
+}
+async function mediaClearAll(){
+  const idb=await openMediaDb();
+  return new Promise((resolve,reject)=>{
+    const tx=idb.transaction('photos','readwrite');
+    tx.objectStore('photos').clear();
+    tx.oncomplete=()=>resolve();
+    tx.onerror=()=>reject(tx.error);
+  });
+}
+
+async function clearLocalMediaForSoftReset(selection){
+  const s=selection||{};
+  if(s.objects||s.documentation){
+    await mediaClearAll();
+    return;
+  }
+  if(!s.testData)return;
+  const testObjectIds=new Set((db.objects||[]).filter(o=>o.isTest===true).map(o=>o.id));
+  const refs=[];
+  for(const f of (db.findings||[])){
+    if(!testObjectIds.has(f.objectId))continue;
+    for(const key of ['beforePhotos','afterPhotos']){
+      for(const ref of (Array.isArray(f[key])?f[key]:[]))if(isMediaRef(ref))refs.push(mediaId(ref));
+    }
+    if(isMediaRef(f.beforePhoto))refs.push(mediaId(f.beforePhoto));
+    if(isMediaRef(f.afterPhoto))refs.push(mediaId(f.afterPhoto));
+  }
+  for(const id of [...new Set(refs)]){try{await mediaDelete(id)}catch(e){console.warn('Lokales Testfoto konnte nicht gelöscht werden',id,e);}}
 }
 function isMediaRef(v){return typeof v==='string'&&v.startsWith('media:')}
 function mediaId(v){return isMediaRef(v)?v.slice(6):v}
@@ -6477,6 +6523,107 @@ async function deleteResidentReportStoragePath(path){
     method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefixes:[path]})
   });
 }
+
+function getSoftResetSelection(){
+  return {
+    objects:!!document.getElementById('softResetObjects')?.checked,
+    documentation:!!document.getElementById('softResetDocumentation')?.checked,
+    reports:!!document.getElementById('softResetReports')?.checked,
+    messages:!!document.getElementById('softResetMessages')?.checked,
+    testData:!!document.getElementById('softResetTestData')?.checked
+  };
+}
+
+function toggleSoftResetAll(checked){
+  ['softResetObjects','softResetDocumentation','softResetReports','softResetMessages'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.checked=!!checked;
+  });
+  updateSoftResetUI();
+}
+
+function updateSoftResetUI(){
+  const s=getSoftResetSelection();
+  const selected=[];
+  if(s.objects)selected.push('Objekte');
+  if(s.documentation)selected.push('Dokumentationen');
+  if(s.reports)selected.push('Meldungen');
+  if(s.messages)selected.push('Mitteilungen');
+  if(s.testData)selected.push('Test-/Demodaten');
+  const summary=document.getElementById('softResetSummary');
+  if(summary)summary.textContent=selected.length?'Ausgewählt: '+selected.join(', ')+'. Löschung ist dauerhaft.':'Noch keine Datenkategorie ausgewählt.';
+  const all=document.getElementById('softResetAll');
+  if(all)all.checked=s.objects&&s.documentation&&s.reports&&s.messages;
+  const confirmText=(document.getElementById('softResetConfirm')?.value||'').trim();
+  const btn=document.getElementById('softResetBtn');
+  if(btn)btn.disabled=!(selected.length&&confirmText==='RESET'&&isAdminRole());
+}
+
+async function executeSoftReset(){
+  if(!isAdminRole())return alert('Nur der Administrator / GF darf Daten zurücksetzen. Admin-Vertretungen sind ausdrücklich ausgeschlossen.');
+  const s=getSoftResetSelection();
+  const selected=[];
+  if(s.objects)selected.push('Objekte');
+  if(s.documentation)selected.push('Dokumentationen');
+  if(s.reports)selected.push('Meldungen');
+  if(s.messages)selected.push('Mitteilungen');
+  if(s.testData)selected.push('Test-/Demodaten');
+  if(!selected.length)return alert('Bitte mindestens eine Datenkategorie auswählen.');
+  if((document.getElementById('softResetConfirm')?.value||'').trim()!=='RESET')return alert('Bitte zur Sicherheitsbestätigung exakt RESET eingeben.');
+  if(!confirm('Folgende Daten werden dauerhaft gelöscht:\n\n• '+selected.join('\n• ')+'\n\nBenutzer, Rollen und Systemeinstellungen bleiben erhalten.\n\nFortfahren?'))return;
+
+  const btn=document.getElementById('softResetBtn');
+  if(btn){btn.disabled=true;btn.textContent='Reset läuft …';}
+  try{
+    const result=await cloudRequest('rpc/admin_soft_reset',{
+      method:'POST',
+      body:JSON.stringify({
+        p_delete_objects:s.objects,
+        p_delete_documentation:s.documentation,
+        p_delete_reports:s.reports,
+        p_delete_messages:s.messages,
+        p_delete_test_data:s.testData,
+        p_confirmation:'RESET'
+      })
+    });
+    const payload=Array.isArray(result)?result[0]:result;
+    const normalPaths=Array.isArray(payload?.media_paths)?payload.media_paths:[];
+    const residentPaths=Array.isArray(payload?.resident_media_paths)?payload.resident_media_paths:[];
+    const storageErrors=[];
+    for(const path of normalPaths){
+      if(!path)continue;
+      try{await cloudMediaDelete('cloudmedia:'+path)}catch(e){storageErrors.push(path);console.warn('Dokumentationsfoto konnte nicht aus Storage gelöscht werden',path,e);}
+    }
+    for(const path of residentPaths){
+      if(!path)continue;
+      try{await deleteResidentReportStoragePath(path)}catch(e){storageErrors.push(path);console.warn('Meldungsfoto konnte nicht aus Storage gelöscht werden',path,e);}
+    }
+
+    try{await clearLocalMediaForSoftReset(s)}catch(e){console.warn('Lokaler Bildspeicher konnte nicht vollständig bereinigt werden',e);storageErrors.push('Lokaler IndexedDB-Bildspeicher');}
+    if(s.messages){userDashboardMessages=[];}
+    await cloudReloadObjects();
+    try{save()}catch(_e){}
+    try{await loadUserMessages()}catch(_e){}
+    renderAll();
+    renderCleanupObjectOptions();
+    document.querySelectorAll('.soft-reset-option').forEach(el=>el.checked=false);
+    const all=document.getElementById('softResetAll');if(all)all.checked=false;
+    const confirmEl=document.getElementById('softResetConfirm');if(confirmEl)confirmEl.value='';
+    updateSoftResetUI();
+
+    const counts=payload?.counts||{};
+    let msg='Soft Reset abgeschlossen.';
+    if(storageErrors.length)msg+='\n\nHinweis: '+storageErrors.length+' Datei(en) konnten nicht aus dem Storage gelöscht werden. Die Datenbankeinträge wurden entfernt; die Storage-Dateien sollten separat geprüft werden.';
+    else msg+='\n\nDatenbank und zugehörige Bilddateien wurden bereinigt.';
+    alert(msg);
+  }catch(e){
+    console.error(e);
+    alert('Soft Reset abgebrochen: '+(e.message||e));
+    try{await cloudReloadObjects()}catch(_e){}
+  }finally{
+    if(btn){btn.textContent='Ausgewählte Daten dauerhaft löschen';updateSoftResetUI();}
+  }
+}
+
 async function cleanupObjectData(){
   if(!requireAdminUI('Objektdaten bereinigen'))return;
   const objectId=document.getElementById('cleanupObjectSelect')?.value||'';
@@ -7053,7 +7200,7 @@ if(!bootPublicResidentReport()){
 <div class="photo-viewer-hint">Zum Vergrößern zwei Finger verwenden · × zum Schließen</div>
 </div>
 <script>
-/* ===== v2.18.39 Spracheingabe für alle Freitextfelder ===== */
+/* ===== v2.18.40 Spracheingabe für alle Freitextfelder ===== */
 (function(){
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SpeechRecognition) return;
