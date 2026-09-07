@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.46</title>
+<title>Duschl Service – Objektplattform v2.18.47</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -359,7 +359,7 @@ a{color:var(--accent-2)!important}
 }
 
 
-/* ===== v2.18.46 Responsive Topbar + Hamburger-Menü ===== */
+/* ===== v2.18.47 Responsive Topbar + Hamburger-Menü ===== */
 /* Rollenbasierte Menüpunkte werden vollständig ausgeblendet, nicht deaktiviert dargestellt. */
 .app-topbar{height:64px;padding:10px 16px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;z-index:60!important}
 .menu-toggle{width:44px;height:44px;padding:10px!important;display:flex;flex-direction:column;justify-content:center;gap:5px;background:transparent!important;border-color:transparent!important;box-shadow:none!important;flex:0 0 auto}
@@ -386,7 +386,7 @@ main{padding-top:18px}
 @media print{.app-menu,.app-menu-backdrop,.app-topbar{display:none!important}}
 
 
-/* ===== v2.18.46 Interaktive Kennzahlen ===== */
+/* ===== v2.18.47 Interaktive Kennzahlen ===== */
 .kpi-action,.gf-kpi.is-action{position:relative;cursor:pointer;transition:transform .12s ease,border-color .12s ease,background .12s ease;user-select:none}
 .kpi-action:hover,.gf-kpi.is-action:hover{border-color:var(--accent);transform:translateY(-1px)}
 .kpi-action:active,.gf-kpi.is-action:active{transform:translateY(0)}
@@ -396,7 +396,7 @@ main{padding-top:18px}
 .gf-kpi.is-action{padding-right:38px}.gf-kpi .kpi-chevron{right:12px}
 
 
-/* ===== v2.18.46 Persönliches Dashboard / Mitteilungen ===== */
+/* ===== v2.18.47 Persönliches Dashboard / Mitteilungen ===== */
 .dashboard-messages-wrap{margin-top:16px;padding:16px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,rgba(47,143,255,.08),rgba(47,143,255,.025))}
 .dashboard-message-card{position:relative;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#0d1f2b;color:var(--text);box-shadow:0 8px 20px rgba(0,0,0,.16)}
 .dashboard-message-card.unread{background:linear-gradient(180deg,#102636,#0d1f2b);border-color:rgba(47,143,255,.72);box-shadow:inset 3px 0 0 var(--accent),0 8px 20px rgba(0,0,0,.18)}
@@ -777,7 +777,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 }
 </style>
 <style>
-/* ===== v2.18.46 Spracheingabe ===== */
+/* ===== v2.18.47 Spracheingabe ===== */
 .speech-field-host{
   position:relative;
 }
@@ -892,7 +892,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.46</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.47</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -2841,6 +2841,24 @@ async function openUserMessageComposer(){
     return;
   }
 
+  if(isTestUserRole()){
+    modal(`<h2>Mitteilung an die Administration</h2>
+      <p class="muted">Deine Test-Mitteilung wird ausschließlich an Administrator / GF und Admin-Vertretungen gesendet. Eine Empfängerauswahl ist nicht erforderlich.</p>
+      <label>Titel<input id="userMessageTitle" maxlength="120" placeholder="z. B. Rückfrage zum Testobjekt"></label>
+      <label>Nachricht<textarea id="userMessageText" maxlength="2000" placeholder="Kurze, konkrete Information"></textarea></label>
+      <label>Testobjekt (optional)
+        <select id="userMessageObject">
+          <option value="">Kein Objektbezug</option>
+          ${(db.objects||[]).filter(o=>o.isTest===true).map(o=>`<option value="${esc(o.id)}">${esc(o.name||'Testobjekt')}</option>`).join('')}
+        </select>
+      </label>
+      <div class="row" style="margin-top:14px">
+        <button class="primary" type="button" onclick="sendUserMessage()">Mitteilung senden</button>
+        <button type="button" onclick="closeModal()">Abbrechen</button>
+      </div>`);
+    return;
+  }
+
   let recipients=[];
   try{
     recipients=await cloudRequest('rpc/get_user_message_recipients',{
@@ -2971,6 +2989,32 @@ async function sendUserMessage(){
       const count=Number(result)||0;
       alert(count>0
         ? 'Mitteilung wurde an die Administration gesendet.'
+        : 'Mitteilung konnte nicht gesendet werden: Es ist kein aktiver Administrator oder keine aktive Admin-Vertretung vorhanden.');
+    }catch(e){
+      alert('Mitteilung konnte nicht gespeichert werden: '+(e.message||e));
+    }
+    return;
+  }
+
+  if(isTestUserRole()){
+    if(objectId && !(db.objects||[]).some(o=>o.id===objectId&&o.isTest===true)){
+      return alert('Testbenutzer dürfen Mitteilungen nur mit Bezug zu freigegebenen Testobjekten senden.');
+    }
+    try{
+      const result=await cloudRequest('rpc/send_test_admin_message',{
+        method:'POST',
+        body:JSON.stringify({
+          p_title:title,
+          p_message:message,
+          p_object_id:objectId||null
+        })
+      });
+      closeModal();
+      await loadUserMessages();
+      renderDashboardMessages();
+      const count=Number(result)||0;
+      alert(count>0
+        ? 'Test-Mitteilung wurde an die Administration gesendet.'
         : 'Mitteilung konnte nicht gesendet werden: Es ist kein aktiver Administrator oder keine aktive Admin-Vertretung vorhanden.');
     }catch(e){
       alert('Mitteilung konnte nicht gespeichert werden: '+(e.message||e));
@@ -3609,7 +3653,7 @@ function applyRoleUI(){
   show('navObjects',hasAppRole);
   show('navInspections',false);
   show('navFindings',hasAppRole && canCreateDocumentationUI());
-  show('navResidentReports',hasAppRole && !isCustomerRole() && (!isTestUserRole() || isAdminDelegate()));
+  show('navResidentReports',hasAppRole && !isCustomerRole());
   show('navWorkqueue',hasAppRole && canUseWorkQueueUI());
   show('navReports',hasAppRole);
   show('navDecisions',hasAppRole && canUseDecisionsUI());
@@ -4218,7 +4262,8 @@ async function cloudDeleteFinding(id){
 
 async function cloudLoadResidentReports(){
   // Datenschutz: Auftraggeber erhalten keine Bewohnermeldungen oder Melderdaten.
-  if(isCustomerRole()||(isTestUserRole()&&!isAdminDelegate())){
+  // Testbenutzer dürfen ausschließlich Meldungen ihrer durch RLS freigegebenen Testobjekte sehen.
+  if(isCustomerRole()){
     cloudResidentReports=[];
     cloudResidentReportMedia=[];
     return cloudResidentReports;
@@ -4230,9 +4275,12 @@ async function cloudLoadResidentReports(){
   const rows=await cloudRequest(
     'resident_reports?select=id,report_no,object_id,resident_name,resident_email,category,description,status,internal_assessment,requires_management,converted_to_finding_id,received_at,reviewed_at,completed_at,closed_at,consent_given,location_detail,created_at,updated_at&order=received_at.desc.nullslast,created_at.desc'
   );
-  cloudResidentReports=Array.isArray(rows)?rows:[];
+  const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
+  cloudResidentReports=(Array.isArray(rows)?rows:[]).filter(r=>accessibleObjectIds.has(r.object_id));
   try{
     await cloudLoadResidentReportMedia();
+    const accessibleReportIds=new Set(cloudResidentReports.map(r=>r.id));
+    cloudResidentReportMedia=(cloudResidentReportMedia||[]).filter(m=>accessibleReportIds.has(m.resident_report_id));
   }catch(e){
     console.error('Meldungsfotos konnten nicht geladen werden',e);
     cloudResidentReportMedia=[];
@@ -4345,7 +4393,7 @@ async function cloudReloadObjects(){
     const inspectionRows=await cloudRequest('inspections?select=id,object_id,started_at,ended_at,notes,created_by,created_at,updated_at&order=started_at.desc');
     db.inspections=(inspectionRows||[]).map(cloudInspectionToLocal);
     await cloudReloadFindings();
-    if(!isCustomerRole()&&(!isTestUserRole()||isAdminDelegate())){try{await cloudLoadResidentReports();}catch(e){console.warn('Meldungen konnten nicht geladen werden',e);}}else{cloudResidentReports=[];cloudResidentReportMedia=[];}
+    if(!isCustomerRole()){try{await cloudLoadResidentReports();}catch(e){console.warn('Meldungen konnten nicht geladen werden',e);}}else{cloudResidentReports=[];cloudResidentReportMedia=[];}
     await loadUserMessages();
     renderAll();
     cloudSetStatus(`Verbunden · ${db.objects.length} Objekt(e) · ${db.findings.filter(f=>f.cloud).length} Dokumentation(en) · ${(db.tasks||[]).length} Aufgabe(n) zentral`,'ok');
@@ -5760,7 +5808,7 @@ async function saveUserAdminPermissions(){
 
 function renderAll(){
   renderDashboard();renderObjects();renderInspections();renderSelects();renderFindings();renderReport();
-if(canUseDecisionsUI())renderDecisions();if(canUseWorkQueueUI())renderWorkQueue();if(!isCustomerRole()&&(!isTestUserRole()||isAdminDelegate()))renderResidentReports();
+if(canUseDecisionsUI())renderDecisions();if(canUseWorkQueueUI())renderWorkQueue();if(!isCustomerRole())renderResidentReports();
   const ro=document.getElementById('reportObject');
   if(ro){
     const rv=ro.value;
@@ -5800,7 +5848,7 @@ function renderObjects(){
     return `<div class="card">
       <div class="row space"><div><h3 style="margin:0">${esc(o.name)} ${o.isTest?'<span class="badge" style="margin-left:6px">TEST</span>':''}</h3><div class="muted">${esc(o.address||'')}</div></div><span class="badge">${open} offen</span></div>
       <p>${esc(o.notes||'')}</p>
-      <div class="row"><button onclick="openFindingModal('${o.id}','')">Dokumentation erfassen</button>${!isCustomerRole()&&(!isTestUserRole()||isAdminDelegate())?`<button onclick="openObjectQrCode('${o.id}')">QR-Code erstellen</button>`:''}${canManageObjectsUI()?`<button onclick="openObjectModal('${o.id}')">Bearbeiten</button>`:''}<button onclick="showObjectReport('${o.id}')">Bericht</button></div>
+      <div class="row"><button onclick="openFindingModal('${o.id}','')">Dokumentation erfassen</button>${!isCustomerRole()?`<button onclick="openObjectQrCode('${o.id}')">QR-Code erstellen</button>`:''}${canManageObjectsUI()?`<button onclick="openObjectModal('${o.id}')">Bearbeiten</button>`:''}<button onclick="showObjectReport('${o.id}')">Bericht</button></div>
     </div>`;
   }).join(''):`<div class="empty">Noch kein Objekt angelegt.</div>`;
 }
@@ -6046,6 +6094,14 @@ function residentReportStatusLabel(status){
   })[status]||status||'Eingegangen';
 }
 
+function canUseResidentReportUI(r){
+  if(!r||isCustomerRole())return false;
+  const o=(db.objects||[]).find(x=>x.id===r.object_id);
+  if(!o)return false;
+  if(isTestUserRole())return o.isTest===true;
+  return true;
+}
+
 function renderResidentReports(){
   if(isCustomerRole()){
     const list=document.getElementById('residentReportList');
@@ -6071,6 +6127,7 @@ function renderResidentReports(){
   // erhalten, werden aber in der Standardansicht nicht mehr angezeigt.
   const inactiveStatuses=['internal_action','completed','closed','rejected'];
   const rows=(cloudResidentReports||[])
+    .filter(r=>canUseResidentReportUI(r))
     .filter(r=>{
       const status=r.status||'received';
       const statusMatch=statusFilter==='active'
@@ -6135,6 +6192,7 @@ function getResidentReportById(id){
 function openResidentReportDetails(id){
   if(isCustomerRole())return alert('Kein Zugriff auf Bewohnermeldungen.');
   const r=getResidentReportById(id); if(!r)return;
+  if(!canUseResidentReportUI(r))return alert('Kein Zugriff auf diese Bewohnermeldung.');
   const obj=(db.objects||[]).find(o=>o.id===r.object_id);
   modal(`<div class="row space">
       <div><h2>Meldung prüfen</h2><div class="muted">${esc(obj?.name||'Objekt')} · ${esc(r.report_no||'')}</div></div>
@@ -6161,6 +6219,7 @@ function openResidentReportDetails(id){
 function openResidentReportCloseModal(id,targetStatus){
   if(isCustomerRole())return alert('Kein Zugriff auf Bewohnermeldungen.');
   const r=getResidentReportById(id); if(!r)return;
+  if(!canUseResidentReportUI(r))return alert('Kein Zugriff auf diese Bewohnermeldung.');
   const title='Meldung schließen';
   const examples='z. B. kein Handlungsbedarf, bereits erledigt, Duplikat oder nicht relevant';
   modal(`<div class="row space"><h2>${title}</h2><button onclick="closeModal()">✕</button></div>
@@ -6195,6 +6254,7 @@ async function logResidentReportEvent(reportId,eventType,status,note){
 async function saveResidentReportClosure(id,targetStatus){
   if(isCustomerRole())return alert('Kein Zugriff auf Bewohnermeldungen.');
   const r=getResidentReportById(id); if(!r)return;
+  if(!canUseResidentReportUI(r))return alert('Kein Zugriff auf diese Bewohnermeldung.');
   const reason=(document.getElementById('rrCloseReason')?.value||'').trim();
   if(!reason)return alert('Bitte eine Begründung eingeben.');
 
@@ -6235,6 +6295,7 @@ async function saveResidentReportClosure(id,targetStatus){
 async function convertResidentReportToFinding(id){
   if(isCustomerRole())return alert('Kein Zugriff auf Bewohnermeldungen.');
   const r=getResidentReportById(id); if(!r)return;
+  if(!canUseResidentReportUI(r))return alert('Kein Zugriff auf diese Bewohnermeldung.');
   if(r.converted_to_finding_id){
     return openResidentConvertedFinding(r.converted_to_finding_id);
   }
@@ -6477,6 +6538,10 @@ async function openObjectQrCode(objectId){
 
   const o=(db.objects||[]).find(x=>x.id===objectId);
   if(!o)return alert('Objekt wurde nicht gefunden.');
+  if(isTestUserRole()&&o.isTest!==true){
+    alert('Testbenutzer dürfen QR-Codes ausschließlich für Testobjekte erzeugen.');
+    return;
+  }
 
   try{
     await ensureQrCodeLibrary();
@@ -7317,7 +7382,7 @@ if(!bootPublicResidentReport()){
 <div class="photo-viewer-hint">Zum Vergrößern zwei Finger verwenden · × zum Schließen</div>
 </div>
 <script>
-/* ===== v2.18.46 Spracheingabe für alle Freitextfelder ===== */
+/* ===== v2.18.47 Spracheingabe für alle Freitextfelder ===== */
 (function(){
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SpeechRecognition) return;
