@@ -1,10 +1,11 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="de">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objektplattform v2.18.34</title>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
+<meta content="#12324a" name="theme-color"/>
+<title>Duschl Service – Objektplattform v2.18.35</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -358,7 +359,7 @@ a{color:var(--accent-2)!important}
 }
 
 
-/* ===== v2.18.34 Responsive Topbar + Hamburger-Menü ===== */
+/* ===== v2.18.35 Responsive Topbar + Hamburger-Menü ===== */
 /* Rollenbasierte Menüpunkte werden vollständig ausgeblendet, nicht deaktiviert dargestellt. */
 .app-topbar{height:64px;padding:10px 16px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;z-index:60!important}
 .menu-toggle{width:44px;height:44px;padding:10px!important;display:flex;flex-direction:column;justify-content:center;gap:5px;background:transparent!important;border-color:transparent!important;box-shadow:none!important;flex:0 0 auto}
@@ -385,7 +386,7 @@ main{padding-top:18px}
 @media print{.app-menu,.app-menu-backdrop,.app-topbar{display:none!important}}
 
 
-/* ===== v2.18.34 Interaktive Kennzahlen ===== */
+/* ===== v2.18.35 Interaktive Kennzahlen ===== */
 .kpi-action,.gf-kpi.is-action{position:relative;cursor:pointer;transition:transform .12s ease,border-color .12s ease,background .12s ease;user-select:none}
 .kpi-action:hover,.gf-kpi.is-action:hover{border-color:var(--accent);transform:translateY(-1px)}
 .kpi-action:active,.gf-kpi.is-action:active{transform:translateY(0)}
@@ -395,7 +396,7 @@ main{padding-top:18px}
 .gf-kpi.is-action{padding-right:38px}.gf-kpi .kpi-chevron{right:12px}
 
 
-/* ===== v2.18.34 Persönliches Dashboard / Mitteilungen ===== */
+/* ===== v2.18.35 Persönliches Dashboard / Mitteilungen ===== */
 .dashboard-messages-wrap{margin-top:16px;padding:16px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,rgba(47,143,255,.08),rgba(47,143,255,.025))}
 .dashboard-message-card{position:relative;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#0d1f2b;color:var(--text);box-shadow:0 8px 20px rgba(0,0,0,.16)}
 .dashboard-message-card.unread{background:linear-gradient(180deg,#102636,#0d1f2b);border-color:rgba(47,143,255,.72);box-shadow:inset 3px 0 0 var(--accent),0 8px 20px rgba(0,0,0,.18)}
@@ -418,7 +419,6 @@ main{padding-top:18px}
 .user-message-recipient-role{font-size:12px;color:var(--muted)}
 .user-message-recipient-tools{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px}
 </style>
-
 <style>
 .object-file{border:1px solid #dfe5e8;border-radius:14px;background:#fff;margin-bottom:14px;overflow:hidden}
 .object-file-head{padding:14px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
@@ -538,8 +538,6 @@ main{padding-top:18px}
   border-color:#3c9cff!important;
 }
 </style>
-
-
 <style>
 /* ===== v2.18.10 Datenschutz Bewohnermeldung ===== */
 #authGate{
@@ -557,8 +555,6 @@ main{padding-top:18px}
 .cloud-dot.ok{background:#66b52f}.cloud-dot.bad{background:#ff4b55}.cloud-dot.wait{background:#f0a400}
 .cloud-banner{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#0b1823;margin-bottom:12px}
 </style>
-
-
 <style id="darkmode-final-fix-v252">
 /* ===== v2.5.2 – final dark-mode override ===== */
 :root{color-scheme:dark}
@@ -644,8 +640,6 @@ input[type="number"]{
   .customer-report,.customer-report *{color:#111!important}
 }
 </style>
-
-
 <style id="photo-viewer-v253">
 img[data-photo-viewer="1"]{
   cursor:zoom-in!important;
@@ -719,8 +713,6 @@ body.photo-viewer-open{overflow:hidden}
   .photo-viewer{display:none!important}
 }
 </style>
-
-
 <style id="gf-workqueue-integrated-v262">
 .gf-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0 14px}
 .gf-kpi{background:linear-gradient(180deg,var(--panel) 0%,var(--bg-soft) 100%);border:1px solid var(--line);border-radius:14px;padding:14px}
@@ -733,15 +725,11 @@ body.photo-viewer-open{overflow:hidden}
 .gf-meta{display:grid;gap:5px;margin:10px 0;font-size:13px}.empty-state{border:1px dashed var(--line);border-radius:14px;padding:18px;color:var(--muted);text-align:center}
 @media(max-width:700px){.gf-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.gf-filterbox{grid-template-columns:1fr}}
 </style>
-
-
 <style id="decision-status-v266">
 .gf-statusstack{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
 .gf-status-decision{border-color:#4d6070;background:#172633;color:#dce7ee}
 @media(max-width:520px){.gf-workhead{flex-direction:column}.gf-statusstack{align-items:flex-start;flex-direction:row;flex-wrap:wrap}}
 </style>
-
-
 <style id="public-resident-report-v2150">
 #publicReportPage{display:none;min-height:100vh;padding:20px 14px 40px;background:
 radial-gradient(circle at 20% 0%,rgba(47,143,255,.10),transparent 28rem),
@@ -783,484 +771,470 @@ body.public-report-mode>#photoViewer{display:none!important}
   .public-report-photo-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 </style>
-
-</head>
+<style>
+/* ===== v2.18.35 Spracheingabe ===== */
+.speech-field-host{
+  position:relative;
+}
+.speech-field-host > input[type="text"],
+.speech-field-host > textarea{
+  padding-right:46px !important;
+}
+.speech-mic-btn{
+  position:absolute;
+  right:6px;
+  top:50%;
+  transform:translateY(-50%);
+  width:34px;
+  height:34px;
+  min-width:34px;
+  padding:0;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:2;
+  font-size:16px;
+  line-height:1;
+}
+.speech-field-host.speech-textarea-host .speech-mic-btn{
+  top:8px;
+  transform:none;
+}
+.speech-mic-btn.listening{
+  outline:2px solid currentColor;
+}
+</style></head>
 <body>
-
-<div id="publicReportPage" aria-live="polite">
-  <div class="public-report-shell">
-    <div class="public-report-brand">
-      <h1>Duschl Service</h1>
-      <div class="muted">Meldung zum Objekt</div>
-    </div>
-    <div class="public-report-card">
-      <div id="publicReportFormWrap">
-        <h2>Anliegen melden</h2>
-        <div class="muted">Bitte beschreiben Sie kurz, was Ihnen am Objekt aufgefallen ist.</div>
-
-        <label for="prName">Name *</label>
-        <input id="prName" type="text" autocomplete="name" maxlength="120" placeholder="Vor- und Nachname">
-
-        <label for="prEmail">E-Mail für Rückmeldung</label>
-        <input id="prEmail" type="email" autocomplete="email" maxlength="180" placeholder="name@beispiel.de">
-
-        <label for="prLocation">Bereich / Ort</label>
-        <input id="prLocation" type="text" maxlength="180" placeholder="z. B. Treppenhaus 2. OG">
-
-        <label for="prCategory">Kategorie</label>
-        <select id="prCategory">
-          <option value="">Bitte auswählen</option>
-          <option>Schaden / Defekt</option>
-          <option>Sauberkeit</option>
-          <option>Außenanlage</option>
-          <option>Beleuchtung</option>
-          <option>Tür / Tor / Zugang</option>
-          <option>Wasser / Feuchtigkeit</option>
-          <option>Winterdienst</option>
-          <option>Sonstiges</option>
-        </select>
-
-        <label for="prDescription">Beschreibung *</label>
-        <textarea id="prDescription" maxlength="2000" placeholder="Was ist aufgefallen? Wo genau befindet sich das Problem?"></textarea>
-
-        <div class="public-report-photo-box">
-          <label for="prPhotos" style="margin-top:0">Fotos</label>
-          <input id="prPhotos" type="file" accept="image/*" multiple onchange="handlePublicReportPhotos(this)">
-          <div class="public-report-photo-help">Optional · maximal 3 Bilder · maximal 10 MB je Bild. Kamera oder Fotomediathek möglich.</div>
-          <div id="prPhotoGrid" class="public-report-photo-grid"></div>
-        </div>
-
-        <div class="public-report-consent">
-          <input id="prConsent" type="checkbox">
-          <label for="prConsent">Ich habe die <a href="https://www.duschl-service.de/datenschutzerklarung" target="_blank" rel="noopener noreferrer">Datenschutzhinweise zur Bewohnermeldung</a> zur Kenntnis genommen. *</label>
-        </div>
-
-        <div class="public-report-note">
+<div aria-live="polite" id="publicReportPage">
+<div class="public-report-shell">
+<div class="public-report-brand">
+<h1>Duschl Service</h1>
+<div class="muted">Meldung zum Objekt</div>
+</div>
+<div class="public-report-card">
+<div id="publicReportFormWrap">
+<h2>Anliegen melden</h2>
+<div class="muted">Bitte beschreiben Sie kurz, was Ihnen am Objekt aufgefallen ist.</div>
+<label for="prName">Name *</label>
+<input autocomplete="name" id="prName" maxlength="120" placeholder="Vor- und Nachname" type="text"/>
+<label for="prEmail">E-Mail für Rückmeldung</label>
+<input autocomplete="email" id="prEmail" maxlength="180" placeholder="name@beispiel.de" type="email"/>
+<label for="prLocation">Bereich / Ort</label>
+<input id="prLocation" maxlength="180" placeholder="z. B. Treppenhaus 2. OG" type="text"/>
+<label for="prCategory">Kategorie</label>
+<select id="prCategory">
+<option value="">Bitte auswählen</option>
+<option>Schaden / Defekt</option>
+<option>Sauberkeit</option>
+<option>Außenanlage</option>
+<option>Beleuchtung</option>
+<option>Tür / Tor / Zugang</option>
+<option>Wasser / Feuchtigkeit</option>
+<option>Winterdienst</option>
+<option>Sonstiges</option>
+</select>
+<label for="prDescription">Beschreibung *</label>
+<textarea id="prDescription" maxlength="2000" placeholder="Was ist aufgefallen? Wo genau befindet sich das Problem?"></textarea>
+<div class="public-report-photo-box">
+<label for="prPhotos" style="margin-top:0">Fotos</label>
+<input accept="image/*" id="prPhotos" multiple="" onchange="handlePublicReportPhotos(this)" type="file"/>
+<div class="public-report-photo-help">Optional · maximal 3 Bilder · maximal 10 MB je Bild. Kamera oder Fotomediathek möglich.</div>
+<div class="public-report-photo-grid" id="prPhotoGrid"></div>
+</div>
+<div class="public-report-consent">
+<input id="prConsent" type="checkbox"/>
+<label for="prConsent">Ich habe die <a href="https://www.duschl-service.de/datenschutzerklarung" rel="noopener noreferrer" target="_blank">Datenschutzhinweise zur Bewohnermeldung</a> zur Kenntnis genommen. *</label>
+</div>
+<div class="public-report-note">
           Ihre Meldung geht zunächst ausschließlich an Duschl Service und wird dort geprüft.
           Name und E-Mail-Adresse werden dem Auftraggeber nicht angezeigt. Sie erhalten dadurch keinen Zugang zur Objektplattform.
         </div>
-
-        <button id="prSubmit" class="primary public-report-submit" type="button" onclick="submitPublicResidentReport()">Meldung absenden</button>
-        <div id="prMessage" class="public-report-message"></div>
-      </div>
-    </div>
-  </div>
+<button class="primary public-report-submit" id="prSubmit" onclick="submitPublicResidentReport()" type="button">Meldung absenden</button>
+<div class="public-report-message" id="prMessage"></div>
 </div>
-
-
+</div>
+</div>
+</div>
 <div id="authGate">
-  <div class="auth-card">
-    <h2 style="margin-top:0">Duschl Service</h2>
-    <div class="muted" style="margin-bottom:14px">Zentrale Objektplattform · Supabase Test</div>
-    <label>E-Mail</label>
-    <input id="authEmail" type="email" autocomplete="username" value="Duschl-service@gmx.de">
-    <label>Passwort</label>
-    <input id="authPassword" type="password" autocomplete="current-password" placeholder="Supabase-Benutzerpasswort">
-    <div id="authMessage" class="muted" style="margin:10px 0"></div>
-    <button class="primary" style="width:100%" onclick="cloudLogin()">Anmelden</button>
-    <div class="muted" style="margin-top:10px;text-align:center">Passwort vergessen? Bitte Administrator kontaktieren.</div>
-  </div>
+<div class="auth-card">
+<h2 style="margin-top:0">Duschl Service</h2>
+<div class="muted" style="margin-bottom:14px">Zentrale Objektplattform · Supabase Test</div>
+<label>E-Mail</label>
+<input autocomplete="username" id="authEmail" type="email" value="Duschl-service@gmx.de"/>
+<label>Passwort</label>
+<input autocomplete="current-password" id="authPassword" placeholder="Supabase-Benutzerpasswort" type="password"/>
+<div class="muted" id="authMessage" style="margin:10px 0"></div>
+<button class="primary" onclick="cloudLogin()" style="width:100%">Anmelden</button>
+<div class="muted" style="margin-top:10px;text-align:center">Passwort vergessen? Bitte Administrator kontaktieren.</div>
 </div>
-
+</div>
 <header class="app-topbar">
-  <button id="appMenuBtn" class="menu-toggle" type="button" aria-label="Menü öffnen" aria-controls="appMenu" aria-expanded="false" onclick="toggleAppMenu()">
-    <span></span><span></span><span></span>
-  </button>
-  <div class="app-brand">
-    <div class="app-brand-mark" aria-hidden="true">⌂</div>
-    <div><h1>Duschl Service</h1><small>Objektplattform</small></div>
-  </div>
-  <div class="topbar-meta">
-    <div id="roleBadge" class="topbar-user" style="display:none" aria-label="Angemeldeter Benutzer"></div>
-  </div>
-</header>
-<div id="appMenuBackdrop" class="app-menu-backdrop" onclick="closeAppMenu()"></div>
-<aside id="appMenu" class="app-menu" aria-hidden="true">
-  <div class="app-menu-head">
-    <div>
-      <strong>Menü</strong>
-      <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-      <div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.34</div>
-    </div>
-    <button class="menu-close" type="button" aria-label="Menü schließen" onclick="closeAppMenu()">×</button>
-  </div>
-  <div id="menuUserIdentity" class="menu-user-card" style="display:none"></div>
-  <nav>
-    <button id="navDashboard" onclick="showSection('dashboard')" class="primary"><span class="nav-icon">⌂</span><span>Dashboard</span></button>
-    <button id="navObjects" onclick="showSection('objects')"><span class="nav-icon">▦</span><span>Objekte</span></button>
-    <button id="navFindings" onclick="showSection('findings')"><span class="nav-icon">▤</span><span>Dokumentation</span></button>
-    <button id="navResidentReports" onclick="showSection('residentReports')"><span class="nav-icon">◯</span><span>Meldungen</span><span id="residentReportNavCount" class="badge nav-count">0</span></button>
-    <button id="navDecisions" onclick="showSection('decisions')"><span class="nav-icon">✓</span><span>Entscheidungen</span><span id="decisionNavCount" class="badge nav-count">0</span></button>
-    <button id="navWorkqueue" onclick="showSection('workqueue')"><span class="nav-icon">⌁</span><span>Arbeitsvorrat</span><span id="workqueueNavCount" class="badge nav-count">0</span></button>
-    <button id="navReports" onclick="showSection('reports')"><span class="nav-icon">▥</span><span>Berichte</span></button>
-    <button id="navUsers" onclick="showSection('users')"><span class="nav-icon">♙</span><span>Benutzer & Berechtigungen</span></button>
-    <button id="navSettings" onclick="showSection('settings')"><span class="nav-icon">◫</span><span>Daten</span></button>
-  </nav>
-  <div class="app-menu-actions">
-    <button id="globalRefreshBtn" onclick="refreshAllCloudData();closeAppMenu()">↻ <span>Aktualisieren</span></button>
-    <button id="headerPasswordBtn" onclick="closeAppMenu();showVoluntaryPasswordChange()">⌘ <span>Passwort ändern</span></button>
-    <button id="backupBtn" data-backup-button="1" onclick="exportData()">⇩ <span>Sicherung</span></button>
-    <button id="headerLogoutBtn" onclick="closeAppMenu();cloudLogout()">↪ <span>Abmelden</span></button>
-  </div>
-</aside>
-
-<main>
-<section id="dashboard" class="section active">
-  <div class="row space" style="align-items:flex-start">
-    <div><h2>Übersicht</h2><div id="dashboardRoleContext" class="muted">Dein aktueller Dokumentationsstand</div></div>
-    <button id="dashboardMessageComposeBtn" type="button" onclick="openUserMessageComposer()" style="display:none">Mitteilung schreiben</button>
-  </div>
-
-  <div id="dashboardMessagesWrap" class="dashboard-messages-wrap" style="display:none">
-    <div class="row space" style="align-items:center;margin-bottom:10px">
-      <h3 style="margin:0">Persönliche Mitteilungen</h3>
-      <span id="dashboardUnreadCount" class="badge" style="display:none">0 neu</span>
-    </div>
-    <div id="dashboardMessages" class="grid"></div>
-  </div>
-
-  <div class="grid g3" style="margin-top:14px">
-    <div class="card"><div class="muted">Objekte</div><div class="kpi" id="kpiObjects">0</div></div>
-    <div class="card"><div class="muted">Offene Feststellungen</div><div class="kpi" id="kpiOpen">0</div></div>
-    <div class="card kpi-action" id="kpiCriticalCard" role="button" tabindex="0" aria-label="Sofort oder dringend offene Feststellungen anzeigen" onclick="openCriticalFindings()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openCriticalFindings();}"><span class="kpi-chevron">›</span><div class="muted">Sofort / Dringend offen</div><div class="kpi" id="kpiCritical">0</div></div>
-  </div>
-  <h3>Offene Punkte</h3>
-  <div id="dashboardFindings" class="grid"></div>
-</section>
-
-<section id="objects" class="section">
-  <div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand</div></div><button id="addObjectBtn" class="primary" onclick="openObjectModal()">+ Objekt</button></div>
-  <div id="objectList" class="grid g2" style="margin-top:14px"></div>
-</section>
-
-<section id="findings" class="section">
-<div id="customerObjectContext" class="card" style="display:none;margin-bottom:14px">
-  <div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em">Aktuelles Objekt</div>
-  <div id="customerObjectContextName" style="font-size:20px;font-weight:800;margin-top:4px">—</div>
-  <div id="customerObjectContextAddress" class="muted" style="margin-top:3px"></div>
-  <div id="customerObjectContextSelectWrap" style="margin-top:12px">
-    <label for="customerObjectSelect">Objekt auswählen</label>
-    <select id="customerObjectSelect" onchange="setCustomerObjectContext(this.value)"></select>
-  </div>
-  
+<button aria-controls="appMenu" aria-expanded="false" aria-label="Menü öffnen" class="menu-toggle" id="appMenuBtn" onclick="toggleAppMenu()" type="button">
+<span></span><span></span><span></span>
+</button>
+<div class="app-brand">
+<div aria-hidden="true" class="app-brand-mark">⌂</div>
+<div><h1>Duschl Service</h1><small>Objektplattform</small></div>
 </div>
-
-  <div class="row space"><div><h2>Dokumentation</h2><div class="muted" style="margin-top:-4px;margin-bottom:12px">Übersicht und Filter aller Dokumentationen. Neue Dokumentationen werden über „Objekte“ angelegt.</div><div class="muted">Feststellungen und Leistungsnachweise</div></div></div>
-  <div class="grid g3" style="margin:14px 0">
-    <div><label>Objekt</label><select id="filterObject" onchange="renderFindings()"><option value="">Alle</option></select></div>
-    <div><label>Status</label><select id="filterStatus" onchange="renderFindings()"><option value="active">Offen + In Bearbeitung</option><option value="">Alle</option><option>Offen</option><option>In Bearbeitung</option><option>Erledigt</option></select>
-      <select id="filterDecision" onchange="renderFindings()">
-        <option value="">Alle Entscheidungen</option>
-        <option value="pending">Entscheidung ausstehend</option>
-        <option value="approved">Beauftragt</option>
-        <option value="rejected">Nicht beauftragt</option>
-        <option value="deferred">Zurückgestellt</option>
-        <option value="question">Rückfrage erforderlich</option>
-        <option value="thirdparty">An Dritten vergeben</option>
-      </select></div>
-    <div><label>Priorität</label><select id="filterPriority" onchange="renderFindings()"><option value="">Alle</option><option value="critical">Sofort + Dringend</option><option value="P1">Sofort</option><option value="P2">Dringend</option><option value="P3">Planbar</option><option value="P4">Beobachten</option></select></div>
-    <div><label>Typ</label><select id="filterType" onchange="renderFindings()"><option value="">Alle</option><option>Feststellung</option><option>Leistung</option></select></div>
-  </div>
-  <div id="findingList" class="grid"></div>
+<div class="topbar-meta">
+<div aria-label="Angemeldeter Benutzer" class="topbar-user" id="roleBadge" style="display:none"></div>
+</div>
+</header>
+<div class="app-menu-backdrop" id="appMenuBackdrop" onclick="closeAppMenu()"></div>
+<aside aria-hidden="true" class="app-menu" id="appMenu">
+<div class="app-menu-head">
+<div>
+<strong>Menü</strong>
+<div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.35</div>
+</div>
+<button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
+</div>
+<div class="menu-user-card" id="menuUserIdentity" style="display:none"></div>
+<nav>
+<button class="primary" id="navDashboard" onclick="showSection('dashboard')"><span class="nav-icon">⌂</span><span>Dashboard</span></button>
+<button id="navObjects" onclick="showSection('objects')"><span class="nav-icon">▦</span><span>Objekte</span></button>
+<button id="navFindings" onclick="showSection('findings')"><span class="nav-icon">▤</span><span>Dokumentation</span></button>
+<button id="navResidentReports" onclick="showSection('residentReports')"><span class="nav-icon">◯</span><span>Meldungen</span><span class="badge nav-count" id="residentReportNavCount">0</span></button>
+<button id="navDecisions" onclick="showSection('decisions')"><span class="nav-icon">✓</span><span>Entscheidungen</span><span class="badge nav-count" id="decisionNavCount">0</span></button>
+<button id="navWorkqueue" onclick="showSection('workqueue')"><span class="nav-icon">⌁</span><span>Arbeitsvorrat</span><span class="badge nav-count" id="workqueueNavCount">0</span></button>
+<button id="navReports" onclick="showSection('reports')"><span class="nav-icon">▥</span><span>Berichte</span></button>
+<button id="navUsers" onclick="showSection('users')"><span class="nav-icon">♙</span><span>Benutzer &amp; Berechtigungen</span></button>
+<button id="navSettings" onclick="showSection('settings')"><span class="nav-icon">◫</span><span>Daten</span></button>
+</nav>
+<div class="app-menu-actions">
+<button id="globalRefreshBtn" onclick="refreshAllCloudData();closeAppMenu()">↻ <span>Aktualisieren</span></button>
+<button id="headerPasswordBtn" onclick="closeAppMenu();showVoluntaryPasswordChange()">⌘ <span>Passwort ändern</span></button>
+<button data-backup-button="1" id="backupBtn" onclick="exportData()">⇩ <span>Sicherung</span></button>
+<button id="headerLogoutBtn" onclick="closeAppMenu();cloudLogout()">↪ <span>Abmelden</span></button>
+</div>
+</aside>
+<main>
+<section class="section active" id="dashboard">
+<div class="row space" style="align-items:flex-start">
+<div><h2>Übersicht</h2><div class="muted" id="dashboardRoleContext">Dein aktueller Dokumentationsstand</div></div>
+<button id="dashboardMessageComposeBtn" onclick="openUserMessageComposer()" style="display:none" type="button">Mitteilung schreiben</button>
+</div>
+<div class="dashboard-messages-wrap" id="dashboardMessagesWrap" style="display:none">
+<div class="row space" style="align-items:center;margin-bottom:10px">
+<h3 style="margin:0">Persönliche Mitteilungen</h3>
+<span class="badge" id="dashboardUnreadCount" style="display:none">0 neu</span>
+</div>
+<div class="grid" id="dashboardMessages"></div>
+</div>
+<div class="grid g3" style="margin-top:14px">
+<div class="card"><div class="muted">Objekte</div><div class="kpi" id="kpiObjects">0</div></div>
+<div class="card"><div class="muted">Offene Feststellungen</div><div class="kpi" id="kpiOpen">0</div></div>
+<div aria-label="Sofort oder dringend offene Feststellungen anzeigen" class="card kpi-action" id="kpiCriticalCard" onclick="openCriticalFindings()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openCriticalFindings();}" role="button" tabindex="0"><span class="kpi-chevron">›</span><div class="muted">Sofort / Dringend offen</div><div class="kpi" id="kpiCritical">0</div></div>
+</div>
+<h3>Offene Punkte</h3>
+<div class="grid" id="dashboardFindings"></div>
 </section>
-
-
-<section id="decisions" class="section">
-  <div class="row space">
-    <div>
-      <h2>Entscheidungen</h2>
-      <div class="muted">Arbeitsvorrat für Feststellungen, bei denen eine Entscheidung des Auftraggebers erforderlich ist.</div>
-    </div>
-  </div>
-
-  <div class="grid stats" style="margin-top:14px">
-    <div class="card"><div class="muted">Offene Entscheidungen</div><div class="big" id="decisionOpenCount">0</div></div>
-    <div class="card"><div class="muted">Sofort</div><div class="big" id="decisionImmediateCount">0</div></div>
-    <div class="card"><div class="muted">Dringend</div><div class="big" id="decisionUrgentCount">0</div></div>
-  </div>
-
-  <div class="card" style="margin-top:14px">
-    <div class="grid">
-      <div>
-        <label>Objekt</label>
-        <select id="decisionObjectFilter" onchange="renderDecisions()"><option value="">Alle Objekte</option></select>
-      </div>
-      <div>
-        <label>Entscheidungsstatus</label>
-        <select id="decisionStatusFilter" onchange="renderDecisions()">
-          <option value="pending" selected>Offener Arbeitsvorrat</option>
-          <option value="">Alle Entscheidungen</option>
-          <option value="approved">Beauftragt</option>
-          <option value="rejected">Nicht beauftragt</option>
-          <option value="deferred">Zurückgestellt</option>
-          <option value="question">Rückfrage erforderlich</option>
-          <option value="thirdparty">An Dritten vergeben</option>
-        </select>
-      </div>
-      <div>
-        <label>Priorität</label>
-        <select id="decisionPriorityFilter" onchange="renderDecisions()">
-          <option value="">Alle Prioritäten</option>
-          <option value="P1">Sofort</option>
-          <option value="P2">Dringend</option>
-          <option value="P3">Planbar</option>
-          <option value="P4">Beobachten</option>
-        </select>
-      </div>
-    </div>
-  </div>
-  <div class="row space" style="margin-top:12px;align-items:center">
-    <div class="muted"><strong id="decisionResultCount">0</strong> Vorgänge angezeigt</div>
-    <button type="button" onclick="resetDecisionFilters()">Filter zurücksetzen</button>
-  </div>
-  <div id="decisionList" style="margin-top:14px"></div>
+<section class="section" id="objects">
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div class="grid g2" id="objectList" style="margin-top:14px"></div>
 </section>
-
-<section id="workqueue" class="section">
-  <div class="row space">
-    <div>
-      <h2>Arbeitsvorrat</h2>
-      <div class="muted">Operative Steuerung aller zentral gespeicherten Aufgaben.</div>
-    </div>
-  </div>
-  <div id="workQueue"></div>
+<section class="section" id="findings">
+<div class="card" id="customerObjectContext" style="display:none;margin-bottom:14px">
+<div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em">Aktuelles Objekt</div>
+<div id="customerObjectContextName" style="font-size:20px;font-weight:800;margin-top:4px">—</div>
+<div class="muted" id="customerObjectContextAddress" style="margin-top:3px"></div>
+<div id="customerObjectContextSelectWrap" style="margin-top:12px">
+<label for="customerObjectSelect">Objekt auswählen</label>
+<select id="customerObjectSelect" onchange="setCustomerObjectContext(this.value)"></select>
+</div>
+</div>
+<div class="row space"><div><h2>Dokumentation</h2><div class="muted" style="margin-top:-4px;margin-bottom:12px">Übersicht und Filter aller Dokumentationen. Neue Dokumentationen werden über „Objekte“ angelegt.</div><div class="muted">Feststellungen und Leistungsnachweise</div></div></div>
+<div class="grid g3" style="margin:14px 0">
+<div><label>Objekt</label><select id="filterObject" onchange="renderFindings()"><option value="">Alle</option></select></div>
+<div><label>Status</label><select id="filterStatus" onchange="renderFindings()"><option value="active">Offen + In Bearbeitung</option><option value="">Alle</option><option>Offen</option><option>In Bearbeitung</option><option>Erledigt</option></select>
+<select id="filterDecision" onchange="renderFindings()">
+<option value="">Alle Entscheidungen</option>
+<option value="pending">Entscheidung ausstehend</option>
+<option value="approved">Beauftragt</option>
+<option value="rejected">Nicht beauftragt</option>
+<option value="deferred">Zurückgestellt</option>
+<option value="question">Rückfrage erforderlich</option>
+<option value="thirdparty">An Dritten vergeben</option>
+</select></div>
+<div><label>Priorität</label><select id="filterPriority" onchange="renderFindings()"><option value="">Alle</option><option value="critical">Sofort + Dringend</option><option value="P1">Sofort</option><option value="P2">Dringend</option><option value="P3">Planbar</option><option value="P4">Beobachten</option></select></div>
+<div><label>Typ</label><select id="filterType" onchange="renderFindings()"><option value="">Alle</option><option>Feststellung</option><option>Leistung</option></select></div>
+</div>
+<div class="grid" id="findingList"></div>
 </section>
-
-
-<section id="residentReports" class="section">
-  <div class="row space">
-    <div>
-      <h2>Meldungen</h2>
-      <div class="muted">Öffentlich eingegangene Hinweise zur internen Prüfung</div>
-    </div>
-
-  </div>
-
-  <div class="grid g2" style="margin-top:14px">
-    <div>
-      <label>Objekt</label>
-      <select id="residentReportObjectFilter" onchange="renderResidentReports()">
-        <option value="">Alle Objekte</option>
-      </select>
-    </div>
-    <div>
-      <label>Status</label>
-      <select id="residentReportStatusFilter" onchange="renderResidentReports()">
-        <option value="active" selected>Offen / zu bearbeiten</option>
-        <option value="">Alle Meldungen</option>
-        <option value="received">Eingegangen</option>
-        <option value="internal_action">Dokumentiert / intern übernommen</option>
-        <option value="rejected">Verworfen</option>
-        <option value="completed">Abgeschlossen</option>
-        <option value="closed">Geschlossen</option>
-      </select>
-    </div>
-  </div>
-
-  <div id="residentReportList" class="grid" style="margin-top:14px"></div>
+<section class="section" id="decisions">
+<div class="row space">
+<div>
+<h2>Entscheidungen</h2>
+<div class="muted">Arbeitsvorrat für Feststellungen, bei denen eine Entscheidung des Auftraggebers erforderlich ist.</div>
+</div>
+</div>
+<div class="grid stats" style="margin-top:14px">
+<div class="card"><div class="muted">Offene Entscheidungen</div><div class="big" id="decisionOpenCount">0</div></div>
+<div class="card"><div class="muted">Sofort</div><div class="big" id="decisionImmediateCount">0</div></div>
+<div class="card"><div class="muted">Dringend</div><div class="big" id="decisionUrgentCount">0</div></div>
+</div>
+<div class="card" style="margin-top:14px">
+<div class="grid">
+<div>
+<label>Objekt</label>
+<select id="decisionObjectFilter" onchange="renderDecisions()"><option value="">Alle Objekte</option></select>
+</div>
+<div>
+<label>Entscheidungsstatus</label>
+<select id="decisionStatusFilter" onchange="renderDecisions()">
+<option selected="" value="pending">Offener Arbeitsvorrat</option>
+<option value="">Alle Entscheidungen</option>
+<option value="approved">Beauftragt</option>
+<option value="rejected">Nicht beauftragt</option>
+<option value="deferred">Zurückgestellt</option>
+<option value="question">Rückfrage erforderlich</option>
+<option value="thirdparty">An Dritten vergeben</option>
+</select>
+</div>
+<div>
+<label>Priorität</label>
+<select id="decisionPriorityFilter" onchange="renderDecisions()">
+<option value="">Alle Prioritäten</option>
+<option value="P1">Sofort</option>
+<option value="P2">Dringend</option>
+<option value="P3">Planbar</option>
+<option value="P4">Beobachten</option>
+</select>
+</div>
+</div>
+</div>
+<div class="row space" style="margin-top:12px;align-items:center">
+<div class="muted"><strong id="decisionResultCount">0</strong> Vorgänge angezeigt</div>
+<button onclick="resetDecisionFilters()" type="button">Filter zurücksetzen</button>
+</div>
+<div id="decisionList" style="margin-top:14px"></div>
 </section>
-
-<section id="reports" class="section">
-  <div class="row space no-print">
-    <div><h2>Berichte</h2><p id="customerPrivacyNote" class="muted" style="display:none">Auftraggeberansicht: interne Personal- und Bearbeiterdaten werden nicht angezeigt.</p><div class="muted">Objektbezogene Dokumentation und Historie</div></div>
-    <div class="row">
-      <button id="reportCustomerBtn" class="primary" onclick="showCustomerReport()">Kundenbericht erstellen</button>
-      <button id="reportInternalBtn" onclick="showInternalReport()" style="display:none">Interne Auswertung</button>
-      <button onclick="printCurrentReport()">Drucken / PDF</button>
-    </div>
-  </div>
-
-  <div class="card no-print" style="margin:14px 0">
-    <div class="grid g2">
-      <div>
-        <label>Objekt *</label>
-        <select id="reportObject" onchange="renderReport()"><option value="">Bitte wählen</option></select>
-      </div>
-      <div>
-        <label>Zeitraum</label>
-        <select id="reportPeriod" onchange="renderReport()">
-          <option value="">Gesamter Zeitraum</option>
-          <option value="30">Letzte 30 Tage</option>
-          <option value="90">Letzte 90 Tage</option>
-          <option value="365">Letzte 12 Monate</option>
-        </select>
-      </div>
-      <div>
-        <label>Dokumentationstyp</label>
-        <select id="reportType" onchange="renderReport()">
-          <option value="">Alle</option>
-          <option value="Feststellung">Feststellung</option>
-          <option value="Leistung">Leistung</option>
-        </select>
-      </div>
-      <div>
-        <label>Status</label>
-        <select id="reportStatus" onchange="renderReport()">
-          <option value="">Alle</option>
-          <option value="active">Offen + In Bearbeitung</option>
-          <option value="Offen">Offen</option>
-          <option value="In Bearbeitung">In Bearbeitung</option>
-          <option value="Erledigt">Erledigt</option>
-        </select>
-      </div>
-      <div>
-        <label>Priorität</label>
-        <select id="reportPriority" onchange="renderReport()">
-          <option value="">Alle Prioritäten</option>
-          <option value="P1">Sofort</option>
-          <option value="P2">Dringend</option>
-          <option value="P3">Planbar</option>
-          <option value="P4">Beobachten</option>
-        </select>
-      </div>
-      <div>
-        <label>Entscheidung Auftraggeber</label>
-        <select id="reportDecision" onchange="renderReport()">
-          <option value="">Alle</option>
-          <option value="pending">Entscheidung ausstehend</option>
-          <option value="quote_requested">Angebot erwünscht</option>
-          <option value="quote_sent">Angebot versendet</option>
-          <option value="approved">Beauftragt</option>
-          <option value="rejected">Nicht beauftragt</option>
-          <option value="deferred">Zurückgestellt</option>
-          <option value="question">Rückfrage erforderlich</option>
-          <option value="thirdparty">An Dritten vergeben</option>
-          <option value="not_required">Keine Entscheidung erforderlich</option>
-        </select>
-      </div>
-      <div style="grid-column:1/-1">
-        <label>Bereich / Ort im Objekt</label>
-        <input id="reportArea" oninput="renderReport()" placeholder="z. B. Treppenhaus, Außenanlage, Gehweg">
-      </div>
-    </div>
-    <div class="row space" style="margin-top:12px">
-      <div class="muted"><strong id="reportResultCount">0</strong> Dokumentationen im Bericht</div>
-      <button type="button" onclick="resetReportFilters()">Filter zurücksetzen</button>
-    </div>
-  </div>
-
-  <div id="reportContent"></div>
+<section class="section" id="workqueue">
+<div class="row space">
+<div>
+<h2>Arbeitsvorrat</h2>
+<div class="muted">Operative Steuerung aller zentral gespeicherten Aufgaben.</div>
+</div>
+</div>
+<div id="workQueue"></div>
 </section>
-
-<section id="users" class="section">
-  <div class="card">
-    <h2>Benutzer & Berechtigungen</h2>
+<section class="section" id="residentReports">
+<div class="row space">
+<div>
+<h2>Meldungen</h2>
+<div class="muted">Öffentlich eingegangene Hinweise zur internen Prüfung</div>
+</div>
+</div>
+<div class="grid g2" style="margin-top:14px">
+<div>
+<label>Objekt</label>
+<select id="residentReportObjectFilter" onchange="renderResidentReports()">
+<option value="">Alle Objekte</option>
+</select>
+</div>
+<div>
+<label>Status</label>
+<select id="residentReportStatusFilter" onchange="renderResidentReports()">
+<option selected="" value="active">Offen / zu bearbeiten</option>
+<option value="">Alle Meldungen</option>
+<option value="received">Eingegangen</option>
+<option value="internal_action">Dokumentiert / intern übernommen</option>
+<option value="rejected">Verworfen</option>
+<option value="completed">Abgeschlossen</option>
+<option value="closed">Geschlossen</option>
+</select>
+</div>
+</div>
+<div class="grid" id="residentReportList" style="margin-top:14px"></div>
+</section>
+<section class="section" id="reports">
+<div class="row space no-print">
+<div><h2>Berichte</h2><p class="muted" id="customerPrivacyNote" style="display:none">Auftraggeberansicht: interne Personal- und Bearbeiterdaten werden nicht angezeigt.</p><div class="muted">Objektbezogene Dokumentation und Historie</div></div>
+<div class="row">
+<button class="primary" id="reportCustomerBtn" onclick="showCustomerReport()">Kundenbericht erstellen</button>
+<button id="reportInternalBtn" onclick="showInternalReport()" style="display:none">Interne Auswertung</button>
+<button onclick="printCurrentReport()">Drucken / PDF</button>
+</div>
+</div>
+<div class="card no-print" style="margin:14px 0">
+<div class="grid g2">
+<div>
+<label>Objekt *</label>
+<select id="reportObject" onchange="renderReport()"><option value="">Bitte wählen</option></select>
+</div>
+<div>
+<label>Zeitraum</label>
+<select id="reportPeriod" onchange="renderReport()">
+<option value="">Gesamter Zeitraum</option>
+<option value="30">Letzte 30 Tage</option>
+<option value="90">Letzte 90 Tage</option>
+<option value="365">Letzte 12 Monate</option>
+</select>
+</div>
+<div>
+<label>Dokumentationstyp</label>
+<select id="reportType" onchange="renderReport()">
+<option value="">Alle</option>
+<option value="Feststellung">Feststellung</option>
+<option value="Leistung">Leistung</option>
+</select>
+</div>
+<div>
+<label>Status</label>
+<select id="reportStatus" onchange="renderReport()">
+<option value="">Alle</option>
+<option value="active">Offen + In Bearbeitung</option>
+<option value="Offen">Offen</option>
+<option value="In Bearbeitung">In Bearbeitung</option>
+<option value="Erledigt">Erledigt</option>
+</select>
+</div>
+<div>
+<label>Priorität</label>
+<select id="reportPriority" onchange="renderReport()">
+<option value="">Alle Prioritäten</option>
+<option value="P1">Sofort</option>
+<option value="P2">Dringend</option>
+<option value="P3">Planbar</option>
+<option value="P4">Beobachten</option>
+</select>
+</div>
+<div>
+<label>Entscheidung Auftraggeber</label>
+<select id="reportDecision" onchange="renderReport()">
+<option value="">Alle</option>
+<option value="pending">Entscheidung ausstehend</option>
+<option value="quote_requested">Angebot erwünscht</option>
+<option value="quote_sent">Angebot versendet</option>
+<option value="approved">Beauftragt</option>
+<option value="rejected">Nicht beauftragt</option>
+<option value="deferred">Zurückgestellt</option>
+<option value="question">Rückfrage erforderlich</option>
+<option value="thirdparty">An Dritten vergeben</option>
+<option value="not_required">Keine Entscheidung erforderlich</option>
+</select>
+</div>
+<div style="grid-column:1/-1">
+<label>Bereich / Ort im Objekt</label>
+<input id="reportArea" oninput="renderReport()" placeholder="z. B. Treppenhaus, Außenanlage, Gehweg"/>
+</div>
+</div>
+<div class="row space" style="margin-top:12px">
+<div class="muted"><strong id="reportResultCount">0</strong> Dokumentationen im Bericht</div>
+<button onclick="resetReportFilters()" type="button">Filter zurücksetzen</button>
+</div>
+</div>
+<div id="reportContent"></div>
+</section>
+<section class="section" id="users">
+<div class="card">
+<h2>Benutzer &amp; Berechtigungen</h2>
 <div class="card" style="margin-bottom:16px">
-  <h3>Neuen Benutzer anlegen</h3>
-  <div class="grid2">
-    <label>Anzeigename
-      <input id="newUserFullName" placeholder="z. B. Hans Müller">
-    </label>
-    <label>E-Mail / Benutzername
-      <input id="newUserEmail" type="email" placeholder="name@firma.de" autocomplete="off">
-    </label>
-    <label>Rolle
+<h3>Neuen Benutzer anlegen</h3>
+<div class="grid2">
+<label>Anzeigename
+      <input id="newUserFullName" placeholder="z. B. Hans Müller"/>
+</label>
+<label>E-Mail / Benutzername
+      <input autocomplete="off" id="newUserEmail" placeholder="name@firma.de" type="email"/>
+</label>
+<label>Rolle
       <select id="newUserRole">
-        <option value="object_manager">Objektbetreuer</option>
-        <option value="customer">Auftraggeber</option>
-        <option value="test_user">Testbenutzer</option>
-      </select>
-    </label>
-  </div>
-  <div class="row" style="gap:10px;margin-top:14px">
-    <button class="primary" onclick="createUserAndInvite()">Benutzer anlegen</button>
-  </div>
-  <p class="muted" style="margin-top:10px">
+<option value="object_manager">Objektbetreuer</option>
+<option value="customer">Auftraggeber</option>
+<option value="test_user">Testbenutzer</option>
+</select>
+</label>
+</div>
+<div class="row" style="gap:10px;margin-top:14px">
+<button class="primary" onclick="createUserAndInvite()">Benutzer anlegen</button>
+</div>
+<p class="muted" style="margin-top:10px">
     Das System erzeugt ein einmaliges Initialpasswort. Der Benutzer muss dieses beim ersten Login ändern. Objektzugriffe werden anschließend separat in der Benutzerverwaltung vergeben.
   </p>
 </div>
-
-    <p class="muted">Bestehende Benutzer verwalten: Rolle, Aktivstatus und Objektzugriffe.</p>
-    <div class="row" style="gap:10px;align-items:end;flex-wrap:wrap">
-      <label style="min-width:260px;flex:1">Benutzer
+<p class="muted">Bestehende Benutzer verwalten: Rolle, Aktivstatus und Objektzugriffe.</p>
+<div class="row" style="gap:10px;align-items:end;flex-wrap:wrap">
+<label style="min-width:260px;flex:1">Benutzer
         <select id="userAdminSelect" onchange="loadUserAdminEditor()"></select>
-      </label>
-      <button onclick="loadUserAdminData()">Aktualisieren</button>
-    </div>
-  </div>
-  <div id="userAdminEditor"></div>
+</label>
+<button onclick="loadUserAdminData()">Aktualisieren</button>
+</div>
+</div>
+<div id="userAdminEditor"></div>
 </section>
-<section id="settings" class="section">
-  <div class="card" style="margin-bottom:14px">
-    <h3>Zentrale Datenbasis</h3>
-    <div id="cloudStatus" class="cloud-banner"><span id="cloudDot" class="cloud-dot wait"></span><span id="cloudStatusText">Verbindung wird geprüft …</span></div>
-    <div class="row">
-      <button type="button" onclick="cloudReloadObjects()">Objekte neu laden</button>
-      <button type="button" onclick="cloudLogout()">Abmelden</button>
-    </div>
-    <div class="muted" style="margin-top:8px">Objekte, Dokumentationen, Fotos und der Arbeitsvorrat werden zentral in Supabase gespeichert. Lokale IndexedDB-Fotos bleiben als Rückfall- und Migrationsquelle erhalten.</div>
-  </div>
-
-  <div class="card" style="margin-bottom:14px">
-    <h3>Supabase Foto-Voraussetzung</h3>
-    <div class="muted">v2.4.3 nutzt den bereits vorhandenen privaten Storage-Bucket <b>objektplattform-media</b> und die bereits vorhandene zentrale Tabelle <b>media</b>. Eine zusätzliche Foto-Tabelle ist nicht erforderlich.</div>
-  </div>
-  <div class="card" style="margin-bottom:14px">
-    <h3>Speicherstatus</h3>
-    <div id="storageStatus" class="muted">Bildspeicher wird geprüft …</div>
-  </div>
-
-  <div class="card" style="margin-bottom:14px">
-    <div class="row space" style="align-items:center">
-      <div>
-        <h3 style="margin:0">Aktive Benutzer</h3>
-        <div class="muted" style="margin-top:6px">Zeigt die letzte Aktivität angemeldeter Benutzer. Online = Aktivität innerhalb der letzten 5 Minuten.</div>
-      </div>
-      <button type="button" onclick="loadUserActivity()">Aktualisieren</button>
-    </div>
-    <div id="userActivityList" class="muted" style="margin-top:12px">Aktivitätsdaten werden geladen …</div>
-  </div>
-
-  <div class="card" style="margin-bottom:14px">
-    <h3>Datensicherung</h3>
-    <div class="muted">Vor weiteren Änderungen kannst du den aktuell wiederhergestellten Master-Datenbestand als JSON sichern.</div>
-    <button type="button" onclick="downloadMasterBackup()">Master-Backup herunterladen</button>
-  </div>
-
-  <div class="card" style="margin-bottom:14px">
-    <h3>Datenwiederherstellung</h3>
-    <div id="recoveryStatus" class="muted">Alle lokal vorhandenen Datenstände werden automatisch geprüft.</div>
-    <button type="button" onclick="showRecoveryStatus()">Wiederherstellung prüfen</button>
-  </div>
-
-  <h2>Daten & Sicherung</h2>
-  <div class="grid g2">
-    <div class="card">
-      <h3>Sicherung exportieren</h3>
-      <p class="muted">Lädt alle Objekte und Dokumentationen als JSON-Datei herunter.</p>
-      <button class="primary" onclick="exportData()">Sicherung erstellen</button>
-    </div>
-    <div class="card">
-      <h3>Sicherung wiederherstellen</h3>
-      <p class="muted">Importiert eine zuvor exportierte JSON-Datei. Vorhandene Daten werden ersetzt.</p>
-      <input type="file" id="importFile" accept="application/json">
-      <button onclick="importData()" style="margin-top:10px">Importieren</button>
-    </div>
-  </div>
-  <div class="card" style="margin-top:14px">
-    <h3>Objektdaten bereinigen</h3>
-    <p class="muted">Setzt ein Objekt auf einen sauberen Ausgangszustand zurück. Dokumentationen, Entscheidungen, Aufgaben, zugehörige Medien, technische Alt-Begehungen sowie Bewohnermeldungen inklusive Ereignissen und Fotos werden gelöscht. Objektstammdaten und Benutzerzuordnungen bleiben erhalten.</p>
-    <label>Objekt auswählen</label>
-    <select id="cleanupObjectSelect" onchange="previewObjectCleanup()"><option value="">Bitte auswählen</option></select>
-    <div id="cleanupPreview" class="muted" style="margin-top:10px">Bitte zuerst ein Objekt auswählen.</div>
-    <label>Sicherheitsbestätigung</label>
-    <input id="cleanupConfirmName" type="text" autocomplete="off" placeholder="Objektbezeichnung exakt eingeben">
-    <button id="cleanupObjectBtn" class="danger" type="button" onclick="cleanupObjectData()" style="margin-top:10px" disabled>Objektdaten bereinigen</button>
-  </div>
-
-  <div class="card" style="margin-top:14px">
-    <h3>Lokale Daten</h3>
-    <p class="muted">Objekte, Dokumentationen und der Arbeitsvorrat werden zentral über Supabase gespeichert. Neue Fotos werden in Supabase Storage gespeichert; vorhandene lokale Fotos bleiben erhalten und werden beim nächsten Speichern einer Dokumentation hochgeladen.</p>
-    <button class="danger" onclick="resetData()">Alle lokalen Daten löschen</button>
-  </div>
+<section class="section" id="settings">
+<div class="card" style="margin-bottom:14px">
+<h3>Zentrale Datenbasis</h3>
+<div class="cloud-banner" id="cloudStatus"><span class="cloud-dot wait" id="cloudDot"></span><span id="cloudStatusText">Verbindung wird geprüft …</span></div>
+<div class="row">
+<button onclick="cloudReloadObjects()" type="button">Objekte neu laden</button>
+<button onclick="cloudLogout()" type="button">Abmelden</button>
+</div>
+<div class="muted" style="margin-top:8px">Objekte, Dokumentationen, Fotos und der Arbeitsvorrat werden zentral in Supabase gespeichert. Lokale IndexedDB-Fotos bleiben als Rückfall- und Migrationsquelle erhalten.</div>
+</div>
+<div class="card" style="margin-bottom:14px">
+<h3>Supabase Foto-Voraussetzung</h3>
+<div class="muted">v2.4.3 nutzt den bereits vorhandenen privaten Storage-Bucket <b>objektplattform-media</b> und die bereits vorhandene zentrale Tabelle <b>media</b>. Eine zusätzliche Foto-Tabelle ist nicht erforderlich.</div>
+</div>
+<div class="card" style="margin-bottom:14px">
+<h3>Speicherstatus</h3>
+<div class="muted" id="storageStatus">Bildspeicher wird geprüft …</div>
+</div>
+<div class="card" style="margin-bottom:14px">
+<div class="row space" style="align-items:center">
+<div>
+<h3 style="margin:0">Aktive Benutzer</h3>
+<div class="muted" style="margin-top:6px">Zeigt die letzte Aktivität angemeldeter Benutzer. Online = Aktivität innerhalb der letzten 5 Minuten.</div>
+</div>
+<button onclick="loadUserActivity()" type="button">Aktualisieren</button>
+</div>
+<div class="muted" id="userActivityList" style="margin-top:12px">Aktivitätsdaten werden geladen …</div>
+</div>
+<div class="card" style="margin-bottom:14px">
+<h3>Datensicherung</h3>
+<div class="muted">Vor weiteren Änderungen kannst du den aktuell wiederhergestellten Master-Datenbestand als JSON sichern.</div>
+<button onclick="downloadMasterBackup()" type="button">Master-Backup herunterladen</button>
+</div>
+<div class="card" style="margin-bottom:14px">
+<h3>Datenwiederherstellung</h3>
+<div class="muted" id="recoveryStatus">Alle lokal vorhandenen Datenstände werden automatisch geprüft.</div>
+<button onclick="showRecoveryStatus()" type="button">Wiederherstellung prüfen</button>
+</div>
+<h2>Daten &amp; Sicherung</h2>
+<div class="grid g2">
+<div class="card">
+<h3>Sicherung exportieren</h3>
+<p class="muted">Lädt alle Objekte und Dokumentationen als JSON-Datei herunter.</p>
+<button class="primary" onclick="exportData()">Sicherung erstellen</button>
+</div>
+<div class="card">
+<h3>Sicherung wiederherstellen</h3>
+<p class="muted">Importiert eine zuvor exportierte JSON-Datei. Vorhandene Daten werden ersetzt.</p>
+<input accept="application/json" id="importFile" type="file"/>
+<button onclick="importData()" style="margin-top:10px">Importieren</button>
+</div>
+</div>
+<div class="card" style="margin-top:14px">
+<h3>Objektdaten bereinigen</h3>
+<p class="muted">Setzt ein Objekt auf einen sauberen Ausgangszustand zurück. Dokumentationen, Entscheidungen, Aufgaben, zugehörige Medien, technische Alt-Begehungen sowie Bewohnermeldungen inklusive Ereignissen und Fotos werden gelöscht. Objektstammdaten und Benutzerzuordnungen bleiben erhalten.</p>
+<label>Objekt auswählen</label>
+<select id="cleanupObjectSelect" onchange="previewObjectCleanup()"><option value="">Bitte auswählen</option></select>
+<div class="muted" id="cleanupPreview" style="margin-top:10px">Bitte zuerst ein Objekt auswählen.</div>
+<label>Sicherheitsbestätigung</label>
+<input autocomplete="off" id="cleanupConfirmName" placeholder="Objektbezeichnung exakt eingeben" type="text"/>
+<button class="danger" disabled="" id="cleanupObjectBtn" onclick="cleanupObjectData()" style="margin-top:10px" type="button">Objektdaten bereinigen</button>
+</div>
+<div class="card" style="margin-top:14px">
+<h3>Lokale Daten</h3>
+<p class="muted">Objekte, Dokumentationen und der Arbeitsvorrat werden zentral über Supabase gespeichert. Neue Fotos werden in Supabase Storage gespeichert; vorhandene lokale Fotos bleiben erhalten und werden beim nächsten Speichern einer Dokumentation hochgeladen.</p>
+<button class="danger" onclick="resetData()">Alle lokalen Daten löschen</button>
+</div>
 </section>
 </main>
-
-
 <div id="modalRoot"></div>
-
-
-
 <script id="duschl-qr-local-v2183">
 /*
  * Lokale QR-Code-Erzeugung für Duschl Service v2.18.19.
@@ -2602,7 +2576,6 @@ module.exports = QRCode;
   };
 })(window);
 </script>
-
 <script>
 
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
@@ -6978,19 +6951,188 @@ if(!bootPublicResidentReport()){
   bootCloud();
 }
 </script>
-
-
-
-<div id="photoViewer" class="photo-viewer" aria-hidden="true">
-  <div class="photo-viewer-toolbar">
-    <div id="photoViewerCaption" class="photo-viewer-caption">Foto</div>
-    <button type="button" class="photo-viewer-close" aria-label="Foto schließen" onclick="closePhotoViewer()">×</button>
-  </div>
-  <div class="photo-viewer-stage" onclick="if(event.target===this) closePhotoViewer()">
-    <img id="photoViewerImg" alt="Foto in Großansicht">
-  </div>
-  <div class="photo-viewer-hint">Zum Vergrößern zwei Finger verwenden · × zum Schließen</div>
+<div aria-hidden="true" class="photo-viewer" id="photoViewer">
+<div class="photo-viewer-toolbar">
+<div class="photo-viewer-caption" id="photoViewerCaption">Foto</div>
+<button aria-label="Foto schließen" class="photo-viewer-close" onclick="closePhotoViewer()" type="button">×</button>
 </div>
+<div class="photo-viewer-stage" onclick="if(event.target===this) closePhotoViewer()">
+<img alt="Foto in Großansicht" id="photoViewerImg"/>
+</div>
+<div class="photo-viewer-hint">Zum Vergrößern zwei Finger verwenden · × zum Schließen</div>
+</div>
+<script>
+/* ===== v2.18.35 Spracheingabe für alle Freitextfelder ===== */
+(function(){
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SpeechRecognition) return;
 
-</body>
+  let activeRecognition = null;
+  let activeButton = null;
+
+  function eligible(field){
+    if(!field || field.disabled || field.readOnly) return false;
+    if(field.tagName === 'TEXTAREA') return true;
+    if(field.tagName !== 'INPUT') return false;
+    return (field.getAttribute('type') || 'text').toLowerCase() === 'text';
+  }
+
+  function ensureHost(field){
+    if(field.parentElement && field.parentElement.classList.contains('speech-field-host')){
+      return field.parentElement;
+    }
+
+    const host = document.createElement('span');
+    host.className = 'speech-field-host';
+    if(field.tagName === 'TEXTAREA') host.classList.add('speech-textarea-host');
+
+    const cs = window.getComputedStyle(field);
+    if(cs.display === 'block' || field.tagName === 'TEXTAREA'){
+      host.style.display = 'block';
+      host.style.width = '100%';
+    } else {
+      host.style.display = 'inline-block';
+      host.style.width = cs.width === 'auto' ? '100%' : cs.width;
+      host.style.maxWidth = '100%';
+    }
+
+    field.parentNode.insertBefore(host, field);
+    host.appendChild(field);
+    field.style.width = '100%';
+    return host;
+  }
+
+  function insertTranscript(field, text){
+    const transcript = String(text || '').trim();
+    if(!transcript) return;
+
+    const old = field.value || '';
+    const start = typeof field.selectionStart === 'number' ? field.selectionStart : old.length;
+    const end = typeof field.selectionEnd === 'number' ? field.selectionEnd : start;
+
+    const before = old.slice(0, start);
+    const after = old.slice(end);
+    const spacer = before && !/\s$/.test(before) ? ' ' : '';
+
+    field.value = before + spacer + transcript + after;
+
+    const pos = (before + spacer + transcript).length;
+    try { field.setSelectionRange(pos, pos); } catch(e) {}
+
+    field.dispatchEvent(new Event('input', {bubbles:true}));
+    field.dispatchEvent(new Event('change', {bubbles:true}));
+    field.focus();
+  }
+
+  function resetButton(btn){
+    if(!btn) return;
+    btn.classList.remove('listening');
+    btn.textContent = '🎤';
+    btn.title = 'Spracheingabe starten';
+    btn.setAttribute('aria-label', 'Spracheingabe starten');
+  }
+
+  function stopActiveRecognition(){
+    if(activeRecognition){
+      try { activeRecognition.stop(); } catch(e) {}
+    }
+  }
+
+  function addSpeechButton(field){
+    if(!eligible(field) || field.dataset.speechReady === '1') return;
+    field.dataset.speechReady = '1';
+
+    const host = ensureHost(field);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'speech-mic-btn';
+    btn.textContent = '🎤';
+    btn.title = 'Spracheingabe starten';
+    btn.setAttribute('aria-label', 'Spracheingabe starten');
+    host.appendChild(btn);
+
+    btn.addEventListener('click', function(ev){
+      ev.preventDefault();
+      ev.stopPropagation();
+
+      if(activeButton === btn){
+        stopActiveRecognition();
+        return;
+      }
+
+      stopActiveRecognition();
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'de-DE';
+      recognition.interimResults = false;
+      recognition.continuous = false;
+      recognition.maxAlternatives = 1;
+
+      activeRecognition = recognition;
+      activeButton = btn;
+
+      btn.classList.add('listening');
+      btn.textContent = '■';
+      btn.title = 'Spracheingabe stoppen';
+      btn.setAttribute('aria-label', 'Spracheingabe stoppen');
+
+      recognition.onresult = function(event){
+        let transcript = '';
+        for(let i = event.resultIndex; i < event.results.length; i++){
+          if(event.results[i].isFinal){
+            transcript += event.results[i][0].transcript;
+          }
+        }
+        insertTranscript(field, transcript);
+      };
+
+      recognition.onerror = function(event){
+        if(event.error !== 'aborted' && event.error !== 'no-speech'){
+          console.warn('Spracheingabe:', event.error);
+        }
+      };
+
+      recognition.onend = function(){
+        resetButton(btn);
+        if(activeRecognition === recognition) activeRecognition = null;
+        if(activeButton === btn) activeButton = null;
+      };
+
+      try{
+        recognition.start();
+      }catch(e){
+        console.warn('Spracheingabe konnte nicht gestartet werden', e);
+        recognition.onend();
+      }
+    });
+  }
+
+  function enhance(root){
+    if(root && root.nodeType === 1 && eligible(root)) addSpeechButton(root);
+    if(root && root.querySelectorAll){
+      root.querySelectorAll('textarea,input[type="text"],input:not([type])').forEach(addSpeechButton);
+    }
+  }
+
+  function initSpeechInput(){
+    enhance(document);
+
+    const observer = new MutationObserver(function(mutations){
+      mutations.forEach(function(mutation){
+        mutation.addedNodes.forEach(function(node){
+          if(node.nodeType === 1) enhance(node);
+        });
+      });
+    });
+
+    observer.observe(document.body, {childList:true, subtree:true});
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initSpeechInput);
+  }else{
+    initSpeechInput();
+  }
+})();
+</script></body>
 </html>
