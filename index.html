@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objektplattform v2.18.29</title>
+<title>Duschl Service – Objektplattform v2.18.30</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -358,7 +358,7 @@ a{color:var(--accent-2)!important}
 }
 
 
-/* ===== v2.18.29 Responsive Topbar + Hamburger-Menü ===== */
+/* ===== v2.18.30 Responsive Topbar + Hamburger-Menü ===== */
 /* Rollenbasierte Menüpunkte werden vollständig ausgeblendet, nicht deaktiviert dargestellt. */
 .app-topbar{height:64px;padding:10px 16px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;z-index:60!important}
 .menu-toggle{width:44px;height:44px;padding:10px!important;display:flex;flex-direction:column;justify-content:center;gap:5px;background:transparent!important;border-color:transparent!important;box-shadow:none!important;flex:0 0 auto}
@@ -385,7 +385,7 @@ main{padding-top:18px}
 @media print{.app-menu,.app-menu-backdrop,.app-topbar{display:none!important}}
 
 
-/* ===== v2.18.29 Interaktive Kennzahlen ===== */
+/* ===== v2.18.30 Interaktive Kennzahlen ===== */
 .kpi-action,.gf-kpi.is-action{position:relative;cursor:pointer;transition:transform .12s ease,border-color .12s ease,background .12s ease;user-select:none}
 .kpi-action:hover,.gf-kpi.is-action:hover{border-color:var(--accent);transform:translateY(-1px)}
 .kpi-action:active,.gf-kpi.is-action:active{transform:translateY(0)}
@@ -395,7 +395,7 @@ main{padding-top:18px}
 .gf-kpi.is-action{padding-right:38px}.gf-kpi .kpi-chevron{right:12px}
 
 
-/* ===== v2.18.29 Persönliches Dashboard / Mitteilungen ===== */
+/* ===== v2.18.30 Persönliches Dashboard / Mitteilungen ===== */
 .dashboard-messages-wrap{margin-top:16px;padding:16px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,rgba(47,143,255,.08),rgba(47,143,255,.025))}
 .dashboard-message-card{position:relative;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#0d1f2b;color:var(--text);box-shadow:0 8px 20px rgba(0,0,0,.16)}
 .dashboard-message-card.unread{background:linear-gradient(180deg,#102636,#0d1f2b);border-color:rgba(47,143,255,.72);box-shadow:inset 3px 0 0 var(--accent),0 8px 20px rgba(0,0,0,.18)}
@@ -408,6 +408,15 @@ main{padding-top:18px}
   #dashboard .row.space:first-child{display:block}
   .dashboard-messages-wrap{padding:12px}
 }
+
+.user-message-recipient-box{margin-top:8px;border:1px solid var(--line);border-radius:12px;padding:10px;max-height:240px;overflow:auto;background:#0d1f2b}
+.user-message-recipient-row{display:flex;align-items:center;gap:10px;padding:8px 6px;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer}
+.user-message-recipient-row:last-child{border-bottom:0}
+.user-message-recipient-row input{width:auto;margin:0;flex:0 0 auto}
+.user-message-recipient-main{min-width:0;display:flex;flex-direction:column}
+.user-message-recipient-name{font-weight:650;color:var(--text)}
+.user-message-recipient-role{font-size:12px;color:var(--muted)}
+.user-message-recipient-tools{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px}
 </style>
 
 <style>
@@ -871,7 +880,7 @@ body.public-report-mode>#photoViewer{display:none!important}
     <div>
       <strong>Menü</strong>
       <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-      <div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.29</div>
+      <div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.30</div>
     </div>
     <button class="menu-close" type="button" aria-label="Menü schließen" onclick="closeAppMenu()">×</button>
   </div>
@@ -2722,14 +2731,28 @@ async function openUserMessageComposer(){
     alert('Es ist kein weiterer aktiver Benutzer vorhanden.');
     return;
   }
+
   modal(`<h2>Persönliche Mitteilung</h2>
-    <p class="muted">Die Mitteilung erscheint beim Empfänger direkt auf dem Dashboard. Nach dem Lesen wird sie in den Bereich „Gelesene Mitteilungen“ verschoben.</p>
-    <label>Empfänger
-      <select id="userMessageRecipient">
-        <option value="">Bitte auswählen</option>
-        ${recipients.map(p=>`<option value="${esc(p.id)}">${esc(p.full_name||p.email||'Benutzer')} · ${esc(ROLE_LABELS[p.role]||p.role||'')}</option>`).join('')}
-      </select>
-    </label>
+    <p class="muted">Eine Mitteilung kann an einen oder mehrere Benutzer gleichzeitig gesendet werden.</p>
+
+    <label>Empfänger</label>
+    <div class="user-message-recipient-tools">
+      <button type="button" onclick="toggleAllUserMessageRecipients(true)">Alle auswählen</button>
+      <button type="button" onclick="toggleAllUserMessageRecipients(false)">Auswahl aufheben</button>
+      <span id="userMessageRecipientCount" class="muted">0 ausgewählt</span>
+    </div>
+
+    <div id="userMessageRecipients" class="user-message-recipient-box">
+      ${recipients.map(p=>`
+        <label class="user-message-recipient-row">
+          <input type="checkbox" class="user-message-recipient-check" value="${esc(p.id)}" onchange="updateUserMessageRecipientCount()">
+          <span class="user-message-recipient-main">
+            <span class="user-message-recipient-name">${esc(p.full_name||p.email||'Benutzer')}</span>
+            <span class="user-message-recipient-role">${esc(ROLE_LABELS[p.role]||p.role||'')}</span>
+          </span>
+        </label>`).join('')}
+    </div>
+
     <label>Titel<input id="userMessageTitle" maxlength="120" placeholder="z. B. Objekt morgen prüfen"></label>
     <label>Nachricht<textarea id="userMessageText" maxlength="2000" placeholder="Kurze, konkrete Information"></textarea></label>
     <label>Objekt (optional)
@@ -2744,31 +2767,53 @@ async function openUserMessageComposer(){
     </div>`);
 }
 
+function selectedUserMessageRecipients(){
+  return [...document.querySelectorAll('.user-message-recipient-check:checked')]
+    .map(el=>el.value)
+    .filter(Boolean);
+}
+
+function updateUserMessageRecipientCount(){
+  const count=selectedUserMessageRecipients().length;
+  const el=document.getElementById('userMessageRecipientCount');
+  if(el)el.textContent=`${count} ausgewählt`;
+}
+
+function toggleAllUserMessageRecipients(checked){
+  document.querySelectorAll('.user-message-recipient-check').forEach(el=>{el.checked=!!checked;});
+  updateUserMessageRecipientCount();
+}
+
 async function sendUserMessage(){
   if(!isAdminRole())return;
-  const recipient=document.getElementById('userMessageRecipient')?.value||'';
+  const recipients=selectedUserMessageRecipients();
   const title=document.getElementById('userMessageTitle')?.value.trim()||'';
   const message=document.getElementById('userMessageText')?.value.trim()||'';
   const objectId=document.getElementById('userMessageObject')?.value||'';
-  if(!recipient)return alert('Bitte einen Empfänger auswählen.');
+
+  if(!recipients.length)return alert('Bitte mindestens einen Empfänger auswählen.');
   if(!title)return alert('Bitte einen Titel eingeben.');
   if(!message)return alert('Bitte eine Nachricht eingeben.');
+
+  const rows=recipients.map(recipient=>({
+    recipient_id:recipient,
+    created_by:currentUserId(),
+    title,
+    message,
+    object_id:objectId||null,
+    active:true
+  }));
 
   try{
     await cloudRequest('user_messages',{
       method:'POST',
       headers:{Prefer:'return=minimal'},
-      body:JSON.stringify({
-        recipient_id:recipient,
-        created_by:currentUserId(),
-        title,
-        message,
-        object_id:objectId||null,
-        active:true
-      })
+      body:JSON.stringify(rows)
     });
     closeModal();
-    alert('Mitteilung wurde gespeichert und erscheint beim Empfänger auf dem Dashboard.');
+    alert(recipients.length===1
+      ? 'Mitteilung wurde gespeichert und erscheint beim Empfänger auf dem Dashboard.'
+      : `Mitteilung wurde an ${recipients.length} Benutzer gesendet.`);
   }catch(e){
     alert('Mitteilung konnte nicht gespeichert werden: '+(e.message||e));
   }
@@ -4559,7 +4604,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.18.29';
+  db.version='2.18.30';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
