@@ -2662,7 +2662,7 @@ function renderDashboardMessages(){
   const compose=document.getElementById('dashboardMessageComposeBtn');
   const context=document.getElementById('dashboardRoleContext');
   if(context)context.textContent=dashboardRoleContextText();
-  if(compose)compose.style.display=canComposeUserMessages()?'':'none';
+  if(compose)compose.style.display=hasOperationalAdminAccess()?'':'none';
   if(!wrap||!box)return;
 
   if(!userMessagesAvailable){
@@ -2758,67 +2758,48 @@ async function markUserMessageRead(id){
 }
 
 async function openUserMessageComposer(){
-  if(!canComposeUserMessages()){
-    alert('Mitteilungen können nur von internen Benutzern erstellt werden.');
+  if(!hasOperationalAdminAccess()){
+    alert('Mitteilungen können nur vom Administrator / GF oder einer aktiven Admin-Vertretung erstellt werden.');
     return;
   }
-
-  let recipients=[];
+  let profiles=[];
   try{
-    recipients=await cloudRequest('rpc/get_message_recipients',{
-      method:'POST',
-      headers:{Prefer:'return=representation'},
-      body:'{}'
-    })||[];
+    profiles=await cloudRequest('profiles?select=id,full_name,email,role,active&active=eq.true&order=full_name.asc.nullslast,email.asc')||[];
   }catch(e){
     alert('Benutzer konnten nicht geladen werden: '+(e.message||e));
     return;
   }
-
-  const internalRecipients=recipients.filter(p=>p.role!=='customer');
-  const customerRecipients=recipients.filter(p=>p.role==='customer');
-
-  if(!internalRecipients.length&&!customerRecipients.length){
+  const recipients=profiles.filter(p=>
+    p.id!==currentUserId()
+    && (hasOperationalAdminAccess() || p.role!=='customer')
+  );
+  if(!recipients.length){
     alert('Es ist kein weiterer aktiver Benutzer vorhanden.');
     return;
   }
 
-  const recipientRow=(p,kind)=>`
-    <label class="user-message-recipient-row">
-      <input type="checkbox"
-             class="user-message-recipient-check"
-             data-recipient-kind="${kind}"
-             value="${esc(p.id)}"
-             onchange="updateUserMessageRecipientCount()">
-      <span class="user-message-recipient-main">
-        <span class="user-message-recipient-name">${esc(p.full_name||'Benutzer')}</span>
-        <span class="user-message-recipient-role">${esc(ROLE_LABELS[p.role]||p.role||'')}</span>
-      </span>
-    </label>`;
-
   modal(`<h2>Persönliche Mitteilung</h2>
-    <p class="muted">Interne Sammelnachrichten können an alle internen Benutzer gesendet werden. Auftraggeber müssen immer einzeln ausgewählt werden.</p>
+    <p class="muted">Eine Mitteilung kann an einen oder mehrere Benutzer gleichzeitig gesendet werden.</p>
 
-    <label>Interne Empfänger</label>
+    <label>Empfänger</label>
     <div class="user-message-recipient-tools">
       <button type="button" onclick="toggleAllUserMessageRecipients(true)">Alle internen auswählen</button>
-      <button type="button" onclick="toggleAllUserMessageRecipients(false)">Interne Auswahl aufheben</button>
+      <button type="button" onclick="toggleAllUserMessageRecipients(false)">Auswahl aufheben</button>
       <span id="userMessageRecipientCount" class="muted">0 ausgewählt</span>
     </div>
 
     <div id="userMessageRecipients" class="user-message-recipient-box">
-      ${internalRecipients.length
-        ? internalRecipients.map(p=>recipientRow(p,'internal')).join('')
-        : '<div class="empty">Keine weiteren internen Benutzer vorhanden.</div>'}
+      ${recipients.map(p=>`
+        <label class="user-message-recipient-row">
+          <input type="checkbox" class="user-message-recipient-check" value="${esc(p.id)}" onchange="updateUserMessageRecipientCount()">
+          <span class="user-message-recipient-main">
+            <span class="user-message-recipient-name">${esc(p.full_name||p.email||'Benutzer')}</span>
+            <span class="user-message-recipient-role">${esc(ROLE_LABELS[p.role]||p.role||'')}</span>
+          </span>
+        </label>`).join('')}
     </div>
 
-    ${customerRecipients.length?`
-      <label style="margin-top:14px">Auftraggeber – nur einzeln auswählbar</label>
-      <div class="user-message-recipient-box">
-        ${customerRecipients.map(p=>recipientRow(p,'customer')).join('')}
-      </div>`:''}
-
-    <label>Titel<input id="userMessageTitle" maxlength="120" placeholder="z. B. Wer hat den Akkuschrauber?"></label>
+    <label>Titel<input id="userMessageTitle" maxlength="120" placeholder="z. B. Objekt morgen prüfen"></label>
     <label>Nachricht<textarea id="userMessageText" maxlength="2000" placeholder="Kurze, konkrete Information"></textarea></label>
     <label>Objekt (optional)
       <select id="userMessageObject">
@@ -2845,13 +2826,12 @@ function updateUserMessageRecipientCount(){
 }
 
 function toggleAllUserMessageRecipients(checked){
-  document.querySelectorAll('.user-message-recipient-check[data-recipient-kind="internal"]')
-    .forEach(el=>{el.checked=!!checked;});
+  document.querySelectorAll('.user-message-recipient-check').forEach(el=>{el.checked=!!checked;});
   updateUserMessageRecipientCount();
 }
 
 async function sendUserMessage(){
-  if(!canComposeUserMessages())return;
+  if(!hasOperationalAdminAccess())return;
   const recipients=selectedUserMessageRecipients();
   const title=document.getElementById('userMessageTitle')?.value.trim()||'';
   const message=document.getElementById('userMessageText')?.value.trim()||'';
@@ -3195,7 +3175,6 @@ function effectiveUserRole(){
 function isAdminRole(){return effectiveUserRole()==='platform_admin'}
 function isAdminDelegate(){return currentUserProfile?.admin_delegate===true&&!isAdminRole()}
 function hasOperationalAdminAccess(){return isAdminRole()||isAdminDelegate()}
-function canComposeUserMessages(){return !!currentUserProfile&&!isCustomerRole()}
 function canManageUsersUI(){return isAdminRole()||isAdminDelegate()}
 function isObjectManagerRole(){return ['object_manager','staff'].includes(effectiveUserRole())}
 function isCustomerRole(){return effectiveUserRole()==='customer'&&!isAdminDelegate()}
