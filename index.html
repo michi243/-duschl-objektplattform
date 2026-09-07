@@ -2662,7 +2662,7 @@ function renderDashboardMessages(){
   const compose=document.getElementById('dashboardMessageComposeBtn');
   const context=document.getElementById('dashboardRoleContext');
   if(context)context.textContent=dashboardRoleContextText();
-  if(compose)compose.style.display=cloudSession?.access_token?'':'none';
+  if(compose)compose.style.display=currentUserId()?'':'none';
   if(!wrap||!box)return;
 
   if(!userMessagesAvailable){
@@ -2758,8 +2758,7 @@ async function markUserMessageRead(id){
 }
 
 async function openUserMessageComposer(){
-  if(!cloudSession?.access_token)return;
-
+  if(!currentUserId())return;
   let profiles=[];
   try{
     profiles=await cloudRequest('profiles?select=id,full_name,email,role,active&active=eq.true&order=full_name.asc.nullslast,email.asc')||[];
@@ -2767,51 +2766,37 @@ async function openUserMessageComposer(){
     alert('Benutzer konnten nicht geladen werden: '+(e.message||e));
     return;
   }
-
-  const others=profiles.filter(p=>p.id!==currentUserId());
-  const internalRecipients=others.filter(p=>p.role!=='customer');
-  const customerRecipients=hasOperationalAdminAccess()
-    ? others.filter(p=>p.role==='customer')
-    : [];
-
-  if(!internalRecipients.length && !customerRecipients.length){
+  const recipients=profiles.filter(p=>
+    p.id!==currentUserId() &&
+    (hasOperationalAdminAccess() || p.role!=='customer')
+  );
+  if(!recipients.length){
     alert('Es ist kein weiterer aktiver Benutzer vorhanden.');
     return;
   }
 
-  const recipientRow=(p,extraClass='')=>`
-    <label class="user-message-recipient-row">
-      <input type="checkbox" class="user-message-recipient-check ${extraClass}" value="${esc(p.id)}" onchange="updateUserMessageRecipientCount()">
-      <span class="user-message-recipient-main">
-        <span class="user-message-recipient-name">${esc(p.full_name||p.email||'Benutzer')}</span>
-        <span class="user-message-recipient-role">${esc(ROLE_LABELS[p.role]||p.role||'')}</span>
-      </span>
-    </label>`;
+  modal(`<h2>Persönliche Mitteilung</h2>
+    <p class="muted">Eine Mitteilung kann an einen oder mehrere Benutzer gleichzeitig gesendet werden.</p>
 
-  modal(`<h2>Mitteilung</h2>
-    <p class="muted">Interne Mitteilungen können an einzelne oder mehrere Benutzer gleichzeitig gesendet werden.</p>
-
-    <label>Interne Empfänger</label>
+    <label>Empfänger</label>
     <div class="user-message-recipient-tools">
-      <button type="button" onclick="toggleAllUserMessageRecipients(true)">Alle internen auswählen</button>
+      <button type="button" onclick="toggleAllUserMessageRecipients(true)">Alle auswählen</button>
       <button type="button" onclick="toggleAllUserMessageRecipients(false)">Auswahl aufheben</button>
       <span id="userMessageRecipientCount" class="muted">0 ausgewählt</span>
     </div>
 
     <div id="userMessageRecipients" class="user-message-recipient-box">
-      ${internalRecipients.length
-        ? internalRecipients.map(p=>recipientRow(p,'user-message-internal-recipient')).join('')
-        : '<div class="muted">Keine weiteren internen Benutzer vorhanden.</div>'}
+      ${recipients.map(p=>`
+        <label class="user-message-recipient-row">
+          <input type="checkbox" class="user-message-recipient-check" value="${esc(p.id)}" onchange="updateUserMessageRecipientCount()">
+          <span class="user-message-recipient-main">
+            <span class="user-message-recipient-name">${esc(p.full_name||p.email||'Benutzer')}</span>
+            <span class="user-message-recipient-role">${esc(ROLE_LABELS[p.role]||p.role||'')}</span>
+          </span>
+        </label>`).join('')}
     </div>
 
-    ${customerRecipients.length?`
-      <label style="margin-top:14px">Auftraggeber – separat auswählen</label>
-      <div class="muted" style="margin-bottom:8px">Auftraggeber werden niemals über „Alle internen auswählen“ markiert.</div>
-      <div class="user-message-recipient-box">
-        ${customerRecipients.map(p=>recipientRow(p,'user-message-customer-recipient')).join('')}
-      </div>`:''}
-
-    <label>Titel<input id="userMessageTitle" maxlength="120" placeholder="z. B. Wer hat den Akkuschrauber?"></label>
+    <label>Titel<input id="userMessageTitle" maxlength="120" placeholder="z. B. Objekt morgen prüfen"></label>
     <label>Nachricht<textarea id="userMessageText" maxlength="2000" placeholder="Kurze, konkrete Information"></textarea></label>
     <label>Objekt (optional)
       <select id="userMessageObject">
@@ -2838,15 +2823,12 @@ function updateUserMessageRecipientCount(){
 }
 
 function toggleAllUserMessageRecipients(checked){
-  document.querySelectorAll('.user-message-internal-recipient').forEach(el=>{el.checked=!!checked;});
-  if(!checked){
-    document.querySelectorAll('.user-message-customer-recipient').forEach(el=>{el.checked=false;});
-  }
+  document.querySelectorAll('.user-message-recipient-check').forEach(el=>{el.checked=!!checked;});
   updateUserMessageRecipientCount();
 }
 
 async function sendUserMessage(){
-  if(!cloudSession?.access_token)return;
+  if(!currentUserId())return;
   const recipients=selectedUserMessageRecipients();
   const title=document.getElementById('userMessageTitle')?.value.trim()||'';
   const message=document.getElementById('userMessageText')?.value.trim()||'';
