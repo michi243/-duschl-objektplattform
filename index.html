@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.43</title>
+<title>Duschl Service – Objektplattform v2.18.44</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -359,7 +359,7 @@ a{color:var(--accent-2)!important}
 }
 
 
-/* ===== v2.18.43 Responsive Topbar + Hamburger-Menü ===== */
+/* ===== v2.18.44 Responsive Topbar + Hamburger-Menü ===== */
 /* Rollenbasierte Menüpunkte werden vollständig ausgeblendet, nicht deaktiviert dargestellt. */
 .app-topbar{height:64px;padding:10px 16px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;z-index:60!important}
 .menu-toggle{width:44px;height:44px;padding:10px!important;display:flex;flex-direction:column;justify-content:center;gap:5px;background:transparent!important;border-color:transparent!important;box-shadow:none!important;flex:0 0 auto}
@@ -386,7 +386,7 @@ main{padding-top:18px}
 @media print{.app-menu,.app-menu-backdrop,.app-topbar{display:none!important}}
 
 
-/* ===== v2.18.43 Interaktive Kennzahlen ===== */
+/* ===== v2.18.44 Interaktive Kennzahlen ===== */
 .kpi-action,.gf-kpi.is-action{position:relative;cursor:pointer;transition:transform .12s ease,border-color .12s ease,background .12s ease;user-select:none}
 .kpi-action:hover,.gf-kpi.is-action:hover{border-color:var(--accent);transform:translateY(-1px)}
 .kpi-action:active,.gf-kpi.is-action:active{transform:translateY(0)}
@@ -396,7 +396,7 @@ main{padding-top:18px}
 .gf-kpi.is-action{padding-right:38px}.gf-kpi .kpi-chevron{right:12px}
 
 
-/* ===== v2.18.43 Persönliches Dashboard / Mitteilungen ===== */
+/* ===== v2.18.44 Persönliches Dashboard / Mitteilungen ===== */
 .dashboard-messages-wrap{margin-top:16px;padding:16px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,rgba(47,143,255,.08),rgba(47,143,255,.025))}
 .dashboard-message-card{position:relative;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#0d1f2b;color:var(--text);box-shadow:0 8px 20px rgba(0,0,0,.16)}
 .dashboard-message-card.unread{background:linear-gradient(180deg,#102636,#0d1f2b);border-color:rgba(47,143,255,.72);box-shadow:inset 3px 0 0 var(--accent),0 8px 20px rgba(0,0,0,.18)}
@@ -777,7 +777,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 }
 </style>
 <style>
-/* ===== v2.18.43 Spracheingabe ===== */
+/* ===== v2.18.44 Spracheingabe ===== */
 .speech-field-host{
   position:relative;
 }
@@ -892,7 +892,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.43</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.44</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1020,7 +1020,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div class="row space">
 <div>
 <h2>Arbeitsvorrat</h2>
-<div class="muted">Operative Steuerung aller zentral gespeicherten Aufgaben.</div>
+<div class="muted">Objektbezogene operative Steuerung aller zentral gespeicherten Aufgaben – ohne personenbezogene Vorab-Zuweisung.</div>
 </div>
 </div>
 <div id="workQueue"></div>
@@ -3328,21 +3328,23 @@ function canUseSettingsUI(){return isAdminRole()}
 function canSeeInternalPersonnelUI(){return hasOperationalAdminAccess()||(!isCustomerRole()&&!isTestUserRole())}
 function customerSafeText(v){return isCustomerRole()?'':(v||'')}
 function currentUserId(){return currentUserProfile?.id||cloudSession?.user?.id||''}
-function isAssignedTaskOwnerUI(f){
-  if(!f||!(isObjectManagerRole()||isTestUserRole()))return false;
-  const t=(db.tasks||[]).find(x=>x.findingId===f.id);
-  return !!(t?.ownerId&&t.ownerId===currentUserId());
+function isAccessibleObjectUI(objectId){
+  if(!objectId)return false;
+  return (db.objects||[]).some(o=>o.id===objectId);
 }
 function canEditFindingUI(f){
   if(!f)return canCreateDocumentationUI();
   return hasOperationalAdminAccess()
     || isTestUserRole()
-    || ((isObjectManagerRole()||isCustomerRole())&&f.createdBy&&f.createdBy===currentUserId())
-    || isAssignedTaskOwnerUI(f);
+    || (isObjectManagerRole()&&isAccessibleObjectUI(f.objectId))
+    || (isCustomerRole()&&f.createdBy&&f.createdBy===currentUserId());
 }
 function canEditInspectionUI(i){
   if(!i)return canCreateDocumentationUI();
-  return hasOperationalAdminAccess()||isTestUserRole()||((isObjectManagerRole()||isCustomerRole())&&i.createdBy&&i.createdBy===currentUserId());
+  return hasOperationalAdminAccess()
+    || isTestUserRole()
+    || (isObjectManagerRole()&&isAccessibleObjectUI(i.objectId))
+    || (isCustomerRole()&&i.createdBy&&i.createdBy===currentUserId());
 }
 
 function formatDocumentationTimestamp(f){
@@ -3985,13 +3987,15 @@ function cloudTaskToLocal(t){
     ownerName:t.owner_name||'',
     dueDate:t.due_date||'',
     workNote:t.work_note||'',
+    completedBy:t.completed_by||null,
+    completedByName:t.completed_by_name||'',
     completedAt:t.completed_at||null,
     createdAt:t.created_at||null,
     updatedAt:t.updated_at||null
   };
 }
 async function cloudLoadTasks(){
-  const rows=await cloudRequest('tasks?select=id,object_id,finding_id,title,task_type,status,owner_id,owner_name,due_date,work_note,completed_at,created_at,updated_at&order=due_date.asc.nullslast,created_at.desc');
+  const rows=await cloudRequest('tasks?select=id,object_id,finding_id,title,task_type,status,owner_id,owner_name,due_date,work_note,completed_by,completed_by_name,completed_at,created_at,updated_at&order=due_date.asc.nullslast,created_at.desc');
   const tasks=(rows||[]).map(cloudTaskToLocal);
   db.tasks=tasks;
   applyTasksToFindings();
@@ -4028,18 +4032,19 @@ async function cloudFindProfileByName(name){
 }
 async function cloudSaveTaskForFinding(f,data){
   if(!f?.id||!f?.objectId)throw new Error('Feststellung oder Objekt fehlt.');
-  const ownerId=(data.ownerId||'').trim();
-  const ownerName=(data.ownerName||'').trim();
+  const completedBy=(data.completedBy||'').trim();
+  const completedByName=(data.completedByName||'').trim();
+  if(data.status==='completed'&&(!completedBy||!completedByName))throw new Error('Bei erledigten Aufgaben muss „Ausgeführt von“ dokumentiert werden.');
   const payload={
     object_id:f.objectId,
     finding_id:f.id,
     title:f.title||'Zusatzmaßnahme',
     task_type:(f.decisionRequired===false?'internal_work':'additional_measure'),
     status:data.status||'planned',
-    owner_id:ownerId||null,
-    owner_name:ownerName||null,
     due_date:data.dueDate||null,
     work_note:data.workNote||null,
+    completed_by:(data.status==='completed')?completedBy:null,
+    completed_by_name:(data.status==='completed')?completedByName:null,
     completed_at:(data.status==='completed')?new Date().toISOString():null,
     updated_at:new Date().toISOString()
   };
@@ -4056,7 +4061,7 @@ async function cloudSaveTaskForFinding(f,data){
     row=rows?.[0];
   }
   if(!row)throw new Error('Aufgabe wurde von Supabase nicht zurückgegeben.');
-  const local=cloudTaskToLocal(row); local.ownerName=ownerName;
+  const local=cloudTaskToLocal(row);
   db.tasks=db.tasks||[];
   const idx=db.tasks.findIndex(t=>t.id===local.id);
   if(idx>=0)db.tasks[idx]=local; else db.tasks.push(local);
@@ -5198,7 +5203,7 @@ function gfTaskDerivedBucket(t){
 }
 function gfTaskSortKey(t){
   const rank={overdue:0,today:1,week:2,later:3,no_due:4,closed:5}[gfTaskDerivedBucket(t)] ?? 9;
-  return `${rank}-${t.dueDate||'9999-12-31'}-${(t.ownerName||'').toLowerCase()}-${(t.title||'').toLowerCase()}`;
+  return `${rank}-${t.dueDate||'9999-12-31'}-${(t.title||'').toLowerCase()}`;
 }
 function gfTaskKpis(items){
   const openDecisionStates=new Set(['pending','quote_requested','quote_sent','approved','deferred','question']);
@@ -5214,8 +5219,7 @@ function gfTaskKpis(items){
   return {
     open:open.length,
     overdue:activeTasks.filter(t=>gfTaskDerivedBucket(t)==='overdue').length,
-    week:activeTasks.filter(t=>['today','week'].includes(gfTaskDerivedBucket(t))).length,
-    noOwner:activeTasks.filter(t=>!(t.ownerName||'').trim()).length
+    week:activeTasks.filter(t=>['today','week'].includes(gfTaskDerivedBucket(t))).length
   };
 }
 function gfWorkFilters(){
@@ -5223,7 +5227,6 @@ function gfWorkFilters(){
     object:document.getElementById('gfWorkObject')?.value||'',
     status:document.getElementById('gfWorkStatus')?.value||'',
     decision:document.getElementById('gfWorkDecision')?.value||'',
-    owner:(document.getElementById('gfWorkOwner')?.value||'').trim().toLowerCase(),
     due:document.getElementById('gfWorkDue')?.value||''
   };
 }
@@ -5235,13 +5238,13 @@ function applyGFWorkKpiFilter(mode){
     .filter(f=>!selectedObject || f.objectId===selectedObject)
     .map(f=>{
       const task=(db.tasks||[]).find(t=>t.findingId===f.id);
-      return {status:task?.status||'',decisionStatus:f.decisionStatus||(f.decisionRequired===false?'not_required':'pending'),implementationResponsibility:f.decisionImplementation||'',ownerName:task?.ownerName||f.workOwner||'',dueDate:task?.dueDate||f.workDueDate||'',hasTask:!!task,findingStatus:f.status||'Offen',workRequired:f.workRequired===true};
+      return {status:task?.status||'',decisionStatus:f.decisionStatus||(f.decisionRequired===false?'not_required':'pending'),implementationResponsibility:f.decisionImplementation||'',dueDate:task?.dueDate||f.workDueDate||'',hasTask:!!task,findingStatus:f.status||'Offen',workRequired:f.workRequired===true};
     });
   const counts=gfTaskKpis(sourceItems);
-  const count=mode==='open'?counts.open:mode==='overdue'?counts.overdue:mode==='week'?counts.week:mode==='noOwner'?counts.noOwner:0;
+  const count=mode==='open'?counts.open:mode==='overdue'?counts.overdue:mode==='week'?counts.week:0;
   if(count<=0)return;
 
-  ['gfWorkStatus','gfWorkDecision','gfWorkOwner','gfWorkDue'].forEach(id=>{
+  ['gfWorkStatus','gfWorkDecision','gfWorkDue'].forEach(id=>{
     const e=document.getElementById(id);
     if(e)e.value='';
   });
@@ -5255,7 +5258,7 @@ function applyGFWorkKpiFilter(mode){
 }
 function resetGFWorkFilters(){
   gfWorkQuickFilter='';
-  ['gfWorkObject','gfWorkStatus','gfWorkDecision','gfWorkOwner','gfWorkDue'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['gfWorkObject','gfWorkStatus','gfWorkDecision','gfWorkDue'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   renderWorkQueue();
 }
 
@@ -5285,9 +5288,11 @@ function renderWorkQueue(){
         status:task?.status||'',
         decisionStatus:f.decisionStatus||(f.decisionRequired===false?'not_required':'pending'),
         implementationResponsibility:f.decisionImplementation||'',
-        ownerName:task?.ownerName||f.workOwner||'',
         dueDate:task?.dueDate||f.workDueDate||'',
         workNote:task?.workNote||f.workNote||'',
+        completedBy:task?.completedBy||'',
+        completedByName:task?.completedByName||'',
+        completedAt:task?.completedAt||'',
         taskId:task?.id||'',
         hasTask:!!task,
         findingStatus:f.status||'Offen',
@@ -5300,7 +5305,6 @@ function renderWorkQueue(){
   const workNavCount=document.getElementById('workqueueNavCount');
   if(workNavCount)workNavCount.textContent=k.open;
   const objects=(db.objects||[]).slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'','de'));
-  const ownerNames=[...new Set(items.map(t=>(t.ownerName||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'de'));
 
   const openDecisionStates=new Set(['pending','quote_requested','quote_sent','approved','deferred','question']);
 
@@ -5317,14 +5321,12 @@ function renderWorkQueue(){
     }
 
     if(current.decision && (t.decisionStatus||'pending')!==current.decision)return false;
-    if(current.owner && !(t.ownerName||'').toLowerCase().includes(current.owner))return false;
     if(current.due){
       if(!t.hasTask || gfTaskDerivedBucket(t)!==current.due)return false;
     }
 
     if(quick==='overdue' && (!t.hasTask || gfTaskDerivedBucket(t)!=='overdue'))return false;
     if(quick==='week' && (!t.hasTask || !['today','week'].includes(gfTaskDerivedBucket(t))))return false;
-    if(quick==='noOwner' && (!t.hasTask || ['completed','cancelled'].includes(t.status) || (t.ownerName||'').trim()))return false;
 
     // Ohne explizite Statusfilter: nur tatsächlich offene/relevante Vorgänge.
     if(!current.status && !current.decision){
@@ -5349,7 +5351,6 @@ function renderWorkQueue(){
       <div class="gf-kpi ${k.open?'is-action':'is-disabled'}" role="button" tabindex="${k.open?'0':'-1'}" onclick="applyGFWorkKpiFilter('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();applyGFWorkKpiFilter('open');}"><span class="kpi-chevron">›</span><span>Offene Vorgänge</span><strong>${k.open}</strong></div>
       <div class="gf-kpi ${k.overdue?'is-action':'is-disabled'}" role="button" tabindex="${k.overdue?'0':'-1'}" onclick="applyGFWorkKpiFilter('overdue')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();applyGFWorkKpiFilter('overdue');}"><span class="kpi-chevron">›</span><span>Überfällig</span><strong>${k.overdue}</strong></div>
       <div class="gf-kpi ${k.week?'is-action':'is-disabled'}" role="button" tabindex="${k.week?'0':'-1'}" onclick="applyGFWorkKpiFilter('week')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();applyGFWorkKpiFilter('week');}"><span class="kpi-chevron">›</span><span>Diese Woche</span><strong>${k.week}</strong></div>
-      <div class="gf-kpi ${k.noOwner?'is-action':'is-disabled'}" role="button" tabindex="${k.noOwner?'0':'-1'}" onclick="applyGFWorkKpiFilter('noOwner')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();applyGFWorkKpiFilter('noOwner');}"><span class="kpi-chevron">›</span><span>Aufgaben ohne Verantwortlichen</span><strong>${k.noOwner}</strong></div>
     </div>
 
     <div class="gf-filterbox">
@@ -5373,11 +5374,6 @@ function renderWorkQueue(){
           <option value="" ${!current.decision?'selected':''}>Alle Entscheidungsstatus</option>
           ${Object.entries(DECISION_STATUS_LABELS).map(([value,label])=>`<option value="${value}" ${current.decision===value?'selected':''}>${esc(label)}</option>`).join('')}
         </select>
-      </label>
-
-      <label>Verantwortlich
-        <input id="gfWorkOwner" list="gfWorkOwnerList" value="${esc(current.owner)}" placeholder="z. B. Hans Müller" onchange="gfWorkQuickFilter='';renderWorkQueue()">
-        <datalist id="gfWorkOwnerList">${ownerNames.map(x=>`<option value="${esc(x)}"></option>`).join('')}</datalist>
       </label>
 
       <label>Fälligkeit
@@ -5424,7 +5420,8 @@ function renderWorkQueue(){
             </div>
             <div class="gf-meta">
               <div><b>Dokumentation:</b> ${esc(f.status||'Offen')}</div>
-              ${t.hasTask?`<div><b>Verantwortlich:</b> ${esc((t.ownerName||'').trim()||'Nicht zugeordnet')}</div>`:''}
+              ${t.hasTask&&t.status==='completed'?`<div><b>Ausgeführt von:</b> ${esc(t.completedByName||'Nicht dokumentiert')}</div>`:''}
+              ${t.hasTask&&t.status==='completed'&&t.completedAt?`<div><b>Erledigt am:</b> ${esc(new Date(t.completedAt).toLocaleString('de-DE'))}</div>`:''}
               ${t.hasTask?`<div><b>Fällig:</b> ${esc(due)}</div>`:''}
               ${t.workNote?`<div><b>Arbeitsinfo:</b> ${esc(t.workNote)}</div>`:''}
             </div>
@@ -5437,59 +5434,63 @@ function renderWorkQueue(){
       }).join('') : `<div class="empty-state">Keine Vorgänge für die gewählten Filter.</div>`}
     </div>`;
 }
-async function cloudLoadAssignableObjectManagers(objectId){
-  if(isTestUserRole()){
-    return currentUserProfile?[currentUserProfile]:[];
-  }
+async function cloudLoadExecutionUsers(objectId){
+  if(isTestUserRole())return currentUserProfile?[currentUserProfile]:[];
   const assignments=await cloudRequest(`object_user_assignments?select=user_id&object_id=eq.${encodeURIComponent(objectId)}&active=eq.true`);
   const ids=[...new Set((assignments||[]).map(a=>a.user_id).filter(Boolean))];
   if(!ids.length)return [];
   const rows=await cloudRequest(`profiles?select=id,full_name,email,role,active&id=in.(${ids.map(x=>encodeURIComponent(x)).join(',')})&active=eq.true`);
   return (rows||[])
-    .filter(p=>p.role==='object_manager'||p.role==='staff')
+    .filter(p=>['platform_admin','object_manager','staff','test_user'].includes(p.role))
     .sort((a,b)=>(a.full_name||a.email||'').localeCompare(b.full_name||b.email||'','de'));
 }
 
+function toggleWorkExecutorField(){
+  const status=document.getElementById('wiStatus')?.value||'';
+  const wrap=document.getElementById('wiExecutorWrap');
+  if(wrap)wrap.style.display=status==='completed'?'block':'none';
+}
+
 async function openWorkItem(id){
-  if(!canUseWorkQueueUI()){alert('Aufgabenplanung ist für diese Rolle nicht freigegeben.');return;}
+  if(!canUseWorkQueueUI()){alert('Aufgabenbearbeitung ist für diese Rolle nicht freigegeben.');return;}
   const f=db.findings.find(x=>x.id===id);if(!f)return;
   const task=(db.tasks||[]).find(t=>t.findingId===id);
   const status=task?.status||f.taskStatus||'planned';
-  const currentOwnerId=task?.ownerId||f.workOwnerId||'';
-  const currentOwnerName=task?.ownerName||f.workOwner||'';
   const due=task?.dueDate||f.workDueDate||'';
   const note=task?.workNote||f.workNote||'';
+  const currentExecutorId=task?.completedBy||'';
   const statusOptions=Object.entries(TASK_STATUS_LABELS)
     .map(([v,l])=>`<option value="${v}" ${status===v?'selected':''}>${esc(l)}</option>`)
     .join('');
 
-  let managers=[];
+  let executionUsers=[];
   try{
-    if(cloudSession?.access_token)managers=await cloudLoadAssignableObjectManagers(f.objectId);
+    if(cloudSession?.access_token)executionUsers=await cloudLoadExecutionUsers(f.objectId);
   }catch(e){
-    console.error('Objektbetreuer konnten nicht geladen werden',e);
+    console.error('Ausführende Personen konnten nicht geladen werden',e);
   }
+  if(currentUserProfile?.id&&!executionUsers.some(p=>p.id===currentUserProfile.id))executionUsers.push(currentUserProfile);
+  executionUsers.sort((a,b)=>(a.full_name||a.email||'').localeCompare(b.full_name||b.email||'','de'));
 
-  const ownerOptions=[
-    `<option value="">Nicht zugeordnet</option>`,
-    ...managers.map(p=>{
+  const executorOptions=[
+    `<option value="">Bitte auswählen</option>`,
+    ...executionUsers.map(p=>{
       const label=(p.full_name||p.email||p.id).trim();
-      return `<option value="${esc(p.id)}" data-name="${esc(label)}" ${currentOwnerId===p.id?'selected':''}>${esc(label)}</option>`;
+      const selected=currentExecutorId===p.id || (!currentExecutorId&&status==='completed'&&p.id===currentUserId());
+      return `<option value="${esc(p.id)}" data-name="${esc(label)}" ${selected?'selected':''}>${esc(label)}</option>`;
     })
   ].join('');
 
-  const legacyHint=(!currentOwnerId&&currentOwnerName)
-    ? `<div class="muted" style="margin-top:6px">Bisherige Freitext-Zuordnung: <b>${esc(currentOwnerName)}</b>. Bitte jetzt einen echten Objektbetreuer auswählen.</div>`
-    : '';
-
   modal(`<h2>${task?'Aufgabe bearbeiten':'Aufgabe planen'}</h2>
     <div class="muted">${esc(objectName(f.objectId))} · ${esc(f.title||'')}</div>
-    <label>Arbeitsstatus<select id="wiStatus">${statusOptions}</select></label>
-    <label>Verantwortlicher Objektbetreuer
-      <select id="wiOwnerId">${ownerOptions}</select>
-    </label>
-    ${legacyHint}
-    <div class="muted">Es werden nur aktive Objektbetreuer angezeigt, die diesem Objekt zugeordnet sind. Die Auswahl wird technisch über die Benutzer-ID gespeichert.</div>
+    <div class="muted" style="margin-top:8px">Der Vorgang ist dem Objekt zugeordnet. Eine personenbezogene Vorab-Zuweisung erfolgt nicht.</div>
+    <label>Arbeitsstatus<select id="wiStatus" onchange="toggleWorkExecutorField()">${statusOptions}</select></label>
+    <div id="wiExecutorWrap" style="display:${status==='completed'?'block':'none'}">
+      <label>Ausgeführt von *
+        <select id="wiCompletedBy">${executorOptions}</select>
+      </label>
+      <div class="muted">Wird nur beim Abschluss dokumentiert. Grundlage ist die aktive Objektzuordnung.</div>
+    </div>
     <label>Fällig am<input id="wiDue" type="date" value="${esc(due)}"></label>
     <label>Arbeitsinformation<textarea id="wiNote" placeholder="Hinweise für die Ausführung">${esc(note)}</textarea></label>
     <div class="row"><button class="primary" onclick="saveWorkItem('${id}')">Speichern</button><button onclick="closeModal()">Abbrechen</button></div>`);
@@ -5499,16 +5500,17 @@ function openPlanTask(id){openWorkItem(id);}
 async function saveWorkItem(id){
   if(!canUseWorkQueueUI()){alert('Aufgabenbearbeitung ist für diese Rolle nicht freigegeben.');return;}
   const f=db.findings.find(x=>x.id===id);if(!f)return;
-  const ownerSelect=document.getElementById('wiOwnerId');
-  const ownerId=ownerSelect?.value||'';
-  const ownerName=ownerId ? (ownerSelect?.selectedOptions?.[0]?.dataset?.name||ownerSelect?.selectedOptions?.[0]?.textContent||'').trim() : '';
   const dueDate=document.getElementById('wiDue')?.value||'';
   const workNote=document.getElementById('wiNote')?.value.trim()||'';
   const status=document.getElementById('wiStatus')?.value||'planned';
+  const executorSelect=document.getElementById('wiCompletedBy');
+  const completedBy=status==='completed'?(executorSelect?.value||''):'';
+  const completedByName=completedBy?(executorSelect?.selectedOptions?.[0]?.dataset?.name||executorSelect?.selectedOptions?.[0]?.textContent||'').trim():'';
+  if(status==='completed'&&!completedBy){alert('Bitte dokumentieren, wer die Aufgabe tatsächlich ausgeführt hat.');return;}
   try{
     if(!cloudSession?.access_token)throw new Error('Nicht angemeldet.');
     cloudSetStatus('Arbeitsvorrat wird zentral gespeichert …','wait');
-    await cloudSaveTaskForFinding(f,{ownerId,ownerName,dueDate,workNote,status});
+    await cloudSaveTaskForFinding(f,{completedBy,completedByName,dueDate,workNote,status});
     cloudSetStatus('Verbunden · Arbeitsvorrat zentral','ok');
     closeModal();renderAll();showSection('workqueue');
   }catch(e){
@@ -7044,7 +7046,7 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
         <option value="yes" ${f.workRequired===true?'selected':''}>Ja – in den Arbeitsvorrat übernehmen</option>
       </select>
       <div class="muted" style="margin-top:6px">
-        Bei „Ja“ erscheint die Feststellung im Arbeitsvorrat. Dort können Verantwortlicher, Fälligkeit und Arbeitsstatus festgelegt werden.
+        Bei „Ja“ erscheint die Feststellung im objektbezogenen Arbeitsvorrat. Dort werden Fälligkeit und Arbeitsstatus gesteuert; wer die Leistung ausgeführt hat, wird erst beim Abschluss dokumentiert.
       </div>
     </div>
   </div>
@@ -7326,7 +7328,7 @@ if(!bootPublicResidentReport()){
 <div class="photo-viewer-hint">Zum Vergrößern zwei Finger verwenden · × zum Schließen</div>
 </div>
 <script>
-/* ===== v2.18.43 Spracheingabe für alle Freitextfelder ===== */
+/* ===== v2.18.44 Spracheingabe für alle Freitextfelder ===== */
 (function(){
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SpeechRecognition) return;
