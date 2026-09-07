@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.44</title>
+<title>Duschl Service – Objektplattform v2.18.46</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -359,7 +359,7 @@ a{color:var(--accent-2)!important}
 }
 
 
-/* ===== v2.18.44 Responsive Topbar + Hamburger-Menü ===== */
+/* ===== v2.18.46 Responsive Topbar + Hamburger-Menü ===== */
 /* Rollenbasierte Menüpunkte werden vollständig ausgeblendet, nicht deaktiviert dargestellt. */
 .app-topbar{height:64px;padding:10px 16px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;z-index:60!important}
 .menu-toggle{width:44px;height:44px;padding:10px!important;display:flex;flex-direction:column;justify-content:center;gap:5px;background:transparent!important;border-color:transparent!important;box-shadow:none!important;flex:0 0 auto}
@@ -386,7 +386,7 @@ main{padding-top:18px}
 @media print{.app-menu,.app-menu-backdrop,.app-topbar{display:none!important}}
 
 
-/* ===== v2.18.44 Interaktive Kennzahlen ===== */
+/* ===== v2.18.46 Interaktive Kennzahlen ===== */
 .kpi-action,.gf-kpi.is-action{position:relative;cursor:pointer;transition:transform .12s ease,border-color .12s ease,background .12s ease;user-select:none}
 .kpi-action:hover,.gf-kpi.is-action:hover{border-color:var(--accent);transform:translateY(-1px)}
 .kpi-action:active,.gf-kpi.is-action:active{transform:translateY(0)}
@@ -396,7 +396,7 @@ main{padding-top:18px}
 .gf-kpi.is-action{padding-right:38px}.gf-kpi .kpi-chevron{right:12px}
 
 
-/* ===== v2.18.44 Persönliches Dashboard / Mitteilungen ===== */
+/* ===== v2.18.46 Persönliches Dashboard / Mitteilungen ===== */
 .dashboard-messages-wrap{margin-top:16px;padding:16px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,rgba(47,143,255,.08),rgba(47,143,255,.025))}
 .dashboard-message-card{position:relative;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#0d1f2b;color:var(--text);box-shadow:0 8px 20px rgba(0,0,0,.16)}
 .dashboard-message-card.unread{background:linear-gradient(180deg,#102636,#0d1f2b);border-color:rgba(47,143,255,.72);box-shadow:inset 3px 0 0 var(--accent),0 8px 20px rgba(0,0,0,.18)}
@@ -777,7 +777,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 }
 </style>
 <style>
-/* ===== v2.18.44 Spracheingabe ===== */
+/* ===== v2.18.46 Spracheingabe ===== */
 .speech-field-host{
   position:relative;
 }
@@ -892,7 +892,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.44</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.46</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -4034,7 +4034,7 @@ async function cloudSaveTaskForFinding(f,data){
   if(!f?.id||!f?.objectId)throw new Error('Feststellung oder Objekt fehlt.');
   const completedBy=(data.completedBy||'').trim();
   const completedByName=(data.completedByName||'').trim();
-  if(data.status==='completed'&&(!completedBy||!completedByName))throw new Error('Bei erledigten Aufgaben muss „Ausgeführt von“ dokumentiert werden.');
+  if(data.status==='completed'&&(!completedBy||!completedByName))throw new Error('Bei erledigten Aufgaben muss „Ausführung bestätigt durch“ dokumentiert werden.');
   const payload={
     object_id:f.objectId,
     finding_id:f.id,
@@ -5420,7 +5420,7 @@ function renderWorkQueue(){
             </div>
             <div class="gf-meta">
               <div><b>Dokumentation:</b> ${esc(f.status||'Offen')}</div>
-              ${t.hasTask&&t.status==='completed'?`<div><b>Ausgeführt von:</b> ${esc(t.completedByName||'Nicht dokumentiert')}</div>`:''}
+              ${t.hasTask&&t.status==='completed'?`<div><b>Ausführung bestätigt durch:</b> ${esc(t.completedByName||'Nicht dokumentiert')}</div>`:''}
               ${t.hasTask&&t.status==='completed'&&t.completedAt?`<div><b>Erledigt am:</b> ${esc(new Date(t.completedAt).toLocaleString('de-DE'))}</div>`:''}
               ${t.hasTask?`<div><b>Fällig:</b> ${esc(due)}</div>`:''}
               ${t.workNote?`<div><b>Arbeitsinfo:</b> ${esc(t.workNote)}</div>`:''}
@@ -5436,12 +5436,22 @@ function renderWorkQueue(){
 }
 async function cloudLoadExecutionUsers(objectId){
   if(isTestUserRole())return currentUserProfile?[currentUserProfile]:[];
+
   const assignments=await cloudRequest(`object_user_assignments?select=user_id&object_id=eq.${encodeURIComponent(objectId)}&active=eq.true`);
-  const ids=[...new Set((assignments||[]).map(a=>a.user_id).filter(Boolean))];
-  if(!ids.length)return [];
-  const rows=await cloudRequest(`profiles?select=id,full_name,email,role,active&id=in.(${ids.map(x=>encodeURIComponent(x)).join(',')})&active=eq.true`);
-  return (rows||[])
-    .filter(p=>['platform_admin','object_manager','staff','test_user'].includes(p.role))
+  const assignedIds=[...new Set((assignments||[]).map(a=>a.user_id).filter(Boolean))];
+
+  // Objektbetreuer nur über aktive Objektzuordnung; Administrator / GF und
+  // Admin-Vertretung arbeiten objektübergreifend und benötigen keine Zuordnung.
+  const profiles=await cloudRequest('profiles?select=id,full_name,email,role,active,admin_delegate&active=eq.true');
+  const assignedSet=new Set(assignedIds);
+
+  return (profiles||[])
+    .filter(p=>{
+      const role=String(p.role||'').toLowerCase();
+      const isGlobalAdmin=role==='platform_admin'||p.admin_delegate===true;
+      const isAssignedObjectManager=['object_manager','staff'].includes(role)&&assignedSet.has(p.id);
+      return isGlobalAdmin||isAssignedObjectManager;
+    })
     .sort((a,b)=>(a.full_name||a.email||'').localeCompare(b.full_name||b.email||'','de'));
 }
 
@@ -5458,38 +5468,18 @@ async function openWorkItem(id){
   const status=task?.status||f.taskStatus||'planned';
   const due=task?.dueDate||f.workDueDate||'';
   const note=task?.workNote||f.workNote||'';
-  const currentExecutorId=task?.completedBy||'';
   const statusOptions=Object.entries(TASK_STATUS_LABELS)
     .map(([v,l])=>`<option value="${v}" ${status===v?'selected':''}>${esc(l)}</option>`)
     .join('');
-
-  let executionUsers=[];
-  try{
-    if(cloudSession?.access_token)executionUsers=await cloudLoadExecutionUsers(f.objectId);
-  }catch(e){
-    console.error('Ausführende Personen konnten nicht geladen werden',e);
-  }
-  if(currentUserProfile?.id&&!executionUsers.some(p=>p.id===currentUserProfile.id))executionUsers.push(currentUserProfile);
-  executionUsers.sort((a,b)=>(a.full_name||a.email||'').localeCompare(b.full_name||b.email||'','de'));
-
-  const executorOptions=[
-    `<option value="">Bitte auswählen</option>`,
-    ...executionUsers.map(p=>{
-      const label=(p.full_name||p.email||p.id).trim();
-      const selected=currentExecutorId===p.id || (!currentExecutorId&&status==='completed'&&p.id===currentUserId());
-      return `<option value="${esc(p.id)}" data-name="${esc(label)}" ${selected?'selected':''}>${esc(label)}</option>`;
-    })
-  ].join('');
+  const confirmerName=(currentUserProfile?.full_name||currentUserProfile?.email||'Aktuell angemeldeter Benutzer').trim();
 
   modal(`<h2>${task?'Aufgabe bearbeiten':'Aufgabe planen'}</h2>
     <div class="muted">${esc(objectName(f.objectId))} · ${esc(f.title||'')}</div>
     <div class="muted" style="margin-top:8px">Der Vorgang ist dem Objekt zugeordnet. Eine personenbezogene Vorab-Zuweisung erfolgt nicht.</div>
     <label>Arbeitsstatus<select id="wiStatus" onchange="toggleWorkExecutorField()">${statusOptions}</select></label>
     <div id="wiExecutorWrap" style="display:${status==='completed'?'block':'none'}">
-      <label>Ausgeführt von *
-        <select id="wiCompletedBy">${executorOptions}</select>
-      </label>
-      <div class="muted">Wird nur beim Abschluss dokumentiert. Grundlage ist die aktive Objektzuordnung.</div>
+      <label>Ausführung bestätigt durch</label>
+      <div class="card" style="margin-top:6px"><b>${esc(confirmerName)}</b><div class="muted">Wird beim Speichern automatisch aus dem aktuell angemeldeten Benutzer protokolliert.</div></div>
     </div>
     <label>Fällig am<input id="wiDue" type="date" value="${esc(due)}"></label>
     <label>Arbeitsinformation<textarea id="wiNote" placeholder="Hinweise für die Ausführung">${esc(note)}</textarea></label>
@@ -5503,10 +5493,9 @@ async function saveWorkItem(id){
   const dueDate=document.getElementById('wiDue')?.value||'';
   const workNote=document.getElementById('wiNote')?.value.trim()||'';
   const status=document.getElementById('wiStatus')?.value||'planned';
-  const executorSelect=document.getElementById('wiCompletedBy');
-  const completedBy=status==='completed'?(executorSelect?.value||''):'';
-  const completedByName=completedBy?(executorSelect?.selectedOptions?.[0]?.dataset?.name||executorSelect?.selectedOptions?.[0]?.textContent||'').trim():'';
-  if(status==='completed'&&!completedBy){alert('Bitte dokumentieren, wer die Aufgabe tatsächlich ausgeführt hat.');return;}
+  const completedBy=status==='completed'?(currentUserId()||''):'';
+  const completedByName=status==='completed'?(currentUserProfile?.full_name||currentUserProfile?.email||'').trim():'';
+  if(status==='completed'&&(!completedBy||!completedByName)){alert('Der aktuell angemeldete Benutzer konnte nicht eindeutig als bestätigende Person ermittelt werden.');return;}
   try{
     if(!cloudSession?.access_token)throw new Error('Nicht angemeldet.');
     cloudSetStatus('Arbeitsvorrat wird zentral gespeichert …','wait');
@@ -7328,7 +7317,7 @@ if(!bootPublicResidentReport()){
 <div class="photo-viewer-hint">Zum Vergrößern zwei Finger verwenden · × zum Schließen</div>
 </div>
 <script>
-/* ===== v2.18.44 Spracheingabe für alle Freitextfelder ===== */
+/* ===== v2.18.46 Spracheingabe für alle Freitextfelder ===== */
 (function(){
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SpeechRecognition) return;
