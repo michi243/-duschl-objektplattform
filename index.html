@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.37</title>
+<title>Duschl Service – Objektplattform v2.18.38</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -359,7 +359,7 @@ a{color:var(--accent-2)!important}
 }
 
 
-/* ===== v2.18.37 Responsive Topbar + Hamburger-Menü ===== */
+/* ===== v2.18.38 Responsive Topbar + Hamburger-Menü ===== */
 /* Rollenbasierte Menüpunkte werden vollständig ausgeblendet, nicht deaktiviert dargestellt. */
 .app-topbar{height:64px;padding:10px 16px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;z-index:60!important}
 .menu-toggle{width:44px;height:44px;padding:10px!important;display:flex;flex-direction:column;justify-content:center;gap:5px;background:transparent!important;border-color:transparent!important;box-shadow:none!important;flex:0 0 auto}
@@ -386,7 +386,7 @@ main{padding-top:18px}
 @media print{.app-menu,.app-menu-backdrop,.app-topbar{display:none!important}}
 
 
-/* ===== v2.18.37 Interaktive Kennzahlen ===== */
+/* ===== v2.18.38 Interaktive Kennzahlen ===== */
 .kpi-action,.gf-kpi.is-action{position:relative;cursor:pointer;transition:transform .12s ease,border-color .12s ease,background .12s ease;user-select:none}
 .kpi-action:hover,.gf-kpi.is-action:hover{border-color:var(--accent);transform:translateY(-1px)}
 .kpi-action:active,.gf-kpi.is-action:active{transform:translateY(0)}
@@ -396,7 +396,7 @@ main{padding-top:18px}
 .gf-kpi.is-action{padding-right:38px}.gf-kpi .kpi-chevron{right:12px}
 
 
-/* ===== v2.18.37 Persönliches Dashboard / Mitteilungen ===== */
+/* ===== v2.18.38 Persönliches Dashboard / Mitteilungen ===== */
 .dashboard-messages-wrap{margin-top:16px;padding:16px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,rgba(47,143,255,.08),rgba(47,143,255,.025))}
 .dashboard-message-card{position:relative;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#0d1f2b;color:var(--text);box-shadow:0 8px 20px rgba(0,0,0,.16)}
 .dashboard-message-card.unread{background:linear-gradient(180deg,#102636,#0d1f2b);border-color:rgba(47,143,255,.72);box-shadow:inset 3px 0 0 var(--accent),0 8px 20px rgba(0,0,0,.18)}
@@ -772,7 +772,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 }
 </style>
 <style>
-/* ===== v2.18.37 Spracheingabe ===== */
+/* ===== v2.18.38 Spracheingabe ===== */
 .speech-field-host{
   position:relative;
 }
@@ -887,7 +887,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.37</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.38</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -2770,6 +2770,25 @@ async function markUserMessageRead(id){
 
 async function openUserMessageComposer(){
   if(!currentUserId())return;
+
+  if(isCustomerRole()){
+    modal(`<h2>Mitteilung an die Administration</h2>
+      <p class="muted">Deine Mitteilung wird automatisch an die zuständigen Administratoren und Admin-Vertretungen gesendet. Eine Empfängerauswahl ist nicht erforderlich.</p>
+      <label>Titel<input id="userMessageTitle" maxlength="120" placeholder="z. B. Rückfrage zum Objekt"></label>
+      <label>Nachricht<textarea id="userMessageText" maxlength="2000" placeholder="Kurze, konkrete Information"></textarea></label>
+      <label>Objekt (optional)
+        <select id="userMessageObject">
+          <option value="">Kein Objektbezug</option>
+          ${(db.objects||[]).map(o=>`<option value="${esc(o.id)}">${esc(o.name||'Objekt')}</option>`).join('')}
+        </select>
+      </label>
+      <div class="row" style="margin-top:14px">
+        <button class="primary" type="button" onclick="sendUserMessage()">Mitteilung senden</button>
+        <button type="button" onclick="closeModal()">Abbrechen</button>
+      </div>`);
+    return;
+  }
+
   let recipients=[];
   try{
     recipients=await cloudRequest('rpc/get_user_message_recipients',{
@@ -2839,14 +2858,36 @@ function toggleAllUserMessageRecipients(checked){
 
 async function sendUserMessage(){
   if(!currentUserId())return;
-  const recipients=selectedUserMessageRecipients();
   const title=document.getElementById('userMessageTitle')?.value.trim()||'';
   const message=document.getElementById('userMessageText')?.value.trim()||'';
   const objectId=document.getElementById('userMessageObject')?.value||'';
 
-  if(!recipients.length)return alert('Bitte mindestens einen Empfänger auswählen.');
   if(!title)return alert('Bitte einen Titel eingeben.');
   if(!message)return alert('Bitte eine Nachricht eingeben.');
+
+  if(isCustomerRole()){
+    try{
+      const result=await cloudRequest('rpc/send_customer_admin_message',{
+        method:'POST',
+        body:JSON.stringify({
+          p_title:title,
+          p_message:message,
+          p_object_id:objectId||null
+        })
+      });
+      closeModal();
+      const count=Number(result)||0;
+      alert(count>0
+        ? 'Mitteilung wurde an die Administration gesendet.'
+        : 'Mitteilung konnte nicht gesendet werden: Es ist kein aktiver Administrator oder keine aktive Admin-Vertretung vorhanden.');
+    }catch(e){
+      alert('Mitteilung konnte nicht gespeichert werden: '+(e.message||e));
+    }
+    return;
+  }
+
+  const recipients=selectedUserMessageRecipients();
+  if(!recipients.length)return alert('Bitte mindestens einen Empfänger auswählen.');
 
   try{
     for(const recipient of recipients){
@@ -6969,7 +7010,7 @@ if(!bootPublicResidentReport()){
 <div class="photo-viewer-hint">Zum Vergrößern zwei Finger verwenden · × zum Schließen</div>
 </div>
 <script>
-/* ===== v2.18.37 Spracheingabe für alle Freitextfelder ===== */
+/* ===== v2.18.38 Spracheingabe für alle Freitextfelder ===== */
 (function(){
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SpeechRecognition) return;
