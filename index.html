@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.47</title>
+<title>Duschl Service – Objektplattform v2.18.48</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -359,7 +359,7 @@ a{color:var(--accent-2)!important}
 }
 
 
-/* ===== v2.18.47 Responsive Topbar + Hamburger-Menü ===== */
+/* ===== v2.18.48 Responsive Topbar + Hamburger-Menü ===== */
 /* Rollenbasierte Menüpunkte werden vollständig ausgeblendet, nicht deaktiviert dargestellt. */
 .app-topbar{height:64px;padding:10px 16px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;z-index:60!important}
 .menu-toggle{width:44px;height:44px;padding:10px!important;display:flex;flex-direction:column;justify-content:center;gap:5px;background:transparent!important;border-color:transparent!important;box-shadow:none!important;flex:0 0 auto}
@@ -386,7 +386,7 @@ main{padding-top:18px}
 @media print{.app-menu,.app-menu-backdrop,.app-topbar{display:none!important}}
 
 
-/* ===== v2.18.47 Interaktive Kennzahlen ===== */
+/* ===== v2.18.48 Interaktive Kennzahlen ===== */
 .kpi-action,.gf-kpi.is-action{position:relative;cursor:pointer;transition:transform .12s ease,border-color .12s ease,background .12s ease;user-select:none}
 .kpi-action:hover,.gf-kpi.is-action:hover{border-color:var(--accent);transform:translateY(-1px)}
 .kpi-action:active,.gf-kpi.is-action:active{transform:translateY(0)}
@@ -396,7 +396,7 @@ main{padding-top:18px}
 .gf-kpi.is-action{padding-right:38px}.gf-kpi .kpi-chevron{right:12px}
 
 
-/* ===== v2.18.47 Persönliches Dashboard / Mitteilungen ===== */
+/* ===== v2.18.48 Persönliches Dashboard / Mitteilungen ===== */
 .dashboard-messages-wrap{margin-top:16px;padding:16px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,rgba(47,143,255,.08),rgba(47,143,255,.025))}
 .dashboard-message-card{position:relative;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#0d1f2b;color:var(--text);box-shadow:0 8px 20px rgba(0,0,0,.16)}
 .dashboard-message-card.unread{background:linear-gradient(180deg,#102636,#0d1f2b);border-color:rgba(47,143,255,.72);box-shadow:inset 3px 0 0 var(--accent),0 8px 20px rgba(0,0,0,.18)}
@@ -777,7 +777,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 }
 </style>
 <style>
-/* ===== v2.18.47 Spracheingabe ===== */
+/* ===== v2.18.48 Spracheingabe ===== */
 .speech-field-host{
   position:relative;
 }
@@ -821,6 +821,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div id="publicReportFormWrap">
 <h2>Anliegen melden</h2>
 <div class="muted">Bitte beschreiben Sie kurz, was Ihnen am Objekt aufgefallen ist.</div>
+<div id="prContext" class="public-report-note" style="display:none;margin-top:12px"></div>
 <label for="prName">Name *</label>
 <input autocomplete="name" id="prName" maxlength="120" placeholder="Vor- und Nachname" type="text"/>
 <label for="prEmail">E-Mail für Rückmeldung</label>
@@ -892,7 +893,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.47</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.48</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -2599,6 +2600,7 @@ module.exports = QRCode;
 </script>
 <script>
 
+const APP_VERSION='2.18.48';
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -3052,11 +3054,53 @@ async function sendUserMessage(){
 
 let publicResidentReportMode=false;
 let publicResidentObjectId='';
+let publicResidentAreaId='';
+let publicResidentAreaName='';
 
+function validUuid(raw=''){
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test((raw||'').trim());
+}
 function publicReportObjectFromUrl(){
-  const p=new URLSearchParams(location.search);
-  const raw=(p.get('meldung')||'').trim();
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(raw) ? raw : '';
+  const raw=(new URLSearchParams(location.search).get('meldung')||'').trim();
+  return validUuid(raw)?raw:'';
+}
+function publicReportAreaFromUrl(){
+  const raw=(new URLSearchParams(location.search).get('bereich')||'').trim();
+  return validUuid(raw)?raw:'';
+}
+async function loadPublicResidentReportContext(){
+  const box=document.getElementById('prContext');
+  if(!publicResidentObjectId)return;
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_public_report_context`,{
+      method:'POST',
+      headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({p_object_id:publicResidentObjectId,p_area_id:publicResidentAreaId||null})
+    });
+    if(!r.ok){
+      if(publicResidentAreaId)throw new Error('Bereich konnte nicht geladen werden.');
+      return;
+    }
+    const raw=await r.text();
+    let rows=[]; try{rows=raw?JSON.parse(raw):[]}catch(_e){}
+    const ctx=Array.isArray(rows)?rows[0]:rows;
+    if(!ctx){if(publicResidentAreaId)throw new Error('Bereich nicht verfügbar.');return;}
+    publicResidentAreaName=(ctx.area_name||'').trim();
+    if(box){
+      box.innerHTML=`<strong>${esc(ctx.object_name||'Objekt')}</strong>${publicResidentAreaName?`<div style="margin-top:4px">Bereich: <strong>${esc(publicResidentAreaName)}</strong></div>`:''}`;
+      box.style.display='block';
+    }
+    const loc=document.getElementById('prLocation');
+    const lab=document.querySelector('label[for="prLocation"]');
+    if(publicResidentAreaId && publicResidentAreaName){
+      if(lab)lab.textContent='Genauer Ort / Zusatz';
+      if(loc)loc.placeholder='z. B. neben Stellplatz 18 (optional)';
+    }
+  }catch(e){
+    console.error('Öffentlicher Bereichskontext konnte nicht geladen werden',e);
+    const wrap=document.getElementById('publicReportFormWrap');
+    if(publicResidentAreaId&&wrap)wrap.innerHTML='<div class="public-report-success"><strong>QR-Code ungültig</strong><div class="muted">Dieser Bereich ist nicht mehr verfügbar. Bitte verwenden Sie den QR-Code des Objekts.</div></div>';
+  }
 }
 
 function bootPublicResidentReport(){
@@ -3064,11 +3108,14 @@ function bootPublicResidentReport(){
   if(!hasParam)return false;
   publicResidentReportMode=true;
   publicResidentObjectId=publicReportObjectFromUrl();
+  publicResidentAreaId=publicReportAreaFromUrl();
   document.body.classList.add('public-report-mode');
   document.getElementById('publicReportPage')?.classList.add('active');
   if(!publicResidentObjectId){
     const wrap=document.getElementById('publicReportFormWrap');
     if(wrap)wrap.innerHTML='<div class="public-report-success"><strong>QR-Code ungültig</strong><div class="muted">Dieser Meldelink kann nicht verwendet werden. Bitte scannen Sie den QR-Code am Objekt erneut.</div></div>';
+  }else{
+    setTimeout(loadPublicResidentReportContext,0);
   }
   return true;
 }
@@ -3162,18 +3209,21 @@ async function submitPublicResidentReport(){
 
   let reportCreated=false;
   try{
-    const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/create_public_resident_report_with_token`,{
+    const rpcName=publicResidentAreaId?'create_public_resident_report_with_area':'create_public_resident_report_with_token';
+    const payload={
+      p_object_id:publicResidentObjectId,
+      p_resident_name:name,
+      p_resident_email:email||null,
+      p_category:category||null,
+      p_description:description,
+      p_location_detail:locationDetail||null,
+      p_consent_given:true
+    };
+    if(publicResidentAreaId)payload.p_area_id=publicResidentAreaId;
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/${rpcName}`,{
       method:'POST',
       headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},
-      body:JSON.stringify({
-        p_object_id:publicResidentObjectId,
-        p_resident_name:name,
-        p_resident_email:email||null,
-        p_category:category||null,
-        p_description:description,
-        p_location_detail:locationDetail||null,
-        p_consent_given:true
-      })
+      body:JSON.stringify(payload)
     });
     const raw=await r.text();
     if(!r.ok){
@@ -3938,7 +3988,9 @@ function cloudFindingToLocal(f,decision){
     inspectionId:f.inspection_id||'',
     sourceResidentReportId:f.source_resident_report_id||'',
     type:cloudFindingTypeToLocal(f.type),
+    areaId:f.area_id||'',
     area:f.area||'',
+    areaDetail:f.area_detail||'',
     title:f.title||'',
     category:f.category||'',
     priority:f.priority||'P4',
@@ -4151,7 +4203,7 @@ function findingCreatorMetaHtml(f){
 
 async function cloudReloadFindings(){
   if(!cloudSession?.access_token)return;
-  const rows=await cloudRequest('findings?select=id,object_id,inspection_id,source_resident_report_id,type,area,title,category,priority,description,recommended_action,activity,status,completion_type,completion_note,work_required,created_by,created_at,updated_at&order=created_at.desc');
+  const rows=await cloudRequest('findings?select=id,object_id,inspection_id,source_resident_report_id,type,area_id,area,area_detail,title,category,priority,description,recommended_action,activity,status,completion_type,completion_note,work_required,created_by,created_at,updated_at&order=created_at.desc');
   const decisions=await cloudRequest('decisions?select=id,finding_id,required,status,decided_by,decided_by_name,decided_at,decision_date,implementation_responsibility,comment,amount,created_at,updated_at');
   const dm=new Map((decisions||[]).map(d=>[d.finding_id,d]));
   const pm=await cloudLoadPhotoRefs();
@@ -4178,7 +4230,9 @@ async function cloudSaveFinding(id,data){
     object_id:data.objectId,
     inspection_id:isCustomerRole()?null:(data.inspectionId||null),
     type:cloudFindingTypeToDb(data.type),
+    area_id:data.areaId||null,
     area:data.area||null,
+    area_detail:data.areaDetail||null,
     title:data.title,
     category:data.category||null,
     priority:data.priority||'P4',
@@ -4273,7 +4327,7 @@ async function cloudLoadResidentReports(){
     return cloudResidentReports;
   }
   const rows=await cloudRequest(
-    'resident_reports?select=id,report_no,object_id,resident_name,resident_email,category,description,status,internal_assessment,requires_management,converted_to_finding_id,received_at,reviewed_at,completed_at,closed_at,consent_given,location_detail,created_at,updated_at&order=received_at.desc.nullslast,created_at.desc'
+    'resident_reports?select=id,report_no,object_id,area_id,area_name,resident_name,resident_email,category,description,status,internal_assessment,requires_management,converted_to_finding_id,received_at,reviewed_at,completed_at,closed_at,consent_given,location_detail,created_at,updated_at&order=received_at.desc.nullslast,created_at.desc'
   );
   const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
   cloudResidentReports=(Array.isArray(rows)?rows:[]).filter(r=>accessibleObjectIds.has(r.object_id));
@@ -4384,12 +4438,41 @@ async function refreshAllCloudData(){
   }
 }
 
+let cloudObjectAreas=[];
+
+function objectAreasFor(objectId,{includeInactive=false}={}){
+  return (cloudObjectAreas||[])
+    .filter(a=>a.object_id===objectId&&(includeInactive||a.active!==false))
+    .sort((a,b)=>(Number(a.sort_order||0)-Number(b.sort_order||0))||String(a.name||'').localeCompare(String(b.name||''),'de'));
+}
+function objectAreaById(id){return (cloudObjectAreas||[]).find(a=>a.id===id)||null;}
+async function cloudLoadObjectAreas(){
+  if(!cloudSession?.access_token){cloudObjectAreas=[];return cloudObjectAreas;}
+  const rows=await cloudRequest('object_areas?select=id,object_id,name,active,sort_order,created_at,updated_at&order=object_id.asc,sort_order.asc,name.asc');
+  cloudObjectAreas=Array.isArray(rows)?rows:[];
+  db.objectAreas=cloudObjectAreas.map(a=>({id:a.id,objectId:a.object_id,name:a.name,active:a.active!==false,sortOrder:Number(a.sort_order||0)}));
+  return cloudObjectAreas;
+}
+async function cloudSaveObjectArea(objectId,id,name,sortOrder=0){
+  const payload={object_id:objectId,name:(name||'').trim(),sort_order:Number(sortOrder||0),active:true,updated_at:new Date().toISOString()};
+  if(id){
+    const rows=await cloudRequest(`object_areas?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)});
+    return rows?.[0];
+  }
+  const rows=await cloudRequest('object_areas',{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)});
+  return rows?.[0];
+}
+async function cloudSetObjectAreaActive(id,active){
+  await cloudRequest(`object_areas?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({active:!!active,updated_at:new Date().toISOString()})});
+}
+
 async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
   cloudSetStatus('Supabase wird geladen …','wait');
   try{
     const rows=await cloudRequest('objects?select=id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&order=name.asc');
     db.objects=(rows||[]).map(cloudObjectToLocal);
+    await cloudLoadObjectAreas();
     const inspectionRows=await cloudRequest('inspections?select=id,object_id,started_at,ended_at,notes,created_by,created_at,updated_at&order=started_at.desc');
     db.inspections=(inspectionRows||[]).map(cloudInspectionToLocal);
     await cloudReloadFindings();
@@ -4471,6 +4554,7 @@ async function bootCloud(){
 const KEY='duschl_objekt_doku_master';
 const OLD_KEY='duschl_objekt_doku_v159';
 let db = load();
+if(!Array.isArray(db.objectAreas))db.objectAreas=[];
 
 
 const SUPABASE_PHOTO_BUCKET='objektplattform-media';
@@ -4776,7 +4860,7 @@ async function updateStorageStatus(moved=0,error=''){
 }
 
 function seed(){
-  return {objects:[],inspections:[],findings:[],tasks:[],version:'2.18.8'};
+  return {objects:[],objectAreas:[],inspections:[],findings:[],tasks:[],version:APP_VERSION};
 }
 function load(){
   try{
@@ -4836,10 +4920,11 @@ function load(){
 
     const merged={
       objects:mergeById('objects'),
+      objectAreas:[],
       inspections:mergeById('inspections'),
       findings:mergeById('findings'),
       tasks:[],
-      version:'2.18.8'
+      version:APP_VERSION
     };
 
     merged.findings.forEach(f=>{
@@ -4876,7 +4961,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.18.32';
+  db.version=APP_VERSION;
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -5059,7 +5144,7 @@ function openFindingReadOnly(id){
     <div class="card" style="margin-top:12px">
       <div class="row">${badgeP(f.priority)}<span class="badge">${esc(decisionLabel(f.decisionStatus||'pending'))}</span></div>
       <h3 style="margin:10px 0 6px">${esc(f.title||f.description||'Dokumentation')}</h3>
-      ${f.area?`<div class="muted">${esc(f.area)}</div>`:''}
+      ${f.area?`<div class="muted">${esc(f.area)}${f.areaDetail?' · '+esc(f.areaDetail):''}</div>`:''}
       ${f.description?`<p><strong>Feststellung</strong><br>${esc(f.description)}</p>`:''}
       ${f.action?`<p><strong>Empfehlung</strong><br>${esc(f.action)}</p>`:''}
       ${decisionMetaHtml(f)}
@@ -5848,7 +5933,7 @@ function renderObjects(){
     return `<div class="card">
       <div class="row space"><div><h3 style="margin:0">${esc(o.name)} ${o.isTest?'<span class="badge" style="margin-left:6px">TEST</span>':''}</h3><div class="muted">${esc(o.address||'')}</div></div><span class="badge">${open} offen</span></div>
       <p>${esc(o.notes||'')}</p>
-      <div class="row"><button onclick="openFindingModal('${o.id}','')">Dokumentation erfassen</button>${!isCustomerRole()?`<button onclick="openObjectQrCode('${o.id}')">QR-Code erstellen</button>`:''}${canManageObjectsUI()?`<button onclick="openObjectModal('${o.id}')">Bearbeiten</button>`:''}<button onclick="showObjectReport('${o.id}')">Bericht</button></div>
+      <div class="row"><button onclick="openFindingModal('${o.id}','')">Dokumentation erfassen</button>${!isCustomerRole()?`<button onclick="openObjectQrCode('${o.id}')">Objekt-QR</button>`:''}${canManageObjectsUI()?`<button onclick="openObjectAreasModal('${o.id}')">Bereiche</button><button onclick="openObjectModal('${o.id}')">Bearbeiten</button>`:''}<button onclick="showObjectReport('${o.id}')">Bericht</button></div>
     </div>`;
   }).join(''):`<div class="empty">Noch kein Objekt angelegt.</div>`;
 }
@@ -5956,7 +6041,7 @@ function findingCard(f){
   return `<div class="card finding" data-priority="${f.priority||'P4'}">
     <div class="row space"><div><span class="badge">${esc(type)}</span> ${type==='Feststellung'?badgeP(f.priority||'P3'):''} ${statusBadge(f.status)}</div><small class="muted">${fmt(f.createdAt)}</small></div>
     <h3 style="margin-bottom:5px">${esc(f.title)}</h3>
-    <div class="muted">${esc(objectName(f.objectId))}${f.area?' · '+esc(f.area):''}</div>
+    <div class="muted">${esc(objectName(f.objectId))}${f.area?' · '+esc(f.area):''}${f.areaDetail?' · '+esc(f.areaDetail):''}</div>
     ${findingCreatorMetaHtml(f)}
     ${type==='Feststellung'?`<div class="muted">Entscheidung: ${esc(decisionLabel(f.decisionStatus||'pending'))}</div>${decisionMetaHtml(f)}`:''}
     ${(before||after)?`<div class="row" style="margin-top:10px">${before?`<div><small class="muted">Vorher</small><br>${mediaImg(before,'Vorher','thumb')}</div>`:''}${after?`<div><small class="muted">Nachher</small><br>${mediaImg(after,'Nachher','thumb')}</div>`:''}</div>`:''}
@@ -6048,7 +6133,7 @@ function customerDocCard(f){
       <small class="muted">${reportDateText(inspectionDateForFinding(f))}</small>
     </div>
     <h3>${esc(f.title||type)}</h3>
-    ${f.area?`<div class="muted">${esc(f.area)}</div>`:''}
+    ${f.area?`<div class="muted">${esc(f.area)}${f.areaDetail?' · '+esc(f.areaDetail):''}</div>`:''}
     ${f.description?`<p>${esc(f.description)}</p>`:''}
     ${type==='Leistung'&&f.activity?`<p><b>Durchgeführte Leistung:</b> ${esc(f.activity)}</p>`:''}
     ${type==='Feststellung'&&f.action?`<p><b>Empfohlene Maßnahme:</b> ${esc(f.action)}</p>`:''}
@@ -6161,7 +6246,7 @@ function renderResidentReports(){
       <div class="row space">
         <div>
           <strong>${esc(r.category||'Meldung')}</strong>
-          <div class="muted">${esc(obj?.name||'Objekt')} · ${esc(r.location_detail||'Ort nicht angegeben')}</div>
+          <div class="muted">${esc(obj?.name||'Objekt')}${r.area_name?' · '+esc(r.area_name):''}${r.location_detail?' · '+esc(r.location_detail):(!r.area_name?' · Ort nicht angegeben':'')}</div>
         </div>
         <span class="badge">${esc(residentReportStatusLabel(r.status))}</span>
       </div>
@@ -6201,7 +6286,7 @@ function openResidentReportDetails(id){
     <div class="card" style="margin-top:12px">
       <p><strong>Status</strong><br>${esc(residentReportStatusLabel(r.status))}</p>
       <p><strong>Kategorie</strong><br>${esc(r.category||'—')}</p>
-      <p><strong>Bereich / Ort</strong><br>${esc(r.location_detail||'—')}</p>
+      <p><strong>Bereich</strong><br>${esc(r.area_name||'—')}</p>${r.location_detail?`<p><strong>Genauer Ort / Zusatz</strong><br>${esc(r.location_detail)}</p>`:''}
       <p><strong>Beschreibung</strong><br>${esc(r.description||'—')}</p>
       <p><strong>Melder</strong><br>${esc(r.resident_name||'—')}${r.resident_email?'<br>'+esc(r.resident_email):''}</p>
       <p><strong>Eingang</strong><br>${esc(fmt(r.received_at||r.created_at))}</p>
@@ -6326,7 +6411,9 @@ async function convertResidentReportToFinding(id){
           inspection_id:null,
           source_resident_report_id:r.id,
           type:'finding',
-          area:r.location_detail||null,
+          area_id:r.area_id||null,
+          area:r.area_name||r.location_detail||null,
+          area_detail:r.area_id?(r.location_detail||null):null,
           title,
           category:'Funktion',
           priority:'P3',
@@ -6525,129 +6612,75 @@ async function ensureQrCodeLibrary(){
   throw new Error('Lokale QR-Code-Bibliothek ist nicht verfügbar.');
 }
 
-function objectPublicReportUrl(objectId){
+function objectPublicReportUrl(objectId,areaId=''){
   const base='https://michi243.github.io/-duschl-objektplattform/';
-  return `${base}?meldung=${encodeURIComponent(objectId)}`;
+  const p=new URLSearchParams({meldung:objectId});
+  if(areaId)p.set('bereich',areaId);
+  return `${base}?${p.toString()}`;
 }
 
-async function openObjectQrCode(objectId){
+async function openObjectQrCode(objectId,areaId=''){
   if(isCustomerRole()){
     alert('QR-Codes für Bewohnermeldungen sind für diese Rolle nicht freigegeben.');
     return;
   }
-
   const o=(db.objects||[]).find(x=>x.id===objectId);
   if(!o)return alert('Objekt wurde nicht gefunden.');
+  const area=areaId?objectAreaById(areaId):null;
+  if(areaId&&(!area||area.object_id!==objectId||area.active===false))return alert('Der Bereich wurde nicht gefunden oder ist deaktiviert.');
   if(isTestUserRole()&&o.isTest!==true){
     alert('Testbenutzer dürfen QR-Codes ausschließlich für Testobjekte erzeugen.');
     return;
   }
-
-  try{
-    await ensureQrCodeLibrary();
-  }catch(e){
+  try{await ensureQrCodeLibrary();}catch(e){
     console.error('QR-Code-Bibliothek konnte nicht geladen werden',e);
     alert('QR-Code konnte nicht geladen werden. Bitte Verbindung prüfen und später erneut versuchen.');
     return;
   }
-
-  const url=objectPublicReportUrl(objectId);
-
-  modal(`<div class="row space">
-      <div>
-        <h2>QR-Code Bewohnermeldung</h2>
-        <div class="muted">${esc(o.name||'Objekt')}</div>
-      </div>
-      <button onclick="closeModal()">✕</button>
-    </div>
-
+  const url=objectPublicReportUrl(objectId,areaId);
+  modal(`<div class="row space"><div><h2>QR-Code Bewohnermeldung</h2><div class="muted">${esc(o.name||'Objekt')}${area?` · ${esc(area.name)}`:''}</div></div><button onclick="closeModal()">✕</button></div>
     <div class="card" style="margin-top:12px;text-align:center">
       <canvas id="objectQrCanvas" width="320" height="320" style="width:min(320px,100%);height:auto;background:#fff;border-radius:12px;padding:10px"></canvas>
       <div style="margin-top:12px"><strong>${esc(o.name||'Objekt')}</strong></div>
+      ${area?`<div style="margin-top:4px"><strong>Bereich: ${esc(area.name)}</strong></div>`:''}
       ${o.address?`<div class="muted" style="margin-top:4px">${esc(o.address)}</div>`:''}
       <div class="muted" style="margin-top:10px;font-size:12px;word-break:break-all">${esc(url)}</div>
     </div>
-
     <div class="row" style="margin-top:14px">
-      <button class="primary" onclick="downloadObjectQrCode('${objectId}')">QR-Code herunterladen</button>
-      <button onclick="printObjectQrCode('${objectId}')">Drucken</button>
-      <button onclick="copyObjectReportLink('${objectId}')">Link kopieren</button>
+      <button class="primary" onclick="downloadObjectQrCode('${objectId}','${areaId}')">QR-Code herunterladen</button>
+      <button onclick="printObjectQrCode('${objectId}','${areaId}')">Drucken</button>
+      <button onclick="copyObjectReportLink('${objectId}','${areaId}')">Link kopieren</button>
       <button onclick="closeModal()">Schließen</button>
     </div>`);
-
   const canvas=document.getElementById('objectQrCanvas');
-  try{
-    await QRCode.toCanvas(canvas,url,{
-      width:320,
-      margin:2,
-      errorCorrectionLevel:'M',
-      color:{dark:'#000000',light:'#ffffff'}
-    });
-  }catch(e){
-    console.error('QR-Code konnte nicht erzeugt werden',e);
-    alert('QR-Code konnte nicht erzeugt werden: '+(e.message||e));
-  }
+  try{await QRCode.toCanvas(canvas,url,{width:320,margin:2,errorCorrectionLevel:'M',color:{dark:'#000000',light:'#ffffff'}});}
+  catch(e){console.error('QR-Code konnte nicht erzeugt werden',e);alert('QR-Code konnte nicht erzeugt werden: '+(e.message||e));}
 }
 
-async function downloadObjectQrCode(objectId){
-  const o=(db.objects||[]).find(x=>x.id===objectId);
-  const canvas=document.getElementById('objectQrCanvas');
-  if(!o||!canvas)return;
-
-  const safeName=(o.name||'Objekt')
-    .replace(/[^\p{L}\p{N}_-]+/gu,'_')
-    .replace(/^_+|_+$/g,'')
-    .slice(0,60) || 'Objekt';
-
+async function downloadObjectQrCode(objectId,areaId=''){
+  const o=(db.objects||[]).find(x=>x.id===objectId), area=areaId?objectAreaById(areaId):null;
+  const canvas=document.getElementById('objectQrCanvas'); if(!o||!canvas)return;
+  const clean=x=>(x||'').replace(/[^\p{L}\p{N}_-]+/gu,'_').replace(/^_+|_+$/g,'').slice(0,60);
+  const safeName=clean(o.name)||'Objekt', safeArea=area?clean(area.name):'';
   const a=document.createElement('a');
-  a.download=`QR_Bewohnermeldung_${safeName}.png`;
-  a.href=canvas.toDataURL('image/png');
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  a.download=`QR_Bewohnermeldung_${safeName}${safeArea?'_'+safeArea:''}.png`;
+  a.href=canvas.toDataURL('image/png'); document.body.appendChild(a);a.click();a.remove();
 }
 
-function printObjectQrCode(objectId){
-  const o=(db.objects||[]).find(x=>x.id===objectId);
-  const canvas=document.getElementById('objectQrCanvas');
-  if(!o||!canvas)return;
-
-  const url=objectPublicReportUrl(objectId);
-  const img=canvas.toDataURL('image/png');
+function printObjectQrCode(objectId,areaId=''){
+  const o=(db.objects||[]).find(x=>x.id===objectId), area=areaId?objectAreaById(areaId):null;
+  const canvas=document.getElementById('objectQrCanvas'); if(!o||!canvas)return;
+  const url=objectPublicReportUrl(objectId,areaId), img=canvas.toDataURL('image/png');
   const w=window.open('','_blank','noopener,noreferrer');
-  if(!w){
-    alert('Druckansicht konnte nicht geöffnet werden. Bitte Pop-ups für diese Seite zulassen.');
-    return;
-  }
-
-  w.document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>QR-Code ${esc(o.name||'Objekt')}</title>
-    <style>
-      body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;text-align:center;padding:32px;color:#111}
-      img{width:320px;max-width:90%;height:auto}
-      h1{font-size:24px;margin-bottom:4px}
-      .muted{color:#555;margin-bottom:18px}
-      .hint{margin:20px auto 0;max-width:520px;font-size:16px;line-height:1.45}
-      .url{font-size:10px;color:#777;word-break:break-all;margin-top:20px}
-      @media print{button{display:none}}
-    </style></head><body>
-      <h1>Duschl Service</h1>
-      <div class="muted">${esc(o.name||'Objekt')}${o.address?' · '+esc(o.address):''}</div>
-      <img src="${img}" alt="QR-Code Bewohnermeldung">
-      <div class="hint"><strong>Anliegen oder Schaden melden</strong><br>QR-Code mit dem Smartphone scannen und Meldung direkt an Duschl Service senden.</div>
-      <div class="url">${esc(url)}</div>
-      <script>window.onload=()=>setTimeout(()=>window.print(),150);<\/script>
-    </body></html>`);
+  if(!w){alert('Druckansicht konnte nicht geöffnet werden. Bitte Pop-ups für diese Seite zulassen.');return;}
+  w.document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>QR-Code ${esc(o.name||'Objekt')}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;text-align:center;padding:32px;color:#111}img{width:320px;max-width:90%;height:auto}h1{font-size:24px;margin-bottom:4px}.muted{color:#555;margin-bottom:8px}.area{font-size:20px;font-weight:700;margin:10px 0 18px}.hint{margin:20px auto 0;max-width:520px;font-size:16px;line-height:1.45}.url{font-size:10px;color:#777;word-break:break-all;margin-top:20px}@media print{button{display:none}}</style></head><body><h1>Duschl Service</h1><div class="muted">${esc(o.name||'Objekt')}${o.address?' · '+esc(o.address):''}</div>${area?`<div class="area">Bereich: ${esc(area.name)}</div>`:''}<img src="${img}" alt="QR-Code Bewohnermeldung"><div class="hint"><strong>Anliegen oder Schaden melden</strong><br>QR-Code mit dem Smartphone scannen und Meldung direkt an Duschl Service senden.</div><div class="url">${esc(url)}</div><script>window.onload=()=>setTimeout(()=>window.print(),150);<\/script></body></html>`);
   w.document.close();
 }
 
-async function copyObjectReportLink(objectId){
-  const url=objectPublicReportUrl(objectId);
-  try{
-    await navigator.clipboard.writeText(url);
-    alert('Meldelink wurde kopiert.');
-  }catch(_e){
-    prompt('Meldelink kopieren:',url);
-  }
+async function copyObjectReportLink(objectId,areaId=''){
+  const url=objectPublicReportUrl(objectId,areaId);
+  try{await navigator.clipboard.writeText(url);alert('Meldelink wurde kopiert.');}
+  catch(_e){prompt('Meldelink kopieren:',url);}
 }
 
 function renderCleanupObjectOptions(){
@@ -6849,6 +6882,36 @@ async function cleanupObjectData(){
   }
 }
 
+function renderObjectAreaRows(objectId){
+  const rows=objectAreasFor(objectId,{includeInactive:true});
+  if(!rows.length)return '<div class="empty">Noch keine Bereiche angelegt.</div>';
+  return rows.map(a=>`<div class="list-item"><div class="row space"><div><strong>${esc(a.name)}</strong>${a.active===false?' <span class="badge">deaktiviert</span>':''}</div><div class="row">${a.active!==false?`<button onclick="openObjectQrCode('${objectId}','${a.id}')">QR-Code</button>`:''}<button onclick="renameObjectArea('${objectId}','${a.id}')">Bearbeiten</button><button onclick="toggleObjectArea('${objectId}','${a.id}',${a.active===false?'true':'false'})">${a.active===false?'Aktivieren':'Deaktivieren'}</button></div></div></div>`).join('');
+}
+function openObjectAreasModal(objectId){
+  if(!requireAdminUI('Bereiche verwalten'))return;
+  const o=(db.objects||[]).find(x=>x.id===objectId); if(!o)return alert('Objekt wurde nicht gefunden.');
+  modal(`<div class="row space"><div><h2>Bereiche</h2><div class="muted">${esc(o.name)}</div></div><button onclick="closeModal()">✕</button></div>
+    <div class="card" style="margin-top:12px"><h3 style="margin-top:0">Bereich hinzufügen</h3><div class="row"><input id="newAreaName" placeholder="z. B. Tiefgarage" style="flex:1"><button class="primary" onclick="addObjectArea('${objectId}')">Hinzufügen</button></div><div class="muted" style="margin-top:8px">Bereiche werden in Dokumentationen zur Auswahl angeboten und können einen eigenen QR-Code erhalten.</div></div>
+    <div style="margin-top:12px">${renderObjectAreaRows(objectId)}</div>`);
+}
+async function addObjectArea(objectId){
+  const name=(document.getElementById('newAreaName')?.value||'').trim(); if(!name)return alert('Bitte Bereichsbezeichnung eingeben.');
+  if(objectAreasFor(objectId,{includeInactive:true}).some(a=>String(a.name).trim().toLowerCase()===name.toLowerCase()))return alert('Dieser Bereich ist bereits vorhanden.');
+  try{await cloudSaveObjectArea(objectId,'',name,objectAreasFor(objectId,{includeInactive:true}).length+1);await cloudLoadObjectAreas();openObjectAreasModal(objectId);}
+  catch(e){alert('Bereich konnte nicht gespeichert werden: '+(e.message||e));}
+}
+async function renameObjectArea(objectId,areaId){
+  const a=objectAreaById(areaId); if(!a)return;
+  const name=prompt('Bereichsbezeichnung:',a.name||''); if(name===null)return;
+  const clean=name.trim(); if(!clean)return alert('Die Bereichsbezeichnung darf nicht leer sein.');
+  try{await cloudSaveObjectArea(objectId,areaId,clean,a.sort_order||0);await cloudLoadObjectAreas();openObjectAreasModal(objectId);}
+  catch(e){alert('Bereich konnte nicht geändert werden: '+(e.message||e));}
+}
+async function toggleObjectArea(objectId,areaId,active){
+  try{await cloudSetObjectAreaActive(areaId,active);await cloudLoadObjectAreas();openObjectAreasModal(objectId);}
+  catch(e){alert('Bereich konnte nicht geändert werden: '+(e.message||e));}
+}
+
 function openObjectModal(id=''){
   if(!requireAdminUI(id?'Objekt bearbeiten':'Objekt anlegen'))return;
   const o=db.objects.find(x=>x.id===id)||{id:'',name:'',address:'',notes:'',isTest:false};
@@ -7026,17 +7089,19 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   }
 
   if(!db.objects.length){alert('Bitte zuerst ein Objekt anlegen.');showSection('objects');return}
-  const f=db.findings.find(x=>x.id===editId)||{objectId:prefObj,inspectionId:prefInsp,type:'Feststellung',title:'',area:'',category:'Sicherheit',priority:'P3',description:'',action:'',activity:'',status:'Offen',beforePhoto:'',afterPhoto:'',beforePhotos:[],afterPhotos:[],completionType:'',completionNote:'',decisionRequired:editId?true:'',decisionStatus:'pending',decisionBy:'',decisionDate:'',decisionComment:'',decisionAmount:''};
+  const f=db.findings.find(x=>x.id===editId)||{objectId:prefObj,inspectionId:prefInsp,type:'Feststellung',title:'',areaId:'',area:'',areaDetail:'',category:'Sicherheit',priority:'P3',description:'',action:'',activity:'',status:'Offen',beforePhoto:'',afterPhoto:'',beforePhotos:[],afterPhotos:[],completionType:'',completionNote:'',decisionRequired:editId?true:'',decisionStatus:'pending',decisionBy:'',decisionDate:'',decisionComment:'',decisionAmount:''};
   if(!f.type)f.type='Feststellung';
   if(editId && f.type==='Feststellung' && typeof f.decisionRequired==='undefined')f.decisionRequired=true;
   const objOpts=db.objects.map(o=>`<option value="${o.id}" ${o.id===f.objectId?'selected':''}>${esc(o.name)}</option>`).join('');
   const inspOpts=db.inspections.filter(i=>!f.objectId||i.objectId===f.objectId).map(i=>`<option value="${i.id}" ${i.id===f.inspectionId?'selected':''}>${esc(inspectionName(i.id))}</option>`).join('');
   modal(`<div class="row space"><h2>${editId?'Dokumentation bearbeiten':'Dokumentation erfassen'}</h2><button onclick="closeModal()">✕</button></div>
   ${editId?findingCreatorMetaHtml(f):''}
-  <label>Objekt *</label><select id="fObject" onchange="refreshInspectionOptions()">${objOpts}</select>
+  <label>Objekt *</label><select id="fObject" onchange="refreshInspectionOptions();refreshFindingAreaOptions()">${objOpts}</select>
   <input type="hidden" id="fInspection" value="${f.inspectionId||''}">
   <label>Dokumentationstyp *</label><select id="fType" onchange="toggleDocType()">${['Feststellung','Leistung'].map(x=>`<option ${x===f.type?'selected':''}>${x}</option>`).join('')}</select>
-  <label>Bereich</label><input id="fArea" value="${esc(f.area)}" placeholder="z. B. Außenanlage, Gehweg, Treppenhaus">
+  <label>Bereich</label><select id="fAreaSelect" onchange="toggleFindingAreaCustom()"></select>
+  <div id="fAreaCustomWrap"><label>Anderer Bereich</label><input id="fAreaCustom" value="${esc(f.areaId?'':f.area)}" placeholder="Bereich frei eingeben"></div>
+  <label>Genauer Ort / Zusatz</label><input id="fAreaDetail" value="${esc(f.areaDetail||'')}" placeholder="z. B. Stellplatz 18, 2. OG (optional)">
   <label>Titel *</label><input id="fTitle" value="${esc(f.title)}" placeholder="z. B. Handlauf locker / Rasen gemäht / Winterdienst">
   <div id="findingFields">
     <div class="grid g2">
@@ -7136,8 +7201,33 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   </div>
   <div class="row" style="margin-top:14px"><button class="primary" onclick="saveFinding('${editId}')">Speichern</button>${editId&&isAdminRole()?`<button class="danger" onclick="deleteFinding('${editId}')">Löschen</button>`:''}</div>`);
   initPhotoDraft(f);
+  refreshFindingAreaOptions(f.areaId||'',f.area||'');
   toggleDocType();toggleDecisionRequired();toggleCompletion();
 }
+function refreshFindingAreaOptions(preferredAreaId='',preferredAreaName=''){
+  const sel=document.getElementById('fAreaSelect'); if(!sel)return;
+  const oid=document.getElementById('fObject')?.value||'';
+  const areas=objectAreasFor(oid);
+  const current=preferredAreaId||sel.value||'';
+  let matched=current&&areas.some(a=>a.id===current)?current:'';
+  if(!matched&&preferredAreaName){const hit=areas.find(a=>String(a.name).trim().toLowerCase()===String(preferredAreaName).trim().toLowerCase());if(hit)matched=hit.id;}
+  sel.innerHTML='<option value="">Bitte Bereich auswählen</option>'+areas.map(a=>`<option value="${a.id}" ${a.id===matched?'selected':''}>${esc(a.name)}</option>`).join('')+'<option value="__custom__">Anderer Bereich / Freitext</option>';
+  if(matched)sel.value=matched;
+  else if(preferredAreaName)sel.value='__custom__';
+  else if(!areas.length)sel.value='__custom__';
+  toggleFindingAreaCustom();
+}
+function toggleFindingAreaCustom(){
+  const sel=document.getElementById('fAreaSelect'),wrap=document.getElementById('fAreaCustomWrap');
+  if(wrap)wrap.classList.toggle('hidden',sel?.value!=='__custom__');
+}
+function selectedFindingArea(){
+  const sel=document.getElementById('fAreaSelect');
+  const value=sel?.value||'';
+  if(value&&value!=='__custom__'){const a=objectAreaById(value);return {areaId:a?.id||'',area:(a?.name||'').trim()};}
+  return {areaId:'',area:(document.getElementById('fAreaCustom')?.value||'').trim()};
+}
+
 function toggleDocType(){
   const type=document.getElementById('fType')?.value||'Feststellung';
   document.getElementById('findingFields')?.classList.toggle('hidden',type!=='Feststellung');
@@ -7292,9 +7382,10 @@ async function saveFinding(id){
   const beforePhotos=[...(photoDraft.before||[])].slice(0,5), afterPhotos=[...(photoDraft.after||[])].slice(0,5);
   const before=beforePhotos[0]||'', after=afterPhotos[0]||'';
   const description=type==='Feststellung'?(document.getElementById('fDescription')?.value.trim()||''):(document.getElementById('fServiceNote')?.value.trim()||'');
+  const selectedArea=selectedFindingArea();
   const data={
     objectId:document.getElementById('fObject').value,inspectionId:null,
-    type,area:document.getElementById('fArea').value.trim(),title,
+    type,areaId:selectedArea.areaId,area:selectedArea.area,areaDetail:(document.getElementById('fAreaDetail')?.value||'').trim(),title,
     category:type==='Feststellung'?(document.getElementById('fCategory')?.value||''):'Leistung',
     priority:type==='Feststellung'?(document.getElementById('fPriority')?.value||'P4'):'P4',
     description,action:type==='Feststellung'?(document.getElementById('fAction')?.value.trim()||''):'',
@@ -7382,7 +7473,7 @@ if(!bootPublicResidentReport()){
 <div class="photo-viewer-hint">Zum Vergrößern zwei Finger verwenden · × zum Schließen</div>
 </div>
 <script>
-/* ===== v2.18.47 Spracheingabe für alle Freitextfelder ===== */
+/* ===== v2.18.48 Spracheingabe für alle Freitextfelder ===== */
 (function(){
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SpeechRecognition) return;
