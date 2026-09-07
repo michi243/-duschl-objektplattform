@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.36</title>
+<title>Duschl Service – Objektplattform v2.18.35</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -359,7 +359,7 @@ a{color:var(--accent-2)!important}
 }
 
 
-/* ===== v2.18.36 Responsive Topbar + Hamburger-Menü ===== */
+/* ===== v2.18.35 Responsive Topbar + Hamburger-Menü ===== */
 /* Rollenbasierte Menüpunkte werden vollständig ausgeblendet, nicht deaktiviert dargestellt. */
 .app-topbar{height:64px;padding:10px 16px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;z-index:60!important}
 .menu-toggle{width:44px;height:44px;padding:10px!important;display:flex;flex-direction:column;justify-content:center;gap:5px;background:transparent!important;border-color:transparent!important;box-shadow:none!important;flex:0 0 auto}
@@ -386,7 +386,7 @@ main{padding-top:18px}
 @media print{.app-menu,.app-menu-backdrop,.app-topbar{display:none!important}}
 
 
-/* ===== v2.18.36 Interaktive Kennzahlen ===== */
+/* ===== v2.18.35 Interaktive Kennzahlen ===== */
 .kpi-action,.gf-kpi.is-action{position:relative;cursor:pointer;transition:transform .12s ease,border-color .12s ease,background .12s ease;user-select:none}
 .kpi-action:hover,.gf-kpi.is-action:hover{border-color:var(--accent);transform:translateY(-1px)}
 .kpi-action:active,.gf-kpi.is-action:active{transform:translateY(0)}
@@ -396,7 +396,7 @@ main{padding-top:18px}
 .gf-kpi.is-action{padding-right:38px}.gf-kpi .kpi-chevron{right:12px}
 
 
-/* ===== v2.18.36 Persönliches Dashboard / Mitteilungen ===== */
+/* ===== v2.18.35 Persönliches Dashboard / Mitteilungen ===== */
 .dashboard-messages-wrap{margin-top:16px;padding:16px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,rgba(47,143,255,.08),rgba(47,143,255,.025))}
 .dashboard-message-card{position:relative;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#0d1f2b;color:var(--text);box-shadow:0 8px 20px rgba(0,0,0,.16)}
 .dashboard-message-card.unread{background:linear-gradient(180deg,#102636,#0d1f2b);border-color:rgba(47,143,255,.72);box-shadow:inset 3px 0 0 var(--accent),0 8px 20px rgba(0,0,0,.18)}
@@ -772,7 +772,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 }
 </style>
 <style>
-/* ===== v2.18.36 Spracheingabe ===== */
+/* ===== v2.18.35 Spracheingabe ===== */
 .speech-field-host{
   position:relative;
 }
@@ -887,7 +887,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.36</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.35</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -2662,7 +2662,7 @@ function renderDashboardMessages(){
   const compose=document.getElementById('dashboardMessageComposeBtn');
   const context=document.getElementById('dashboardRoleContext');
   if(context)context.textContent=dashboardRoleContextText();
-  if(compose)compose.style.display=isCustomerRole()?'none':'';
+  if(compose)compose.style.display=hasOperationalAdminAccess()?'':'none';
   if(!wrap||!box)return;
 
   if(!userMessagesAvailable){
@@ -2758,20 +2758,18 @@ async function markUserMessageRead(id){
 }
 
 async function openUserMessageComposer(){
-  if(isCustomerRole()){
-    alert('Auftraggeber können Mitteilungen beantworten, aber keine Sammelnachrichten erstellen.');
+  if(!hasOperationalAdminAccess()){
+    alert('Mitteilungen können nur vom Administrator / GF oder einer aktiven Admin-Vertretung erstellt werden.');
     return;
   }
-  let recipients=[];
+  let profiles=[];
   try{
-    recipients=await cloudRequest('rpc/list_message_recipients',{
-      method:'POST',
-      body:JSON.stringify({})
-    })||[];
+    profiles=await cloudRequest('profiles?select=id,full_name,email,role,active&active=eq.true&order=full_name.asc.nullslast,email.asc')||[];
   }catch(e){
     alert('Benutzer konnten nicht geladen werden: '+(e.message||e));
     return;
   }
+  const recipients=profiles.filter(p=>p.id!==currentUserId());
   if(!recipients.length){
     alert('Es ist kein weiterer aktiver Benutzer vorhanden.');
     return;
@@ -2790,10 +2788,10 @@ async function openUserMessageComposer(){
     <div id="userMessageRecipients" class="user-message-recipient-box">
       ${recipients.map(p=>`
         <label class="user-message-recipient-row">
-          <input type="checkbox" class="user-message-recipient-check" value="${esc(p.id)}" data-role="${esc(p.role||'')}" onchange="updateUserMessageRecipientCount()">
+          <input type="checkbox" class="user-message-recipient-check" value="${esc(p.id)}" onchange="updateUserMessageRecipientCount()">
           <span class="user-message-recipient-main">
             <span class="user-message-recipient-name">${esc(p.full_name||p.email||'Benutzer')}</span>
-            <span class="user-message-recipient-role">${esc(ROLE_LABELS[p.role]||p.role||'')}${p.role==='customer'?' · separat auswählen':''}</span>
+            <span class="user-message-recipient-role">${esc(ROLE_LABELS[p.role]||p.role||'')}</span>
           </span>
         </label>`).join('')}
     </div>
@@ -2825,18 +2823,12 @@ function updateUserMessageRecipientCount(){
 }
 
 function toggleAllUserMessageRecipients(checked){
-  document.querySelectorAll('.user-message-recipient-check').forEach(el=>{
-    if(el.dataset.role==='customer'){
-      if(!checked)el.checked=false;
-      return;
-    }
-    el.checked=!!checked;
-  });
+  document.querySelectorAll('.user-message-recipient-check').forEach(el=>{el.checked=!!checked;});
   updateUserMessageRecipientCount();
 }
 
 async function sendUserMessage(){
-  if(isCustomerRole())return;
+  if(!hasOperationalAdminAccess())return;
   const recipients=selectedUserMessageRecipients();
   const title=document.getElementById('userMessageTitle')?.value.trim()||'';
   const message=document.getElementById('userMessageText')?.value.trim()||'';
@@ -2856,15 +2848,10 @@ async function sendUserMessage(){
   }));
 
   try{
-    await cloudRequest('rpc/send_user_messages',{
+    await cloudRequest('user_messages',{
       method:'POST',
       headers:{Prefer:'return=minimal'},
-      body:JSON.stringify({
-        p_recipient_ids:recipients,
-        p_title:title,
-        p_message:message,
-        p_object_id:objectId||null
-      })
+      body:JSON.stringify(rows)
     });
     closeModal();
     alert(recipients.length===1
@@ -6975,7 +6962,7 @@ if(!bootPublicResidentReport()){
 <div class="photo-viewer-hint">Zum Vergrößern zwei Finger verwenden · × zum Schließen</div>
 </div>
 <script>
-/* ===== v2.18.36 Spracheingabe für alle Freitextfelder ===== */
+/* ===== v2.18.35 Spracheingabe für alle Freitextfelder ===== */
 (function(){
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SpeechRecognition) return;
