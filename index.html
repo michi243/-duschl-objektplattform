@@ -2662,7 +2662,7 @@ function renderDashboardMessages(){
   const compose=document.getElementById('dashboardMessageComposeBtn');
   const context=document.getElementById('dashboardRoleContext');
   if(context)context.textContent=dashboardRoleContextText();
-  if(compose)compose.style.display=hasOperationalAdminAccess()?'':'none';
+  if(compose)compose.style.display=isCustomerRole()?'none':'';
   if(!wrap||!box)return;
 
   if(!userMessagesAvailable){
@@ -2758,21 +2758,20 @@ async function markUserMessageRead(id){
 }
 
 async function openUserMessageComposer(){
-  if(!hasOperationalAdminAccess()){
-    alert('Mitteilungen können nur vom Administrator / GF oder einer aktiven Admin-Vertretung erstellt werden.');
+  if(isCustomerRole()){
+    alert('Auftraggeber können Mitteilungen beantworten, aber keine Sammelnachrichten erstellen.');
     return;
   }
-  let profiles=[];
+  let recipients=[];
   try{
-    profiles=await cloudRequest('profiles?select=id,full_name,email,role,active&active=eq.true&order=full_name.asc.nullslast,email.asc')||[];
+    recipients=await cloudRequest('rpc/list_message_recipients',{
+      method:'POST',
+      body:JSON.stringify({})
+    })||[];
   }catch(e){
     alert('Benutzer konnten nicht geladen werden: '+(e.message||e));
     return;
   }
-  const recipients=profiles.filter(p=>
-    p.id!==currentUserId()
-    && (hasOperationalAdminAccess() || p.role!=='customer')
-  );
   if(!recipients.length){
     alert('Es ist kein weiterer aktiver Benutzer vorhanden.');
     return;
@@ -2783,7 +2782,7 @@ async function openUserMessageComposer(){
 
     <label>Empfänger</label>
     <div class="user-message-recipient-tools">
-      <button type="button" onclick="toggleAllUserMessageRecipients(true)">Alle internen auswählen</button>
+      <button type="button" onclick="toggleAllUserMessageRecipients(true)">Alle auswählen</button>
       <button type="button" onclick="toggleAllUserMessageRecipients(false)">Auswahl aufheben</button>
       <span id="userMessageRecipientCount" class="muted">0 ausgewählt</span>
     </div>
@@ -2791,10 +2790,10 @@ async function openUserMessageComposer(){
     <div id="userMessageRecipients" class="user-message-recipient-box">
       ${recipients.map(p=>`
         <label class="user-message-recipient-row">
-          <input type="checkbox" class="user-message-recipient-check" value="${esc(p.id)}" onchange="updateUserMessageRecipientCount()">
+          <input type="checkbox" class="user-message-recipient-check" value="${esc(p.id)}" data-role="${esc(p.role||'')}" onchange="updateUserMessageRecipientCount()">
           <span class="user-message-recipient-main">
             <span class="user-message-recipient-name">${esc(p.full_name||p.email||'Benutzer')}</span>
-            <span class="user-message-recipient-role">${esc(ROLE_LABELS[p.role]||p.role||'')}</span>
+            <span class="user-message-recipient-role">${esc(ROLE_LABELS[p.role]||p.role||'')}${p.role==='customer'?' · separat auswählen':''}</span>
           </span>
         </label>`).join('')}
     </div>
@@ -2826,12 +2825,18 @@ function updateUserMessageRecipientCount(){
 }
 
 function toggleAllUserMessageRecipients(checked){
-  document.querySelectorAll('.user-message-recipient-check').forEach(el=>{el.checked=!!checked;});
+  document.querySelectorAll('.user-message-recipient-check').forEach(el=>{
+    if(el.dataset.role==='customer'){
+      if(!checked)el.checked=false;
+      return;
+    }
+    el.checked=!!checked;
+  });
   updateUserMessageRecipientCount();
 }
 
 async function sendUserMessage(){
-  if(!hasOperationalAdminAccess())return;
+  if(isCustomerRole())return;
   const recipients=selectedUserMessageRecipients();
   const title=document.getElementById('userMessageTitle')?.value.trim()||'';
   const message=document.getElementById('userMessageText')?.value.trim()||'';
@@ -2851,10 +2856,15 @@ async function sendUserMessage(){
   }));
 
   try{
-    await cloudRequest('user_messages',{
+    await cloudRequest('rpc/send_user_messages',{
       method:'POST',
       headers:{Prefer:'return=minimal'},
-      body:JSON.stringify(rows)
+      body:JSON.stringify({
+        p_recipient_ids:recipients,
+        p_title:title,
+        p_message:message,
+        p_object_id:objectId||null
+      })
     });
     closeModal();
     alert(recipients.length===1
