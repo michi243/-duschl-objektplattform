@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12324a">
-<title>Duschl Service – Objektplattform v2.18.27</title>
+<title>Duschl Service – Objektplattform v2.18.28</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -358,7 +358,7 @@ a{color:var(--accent-2)!important}
 }
 
 
-/* ===== v2.18.27 Responsive Topbar + Hamburger-Menü ===== */
+/* ===== v2.18.28 Responsive Topbar + Hamburger-Menü ===== */
 /* Rollenbasierte Menüpunkte werden vollständig ausgeblendet, nicht deaktiviert dargestellt. */
 .app-topbar{height:64px;padding:10px 16px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;z-index:60!important}
 .menu-toggle{width:44px;height:44px;padding:10px!important;display:flex;flex-direction:column;justify-content:center;gap:5px;background:transparent!important;border-color:transparent!important;box-shadow:none!important;flex:0 0 auto}
@@ -385,7 +385,7 @@ main{padding-top:18px}
 @media print{.app-menu,.app-menu-backdrop,.app-topbar{display:none!important}}
 
 
-/* ===== v2.18.27 Interaktive Kennzahlen ===== */
+/* ===== v2.18.28 Interaktive Kennzahlen ===== */
 .kpi-action,.gf-kpi.is-action{position:relative;cursor:pointer;transition:transform .12s ease,border-color .12s ease,background .12s ease;user-select:none}
 .kpi-action:hover,.gf-kpi.is-action:hover{border-color:var(--accent);transform:translateY(-1px)}
 .kpi-action:active,.gf-kpi.is-action:active{transform:translateY(0)}
@@ -394,6 +394,20 @@ main{padding-top:18px}
 .kpi-chevron{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:28px;color:var(--muted);line-height:1}
 .gf-kpi.is-action{padding-right:38px}.gf-kpi .kpi-chevron{right:12px}
 
+
+/* ===== v2.18.28 Persönliches Dashboard / Mitteilungen ===== */
+.dashboard-messages-wrap{margin-top:16px;padding:16px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,rgba(47,143,255,.08),rgba(47,143,255,.025))}
+.dashboard-message-card{position:relative;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.dashboard-message-card.unread{border-color:rgba(47,143,255,.65);box-shadow:inset 3px 0 0 var(--accent)}
+.dashboard-message-title{font-weight:700;font-size:16px;margin-bottom:6px}
+.dashboard-message-meta{font-size:12px;color:var(--muted);margin-bottom:8px}
+.dashboard-message-text{white-space:pre-wrap;line-height:1.45}
+.dashboard-message-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+@media(max-width:640px){
+  #dashboardMessageComposeBtn{width:100%;margin-top:10px}
+  #dashboard .row.space:first-child{display:block}
+  .dashboard-messages-wrap{padding:12px}
+}
 </style>
 
 <style>
@@ -857,7 +871,7 @@ body.public-report-mode>#photoViewer{display:none!important}
     <div>
       <strong>Menü</strong>
       <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-      <div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.27</div>
+      <div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.28</div>
     </div>
     <button class="menu-close" type="button" aria-label="Menü schließen" onclick="closeAppMenu()">×</button>
   </div>
@@ -883,7 +897,19 @@ body.public-report-mode>#photoViewer{display:none!important}
 
 <main>
 <section id="dashboard" class="section active">
-  <div class="row space"><div><h2>Übersicht</h2><div class="muted">Dein aktueller Dokumentationsstand</div></div></div>
+  <div class="row space" style="align-items:flex-start">
+    <div><h2>Übersicht</h2><div id="dashboardRoleContext" class="muted">Dein aktueller Dokumentationsstand</div></div>
+    <button id="dashboardMessageComposeBtn" type="button" onclick="openUserMessageComposer()" style="display:none">Mitteilung schreiben</button>
+  </div>
+
+  <div id="dashboardMessagesWrap" class="dashboard-messages-wrap" style="display:none">
+    <div class="row space" style="align-items:center;margin-bottom:10px">
+      <h3 style="margin:0">Persönliche Mitteilungen</h3>
+      <span id="dashboardUnreadCount" class="badge" style="display:none">0 neu</span>
+    </div>
+    <div id="dashboardMessages" class="grid"></div>
+  </div>
+
   <div class="grid g3" style="margin-top:14px">
     <div class="card"><div class="muted">Objekte</div><div class="kpi" id="kpiObjects">0</div></div>
     <div class="card"><div class="muted">Offene Feststellungen</div><div class="kpi" id="kpiOpen">0</div></div>
@@ -2576,6 +2602,178 @@ const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
 let cloudSession=null;
 let cloudFindingCreatorNames=new Map();
 
+let userDashboardMessages=[];
+let userMessagesAvailable=true;
+
+function dashboardRoleContextText(){
+  if(isAdminDelegate())return 'Operative Gesamtübersicht in Admin-Vertretung';
+  const role=effectiveUserRole();
+  if(role==='platform_admin')return 'Gesamtübersicht für Steuerung, Entscheidungen und offene Punkte';
+  if(role==='object_manager'||role==='staff')return 'Deine zugewiesenen Objekte, offenen Punkte und Aufgaben';
+  if(role==='customer')return 'Deine Objekte, Dokumentationen und offenen Entscheidungen';
+  if(role==='test_user')return 'Testübersicht für deine freigegebenen Testobjekte';
+  return 'Dein aktueller Dokumentationsstand';
+}
+
+function formatUserMessageTime(value){
+  if(!value)return '';
+  const d=new Date(value);
+  if(Number.isNaN(d.getTime()))return '';
+  return d.toLocaleDateString('de-DE')+', '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+}
+
+async function loadUserMessages(){
+  if(!cloudSession?.access_token||!currentUserId()){
+    userDashboardMessages=[];
+    return;
+  }
+  try{
+    const uid=encodeURIComponent(currentUserId());
+    const rows=await cloudRequest(
+      `user_messages?select=id,recipient_id,created_by,title,message,object_id,created_at,read_at,active&recipient_id=eq.${uid}&active=eq.true&order=created_at.desc`
+    );
+    userDashboardMessages=Array.isArray(rows)?rows:[];
+    userMessagesAvailable=true;
+  }catch(e){
+    userDashboardMessages=[];
+    userMessagesAvailable=false;
+    console.warn('Persönliche Mitteilungen konnten nicht geladen werden',e);
+  }
+}
+
+function renderDashboardMessages(){
+  const wrap=document.getElementById('dashboardMessagesWrap');
+  const box=document.getElementById('dashboardMessages');
+  const count=document.getElementById('dashboardUnreadCount');
+  const compose=document.getElementById('dashboardMessageComposeBtn');
+  const context=document.getElementById('dashboardRoleContext');
+  if(context)context.textContent=dashboardRoleContextText();
+  if(compose)compose.style.display=isAdminRole()?'':'none';
+  if(!wrap||!box)return;
+
+  if(!userMessagesAvailable){
+    wrap.style.display=isAdminRole()?'block':'none';
+    if(isAdminRole())box.innerHTML='<div class="empty">Mitteilungsfunktion ist noch nicht in Supabase eingerichtet.</div>';
+    if(count)count.style.display='none';
+    return;
+  }
+
+  const active=(userDashboardMessages||[]).filter(m=>m.active!==false);
+  const unread=active.filter(m=>!m.read_at);
+  const read=active.filter(m=>!!m.read_at);
+  wrap.style.display=active.length?'block':'none';
+
+  if(count){
+    count.textContent=`${unread.length} neu`;
+    count.style.display=unread.length?'inline-flex':'none';
+  }
+  if(!active.length){box.innerHTML='';return;}
+
+  const card=m=>{
+    const obj=(db.objects||[]).find(o=>o.id===m.object_id);
+    return `<div class="dashboard-message-card ${m.read_at?'':'unread'}">
+      <div class="dashboard-message-title">${esc(m.title||'Mitteilung')}</div>
+      <div class="dashboard-message-meta">${esc(formatUserMessageTime(m.created_at))}${obj?` · ${esc(obj.name||'Objekt')}`:''}${m.read_at?` · gelesen ${esc(formatUserMessageTime(m.read_at))}`:' · ungelesen'}</div>
+      <div class="dashboard-message-text">${esc(m.message||'')}</div>
+      ${!m.read_at?`<div class="dashboard-message-actions"><button type="button" onclick="markUserMessageRead('${esc(m.id)}')">Als gelesen markieren</button></div>`:''}
+    </div>`;
+  };
+
+  const unreadHtml=unread.length
+    ? unread.map(card).join('')
+    : '<div class="empty">Keine ungelesenen Mitteilungen.</div>';
+
+  const readHtml=read.length
+    ? `<details style="margin-top:10px"><summary>Gelesene Mitteilungen (${read.length})</summary><div class="grid" style="margin-top:10px">${read.slice(0,12).map(card).join('')}</div></details>`
+    : '';
+
+  box.innerHTML=unreadHtml+readHtml;
+}
+async function markUserMessageRead(id){
+  if(!id)return;
+  try{
+    await cloudRequest('rpc/mark_user_message_read',{
+      method:'POST',
+      headers:{Prefer:'return=minimal'},
+      body:JSON.stringify({p_message_id:id})
+    });
+    const m=userDashboardMessages.find(x=>x.id===id);
+    if(m)m.read_at=new Date().toISOString();
+    renderDashboardMessages();
+  }catch(e){
+    alert('Mitteilung konnte nicht als gelesen markiert werden: '+(e.message||e));
+  }
+}
+
+async function openUserMessageComposer(){
+  if(!isAdminRole()){
+    alert('Mitteilungen können nur vom Administrator / GF erstellt werden.');
+    return;
+  }
+  let profiles=[];
+  try{
+    profiles=await cloudRequest('profiles?select=id,full_name,email,role,active&active=eq.true&order=full_name.asc.nullslast,email.asc')||[];
+  }catch(e){
+    alert('Benutzer konnten nicht geladen werden: '+(e.message||e));
+    return;
+  }
+  const recipients=profiles.filter(p=>p.id!==currentUserId());
+  if(!recipients.length){
+    alert('Es ist kein weiterer aktiver Benutzer vorhanden.');
+    return;
+  }
+  modal(`<h2>Persönliche Mitteilung</h2>
+    <p class="muted">Die Mitteilung erscheint beim Empfänger direkt auf dem Dashboard. Nach dem Lesen wird sie in den Bereich „Gelesene Mitteilungen“ verschoben.</p>
+    <label>Empfänger
+      <select id="userMessageRecipient">
+        <option value="">Bitte auswählen</option>
+        ${recipients.map(p=>`<option value="${esc(p.id)}">${esc(p.full_name||p.email||'Benutzer')} · ${esc(ROLE_LABELS[p.role]||p.role||'')}</option>`).join('')}
+      </select>
+    </label>
+    <label>Titel<input id="userMessageTitle" maxlength="120" placeholder="z. B. Objekt morgen prüfen"></label>
+    <label>Nachricht<textarea id="userMessageText" maxlength="2000" placeholder="Kurze, konkrete Information"></textarea></label>
+    <label>Objekt (optional)
+      <select id="userMessageObject">
+        <option value="">Kein Objektbezug</option>
+        ${(db.objects||[]).map(o=>`<option value="${esc(o.id)}">${esc(o.name||'Objekt')}</option>`).join('')}
+      </select>
+    </label>
+    <div class="row" style="margin-top:14px">
+      <button class="primary" type="button" onclick="sendUserMessage()">Senden</button>
+      <button type="button" onclick="closeModal()">Abbrechen</button>
+    </div>`);
+}
+
+async function sendUserMessage(){
+  if(!isAdminRole())return;
+  const recipient=document.getElementById('userMessageRecipient')?.value||'';
+  const title=document.getElementById('userMessageTitle')?.value.trim()||'';
+  const message=document.getElementById('userMessageText')?.value.trim()||'';
+  const objectId=document.getElementById('userMessageObject')?.value||'';
+  if(!recipient)return alert('Bitte einen Empfänger auswählen.');
+  if(!title)return alert('Bitte einen Titel eingeben.');
+  if(!message)return alert('Bitte eine Nachricht eingeben.');
+
+  try{
+    await cloudRequest('user_messages',{
+      method:'POST',
+      headers:{Prefer:'return=minimal'},
+      body:JSON.stringify({
+        recipient_id:recipient,
+        created_by:currentUserId(),
+        title,
+        message,
+        object_id:objectId||null,
+        active:true
+      })
+    });
+    closeModal();
+    alert('Mitteilung wurde gespeichert und erscheint beim Empfänger auf dem Dashboard.');
+  }catch(e){
+    alert('Mitteilung konnte nicht gespeichert werden: '+(e.message||e));
+  }
+}
+
 let publicResidentReportMode=false;
 let publicResidentObjectId='';
 
@@ -3886,6 +4084,7 @@ async function refreshAllCloudData(){
     // Benutzer/Zuweisungen nur laden, wenn die aktuelle Berechtigung dies zulässt.
     if(canManageUsersUI())await loadUserAdminData();
     if(isAdminRole())await loadUserActivity();
+    await loadUserMessages();
     renderAll();
     cloudSetStatus('Verbunden · Daten zentral aktualisiert','ok');
   }catch(e){
@@ -3907,6 +4106,7 @@ async function cloudReloadObjects(){
     db.inspections=(inspectionRows||[]).map(cloudInspectionToLocal);
     await cloudReloadFindings();
     if(!isCustomerRole()&&(!isTestUserRole()||isAdminDelegate())){try{await cloudLoadResidentReports();}catch(e){console.warn('Meldungen konnten nicht geladen werden',e);}}else{cloudResidentReports=[];cloudResidentReportMedia=[];}
+    await loadUserMessages();
     renderAll();
     cloudSetStatus(`Verbunden · ${db.objects.length} Objekt(e) · ${db.findings.filter(f=>f.cloud).length} Dokumentation(en) · ${(db.tasks||[]).length} Aufgabe(n) zentral`,'ok');
   }catch(e){
@@ -4359,7 +4559,7 @@ function load(){
 }
 
 function save(){
-  db.version='2.18.27';
+  db.version='2.18.28';
   try{localStorage.setItem(KEY,JSON.stringify(db))}
   catch(e){alert('Metadatenspeicher ist voll. Bitte zuerst Backup erstellen.');return}
   renderAll();hydrateMediaImages();
@@ -5236,6 +5436,7 @@ function openCriticalFindings(){
 }
 
 function renderDashboard(){
+  renderDashboardMessages();
   document.getElementById('kpiObjects').textContent=db.objects.length;
   const open=db.findings.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt');
   document.getElementById('kpiOpen').textContent=open.length;
