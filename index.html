@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.62</title>
+<title>Duschl Service – Objektplattform v2.18.63</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -425,7 +425,7 @@ main{padding-top:18px}
 .user-message-audience-count{font-size:12px;font-weight:600;opacity:.8}
 .user-message-recipient-row.message-scope-hidden{display:none}
 
-/* v2.18.62 – Platform-Admin Dashboard */
+/* v2.18.63 – Platform-Admin Dashboard */
 .platform-kpi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .platform-kpi-card{border:1px solid var(--border);background:var(--card);border-radius:18px;padding:16px;min-width:0}
 .platform-kpi-label{color:var(--muted);font-size:14px;font-weight:700}
@@ -455,7 +455,7 @@ main{padding-top:18px}
   .platform-tenant-main{align-items:center}
 }
 
-/* v2.18.62 – Platform Admin Dashboard */
+/* v2.18.63 – Platform Admin Dashboard */
 #platformAdminDashboard{padding-bottom:92px}
 .pa-dashboard-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:22px}
 .pa-eyebrow{font-size:12px;font-weight:900;letter-spacing:.12em;color:#9fb2c5;margin-bottom:8px}
@@ -538,7 +538,7 @@ button.pa-kpi-card{width:100%;font:inherit;cursor:pointer}
   .pa-status-grid{grid-template-columns:1fr}
 }
 
-/* v2.18.62 – Mandantenoberflächen im Platform-Design */
+/* v2.18.63 – Mandantenoberflächen im Platform-Design */
 .tenant-dashboard-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:22px}
 .tenant-eyebrow{font-size:12px;font-weight:900;letter-spacing:.12em;color:#9fb2c5;margin-bottom:8px}
 .tenant-dashboard-title{font-size:42px;line-height:1;margin:0 0 10px;font-weight:950}
@@ -580,7 +580,7 @@ button.pa-kpi-card{width:100%;font:inherit;cursor:pointer}
   .tenant-action-btn{padding:9px 11px!important;font-size:12px!important}
 }
 
-/* v2.18.62 – Mandantenmodus + technische Diagnose */
+/* v2.18.63 – Mandantenmodus + technische Diagnose */
 .platform-tenant-mode-banner{position:sticky;top:82px;z-index:70;margin:0 0 14px;padding:11px 14px;border:1px solid #8a6d22;border-radius:14px;background:linear-gradient(145deg,#3b3010,#211d0d);color:#f4df93;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 8px 22px rgba(0,0,0,.22)}
 .platform-tenant-mode-banner.hidden{display:none!important}
 .platform-tenant-mode-banner button{border-color:#8a6d22!important;background:#4b3d13!important;color:#fff1b9!important}
@@ -1076,7 +1076,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.62</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.63</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1116,7 +1116,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.62</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.63</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1456,6 +1456,17 @@ body.public-report-mode>#photoViewer{display:none!important}
 <section class="section" id="organizations">
 <div class="row space"><div><h2>Unternehmen / Mandanten</h2><div class="muted">Plattformweite Mandantenverwaltung. Der Plattform-Admin legt den Mandanten und dessen initialen Mandanten-Admin an. Die weitere Benutzer- und Objektverwaltung erfolgt innerhalb des Mandanten.</div></div><button class="primary" id="addOrganizationBtn" onclick="openOrganizationModal()">+ Mandant</button></div>
 <div class="grid g2" id="organizationList" style="margin-top:14px"></div>
+
+<div class="pa-panel" id="platformAccessCard" style="display:none;margin-top:18px">
+  <div class="pa-panel-head">
+    <div>
+      <div class="pa-panel-title"><span class="pa-panel-icon">♙</span>Plattform-Zugänge</div>
+      <div class="pa-panel-sub">Nur der primäre Platform Admin verwaltet Plattform-Administratoren und deren Vertretungen.</div>
+    </div>
+    <button class="pa-refresh-btn" type="button" onclick="openPlatformDelegateModal()">+ Admin-Vertretung</button>
+  </div>
+  <div id="platformAccessList" style="margin-top:14px"><div class="empty">Plattform-Zugänge werden geladen …</div></div>
+</div>
 </section>
 <section class="section" id="users">
 <div class="card">
@@ -2845,7 +2856,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.18.62';
+const APP_VERSION='2.18.63';
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -3642,18 +3653,19 @@ let platformOrganizationMemberships=[];
 let platformOrganizationProfiles=[];
 let userAdminMemberships=[];
 
-// v2.18.62: Platform-Admin kann einen Mandanten bewusst administrieren.
+// v2.18.63: Platform-Admin kann einen Mandanten bewusst administrieren.
 // Der globale Plattformkontext bleibt davon getrennt.
 let platformTenantModeOrgId='';
 let platformTenantModeOrganization=null;
 let platformTenantModeEnteredAt=null;
 
 function isPlatformTenantMode(){
-  return effectiveUserRole()==='platform_admin' && !!platformTenantModeOrgId;
+  return isPlatformOperatorRole() && !!platformTenantModeOrgId;
 }
 
 const ROLE_LABELS={
-  platform_admin:'Administrator / GF',
+  platform_admin:'Plattform-Admin',
+  platform_admin_delegate:'Plattform-Admin-Vertretung',
   staff:'Objektbetreuer (Legacy)',
   object_manager:'Objektbetreuer',
   employee:'Mitarbeiter (Alt)',
@@ -3676,8 +3688,10 @@ function effectiveOrganizationRole(){
 }
 function currentOrganizationId(){return currentOrganizationMembership?.organization_id||''}
 function isAdminRole(){return effectiveUserRole()==='platform_admin'}
-function isTenantAdminRole(){return effectiveOrganizationRole()==='tenant_admin'&&(!isAdminRole()||isPlatformTenantMode())}
-function isAdminDelegate(){return effectiveOrganizationRole()==='admin_delegate'&&!isPlatformTenantMode()&&!isAdminRole()}
+function isPlatformAdminDelegateRole(){return effectiveUserRole()==='platform_admin_delegate'}
+function isPlatformOperatorRole(){return isAdminRole()||isPlatformAdminDelegateRole()}
+function isTenantAdminRole(){return effectiveOrganizationRole()==='tenant_admin'&&(!isPlatformOperatorRole()||isPlatformTenantMode())}
+function isAdminDelegate(){return effectiveOrganizationRole()==='admin_delegate'&&!isPlatformTenantMode()&&!isPlatformOperatorRole()}
 function hasOperationalAdminAccess(){return isTenantAdminRole()||isAdminDelegate()}
 function canManageUsersUI(){return isTenantAdminRole()||isAdminDelegate()}
 function isObjectManagerRole(){return !hasOperationalAdminAccess()&&['object_manager','staff'].includes(effectiveUserRole())}
@@ -3731,7 +3745,7 @@ async function cloudLoadCurrentProfile(){
   currentUserProfile=p;
   currentUserRole=String(p.role||cloudSession?.user?.user_metadata?.app_role||'').trim().toLowerCase();
 
-  // v2.18.62: Die globale Profilrolle muss sofort wirksam werden.
+  // v2.18.63: Die globale Profilrolle muss sofort wirksam werden.
   // Ein Fehler beim Laden der Mandanten-Mitgliedschaft darf insbesondere
   // einen platform_admin weder Navigation noch globalen Zugriff verlieren lassen.
   currentOrganizationMembership=null;
@@ -3961,6 +3975,8 @@ function applyRoleUI(){
       ? 'Admin-Vertretung'
       : role==='platform_admin'
         ? (isPlatformTenantMode()?'Plattform-Admin · Mandantenmodus':'Plattform-Admin')
+        : role==='platform_admin_delegate'
+          ? (isPlatformTenantMode()?'Platform Admin-Vertretung · Mandantenmodus':'Platform Admin-Vertretung')
         : isTenantAdminRole()
           ? 'Mandanten-Admin'
         : role==='object_manager'
@@ -3992,7 +4008,7 @@ function applyRoleUI(){
   // Hamburger-Menü: nur Funktionen anzeigen, die für die aktuelle Rolle nutzbar sind.
   // Keine ausgegrauten / nicht ausführbaren Menüpunkte.
   const hasAppRole=!!role;
-  const platformMode=isAdminRole()&&!isPlatformTenantMode();
+  const platformMode=isPlatformOperatorRole()&&!isPlatformTenantMode();
   show('navDashboard',hasAppRole);
   show('navObjects',hasAppRole && !platformMode);
   show('navInspections',false);
@@ -4016,7 +4032,7 @@ function applyRoleUI(){
   if(tenantModeBanner)tenantModeBanner.classList.toggle('hidden',!isPlatformTenantMode());
   if(tenantModeName)tenantModeName.textContent=platformTenantModeOrganization?.name||currentOrganization?.name||'Mandant';
 
-  // v2.18.62: Der reine Platform-Admin benötigt kein Hamburger-Menü.
+  // v2.18.63: Der reine Platform-Admin benötigt kein Hamburger-Menü.
   // Tatsächlicher Header-Trigger ist #appMenuBtn / toggleAppMenu().
   // Im Mandantenmodus und für reguläre Mandantenrollen bleibt das Menü erhalten.
   const menuTrigger =
@@ -4065,6 +4081,10 @@ function applyRoleUI(){
   }
   const platformOrgKpi=document.getElementById('kpiPlatformOrganizations');
   if(platformOrgKpi)platformOrgKpi.textContent=String((cloudOrganizations||[]).filter(o=>o.active!==false).length);
+  const platformAccessCard=document.getElementById('platformAccessCard');
+  if(platformAccessCard)platformAccessCard.style.display=(platformMode&&isAdminRole())?'':'none';
+  const platformBackupNavBtn=document.getElementById('platformBackupNavBtn');
+  if(platformBackupNavBtn)platformBackupNavBtn.style.display=isAdminRole()?'':'none';
   const newUserCard=document.getElementById('newUserCard');if(newUserCard)newUserCard.style.display=isTenantAdminRole()?'':'none';
   const softResetCard=document.getElementById('softResetCard');if(softResetCard)softResetCard.style.display=isAdminRole()?'':'none';
   show('addObjectBtn',canManageObjectsUI());
@@ -4203,7 +4223,7 @@ async function cloudLogin(){
     await cloudReloadObjects();
   }catch(e){
     console.error('Anmeldung / Profilinitialisierung fehlgeschlagen',e);
-    // v2.18.62: Die App darf bei fehlgeschlagener Profilinitialisierung
+    // v2.18.63: Die App darf bei fehlgeschlagener Profilinitialisierung
     // nicht mit leerer Navigation hinter einem ausgeblendeten Login-Gate stehen.
     currentUserProfile=null;
     currentUserRole='';
@@ -4245,7 +4265,7 @@ function loadPlatformDiagnosticErrors(){
   }catch(_e){return []}
 }
 function recordPlatformDiagnosticError(message,path=''){
-  if(effectiveUserRole()!=='platform_admin')return;
+  if(!isPlatformOperatorRole())return;
   try{
     const rows=loadPlatformDiagnosticErrors();
     rows.push({ts:Date.now(),message:String(message||'Unbekannter Fehler').slice(0,300),path:String(path||'').slice(0,180)});
@@ -4286,7 +4306,7 @@ async function platformDiagnosticCheck(name,fn){
   }
 }
 async function runPlatformDiagnostics(){
-  if(!isAdminRole()||platformDiagnosticsRunning)return;
+  if(!isPlatformOperatorRole()||platformDiagnosticsRunning)return;
   platformDiagnosticsRunning=true;
   const box=document.getElementById('platformDiagnosticsList');
   if(box)box.innerHTML='<div class="muted">Technische Prüfungen laufen …</div>';
@@ -4989,7 +5009,7 @@ function formatBytes(bytes){
   return `${value.toLocaleString('de-DE',{minimumFractionDigits:decimals,maximumFractionDigits:decimals})} ${units[i]}`;
 }
 async function cloudLoadPlatformStorage(){
-  if(!isAdminRole()||!cloudSession?.access_token){platformStorageRows=[];return platformStorageRows;}
+  if(!isPlatformOperatorRole()||!cloudSession?.access_token){platformStorageRows=[];return platformStorageRows;}
   try{
     const rows=await cloudRequest('rpc/platform_storage_summary',{method:'POST',body:JSON.stringify({})});
     platformStorageRows=Array.isArray(rows)?rows:[];
@@ -5002,7 +5022,7 @@ async function cloudLoadPlatformStorage(){
   return platformStorageRows;
 }
 function renderPlatformSystemStatus(){
-  if(!isAdminRole())return;
+  if(!isPlatformOperatorRole())return;
   const activeOrgs=(cloudOrganizations||[]).filter(o=>o.active!==false);
   const activeUsers=(platformOrganizationProfiles||[]).filter(p=>p.active!==false&&!p.deleted_at);
   const byOrg=new Map((platformStorageRows||[]).map(r=>[r.organization_id,r]));
@@ -5056,7 +5076,7 @@ function renderPlatformSystemStatus(){
   }
 }
 async function loadPlatformSystemStatus(){
-  if(!isAdminRole())return;
+  if(!isPlatformOperatorRole())return;
   cloudSetStatus('Plattformstatus wird aktualisiert …','wait');
   try{
     await cloudLoadOrganizations();
@@ -5084,7 +5104,7 @@ async function cloudLoadOrganizations(){
   }
   const rows=await cloudRequest('organizations?select=id,name,organization_type,active,storage_limit_bytes,storage_warning_percent,created_at&order=name.asc');
   cloudOrganizations=Array.isArray(rows)?rows:[];
-  if(isAdminRole()){
+  if(isPlatformOperatorRole()){
     try{
       platformOrganizationMemberships=await cloudRequest('organization_memberships?select=id,organization_id,user_id,role')||[];
       platformOrganizationProfiles=await cloudRequest('profiles?select=id,full_name,email,active,deleted_at')||[];
@@ -5098,6 +5118,7 @@ async function cloudLoadOrganizations(){
   renderOrganizations();
   populateTenantSelectors();
   applyRoleUI();
+  if(isAdminRole())await loadPlatformAccessProfiles();
   return cloudOrganizations;
 }
 function organizationName(id){return cloudOrganizations.find(o=>o.id===id)?.name||''}
@@ -5128,7 +5149,7 @@ function platformOrganizationUserSummary(orgId){
 function renderOrganizations(){
   const box=document.getElementById('organizationList');
   if(!box)return;
-  if(!isAdminRole()){box.innerHTML='<div class="empty">Nur Plattformadministratoren können Unternehmen verwalten.</div>';return;}
+  if(!isPlatformOperatorRole()){box.innerHTML='<div class="empty">Nur Plattformadministratoren können Unternehmen verwalten.</div>';return;}
   if(!cloudOrganizations.length){box.innerHTML='<div class="empty">Noch keine Mandanten vorhanden.</div>';return;}
   const usageByOrg=new Map((platformStorageRows||[]).map(r=>[r.organization_id,r]));
   box.innerHTML=cloudOrganizations.map(org=>{
@@ -5148,7 +5169,7 @@ function renderOrganizations(){
 }
 
 async function cloudLogPlatformTenantAccess(action,orgId){
-  if(!isAdminRole()||!orgId)return;
+  if(!isPlatformOperatorRole()||!orgId)return;
   try{
     await cloudRequest('platform_admin_access_log',{
       method:'POST',
@@ -5168,7 +5189,7 @@ async function cloudLogPlatformTenantAccess(action,orgId){
 }
 
 async function enterPlatformTenantMode(orgId){
-  if(!isAdminRole())return alert('Nur der Plattformadministrator kann den Mandantenmodus öffnen.');
+  if(!isPlatformOperatorRole())return alert('Nur die Plattformadministration kann den Mandantenmodus öffnen.');
   const org=cloudOrganizations.find(o=>o.id===orgId);
   if(!org)return alert('Mandant wurde nicht gefunden.');
   platformTenantModeOrgId=org.id;
@@ -5216,6 +5237,103 @@ async function exitPlatformTenantMode(){
   applyRoleUI();
   showSection('dashboard');
   await cloudReloadObjects();
+}
+
+
+let platformAccessProfiles=[];
+
+async function loadPlatformAccessProfiles(){
+  if(!isAdminRole()){platformAccessProfiles=[];renderPlatformAccessProfiles();return;}
+  try{
+    const rows=await cloudRequest('profiles?select=id,full_name,email,role,active,deleted_at,created_at&role=in.(platform_admin,platform_admin_delegate)&order=full_name.asc');
+    platformAccessProfiles=Array.isArray(rows)?rows:[];
+  }catch(e){
+    platformAccessProfiles=[];
+    console.warn('Plattform-Zugänge konnten nicht geladen werden',e);
+  }
+  renderPlatformAccessProfiles();
+}
+
+function renderPlatformAccessProfiles(){
+  const box=document.getElementById('platformAccessList');
+  if(!box)return;
+  if(!isAdminRole()){box.innerHTML='';return;}
+  const rows=(platformAccessProfiles||[]).filter(p=>!p.deleted_at);
+  if(!rows.length){box.innerHTML='<div class="empty">Keine Plattform-Zugänge gefunden.</div>';return;}
+  box.innerHTML=rows.map(p=>{
+    const primary=p.role==='platform_admin';
+    return `<div class="platform-tenant-row">
+      <div class="platform-tenant-main">
+        <div>
+          <div class="platform-tenant-name">${esc(p.full_name||p.email||'Plattform-Zugang')}</div>
+          <div class="platform-tenant-meta">${esc(p.email||'')} · ${primary?'Platform Admin':'Platform Admin-Vertretung'} · ${p.active===false?'Inaktiv':'Aktiv'}</div>
+        </div>
+        <span class="badge">${primary?'ADMIN':'VERTRETUNG'}</span>
+      </div>
+      ${!primary?`<div class="row" style="margin-top:10px"><button onclick="setPlatformDelegateActive('${esc(p.id)}',${p.active===false?'true':'false'})">${p.active===false?'Aktivieren':'Deaktivieren'}</button></div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function openPlatformDelegateModal(){
+  if(!isAdminRole())return alert('Nur der primäre Platform Admin darf eine Platform Admin-Vertretung anlegen.');
+  modal(`<div class="row space"><h2>Platform Admin-Vertretung</h2><button onclick="closeModal()">✕</button></div>
+    <p class="muted">Die Vertretung darf Mandanten einsehen, administrieren und technische Diagnosen durchführen. Sie darf keine Platform-Admins verwalten und keine kritischen Plattform-/Löschfunktionen ausführen.</p>
+    <label>Anzeigename *</label><input id="platformDelegateName" placeholder="z. B. Max Mustermann">
+    <label>E-Mail / Benutzername *</label><input id="platformDelegateEmail" type="email" autocomplete="off" placeholder="admin2@duschlservice.de">
+    <div class="row" style="margin-top:14px"><button class="primary" onclick="createPlatformDelegate()">Vertretung anlegen</button></div>`);
+}
+
+async function createPlatformDelegate(){
+  if(!isAdminRole())return alert('Nur der primäre Platform Admin darf eine Platform Admin-Vertretung anlegen.');
+  const fullName=document.getElementById('platformDelegateName')?.value.trim()||'';
+  const email=document.getElementById('platformDelegateEmail')?.value.trim().toLowerCase()||'';
+  if(!fullName)return alert('Bitte einen Anzeigenamen eingeben.');
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return alert('Bitte eine gültige E-Mail-Adresse eingeben.');
+  try{
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/invite-user`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${cloudSession?.access_token||''}`,'apikey':SUPABASE_PUBLISHABLE_KEY},
+      body:JSON.stringify({fullName,email,role:'object_manager',objectIds:[]})
+    });
+    const responseText=await res.text();
+    let data={};try{data=responseText?JSON.parse(responseText):{};}catch{}
+    if(!res.ok||data?.ok===false)throw new Error(data?.error||responseText||`HTTP ${res.status}`);
+
+    const profiles=await cloudRequest(`profiles?select=id,email,role&email=eq.${encodeURIComponent(email)}&limit=1`);
+    const profile=profiles?.[0];
+    if(!profile?.id)throw new Error('Benutzer wurde angelegt, das Profil konnte aber nicht gefunden werden.');
+
+    await cloudRequest(`profiles?id=eq.${encodeURIComponent(profile.id)}`,{
+      method:'PATCH',headers:{Prefer:'return=minimal'},
+      body:JSON.stringify({role:'platform_admin_delegate',active:true,admin_delegate:false})
+    });
+
+    try{await cloudRequest(`organization_memberships?user_id=eq.${encodeURIComponent(profile.id)}`,{method:'DELETE'});}catch(_e){}
+
+    closeModal();
+    await loadPlatformAccessProfiles();
+
+    const initialPassword=data?.initialPassword||data?.initial_password||'';
+    alert(initialPassword
+      ? `Platform Admin-Vertretung wurde angelegt.\n\nBenutzer: ${email}\nInitialpasswort: ${initialPassword}\n\nDas Initialpasswort wird nur jetzt angezeigt.`
+      : 'Platform Admin-Vertretung wurde angelegt.');
+  }catch(e){
+    console.error(e);
+    alert('Platform Admin-Vertretung konnte nicht angelegt werden: '+(e?.message||e));
+  }
+}
+
+async function setPlatformDelegateActive(userId,active){
+  if(!isAdminRole())return alert('Nur der primäre Platform Admin darf Plattform-Zugänge ändern.');
+  try{
+    await cloudRequest(`profiles?id=eq.${encodeURIComponent(userId)}&role=eq.platform_admin_delegate`,{
+      method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({active:!!active})
+    });
+    await loadPlatformAccessProfiles();
+  }catch(e){
+    alert('Plattform-Zugang konnte nicht geändert werden: '+(e?.message||e));
+  }
 }
 
 function openOrganizationModal(id=''){
@@ -5396,9 +5514,9 @@ async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
   cloudSetStatus('Supabase wird geladen …','wait');
   try{
-    // v2.18.62: Reine Plattform-Admins arbeiten im Systemkontext und laden
+    // v2.18.63: Reine Plattform-Admins arbeiten im Systemkontext und laden
     // standardmäßig keine operativen Objekt-/Vorgangsdaten.
-    if(isAdminRole()&&!isPlatformTenantMode()){
+    if(isPlatformOperatorRole()&&!isPlatformTenantMode()){
       await cloudLoadOrganizations();
       await cloudLoadPlatformStorage();
       renderAll();
@@ -8673,7 +8791,7 @@ if(!bootPublicResidentReport()){
   <button type="button" data-pa-nav="dashboard" onclick="showSection('dashboard')"><span>⌂</span><small>Dashboard</small></button>
   <button type="button" data-pa-nav="organizations" onclick="showSection('organizations')"><span>▦</span><small>Unternehmen</small></button>
   <button type="button" onclick="showVoluntaryPasswordChange()"><span>⌘</span><small>Passwort</small></button>
-  <button type="button" onclick="exportData()"><span>▰</span><small>Sicherung</small></button>
+  <button id="platformBackupNavBtn" type="button" onclick="exportData()"><span>▰</span><small>Sicherung</small></button>
   <button type="button" onclick="cloudLogout()"><span>↪</span><small>Abmelden</small></button>
 </div>
 </body>
