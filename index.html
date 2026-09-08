@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.69</title>
+<title>Duschl Service – Objektplattform v2.18.71</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -425,7 +425,7 @@ main{padding-top:18px}
 .user-message-audience-count{font-size:12px;font-weight:600;opacity:.8}
 .user-message-recipient-row.message-scope-hidden{display:none}
 
-/* v2.18.69 – Platform-Admin Dashboard */
+/* v2.18.71 – Platform-Admin Dashboard */
 .platform-kpi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .platform-kpi-card{border:1px solid var(--border);background:var(--card);border-radius:18px;padding:16px;min-width:0}
 .platform-kpi-label{color:var(--muted);font-size:14px;font-weight:700}
@@ -455,7 +455,7 @@ main{padding-top:18px}
   .platform-tenant-main{align-items:center}
 }
 
-/* v2.18.69 – Platform Admin Dashboard */
+/* v2.18.71 – Platform Admin Dashboard */
 #platformAdminDashboard{padding-bottom:92px}
 .pa-dashboard-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:22px}
 .pa-eyebrow{font-size:12px;font-weight:900;letter-spacing:.12em;color:#9fb2c5;margin-bottom:8px}
@@ -538,7 +538,7 @@ button.pa-kpi-card{width:100%;font:inherit;cursor:pointer}
   .pa-status-grid{grid-template-columns:1fr}
 }
 
-/* v2.18.69 – Mandantenoberflächen im Platform-Design */
+/* v2.18.71 – Mandantenoberflächen im Platform-Design */
 .tenant-dashboard-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:22px}
 .tenant-eyebrow{font-size:12px;font-weight:900;letter-spacing:.12em;color:#9fb2c5;margin-bottom:8px}
 .tenant-dashboard-title{font-size:42px;line-height:1;margin:0 0 10px;font-weight:950}
@@ -580,7 +580,7 @@ button.pa-kpi-card{width:100%;font:inherit;cursor:pointer}
   .tenant-action-btn{padding:9px 11px!important;font-size:12px!important}
 }
 
-/* v2.18.69 – Mandantenmodus + technische Diagnose */
+/* v2.18.71 – Mandantenmodus + technische Diagnose */
 .platform-tenant-mode-banner{position:sticky;top:82px;z-index:70;margin:0 0 14px;padding:11px 14px;border:1px solid #8a6d22;border-radius:14px;background:linear-gradient(145deg,#3b3010,#211d0d);color:#f4df93;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 8px 22px rgba(0,0,0,.22)}
 .platform-tenant-mode-banner.hidden{display:none!important}
 .platform-tenant-mode-banner button{border-color:#8a6d22!important;background:#4b3d13!important;color:#fff1b9!important}
@@ -607,7 +607,7 @@ button.pa-kpi-card{width:100%;font:inherit;cursor:pointer}
   .platform-diagnostic-latency{grid-column:2}
 }
 
-/* v2.18.69 – Safe area above fixed bottom navigation.
+/* v2.18.71 – Safe area above fixed bottom navigation.
    Keeps the final card/action row fully clickable on mobile and desktop. */
 body{
   padding-bottom:calc(110px + env(safe-area-inset-bottom, 0px));
@@ -618,7 +618,7 @@ main,
   scroll-padding-bottom:calc(130px + env(safe-area-inset-bottom, 0px));
 }
 
-/* v2.18.69 – Modal must always sit above fixed bottom navigation.
+/* v2.18.71 – Modal must always sit above fixed bottom navigation.
    Mobile modals are vertically scrollable, including with the iOS keyboard open. */
 #modal{
   z-index:10050!important;
@@ -640,7 +640,7 @@ nav.bottom-nav{
   z-index:1000;
 }
 
-/* v2.18.69 – Plattformverwaltung über Hamburger-Menü; fixe Bottom-Navigation deaktiviert. */
+/* v2.18.71 – Plattformverwaltung über Hamburger-Menü; fixe Bottom-Navigation deaktiviert. */
 #platformBottomNav{display:none!important;}
 body.platform-menu-mode{
   padding-bottom:calc(20px + env(safe-area-inset-bottom, 0px))!important;
@@ -1126,7 +1126,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.69</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.71</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1138,6 +1138,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <button id="navResidentReports" onclick="showSection('residentReports')"><span class="nav-icon">◯</span><span>Meldungen</span><span class="badge nav-count" id="residentReportNavCount">0</span></button>
 <button id="navDecisions" onclick="showSection('decisions')"><span class="nav-icon">✓</span><span>Entscheidungen</span><span class="badge nav-count" id="decisionNavCount">0</span></button>
 <button id="navWorkqueue" onclick="showSection('workqueue')"><span class="nav-icon">⌁</span><span>Arbeitsvorrat</span><span class="badge nav-count" id="workqueueNavCount">0</span></button>
+<button id="navExternalOrders" onclick="showSection('externalOrders')"><span class="nav-icon">⇄</span><span>Externe Aufträge</span><span class="badge nav-count" id="externalOrdersNavCount">0</span></button>
 <button id="navReports" onclick="showSection('reports')"><span class="nav-icon">▥</span><span>Berichte</span></button>
 <button id="navOrganizations" onclick="showSection('organizations')"><span class="nav-icon">▣</span><span>Unternehmen / Mandanten</span></button>
 <button id="navUsers" onclick="showSection('users')"><span class="nav-icon">♙</span><span>Benutzer &amp; Berechtigungen</span></button>
@@ -1166,7 +1167,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.69</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.71</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1572,6 +1573,17 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div id="userAdminEditor"></div>
 </section>
 
+
+<section class="section" id="externalOrders">
+  <div class="row space"><div><h2>Externe Aufträge</h2><div class="muted">Mandantenübergreifende Beauftragungen – ohne den eigenen Mandanten zu verlassen.</div></div><button id="createExternalOrderBtn" class="primary" type="button" onclick="openExternalOrderModal()">Extern beauftragen</button></div>
+  <div class="grid3" style="margin-top:14px">
+    <div class="card"><div class="muted">Eingehend offen</div><div class="big" id="externalIncomingCount">0</div></div>
+    <div class="card"><div class="muted">Ausgehend offen</div><div class="big" id="externalOutgoingCount">0</div></div>
+    <div class="card"><div class="muted">Gesamt</div><div class="big" id="externalTotalCount">0</div></div>
+  </div>
+  <div class="card" style="margin-top:14px"><div class="row space"><div><strong>Dauerhafte Objektbetreuung</strong><div class="muted" style="margin-top:4px">Objekte für ein Partnerunternehmen freigeben, ohne sie in einen anderen Mandanten zu kopieren.</div></div><button id="shareObjectCareBtn" type="button" onclick="openObjectCollaborationModal()">Objektbetreuung freigeben</button></div><div id="objectCollaborationsList" style="margin-top:12px"><span class="muted">Noch keine Betreuungsbeziehungen geladen.</span></div></div>
+  <div class="card" style="margin-top:14px"><div class="row space"><strong>Aufträge</strong><button type="button" onclick="cloudLoadExternalOrders()">↻ Aktualisieren</button></div><div id="externalOrdersList" style="margin-top:12px"><span class="muted">Noch keine Daten geladen.</span></div></div>
+</section>
 </main>
 <div id="modalRoot"></div>
 <script id="duschl-qr-local-v2183">
@@ -2917,7 +2929,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.18.69';
+const APP_VERSION='2.18.71';
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -3710,11 +3722,17 @@ let currentUserRole='';
 let currentOrganizationMembership=null;
 let currentOrganization=null;
 let cloudOrganizations=[];
+let cloudExternalOrders=[];
+let cloudCollaborationPartners=[];
+let cloudExternalOrderAssignees=[];
+let cloudSharedObjects=[];
+let cloudObjectCollaborations=[];
+let cloudSharedObjectAssignees=[];
 let platformOrganizationMemberships=[];
 let platformOrganizationProfiles=[];
 let userAdminMemberships=[];
 
-// v2.18.69: Platform-Admin kann einen Mandanten bewusst administrieren.
+// v2.18.71: Platform-Admin kann einen Mandanten bewusst administrieren.
 // Der globale Plattformkontext bleibt davon getrennt.
 let platformTenantModeOrgId='';
 let platformTenantModeOrganization=null;
@@ -3806,7 +3824,7 @@ async function cloudLoadCurrentProfile(){
   currentUserProfile=p;
   currentUserRole=String(p.role||cloudSession?.user?.user_metadata?.app_role||'').trim().toLowerCase();
 
-  // v2.18.69: Die globale Profilrolle muss sofort wirksam werden.
+  // v2.18.71: Die globale Profilrolle muss sofort wirksam werden.
   // Ein Fehler beim Laden der Mandanten-Mitgliedschaft darf insbesondere
   // einen platform_admin weder Navigation noch globalen Zugriff verlieren lassen.
   currentOrganizationMembership=null;
@@ -4076,6 +4094,7 @@ function applyRoleUI(){
   show('navFindings',hasAppRole && !platformMode && canCreateDocumentationUI());
   show('navResidentReports',hasAppRole && !platformMode && !isCustomerRole());
   show('navWorkqueue',hasAppRole && !platformMode && canUseWorkQueueUI());
+  show('navExternalOrders',hasAppRole && !platformMode && (hasOperationalAdminAccess()||isObjectManagerRole()));
   show('navReports',hasAppRole && !platformMode);
   show('navDecisions',hasAppRole && !platformMode && canUseDecisionsUI());
   show('navOrganizations',hasAppRole && platformMode);
@@ -4094,7 +4113,7 @@ function applyRoleUI(){
   if(tenantModeBanner)tenantModeBanner.classList.toggle('hidden',!isPlatformTenantMode());
   if(tenantModeName)tenantModeName.textContent=platformTenantModeOrganization?.name||currentOrganization?.name||'Mandant';
 
-  // v2.18.69: Der reine Platform-Admin benötigt kein Hamburger-Menü.
+  // v2.18.71: Der reine Platform-Admin benötigt kein Hamburger-Menü.
   // Tatsächlicher Header-Trigger ist #appMenuBtn / toggleAppMenu().
   // Im Mandantenmodus und für reguläre Mandantenrollen bleibt das Menü erhalten.
   const menuTrigger =
@@ -4160,7 +4179,7 @@ function applyRoleUI(){
   const privacyNote=document.getElementById('customerPrivacyNote');
   if(privacyNote)privacyNote.style.display=isCustomerRole()?'':'none';
 
-  if(platformMode && ['objects','findings','residentReports','decisions','workqueue','reports'].some(id=>document.getElementById(id)?.classList.contains('active'))){
+  if(platformMode && ['objects','findings','residentReports','decisions','workqueue','externalOrders','reports'].some(id=>document.getElementById(id)?.classList.contains('active'))){
     showSection('dashboard');
   }
   if(!canUseDecisionsUI() && document.getElementById('decisions')?.classList.contains('active')){
@@ -4283,7 +4302,7 @@ async function cloudLogin(){
     await cloudReloadObjects();
   }catch(e){
     console.error('Anmeldung / Profilinitialisierung fehlgeschlagen',e);
-    // v2.18.69: Die App darf bei fehlgeschlagener Profilinitialisierung
+    // v2.18.71: Die App darf bei fehlgeschlagener Profilinitialisierung
     // nicht mit leerer Navigation hinter einem ausgeblendeten Login-Gate stehen.
     currentUserProfile=null;
     currentUserRole='';
@@ -4988,6 +5007,7 @@ async function refreshAllCloudData(){
     if(canManageUsersUI())await loadUserAdminData();
     if(isAdminRole())await cloudLoadOrganizations();
     await loadUserMessages();
+    if(hasOperationalAdminAccess()||isObjectManagerRole())await cloudLoadExternalOrders(false);
     renderAll();
     cloudSetStatus('Verbunden · Daten zentral aktualisiert','ok');
   }catch(e){
@@ -4997,6 +5017,134 @@ async function refreshAllCloudData(){
   }finally{
     if(btn){btn.disabled=false;btn.textContent=oldText;}
   }
+}
+
+// v2.18.71 – Mandantenübergreifende Zusammenarbeit.
+// Ein Auftrag bleibt Eigentum des Quellmandanten. Der ausführende Mandant erhält
+// ausschließlich Zugriff auf den freigegebenen Auftrag und arbeitet im eigenen Kontext.
+async function cloudLoadSharedObjects(){
+  cloudSharedObjects=[];
+  if(!cloudSession?.access_token||isPlatformOperatorRole()&&!isPlatformTenantMode())return;
+  try{
+    const rows=await cloudRequest('rpc/get_shared_objects',{method:'POST',body:JSON.stringify({})});
+    cloudSharedObjects=(Array.isArray(rows)?rows:[]).map(o=>({
+      id:o.object_id,organizationId:o.owner_organization_id||'',name:o.object_name||'',address:o.object_address||'',notes:o.notes||'',isTest:false,
+      createdAt:Date.now(),updatedAt:Date.now(),cloud:true,externalManaged:true,ownerOrganizationName:o.owner_organization_name||'Partnerunternehmen',collaborationId:o.collaboration_id||''
+    }));
+  }catch(e){console.warn('Extern betreute Objekte konnten nicht geladen werden',e);cloudSharedObjects=[];}
+}
+async function cloudLoadObjectCollaborations(render=true){
+  if(!cloudSession?.access_token||isPlatformOperatorRole()&&!isPlatformTenantMode())return;
+  try{
+    const rows=await cloudRequest('rpc/get_object_collaborations',{method:'POST',body:JSON.stringify({})});
+    cloudObjectCollaborations=Array.isArray(rows)?rows:[];
+    if(hasOperationalAdminAccess()){
+      try{const a=await cloudRequest('rpc/get_external_order_assignees',{method:'POST',body:JSON.stringify({})});cloudSharedObjectAssignees=Array.isArray(a)?a:[];}catch(_e){cloudSharedObjectAssignees=[];}
+    }
+    if(render)renderObjectCollaborations();
+  }catch(e){console.warn('Betreuungsbeziehungen konnten nicht geladen werden',e);cloudObjectCollaborations=[];if(render)renderObjectCollaborations();}
+}
+function renderObjectCollaborations(){
+  const box=document.getElementById('objectCollaborationsList');if(!box)return;
+  const orgId=currentOrganizationId();
+  const btn=document.getElementById('shareObjectCareBtn');if(btn)btn.style.display=hasOperationalAdminAccess()?'':'none';
+  if(!cloudObjectCollaborations.length){box.innerHTML='<div class="empty">Keine dauerhaften Objektbetreuungen vorhanden.</div>';return;}
+  box.innerHTML=cloudObjectCollaborations.map(c=>{
+    const incoming=c.service_organization_id===orgId;
+    const partner=incoming?(c.owner_organization_name||'Auftraggeber'):(c.service_organization_name||'Dienstleister');
+    const assignee=c.assigned_user_name||'';
+    const actions=incoming&&hasOperationalAdminAccess()?`<div class="row" style="margin-top:10px"><button onclick="openSharedObjectAssignmentModal('${esc(c.collaboration_id)}')">${assignee?'Zuweisung ändern':'Objektbetreuer zuweisen'}</button></div>`:'';
+    return `<div class="card" style="margin:8px 0"><div class="row space"><div><span class="badge">${incoming?'Betreut':'Freigegeben'}</span> <strong>${esc(c.object_name||'Objekt')}</strong></div><span class="badge">${c.active===false?'Inaktiv':'Aktiv'}</span></div><div class="muted" style="margin-top:5px">${esc(partner)}${c.object_address?' · '+esc(c.object_address):''}</div>${assignee?`<div class="muted" style="margin-top:6px">Verantwortlich: <strong>${esc(assignee)}</strong></div>`:''}${actions}</div>`;
+  }).join('');
+}
+async function openObjectCollaborationModal(){
+  if(!hasOperationalAdminAccess())return alert('Nur Mandanten-Admin oder Admin-Vertretung können Objektbetreuungen freigeben.');
+  await cloudLoadExternalOrders(false);
+  const partners=cloudCollaborationPartners.filter(p=>p.can_send===true);if(!partners.length)return alert('Zuerst muss ein Partnerunternehmen freigeschaltet sein.');
+  const objs=(db.objects||[]).filter(o=>!o.externalManaged&&o.organizationId===currentOrganizationId());if(!objs.length)return alert('Kein eigenes Objekt für die Freigabe vorhanden.');
+  document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Objektbetreuung freigeben</h2><p class="muted">Das Originalobjekt bleibt bei deinem Mandanten. Der Partner sieht es in seinem eigenen Objektbestand.</p><label>Objekt *</label><select id="socObject">${objs.map(o=>`<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('')}</select><label>Betreuender Mandant *</label><select id="socPartner">${partners.map(p=>`<option value="${esc(p.organization_id)}">${esc(p.organization_name)}</option>`).join('')}</select><label>Leistungsumfang</label><textarea id="socScope" rows="4" placeholder="z. B. Objektbetreuung, Winterdienst, Kleinreparaturen"></textarea><div class="modal-actions"><button class="primary" onclick="createObjectCollaboration()">Freigeben</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
+}
+async function createObjectCollaboration(){
+  const objectId=document.getElementById('socObject')?.value||'';const serviceOrg=document.getElementById('socPartner')?.value||'';const scope=(document.getElementById('socScope')?.value||'').trim();
+  if(!objectId||!serviceOrg)return alert('Objekt und betreuender Mandant sind Pflichtfelder.');
+  try{await cloudRequest('rpc/create_object_collaboration',{method:'POST',body:JSON.stringify({p_object_id:objectId,p_service_organization_id:serviceOrg,p_service_scope:scope||null})});closeModal();await cloudLoadObjectCollaborations();alert('Die Objektbetreuung wurde freigegeben.');}catch(e){alert('Objektbetreuung konnte nicht freigegeben werden: '+(e.message||e));}
+}
+async function openSharedObjectAssignmentModal(collaborationId){
+  if(!hasOperationalAdminAccess())return;
+  const c=cloudObjectCollaborations.find(x=>x.collaboration_id===collaborationId);if(!c)return;
+  const options=cloudSharedObjectAssignees.map(a=>`<option value="${esc(a.user_id)}" ${a.user_id===c.assigned_user_id?'selected':''}>${esc(a.display_name||a.email||'Objektbetreuer')}</option>`).join('');
+  document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Betreutes Objekt zuweisen</h2><p class="muted">Nur der zugewiesene Objektbetreuer erhält das extern betreute Objekt in seinem Objektbestand.</p><label>Objektbetreuer</label><select id="socAssignee"><option value="">Nicht zugewiesen</option>${options}</select><div class="modal-actions"><button class="primary" onclick="saveSharedObjectAssignment('${esc(collaborationId)}')">Speichern</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
+}
+async function saveSharedObjectAssignment(collaborationId){
+  const uid=document.getElementById('socAssignee')?.value||null;
+  try{await cloudRequest('rpc/assign_shared_object',{method:'POST',body:JSON.stringify({p_collaboration_id:collaborationId,p_user_id:uid})});closeModal();await cloudLoadObjectCollaborations(false);await cloudReloadObjects();}catch(e){alert('Zuweisung konnte nicht gespeichert werden: '+(e.message||e));}
+}
+function externalOrderStatusLabel(v){return ({requested:'Angefragt',accepted:'Angenommen',in_progress:'In Bearbeitung',completed:'Erledigt',rejected:'Abgelehnt',cancelled:'Storniert'})[v]||v||'—';}
+function externalOrderIsOpen(v){return !['completed','rejected','cancelled'].includes(String(v||''));}
+async function cloudLoadExternalOrders(render=true){
+  if(!cloudSession?.access_token||isPlatformOperatorRole()&&!isPlatformTenantMode())return;
+  try{
+    const rows=await cloudRequest('shared_work_orders?select=id,source_organization_id,executor_organization_id,source_object_id,source_object_name,source_object_address,title,description,priority,status,assigned_user_id,created_by,created_at,accepted_at,completed_at,updated_at&order=created_at.desc');
+    cloudExternalOrders=Array.isArray(rows)?rows:[];
+    try{const p=await cloudRequest('rpc/get_collaboration_partners',{method:'POST',body:JSON.stringify({})});cloudCollaborationPartners=Array.isArray(p)?p:[];}catch(_e){cloudCollaborationPartners=[];}
+    if(hasOperationalAdminAccess()){try{const a=await cloudRequest('rpc/get_external_order_assignees',{method:'POST',body:JSON.stringify({})});cloudExternalOrderAssignees=Array.isArray(a)?a:[];}catch(_e){cloudExternalOrderAssignees=[];}}
+    if(render){renderExternalOrders();await cloudLoadObjectCollaborations(true);}
+  }catch(e){
+    console.error('Externe Aufträge laden fehlgeschlagen',e);
+    if(render){const box=document.getElementById('externalOrdersList');if(box)box.innerHTML=`<span style="color:#ff8b91">Externe Aufträge konnten nicht geladen werden: ${esc(e.message||e)}</span>`;}
+  }
+}
+function partnerName(id){return cloudCollaborationPartners.find(p=>p.organization_id===id)?.organization_name||organizationName(id)||'Partnerunternehmen';}
+function renderExternalOrders(){
+  const orgId=currentOrganizationId();
+  const list=document.getElementById('externalOrdersList'); if(!list)return;
+  const incoming=cloudExternalOrders.filter(x=>x.executor_organization_id===orgId);
+  const outgoing=cloudExternalOrders.filter(x=>x.source_organization_id===orgId);
+  document.getElementById('externalIncomingCount').textContent=String(incoming.filter(x=>externalOrderIsOpen(x.status)).length);
+  document.getElementById('externalOutgoingCount').textContent=String(outgoing.filter(x=>externalOrderIsOpen(x.status)).length);
+  document.getElementById('externalTotalCount').textContent=String(cloudExternalOrders.length);
+  const nav=document.getElementById('externalOrdersNavCount');if(nav)nav.textContent=String(incoming.filter(x=>externalOrderIsOpen(x.status)).length);
+  const create=document.getElementById('createExternalOrderBtn');if(create)create.style.display=hasOperationalAdminAccess()?'':'none';
+  if(!cloudExternalOrders.length){list.innerHTML='<div class="empty">Keine mandantenübergreifenden Aufträge vorhanden.</div>';return;}
+  list.innerHTML=cloudExternalOrders.map(x=>{
+    const isIn=x.executor_organization_id===orgId;
+    const other=isIn?partnerName(x.source_organization_id):partnerName(x.executor_organization_id);
+    const direction=isIn?'Eingehend':'Ausgehend';
+    const assignedName=cloudExternalOrderAssignees.find(a=>a.user_id===x.assigned_user_id)?.display_name||'';
+    const actions=isIn&&hasOperationalAdminAccess()?`<div class="row" style="margin-top:10px;gap:8px">${x.status==='requested'?`<button class="primary" onclick="updateExternalOrderStatus('${esc(x.id)}','accepted')">Annehmen</button><button onclick="updateExternalOrderStatus('${esc(x.id)}','rejected')">Ablehnen</button>`:''}${['accepted','in_progress'].includes(x.status)?`<button class="primary" onclick="updateExternalOrderStatus('${esc(x.id)}','in_progress')">In Bearbeitung</button><button onclick="updateExternalOrderStatus('${esc(x.id)}','completed')">Erledigt</button>`:''}<button onclick="openExternalOrderAssignmentModal('${esc(x.id)}')">${x.assigned_user_id?'Zuweisung ändern':'Objektbetreuer zuweisen'}</button></div>`:'';
+    return `<div class="card" style="margin:10px 0"><div class="row space"><div><span class="badge">${direction}</span> ${badgeP(x.priority||'P3')}</div><span class="badge">${esc(externalOrderStatusLabel(x.status))}</span></div><h3 style="margin:10px 0 4px">${esc(x.title||'Externer Auftrag')}</h3><div class="muted">${esc(other)} · ${esc(x.source_object_name||'Objekt')}${x.source_object_address?` · ${esc(x.source_object_address)}`:''}</div>${x.description?`<div style="margin-top:9px">${esc(x.description)}</div>`:''}${assignedName?`<div class="muted" style="margin-top:8px">Verantwortlich: <strong>${esc(assignedName)}</strong></div>`:''}<div class="muted" style="margin-top:8px">Erstellt: ${esc(fmt(x.created_at))}</div>${actions}</div>`;
+  }).join('');
+}
+async function openExternalOrderModal(){
+  if(!hasOperationalAdminAccess())return alert('Nur Mandanten-Admin oder Admin-Vertretung können externe Aufträge auslösen.');
+  await cloudLoadExternalOrders(false);
+  const partners=cloudCollaborationPartners.filter(p=>p.can_send===true);
+  if(!partners.length)return alert('Für diesen Mandanten ist noch kein Partnerunternehmen für externe Beauftragungen freigeschaltet.');
+  const objs=(db.objects||[]).filter(o=>!currentOrganizationId()||o.organizationId===currentOrganizationId());
+  const root=document.getElementById('modalRoot');
+  root.innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Extern beauftragen</h2><p class="muted">Der Auftrag wird dem Partner freigegeben. Du bleibst im eigenen Mandanten.</p><label>Partnerunternehmen *</label><select id="ewoPartner">${partners.map(p=>`<option value="${esc(p.organization_id)}">${esc(p.organization_name)}</option>`).join('')}</select><label>Objekt *</label><select id="ewoObject">${objs.map(o=>`<option value="${esc(o.id)}">${esc(o.name||'Objekt')}</option>`).join('')}</select><label>Titel *</label><input id="ewoTitle" placeholder="z. B. Defekte Beleuchtung prüfen"><label>Beschreibung</label><textarea id="ewoDescription" rows="4" placeholder="Auftrag und gewünschtes Ergebnis"></textarea><label>Priorität</label><select id="ewoPriority"><option value="P1">Sofort</option><option value="P2">Dringend</option><option value="P3" selected>Planbar</option><option value="P4">Beobachten</option></select><div class="modal-actions"><button class="primary" onclick="createExternalOrder()">Auftrag senden</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
+}
+async function createExternalOrder(){
+  const partner=document.getElementById('ewoPartner')?.value||'';const objectId=document.getElementById('ewoObject')?.value||'';const title=(document.getElementById('ewoTitle')?.value||'').trim();const description=(document.getElementById('ewoDescription')?.value||'').trim();const priority=document.getElementById('ewoPriority')?.value||'P3';
+  if(!partner||!objectId||!title)return alert('Partnerunternehmen, Objekt und Titel sind Pflichtfelder.');
+  const o=(db.objects||[]).find(x=>x.id===objectId); if(!o)return alert('Objekt nicht gefunden.');
+  try{
+    await cloudRequest('shared_work_orders',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify({source_organization_id:currentOrganizationId(),executor_organization_id:partner,source_object_id:objectId,source_object_name:o.name||'Objekt',source_object_address:o.address||'',title,description,priority,status:'requested',created_by:currentUserId()})});
+    closeModal();await cloudLoadExternalOrders();alert('Der Auftrag wurde dem Partnerunternehmen freigegeben.');
+  }catch(e){alert('Externer Auftrag konnte nicht erstellt werden: '+(e.message||e));}
+}
+async function openExternalOrderAssignmentModal(id){
+  if(!hasOperationalAdminAccess())return;
+  const order=cloudExternalOrders.find(x=>x.id===id);if(!order)return;
+  const options=cloudExternalOrderAssignees.map(a=>`<option value="${esc(a.user_id)}" ${a.user_id===order.assigned_user_id?'selected':''}>${esc(a.display_name||a.email||'Objektbetreuer')}</option>`).join('');
+  const root=document.getElementById('modalRoot');root.innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Objektbetreuer zuweisen</h2><p class="muted">Der Mitarbeiter sieht den externen Auftrag erst nach dieser Zuweisung.</p><label>Verantwortlich</label><select id="ewoAssignee"><option value="">Nicht zugewiesen</option>${options}</select><div class="modal-actions"><button class="primary" onclick="saveExternalOrderAssignment('${esc(id)}')">Speichern</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
+}
+async function saveExternalOrderAssignment(id){
+  const userId=document.getElementById('ewoAssignee')?.value||null;
+  try{await cloudRequest(`shared_work_orders?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({assigned_user_id:userId,updated_at:new Date().toISOString()})});closeModal();await cloudLoadExternalOrders();}catch(e){alert('Zuweisung konnte nicht gespeichert werden: '+(e.message||e));}
+}
+async function updateExternalOrderStatus(id,status){
+  try{await cloudRequest(`shared_work_orders?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({status,updated_at:new Date().toISOString(),...(status==='accepted'?{accepted_at:new Date().toISOString()}:{}) ,...(status==='completed'?{completed_at:new Date().toISOString()}:{})})});await cloudLoadExternalOrders();}catch(e){alert('Status konnte nicht geändert werden: '+(e.message||e));}
 }
 
 let cloudObjectAreas=[];
@@ -5724,7 +5872,7 @@ async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
   cloudSetStatus('Supabase wird geladen …','wait');
   try{
-    // v2.18.69: Reine Plattform-Admins arbeiten im Systemkontext und laden
+    // v2.18.71: Reine Plattform-Admins arbeiten im Systemkontext und laden
     // standardmäßig keine operativen Objekt-/Vorgangsdaten.
     if(isPlatformOperatorRole()&&!isPlatformTenantMode()){
       await cloudLoadOrganizations();
@@ -5739,7 +5887,10 @@ async function cloudReloadObjects(){
       ? `objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(platformTenantModeOrgId)}&order=name.asc`
       : 'objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&order=name.asc';
     const rows=await cloudRequest(objectPath);
-    db.objects=(rows||[]).map(cloudObjectToLocal);
+    const ownObjects=(rows||[]).map(cloudObjectToLocal);
+    await cloudLoadSharedObjects();
+    const ownIds=new Set(ownObjects.map(o=>o.id));
+    db.objects=ownObjects.concat(cloudSharedObjects.filter(o=>!ownIds.has(o.id)));
     try{await cloudLoadOrganizations();}catch(e){
       console.warn('Unternehmen/Mandanten konnten nicht geladen werden',e);
       cloudOrganizations=[];
@@ -5751,8 +5902,9 @@ async function cloudReloadObjects(){
     await cloudReloadFindings();
     if(!isCustomerRole()){try{await cloudLoadResidentReports();}catch(e){console.warn('Meldungen konnten nicht geladen werden',e);}}else{cloudResidentReports=[];cloudResidentReportMedia=[];}
     await loadUserMessages();
+    if(hasOperationalAdminAccess()||isObjectManagerRole())await cloudLoadExternalOrders(false);
     renderAll();
-    cloudSetStatus(`Verbunden · ${db.objects.length} Objekt(e) · ${db.findings.filter(f=>f.cloud).length} Dokumentation(en) · ${(db.tasks||[]).length} Aufgabe(n) zentral`,'ok');
+    cloudSetStatus(`Verbunden · ${db.objects.length} Objekt(e) inkl. extern betreuter · ${db.findings.filter(f=>f.cloud).length} Dokumentation(en) · ${(db.tasks||[]).length} Aufgabe(n) zentral`,'ok');
   }catch(e){
     console.error('Objekte laden fehlgeschlagen',e);
     cloudSetStatus('Verbindungsfehler: '+(e.message||e),'bad');
@@ -6285,6 +6437,7 @@ function showSection(id){
   if(id==='inspections')id='findings';
   if(id==='decisions'&&!canUseDecisionsUI())return requireDecisionUI();
   if(id==='workqueue'&&!canUseWorkQueueUI()){alert('Der Arbeitsvorrat ist nur für Admin/GF und Objektbetreuer freigegeben.');return;}
+  if(id==='externalOrders'&&!(hasOperationalAdminAccess()||isObjectManagerRole())){alert('Externe Aufträge sind für die operative Mandantensteuerung freigegeben.');return;}
   if(id==='users'&&!canManageUsersUI())return requireAdminUI('Benutzer & Berechtigungen');
   if(id==='settings'&&!canUseSettingsUI())return requireAdminUI('Daten & Administration');
   closeAppMenu();
@@ -6293,7 +6446,7 @@ function showSection(id){
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('primary'));
   [...document.querySelectorAll('nav button')].find(b=>b.getAttribute('onclick')?.includes(`'${id}'`))?.classList.add('primary');
   document.querySelectorAll('#platformBottomNav [data-pa-nav]').forEach(b=>b.classList.toggle('active',b.getAttribute('data-pa-nav')===id));
-  if(id==='dashboard'&&isAdminRole()){loadPlatformSystemStatus();}if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='users')loadUserAdminData();
+  if(id==='dashboard'&&isAdminRole()){loadPlatformSystemStatus();}if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='externalOrders')cloudLoadExternalOrders();if(id==='users')loadUserAdminData();
 }
 function priorityLabel(p){
   return ({P1:'Sofort',P2:'Dringend',P3:'Planbar',P4:'Beobachten'})[p]||p||'';
@@ -7260,9 +7413,9 @@ function renderObjects(){
       ? `<span class="badge badge-action" role="button" tabindex="0" aria-label="${open} offene Feststellungen für ${esc(o.name)} anzeigen" title="Offene Feststellungen anzeigen" onclick="openObjectOpenFindings('${o.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openObjectOpenFindings('${o.id}');}">${open} offen</span>`
       : `<span class="badge" aria-disabled="true">0 offen</span>`;
     return `<div class="card">
-      <div class="row space"><div><h3 style="margin:0">${esc(o.name)} ${o.isTest?'<span class="badge" style="margin-left:6px">TEST</span>':''}</h3><div class="muted">${esc(o.address||'')}</div></div>${openBadge}</div>
+      <div class="row space"><div><h3 style="margin:0">${esc(o.name)} ${o.isTest?'<span class="badge" style="margin-left:6px">TEST</span>':''} ${o.externalManaged?'<span class="badge" style="margin-left:6px">EXTERN BETREUT</span>':''}</h3><div class="muted">${esc(o.address||'')}</div>${o.externalManaged?`<div class="muted" style="margin-top:4px">Auftraggeber: ${esc(o.ownerOrganizationName||'Partnerunternehmen')}</div>`:''}</div>${openBadge}</div>
       <p>${esc(o.notes||'')}</p>
-      <div class="row"><button onclick="openFindingModal('${o.id}','')">Dokumentation erfassen</button>${!isCustomerRole()?`<button onclick="openObjectQrCode('${o.id}')">Objekt-QR</button>`:''}${canManageObjectsUI()?`<button onclick="openObjectAreasModal('${o.id}')">Bereiche</button><button onclick="openObjectModal('${o.id}')">Bearbeiten</button>`:''}<button onclick="showObjectReport('${o.id}')">Bericht</button></div>
+      <div class="row">${o.externalManaged?`<button class="primary" onclick="showSection('externalOrders')">Externe Aufträge</button>`:`<button onclick="openFindingModal('${o.id}','')">Dokumentation erfassen</button>${!isCustomerRole()?`<button onclick="openObjectQrCode('${o.id}')">Objekt-QR</button>`:''}${canManageObjectsUI()?`<button onclick="openObjectAreasModal('${o.id}')">Bereiche</button><button onclick="openObjectModal('${o.id}')">Bearbeiten</button>`:''}<button onclick="showObjectReport('${o.id}')">Bericht</button>`}</div>
     </div>`;
   }).join(''):`<div class="empty">Noch kein Objekt angelegt.</div>`;
 }
