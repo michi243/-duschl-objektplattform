@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.57</title>
+<title>Duschl Service – Objektplattform v2.18.58</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -425,7 +425,7 @@ main{padding-top:18px}
 .user-message-audience-count{font-size:12px;font-weight:600;opacity:.8}
 .user-message-recipient-row.message-scope-hidden{display:none}
 
-/* v2.18.57 – Platform-Admin Dashboard */
+/* v2.18.58 – Platform-Admin Dashboard */
 .platform-kpi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .platform-kpi-card{border:1px solid var(--border);background:var(--card);border-radius:18px;padding:16px;min-width:0}
 .platform-kpi-label{color:var(--muted);font-size:14px;font-weight:700}
@@ -453,6 +453,89 @@ main{padding-top:18px}
   .platform-storage-value{font-size:17px}
   .platform-status-grid{grid-template-columns:1fr}
   .platform-tenant-main{align-items:center}
+}
+
+/* v2.18.58 – Platform Admin Dashboard */
+#platformAdminDashboard{padding-bottom:92px}
+.pa-dashboard-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:22px}
+.pa-eyebrow{font-size:12px;font-weight:900;letter-spacing:.12em;color:#9fb2c5;margin-bottom:8px}
+.pa-title{font-size:42px;line-height:1;margin:0 0 10px;font-weight:950}
+.pa-subtitle{font-size:18px;line-height:1.45;color:#9fb2c5;max-width:680px}
+.pa-version-pill{display:flex;align-items:center;gap:9px;border:1px solid #29445d;border-radius:999px;padding:9px 13px;background:#10283a;color:#d9e7f4;font-weight:800;white-space:nowrap}
+.pa-status-dot{width:10px;height:10px;border-radius:50%;background:#46df8c;box-shadow:0 0 0 4px rgba(70,223,140,.10)}
+.pa-kpi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:18px}
+.pa-kpi-card{position:relative;overflow:hidden;border-radius:18px;border:1px solid rgba(255,255,255,.13);padding:18px;text-align:left;color:#fff;min-height:190px;box-shadow:0 15px 28px rgba(0,0,0,.18)}
+button.pa-kpi-card{width:100%;font:inherit;cursor:pointer}
+.pa-kpi-blue{background:linear-gradient(145deg,#0d4f95 0%,#12395f 100%)}
+.pa-kpi-green{background:linear-gradient(145deg,#0d6a50 0%,#124b3d 100%)}
+.pa-kpi-purple{background:linear-gradient(145deg,#56308d 0%,#2d285d 100%)}
+.pa-kpi-card:before{content:"";position:absolute;width:150px;height:150px;border-radius:50%;right:-65px;top:-70px;background:rgba(255,255,255,.06)}
+.pa-kpi-icon{width:50px;height:50px;border-radius:15px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.16);font-size:25px;margin-bottom:17px}
+.pa-kpi-arrow{position:absolute;right:18px;top:24px;font-size:36px;color:rgba(255,255,255,.72);font-weight:300}
+.pa-kpi-label{font-size:17px;font-weight:850;margin-bottom:5px}
+.pa-kpi-value{font-size:40px;font-weight:950;line-height:1}
+.pa-kpi-sub{font-size:14px;color:rgba(235,245,255,.72);line-height:1.35;margin-top:8px}
+.pa-panel{background:linear-gradient(145deg,#0c2232 0%,#091d2b 100%);border:1px solid #29445d;border-radius:20px;padding:20px;margin-top:18px;box-shadow:0 16px 30px rgba(0,0,0,.13)}
+.pa-panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.pa-panel-title{font-size:22px;font-weight:950;display:flex;align-items:center;gap:10px}
+.pa-panel-sub{color:#9fb2c5;font-size:15px;margin-top:7px}
+.pa-panel-icon{color:#329cff;font-size:25px}
+.pa-refresh-btn{border:1px solid #31536d!important;background:#102d42!important;color:#eef7ff!important;border-radius:12px!important;padding:10px 14px!important;font-weight:850!important;white-space:nowrap}
+.pa-storage-topline{display:flex;justify-content:space-between;gap:12px;font-size:18px;margin-top:22px}
+.pa-storage-progress{height:13px;margin-top:10px;background:#263c4e;border:0}
+.pa-storage-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:20px}
+.pa-storage-grid>div+div{border-left:1px solid #244057;padding-left:20px}
+.pa-metric-label{font-size:14px;color:#9fb2c5}
+.pa-metric-value{font-size:25px;font-weight:950;margin-top:4px}
+.pa-info-box{display:flex;gap:10px;align-items:flex-start;background:#0e2b40;border:1px solid #284a63;border-radius:14px;padding:13px 14px;color:#a8bed0;line-height:1.45;margin-top:18px}
+.pa-table-wrap{margin-top:16px;border:1px solid #27445a;border-radius:14px;overflow:hidden}
+.pa-table-head,.pa-tenant-line{display:grid;grid-template-columns:1.4fr .75fr .72fr 1.45fr 1.25fr 28px;gap:10px;align-items:center}
+.pa-table-head{background:#102a3d;padding:11px 13px;color:#9fb2c5;font-size:12px;font-weight:800}
+.pa-tenant-line{padding:13px;border-top:1px solid #20394d;font-size:13px}
+.pa-tenant-line:first-child{border-top:0}
+.pa-tenant-name{font-weight:900}
+.pa-active-pill{display:inline-flex;align-items:center;background:rgba(48,206,116,.12);border:1px solid rgba(48,206,116,.45);color:#5be18d;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:900}
+.pa-storage-mini{height:6px;background:#243c4d;border-radius:999px;overflow:hidden;margin-top:5px}
+.pa-storage-mini>span{display:block;height:100%;background:#329cff;border-radius:999px}
+.pa-row-arrow{font-size:25px;color:#7892a6;text-align:right}
+.pa-status-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.pa-status-card{min-height:190px}
+.pa-status-shield{display:inline-flex;width:36px;height:36px;border-radius:12px;background:#12623f;color:#54e391;align-items:center;justify-content:center}
+.pa-clock{display:inline-flex;width:36px;height:36px;border-radius:12px;background:#243d50;color:#bcd0df;align-items:center;justify-content:center}
+.pa-status-main{font-size:16px;color:#a8bed0;margin:13px 0}
+.pa-status-line{color:#9fb2c5;margin-top:8px;font-size:14px}
+.pa-status-line span{color:#51df8d}
+.pa-refresh-wide{margin-top:18px;width:100%}
+.pa-bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:120;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;background:rgba(7,24,36,.97);backdrop-filter:blur(16px);border-top:1px solid #29445d;padding:8px max(8px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));box-shadow:0 -14px 34px rgba(0,0,0,.22)}
+.pa-bottom-nav.hidden{display:none!important}
+.pa-bottom-nav button{border:0!important;background:transparent!important;color:#9fb2c5!important;padding:8px 4px!important;display:flex;flex-direction:column;align-items:center;gap:4px;font-weight:800!important;min-width:0}
+.pa-bottom-nav button span{font-size:24px;line-height:1}
+.pa-bottom-nav button small{font-size:10px;white-space:nowrap}
+.pa-bottom-nav button.active{background:#0d3557!important;color:#3aa4ff!important;border-radius:12px!important}
+@media(max-width:680px){
+  .pa-dashboard-head{display:block}
+  .pa-version-pill{width:max-content;margin:0 0 18px}
+  .pa-title{font-size:38px}
+  .pa-subtitle{font-size:16px}
+  .pa-kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .pa-kpi-card{padding:13px;min-height:165px;border-radius:16px}
+  .pa-kpi-icon{width:42px;height:42px;font-size:21px;margin-bottom:13px}
+  .pa-kpi-label{font-size:13px}
+  .pa-kpi-value{font-size:32px}
+  .pa-kpi-sub{font-size:11px}
+  .pa-kpi-arrow{font-size:30px;right:13px;top:17px}
+  .pa-panel{padding:15px;border-radius:17px}
+  .pa-panel-title{font-size:19px}
+  .pa-panel-head{gap:10px}
+  .pa-refresh-btn{padding:9px 11px!important;font-size:12px!important}
+  .pa-storage-topline{font-size:15px}
+  .pa-storage-grid{gap:9px}
+  .pa-storage-grid>div+div{padding-left:10px}
+  .pa-metric-label{font-size:11px}
+  .pa-metric-value{font-size:19px}
+  .pa-table-wrap{overflow-x:auto}
+  .pa-table-head,.pa-tenant-line{min-width:690px}
+  .pa-status-grid{grid-template-columns:1fr}
 }
 </style>
 <style>
@@ -924,7 +1007,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.57</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.58</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -950,70 +1033,83 @@ body.public-report-mode>#photoViewer{display:none!important}
 <main>
 <section class="section active" id="dashboard">
 <div id="platformAdminDashboard" style="display:none">
-  <div class="row space" style="align-items:flex-start;gap:12px">
+  <div class="pa-dashboard-head">
     <div>
-      <h2 style="margin-bottom:4px">Plattform-Dashboard</h2>
-      <div class="muted">Mandanten, Benutzer und Speicherkapazität der Duschl Service Objektplattform</div>
+      <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
+      <h2 class="pa-title">Dashboard</h2>
+      <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <button onclick="loadPlatformSystemStatus()" type="button">Aktualisieren</button>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.58</span></div>
   </div>
 
-  <div class="platform-kpi-grid" style="margin-top:14px">
-    <div class="platform-kpi-card">
-      <div class="platform-kpi-label">Mandanten</div>
-      <div class="platform-kpi-value" id="sysTenantCount">0</div>
-      <div class="platform-kpi-sub">aktive Unternehmen</div>
+  <div class="pa-kpi-grid">
+    <button class="pa-kpi-card pa-kpi-blue" type="button" onclick="showSection('organizations')">
+      <div class="pa-kpi-icon">▦</div>
+      <div class="pa-kpi-arrow">›</div>
+      <div class="pa-kpi-label">Mandanten</div>
+      <div class="pa-kpi-value" id="sysTenantCount">0</div>
+      <div class="pa-kpi-sub">aktive Unternehmen</div>
+    </button>
+    <div class="pa-kpi-card pa-kpi-green">
+      <div class="pa-kpi-icon">♟</div>
+      <div class="pa-kpi-label">Benutzer</div>
+      <div class="pa-kpi-value" id="sysUserCount">0</div>
+      <div class="pa-kpi-sub">aktive Benutzer</div>
     </div>
-    <div class="platform-kpi-card">
-      <div class="platform-kpi-label">Benutzer</div>
-      <div class="platform-kpi-value" id="sysUserCount">0</div>
-      <div class="platform-kpi-sub">aktive Benutzer</div>
-    </div>
-    <div class="platform-kpi-card">
-      <div class="platform-kpi-label">Speicherauslastung</div>
-      <div class="platform-kpi-value" id="sysStoragePercent">—</div>
-      <div class="platform-kpi-sub" id="sysStorageHeadline">wird geladen</div>
+    <div class="pa-kpi-card pa-kpi-purple">
+      <div class="pa-kpi-icon">▰</div>
+      <div class="pa-kpi-label">Speicher</div>
+      <div class="pa-kpi-value" id="sysStoragePercent">—</div>
+      <div class="pa-kpi-sub" id="sysStorageHeadline">wird geladen</div>
     </div>
   </div>
 
-  <div class="card" style="margin-top:14px">
-    <div class="row space" style="align-items:center;gap:12px">
+  <div class="pa-panel">
+    <div class="pa-panel-head">
+      <div class="pa-panel-title"><span class="pa-panel-icon">▰</span>Plattform-Speicher</div>
+      <button class="pa-refresh-btn" type="button" onclick="loadPlatformSystemStatus()">↻ Aktualisieren</button>
+    </div>
+    <div class="pa-storage-topline">
+      <div><strong id="sysStorageUsedTop">—</strong> von <strong id="sysStorageContractedTop">—</strong> belegt</div>
+      <strong id="sysStoragePercentInline">—</strong>
+    </div>
+    <div class="storage-progress pa-storage-progress"><div class="storage-progress-fill" id="sysStorageProgressFill" style="width:0%"></div></div>
+    <div class="pa-storage-grid">
+      <div><div class="pa-metric-label">Belegt</div><div class="pa-metric-value" id="sysStorageUsed">—</div></div>
+      <div><div class="pa-metric-label">Vertraglich vergeben</div><div class="pa-metric-value" id="sysStorageContracted">—</div></div>
+      <div><div class="pa-metric-label">Noch verfügbar</div><div class="pa-metric-value" id="sysStorageFree">—</div></div>
+    </div>
+    <div class="pa-info-box">ⓘ <span id="sysStorageNote">Die freie Kapazität bezieht sich auf die Summe der vertraglich vergebenen Mandantenkontingente.</span></div>
+  </div>
+
+  <div class="pa-panel">
+    <div class="pa-panel-head">
       <div>
-        <h3 style="margin:0">Plattform-Speicher</h3>
-        <div class="muted" style="margin-top:5px">Tatsächlicher Verbrauch im Verhältnis zu den vertraglich vergebenen Mandantenkontingenten.</div>
+        <div class="pa-panel-title"><span class="pa-panel-icon">▦</span>Mandantenübersicht</div>
+        <div class="pa-panel-sub">Benutzerzahl, Mandanten-Admin und vertragliche Speicherauslastung.</div>
       </div>
-      <div class="badge" id="sysStorageStatusBadge">—</div>
+      <button class="pa-refresh-btn" type="button" onclick="showSection('organizations')">Alle Mandanten ›</button>
     </div>
-
-    <div class="storage-progress" style="margin-top:16px">
-      <div class="storage-progress-fill" id="sysStorageProgressFill" style="width:0%"></div>
+    <div class="pa-table-wrap">
+      <div class="pa-table-head">
+        <div>Name</div><div>Status</div><div>Benutzer</div><div>Mandanten-Admin</div><div>Speicher</div><div></div>
+      </div>
+      <div id="sysTenantStorageList"><div class="empty">Mandantendaten werden geladen …</div></div>
     </div>
-
-    <div class="platform-storage-grid" style="margin-top:14px">
-      <div><div class="muted">Belegt</div><div class="platform-storage-value" id="sysStorageUsed">—</div></div>
-      <div><div class="muted">Vertraglich vergeben</div><div class="platform-storage-value" id="sysStorageContracted">—</div></div>
-      <div><div class="muted">Noch verfügbar</div><div class="platform-storage-value" id="sysStorageFree">—</div></div>
-    </div>
-    <div class="muted" id="sysStorageNote" style="margin-top:10px">Speicherwerte werden aus Supabase geladen.</div>
   </div>
 
-  <div class="card" style="margin-top:14px">
-    <div class="row space" style="align-items:center">
-      <div>
-        <h3 style="margin:0">Mandantenübersicht</h3>
-        <div class="muted" style="margin-top:5px">Benutzerzahl, Mandanten-Admin und vertragliche Speicherauslastung.</div>
-      </div>
-      <button onclick="showSection('organizations')" type="button">Mandanten verwalten</button>
+  <div class="pa-status-grid">
+    <div class="pa-panel pa-status-card">
+      <div class="pa-panel-title"><span class="pa-status-shield">✓</span>Plattform-Status</div>
+      <div class="pa-status-main" id="paPlatformStatusText">Alle Systeme betriebsbereit</div>
+      <div class="pa-status-line"><span>●</span> Supabase Verbindung</div>
+      <div class="pa-status-line"><span>●</span> Datenbank erreichbar</div>
+      <div class="pa-status-line"><span>●</span> Dateispeicher verfügbar</div>
     </div>
-    <div id="sysTenantStorageList" style="margin-top:12px"><div class="empty">Mandantendaten werden geladen …</div></div>
-  </div>
-
-  <div class="card" style="margin-top:14px">
-    <h3 style="margin-top:0">Plattformstatus</h3>
-    <div class="cloud-banner" id="cloudStatus"><span class="cloud-dot wait" id="cloudDot"></span><span id="cloudStatusText">Verbindung wird geprüft …</span></div>
-    <div class="platform-status-grid" style="margin-top:12px">
-      <div><div class="muted">Frontend-Version</div><div style="font-weight:800">v2.18.57</div></div>
-      <div><div class="muted">Datenbasis</div><div style="font-weight:800">Supabase · Central EU (Frankfurt)</div></div>
+    <div class="pa-panel pa-status-card">
+      <div class="pa-panel-title"><span class="pa-clock">◷</span>Letzte Aktualisierung</div>
+      <div class="pa-status-main" id="paLastUpdated">Noch nicht aktualisiert</div>
+      <button class="pa-refresh-btn pa-refresh-wide" type="button" onclick="loadPlatformSystemStatus()">↻ Jetzt aktualisieren</button>
     </div>
   </div>
 </div>
@@ -2627,7 +2723,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.18.57';
+const APP_VERSION='2.18.58';
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -3503,7 +3599,7 @@ async function cloudLoadCurrentProfile(){
   currentUserProfile=p;
   currentUserRole=String(p.role||cloudSession?.user?.user_metadata?.app_role||'').trim().toLowerCase();
 
-  // v2.18.57: Die globale Profilrolle muss sofort wirksam werden.
+  // v2.18.58: Die globale Profilrolle muss sofort wirksam werden.
   // Ein Fehler beim Laden der Mandanten-Mitgliedschaft darf insbesondere
   // einen platform_admin weder Navigation noch globalen Zugriff verlieren lassen.
   currentOrganizationMembership=null;
@@ -3778,6 +3874,8 @@ function applyRoleUI(){
   show('navSettings',false);
   const platformDashboard=document.getElementById('platformAdminDashboard');
   const operationalDashboard=document.getElementById('operationalDashboard');
+  const platformBottomNav=document.getElementById('platformBottomNav');
+  if(platformBottomNav)platformBottomNav.classList.toggle('hidden',!platformMode);
   if(platformDashboard)platformDashboard.style.display=platformMode?'':'none';
   if(operationalDashboard)operationalDashboard.style.display=platformMode?'none':'';
   const platformOrgKpi=document.getElementById('kpiPlatformOrganizations');
@@ -3920,7 +4018,7 @@ async function cloudLogin(){
     await cloudReloadObjects();
   }catch(e){
     console.error('Anmeldung / Profilinitialisierung fehlgeschlagen',e);
-    // v2.18.57: Die App darf bei fehlgeschlagener Profilinitialisierung
+    // v2.18.58: Die App darf bei fehlgeschlagener Profilinitialisierung
     // nicht mit leerer Navigation hinter einem ausgeblendeten Login-Gate stehen.
     currentUserProfile=null;
     currentUserRole='';
@@ -4635,11 +4733,9 @@ function renderPlatformSystemStatus(){
   set('sysStorageNote',contracted>0?'Die freie Kapazität bezieht sich auf die Summe der vertraglich vergebenen Mandantenkontingente.':'Noch keine vertraglichen Speicherlimits definiert.');
   const progress=document.getElementById('sysStorageProgressFill');
   if(progress)progress.style.width=`${Math.min(Math.max(pct,0),100)}%`;
-  const statusBadge=document.getElementById('sysStorageStatusBadge');
-  if(statusBadge){
-    statusBadge.textContent=contracted<=0?'Keine Limits':pct>=100?'Limit überschritten':pct>=80?'Beobachten':'Im Rahmen';
-    statusBadge.classList.toggle('bad',pct>=100);
-  }
+  set('sysStorageUsedTop',formatBytes(used));
+  set('sysStorageContractedTop',formatBytes(contracted));
+  set('sysStoragePercentInline',contracted>0?`${pct}%`:'—');
 
   const list=document.getElementById('sysTenantStorageList');
   if(list){
@@ -4649,38 +4745,41 @@ function renderPlatformSystemStatus(){
       const usedBytes=Number(r.used_bytes||0);
       const limit=Number(org.storage_limit_bytes||0);
       const percent=limit>0?Math.round((usedBytes/limit)*100):0;
-      const warn=Number(org.storage_warning_percent||80);
       const summary=platformOrganizationUserSummary(org.id);
       const adminText=summary.admins.length
         ? summary.admins.map(p=>esc(p.full_name||p.email||'Mandanten-Admin')).join(', ')
-        : 'Noch kein Mandanten-Admin';
-      const status=limit<=0?'Kein Limit':percent>=100?'Limit überschritten':percent>=warn?'Warnschwelle erreicht':'Im Rahmen';
-      return `<div class="platform-tenant-row">
-        <div class="platform-tenant-main">
-          <div>
-            <div class="platform-tenant-name">${esc(org.name)}</div>
-            <div class="platform-tenant-meta">${summary.count} aktive Benutzer · ${org.active===false?'Inaktiv':'Aktiv'}</div>
-          </div>
-          <span class="badge">${limit>0?percent+'%':'—'}</span>
+        : 'Nicht festgelegt';
+      return `<div class="pa-tenant-line">
+        <div class="pa-tenant-name">${esc(org.name)}</div>
+        <div><span class="pa-active-pill">${org.active===false?'Inaktiv':'Aktiv'}</span></div>
+        <div>${summary.count}</div>
+        <div>${adminText}</div>
+        <div>
+          <strong>${formatBytes(usedBytes)} / ${limit>0?formatBytes(limit):'—'}</strong>
+          <div class="pa-storage-mini"><span style="width:${Math.min(Math.max(percent,0),100)}%"></span></div>
+          <div class="muted" style="font-size:10px;margin-top:3px">${limit>0?percent+'%':'kein Limit'}</div>
         </div>
-        <div class="platform-tenant-storage">
-          <div class="platform-tenant-storage-head"><span>${formatBytes(usedBytes)} belegt</span><span>${limit>0?formatBytes(limit):'kein Limit'}</span></div>
-          <div class="storage-progress"><div class="storage-progress-fill" style="width:${Math.min(Math.max(percent,0),100)}%"></div></div>
-        </div>
-        <div class="platform-tenant-admin"><span class="muted">Mandanten-Admin:</span> <strong>${adminText}</strong> · <span class="muted">${status}</span></div>
+        <div class="pa-row-arrow">›</div>
       </div>`;
     }).join('');
   }
 }
 async function loadPlatformSystemStatus(){
   if(!isAdminRole())return;
-  cloudSetStatus('Systemstatus wird aktualisiert …','wait');
+  cloudSetStatus('Plattformstatus wird aktualisiert …','wait');
   try{
     await cloudLoadOrganizations();
     await cloudLoadPlatformStorage();
+    const now=new Date();
+    const last=document.getElementById('paLastUpdated');
+    if(last)last.textContent=`Heute, ${now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})} Uhr`;
+    const status=document.getElementById('paPlatformStatusText');
+    if(status)status.textContent='Alle Systeme betriebsbereit';
     cloudSetStatus(`Verbunden · Plattformverwaltung · ${(cloudOrganizations||[]).filter(o=>o.active!==false).length} Mandant(en)`,'ok');
   }catch(e){
-    cloudSetStatus('Systemstatus konnte nicht geladen werden: '+(e?.message||e),'bad');
+    const status=document.getElementById('paPlatformStatusText');
+    if(status)status.textContent='Prüfung erforderlich';
+    cloudSetStatus('Plattformstatus konnte nicht geladen werden: '+(e?.message||e),'bad');
   }
 }
 
@@ -4933,7 +5032,7 @@ async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
   cloudSetStatus('Supabase wird geladen …','wait');
   try{
-    // v2.18.57: Reine Plattform-Admins arbeiten im Systemkontext und laden
+    // v2.18.58: Reine Plattform-Admins arbeiten im Systemkontext und laden
     // standardmäßig keine operativen Objekt-/Vorgangsdaten.
     if(isAdminRole()){
       await cloudLoadOrganizations();
@@ -5497,6 +5596,7 @@ function showSection(id){
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('primary'));
   [...document.querySelectorAll('nav button')].find(b=>b.getAttribute('onclick')?.includes(`'${id}'`))?.classList.add('primary');
+  document.querySelectorAll('#platformBottomNav [data-pa-nav]').forEach(b=>b.classList.toggle('active',b.getAttribute('data-pa-nav')===id));
   if(id==='dashboard'&&isAdminRole()){loadPlatformSystemStatus();}if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='users')loadUserAdminData();
 }
 function priorityLabel(p){
@@ -8200,5 +8300,13 @@ if(!bootPublicResidentReport()){
     initSpeechInput();
   }
 })();
-</script></body>
+</script>
+<div id="platformBottomNav" class="pa-bottom-nav hidden">
+  <button type="button" data-pa-nav="dashboard" onclick="showSection('dashboard')"><span>⌂</span><small>Dashboard</small></button>
+  <button type="button" data-pa-nav="organizations" onclick="showSection('organizations')"><span>▦</span><small>Unternehmen</small></button>
+  <button type="button" onclick="showVoluntaryPasswordChange()"><span>⌘</span><small>Passwort</small></button>
+  <button type="button" onclick="exportData()"><span>▰</span><small>Sicherung</small></button>
+  <button type="button" onclick="cloudLogout()"><span>↪</span><small>Abmelden</small></button>
+</div>
+</body>
 </html>
