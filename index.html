@@ -894,7 +894,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.51</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.52</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -2611,7 +2611,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.18.51';
+const APP_VERSION='2.18.52';
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -3485,12 +3485,25 @@ async function cloudLoadCurrentProfile(){
   currentUserProfile=p;
   currentUserRole=String(p.role||cloudSession?.user?.user_metadata?.app_role||'').trim().toLowerCase();
 
-  const memberships=await cloudRequest(`organization_memberships?select=id,organization_id,user_id,role&user_id=eq.${encodeURIComponent(uid)}`)||[];
-  currentOrganizationMembership=memberships[0]||null;
+  // v2.18.52: Die globale Profilrolle muss sofort wirksam werden.
+  // Ein Fehler beim Laden der Mandanten-Mitgliedschaft darf insbesondere
+  // einen platform_admin weder Navigation noch globalen Zugriff verlieren lassen.
+  currentOrganizationMembership=null;
   currentOrganization=null;
-  if(currentOrganizationMembership?.organization_id){
-    const orgRows=await cloudRequest(`organizations?select=id,name,organization_type,active&id=eq.${encodeURIComponent(currentOrganizationMembership.organization_id)}&limit=1`);
-    currentOrganization=orgRows?.[0]||null;
+  applyRoleUI();
+
+  try{
+    const memberships=await cloudRequest(`organization_memberships?select=id,organization_id,user_id,role&user_id=eq.${encodeURIComponent(uid)}`)||[];
+    currentOrganizationMembership=memberships[0]||null;
+    if(currentOrganizationMembership?.organization_id){
+      const orgRows=await cloudRequest(`organizations?select=id,name,organization_type,active&id=eq.${encodeURIComponent(currentOrganizationMembership.organization_id)}&limit=1`);
+      currentOrganization=orgRows?.[0]||null;
+    }
+  }catch(e){
+    console.warn('Mandantenkontext konnte nicht geladen werden',e);
+    // Plattform-Admins arbeiten global weiter. Bei Mandantenrollen ist der
+    // Mandantenkontext zwingend und der Fehler soll sichtbar bleiben.
+    if(!isAdminRole())throw e;
   }
   applyRoleUI();
   startUserActivityHeartbeat();
@@ -4592,9 +4605,14 @@ async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
   cloudSetStatus('Supabase wird geladen …','wait');
   try{
-    await cloudLoadOrganizations();
+    // Objekte zuerst laden: Ein Fehler in der optionalen Mandantenverwaltung
+    // darf die operative Plattformansicht nicht auf 0 Objekte setzen.
     const rows=await cloudRequest('objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&order=name.asc');
     db.objects=(rows||[]).map(cloudObjectToLocal);
+    try{await cloudLoadOrganizations();}catch(e){
+      console.warn('Unternehmen/Mandanten konnten nicht geladen werden',e);
+      cloudOrganizations=[];
+    }
     await cloudLoadObjectAreas();
     const inspectionRows=await cloudRequest('inspections?select=id,object_id,started_at,ended_at,notes,created_by,created_at,updated_at&order=started_at.desc');
     db.inspections=(inspectionRows||[]).map(cloudInspectionToLocal);
