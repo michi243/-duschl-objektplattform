@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.58</title>
+<title>Duschl Service – Objektplattform v2.18.59</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -425,7 +425,7 @@ main{padding-top:18px}
 .user-message-audience-count{font-size:12px;font-weight:600;opacity:.8}
 .user-message-recipient-row.message-scope-hidden{display:none}
 
-/* v2.18.58 – Platform-Admin Dashboard */
+/* v2.18.59 – Platform-Admin Dashboard */
 .platform-kpi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .platform-kpi-card{border:1px solid var(--border);background:var(--card);border-radius:18px;padding:16px;min-width:0}
 .platform-kpi-label{color:var(--muted);font-size:14px;font-weight:700}
@@ -455,7 +455,7 @@ main{padding-top:18px}
   .platform-tenant-main{align-items:center}
 }
 
-/* v2.18.58 – Platform Admin Dashboard */
+/* v2.18.59 – Platform Admin Dashboard */
 #platformAdminDashboard{padding-bottom:92px}
 .pa-dashboard-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:22px}
 .pa-eyebrow{font-size:12px;font-weight:900;letter-spacing:.12em;color:#9fb2c5;margin-bottom:8px}
@@ -536,6 +536,48 @@ button.pa-kpi-card{width:100%;font:inherit;cursor:pointer}
   .pa-table-wrap{overflow-x:auto}
   .pa-table-head,.pa-tenant-line{min-width:690px}
   .pa-status-grid{grid-template-columns:1fr}
+}
+
+/* v2.18.59 – Mandantenoberflächen im Platform-Design */
+.tenant-dashboard-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:22px}
+.tenant-eyebrow{font-size:12px;font-weight:900;letter-spacing:.12em;color:#9fb2c5;margin-bottom:8px}
+.tenant-dashboard-title{font-size:42px;line-height:1;margin:0 0 10px;font-weight:950}
+.tenant-dashboard-subtitle{font-size:18px;line-height:1.45;color:#9fb2c5;max-width:680px}
+.tenant-context-pill{display:flex;align-items:center;border:1px solid #29445d;border-radius:999px;padding:9px 13px;background:#10283a;color:#d9e7f4;font-weight:800;white-space:nowrap}
+.tenant-kpi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:18px}
+.tenant-kpi-card{position:relative;overflow:hidden;border-radius:18px!important;border:1px solid rgba(255,255,255,.13)!important;padding:18px!important;text-align:left!important;color:#fff!important;min-height:180px;box-shadow:0 15px 28px rgba(0,0,0,.18);font:inherit!important;width:100%;cursor:pointer}
+.tenant-kpi-card:before{content:"";position:absolute;width:150px;height:150px;border-radius:50%;right:-65px;top:-70px;background:rgba(255,255,255,.06)}
+.tenant-kpi-blue{background:linear-gradient(145deg,#0d4f95 0%,#12395f 100%)!important}
+.tenant-kpi-green{background:linear-gradient(145deg,#0d6a50 0%,#124b3d 100%)!important}
+.tenant-kpi-purple{background:linear-gradient(145deg,#56308d 0%,#2d285d 100%)!important}
+.tenant-kpi-card.is-disabled{opacity:.62}
+.tenant-kpi-icon{width:50px;height:50px;border-radius:15px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.16);font-size:25px;margin-bottom:17px}
+.tenant-kpi-arrow{position:absolute;right:18px;top:24px;font-size:36px;color:rgba(255,255,255,.72);font-weight:300}
+.tenant-kpi-label{font-size:17px;font-weight:850;margin-bottom:5px}
+.tenant-kpi-value{font-size:40px;font-weight:950;line-height:1}
+.tenant-kpi-sub{font-size:14px;color:rgba(235,245,255,.72);line-height:1.35;margin-top:8px}
+.tenant-panel{background:linear-gradient(145deg,#0c2232 0%,#091d2b 100%);border:1px solid #29445d;border-radius:20px;padding:20px;margin-top:18px;box-shadow:0 16px 30px rgba(0,0,0,.13)}
+.tenant-panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.tenant-panel-title{font-size:22px;font-weight:950;display:flex;align-items:center;gap:10px}
+.tenant-panel-sub{color:#9fb2c5;font-size:15px;margin-top:7px}
+.tenant-panel-icon{color:#329cff;font-size:25px}
+.tenant-action-btn{border:1px solid #31536d!important;background:#102d42!important;color:#eef7ff!important;border-radius:12px!important;padding:10px 14px!important;font-weight:850!important;white-space:nowrap}
+.section:not(#dashboard)>.card,.section:not(#dashboard) .card{background:linear-gradient(145deg,#0c2232 0%,#091d2b 100%);border-color:#29445d}
+.section:not(#dashboard) h2{font-size:34px;letter-spacing:-.02em}
+.section:not(#dashboard) button:not(.primary){border-color:#31536d;background:#102d42}
+@media(max-width:680px){
+  .tenant-dashboard-head{display:block}
+  .tenant-context-pill{width:max-content;margin:0 0 18px}
+  .tenant-dashboard-title{font-size:38px}
+  .tenant-dashboard-subtitle{font-size:16px}
+  .tenant-kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .tenant-kpi-card{padding:13px!important;min-height:165px;border-radius:16px!important}
+  .tenant-kpi-icon{width:42px;height:42px;font-size:21px;margin-bottom:13px}
+  .tenant-kpi-label{font-size:13px}.tenant-kpi-value{font-size:32px}.tenant-kpi-sub{font-size:11px}
+  .tenant-kpi-arrow{font-size:30px;right:13px;top:17px}
+  .tenant-panel{padding:15px;border-radius:17px}
+  .tenant-panel-title{font-size:19px}
+  .tenant-action-btn{padding:9px 11px!important;font-size:12px!important}
 }
 </style>
 <style>
@@ -1007,7 +1049,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.58</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.59</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1039,7 +1081,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.58</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.59</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1114,24 +1156,54 @@ body.public-report-mode>#photoViewer{display:none!important}
   </div>
 </div>
 <div id="operationalDashboard">
-<div class="row space" style="align-items:flex-start">
-<div><h2>Übersicht</h2><div class="muted" id="dashboardRoleContext">Dein aktueller Dokumentationsstand</div></div>
-<button id="dashboardMessageComposeBtn" onclick="openUserMessageComposer()" style="display:none" type="button">Mitteilung schreiben</button>
-</div>
-<div class="dashboard-messages-wrap" id="dashboardMessagesWrap" style="display:none">
-<div class="row space" style="align-items:center;margin-bottom:10px">
-<h3 style="margin:0">Persönliche Mitteilungen</h3>
-<span class="badge" id="dashboardUnreadCount" style="display:none">0 neu</span>
-</div>
-<div class="grid" id="dashboardMessages"></div>
-</div>
-<div class="grid g3" style="margin-top:14px">
-<div class="card"><div class="muted">Objekte</div><div class="kpi" id="kpiObjects">0</div></div>
-<div class="card"><div class="muted">Offene Feststellungen</div><div class="kpi" id="kpiOpen">0</div></div>
-<div aria-label="Sofort oder dringend offene Feststellungen anzeigen" class="card kpi-action" id="kpiCriticalCard" onclick="openCriticalFindings()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openCriticalFindings();}" role="button" tabindex="0"><span class="kpi-chevron">›</span><div class="muted">Sofort / Dringend offen</div><div class="kpi" id="kpiCritical">0</div></div>
-</div>
-<h3>Offene Punkte</h3>
-<div class="grid" id="dashboardFindings"></div>
+  <div class="tenant-dashboard-head">
+    <div>
+      <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
+      <h2 class="tenant-dashboard-title">Dashboard</h2>
+      <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Dokumentationsstand</div>
+    </div>
+    <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
+  </div>
+
+  <div class="tenant-kpi-grid">
+    <button class="tenant-kpi-card tenant-kpi-blue" type="button" onclick="showSection('objects')">
+      <div class="tenant-kpi-icon">▦</div><div class="tenant-kpi-arrow">›</div>
+      <div class="tenant-kpi-label">Objekte</div><div class="tenant-kpi-value" id="kpiObjects">0</div><div class="tenant-kpi-sub">im Zugriff</div>
+    </button>
+    <button class="tenant-kpi-card tenant-kpi-green" type="button" onclick="showSection('findings')">
+      <div class="tenant-kpi-icon">▤</div><div class="tenant-kpi-arrow">›</div>
+      <div class="tenant-kpi-label">Offene Punkte</div><div class="tenant-kpi-value" id="kpiOpen">0</div><div class="tenant-kpi-sub">Feststellungen offen</div>
+    </button>
+    <button aria-label="Sofort oder dringend offene Feststellungen anzeigen" class="tenant-kpi-card tenant-kpi-purple" id="kpiCriticalCard" onclick="openCriticalFindings()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openCriticalFindings();}" type="button">
+      <div class="tenant-kpi-icon">!</div><div class="tenant-kpi-arrow">›</div>
+      <div class="tenant-kpi-label">Dringend</div><div class="tenant-kpi-value" id="kpiCritical">0</div><div class="tenant-kpi-sub">P1 / P2 offen</div>
+    </button>
+  </div>
+
+  <div class="tenant-panel" id="dashboardMessagesWrap" style="display:none">
+    <div class="tenant-panel-head">
+      <div>
+        <div class="tenant-panel-title"><span class="tenant-panel-icon">○</span>Persönliche Mitteilungen</div>
+        <div class="tenant-panel-sub">Direkte Kommunikation innerhalb deiner Berechtigungen.</div>
+      </div>
+      <div class="row" style="gap:8px;align-items:center">
+        <span class="badge" id="dashboardUnreadCount" style="display:none">0 neu</span>
+        <button id="dashboardMessageComposeBtn" class="tenant-action-btn" onclick="openUserMessageComposer()" style="display:none" type="button">Mitteilung schreiben</button>
+      </div>
+    </div>
+    <div class="grid tenant-message-grid" id="dashboardMessages" style="margin-top:14px"></div>
+  </div>
+
+  <div class="tenant-panel">
+    <div class="tenant-panel-head">
+      <div>
+        <div class="tenant-panel-title"><span class="tenant-panel-icon">✓</span>Offene Punkte</div>
+        <div class="tenant-panel-sub">Die wichtigsten aktuell offenen Feststellungen.</div>
+      </div>
+      <button class="tenant-action-btn" type="button" onclick="showSection('findings')">Alle anzeigen ›</button>
+    </div>
+    <div class="grid tenant-open-grid" id="dashboardFindings" style="margin-top:14px"></div>
+  </div>
 </div>
 </section>
 <section class="section" id="objects">
@@ -2723,7 +2795,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.18.58';
+const APP_VERSION='2.18.59';
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -3599,7 +3671,7 @@ async function cloudLoadCurrentProfile(){
   currentUserProfile=p;
   currentUserRole=String(p.role||cloudSession?.user?.user_metadata?.app_role||'').trim().toLowerCase();
 
-  // v2.18.58: Die globale Profilrolle muss sofort wirksam werden.
+  // v2.18.59: Die globale Profilrolle muss sofort wirksam werden.
   // Ein Fehler beim Laden der Mandanten-Mitgliedschaft darf insbesondere
   // einen platform_admin weder Navigation noch globalen Zugriff verlieren lassen.
   currentOrganizationMembership=null;
@@ -3878,6 +3950,37 @@ function applyRoleUI(){
   if(platformBottomNav)platformBottomNav.classList.toggle('hidden',!platformMode);
   if(platformDashboard)platformDashboard.style.display=platformMode?'':'none';
   if(operationalDashboard)operationalDashboard.style.display=platformMode?'none':'';
+
+  const tenantEyebrow=document.getElementById('tenantDashboardEyebrow');
+  const tenantContextPill=document.getElementById('tenantContextPill');
+  const tenantRoleContext=document.getElementById('dashboardRoleContext');
+  if(!platformMode){
+    const roleTitle=isTenantAdminRole()
+      ? 'MANDANTEN-ADMIN'
+      : isAdminDelegate()
+        ? 'ADMIN-VERTRETUNG'
+        : role==='object_manager'||role==='staff'||role==='employee'
+          ? 'OBJEKTBETREUUNG'
+          : role==='customer'
+            ? 'AUFTRAGGEBER'
+            : role==='test_user'
+              ? 'TESTBEREICH'
+              : 'MANDANT';
+    const roleDescription=isTenantAdminRole()
+      ? 'Steuerung deines Unternehmens, der Objekte und der operativen Vorgänge.'
+      : isAdminDelegate()
+        ? 'Operative Steuerung und Vertretung innerhalb des Mandanten.'
+        : role==='object_manager'||role==='staff'||role==='employee'
+          ? 'Deine Objekte, offenen Feststellungen und Arbeitsvorgänge.'
+          : role==='customer'
+            ? 'Übersicht über deine Objekte, Dokumentationen und Entscheidungen.'
+            : role==='test_user'
+              ? 'Isolierter Testbereich für die vollständige Prozessprüfung.'
+              : 'Dein aktueller Dokumentationsstand';
+    if(tenantEyebrow)tenantEyebrow.textContent=roleTitle;
+    if(tenantContextPill)tenantContextPill.textContent=currentOrganization?.name||'Mandantenbereich';
+    if(tenantRoleContext)tenantRoleContext.textContent=roleDescription;
+  }
   const platformOrgKpi=document.getElementById('kpiPlatformOrganizations');
   if(platformOrgKpi)platformOrgKpi.textContent=String((cloudOrganizations||[]).filter(o=>o.active!==false).length);
   const newUserCard=document.getElementById('newUserCard');if(newUserCard)newUserCard.style.display=isTenantAdminRole()?'':'none';
@@ -4018,7 +4121,7 @@ async function cloudLogin(){
     await cloudReloadObjects();
   }catch(e){
     console.error('Anmeldung / Profilinitialisierung fehlgeschlagen',e);
-    // v2.18.58: Die App darf bei fehlgeschlagener Profilinitialisierung
+    // v2.18.59: Die App darf bei fehlgeschlagener Profilinitialisierung
     // nicht mit leerer Navigation hinter einem ausgeblendeten Login-Gate stehen.
     currentUserProfile=null;
     currentUserRole='';
@@ -5032,7 +5135,7 @@ async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
   cloudSetStatus('Supabase wird geladen …','wait');
   try{
-    // v2.18.58: Reine Plattform-Admins arbeiten im Systemkontext und laden
+    // v2.18.59: Reine Plattform-Admins arbeiten im Systemkontext und laden
     // standardmäßig keine operativen Objekt-/Vorgangsdaten.
     if(isAdminRole()){
       await cloudLoadOrganizations();
