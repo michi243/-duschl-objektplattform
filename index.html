@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.60</title>
+<title>Duschl Service – Objektplattform v2.18.61</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -425,7 +425,7 @@ main{padding-top:18px}
 .user-message-audience-count{font-size:12px;font-weight:600;opacity:.8}
 .user-message-recipient-row.message-scope-hidden{display:none}
 
-/* v2.18.60 – Platform-Admin Dashboard */
+/* v2.18.61 – Platform-Admin Dashboard */
 .platform-kpi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .platform-kpi-card{border:1px solid var(--border);background:var(--card);border-radius:18px;padding:16px;min-width:0}
 .platform-kpi-label{color:var(--muted);font-size:14px;font-weight:700}
@@ -455,7 +455,7 @@ main{padding-top:18px}
   .platform-tenant-main{align-items:center}
 }
 
-/* v2.18.60 – Platform Admin Dashboard */
+/* v2.18.61 – Platform Admin Dashboard */
 #platformAdminDashboard{padding-bottom:92px}
 .pa-dashboard-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:22px}
 .pa-eyebrow{font-size:12px;font-weight:900;letter-spacing:.12em;color:#9fb2c5;margin-bottom:8px}
@@ -538,7 +538,7 @@ button.pa-kpi-card{width:100%;font:inherit;cursor:pointer}
   .pa-status-grid{grid-template-columns:1fr}
 }
 
-/* v2.18.60 – Mandantenoberflächen im Platform-Design */
+/* v2.18.61 – Mandantenoberflächen im Platform-Design */
 .tenant-dashboard-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:22px}
 .tenant-eyebrow{font-size:12px;font-weight:900;letter-spacing:.12em;color:#9fb2c5;margin-bottom:8px}
 .tenant-dashboard-title{font-size:42px;line-height:1;margin:0 0 10px;font-weight:950}
@@ -578,6 +578,33 @@ button.pa-kpi-card{width:100%;font:inherit;cursor:pointer}
   .tenant-panel{padding:15px;border-radius:17px}
   .tenant-panel-title{font-size:19px}
   .tenant-action-btn{padding:9px 11px!important;font-size:12px!important}
+}
+
+/* v2.18.61 – Mandantenmodus + technische Diagnose */
+.platform-tenant-mode-banner{position:sticky;top:82px;z-index:70;margin:0 0 14px;padding:11px 14px;border:1px solid #8a6d22;border-radius:14px;background:linear-gradient(145deg,#3b3010,#211d0d);color:#f4df93;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 8px 22px rgba(0,0,0,.22)}
+.platform-tenant-mode-banner.hidden{display:none!important}
+.platform-tenant-mode-banner button{border-color:#8a6d22!important;background:#4b3d13!important;color:#fff1b9!important}
+.platform-diagnostics{margin-top:14px;padding-top:14px;border-top:1px solid #29445d}
+.platform-diagnostics.hidden{display:none!important}
+.platform-diagnostics-head{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.platform-diagnostics-list{display:grid;gap:8px;margin-top:12px}
+.platform-diagnostic-row{display:grid;grid-template-columns:16px 1fr auto;gap:9px;align-items:center;padding:9px 10px;border:1px solid #29445d;border-radius:11px;background:#0b2333}
+.platform-diagnostic-dot{width:10px;height:10px;border-radius:50%;background:#7f8c99}
+.platform-diagnostic-dot.ok{background:#4edf8e}
+.platform-diagnostic-dot.warn{background:#f1c75b}
+.platform-diagnostic-dot.bad{background:#ff6b6b}
+.platform-diagnostic-name{font-weight:800}
+.platform-diagnostic-detail{color:#9fb2c5;font-size:12px;margin-top:2px}
+.platform-diagnostic-latency{font-size:12px;color:#9fb2c5;white-space:nowrap}
+.platform-diagnostics-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+.platform-diagnostics-meta>div{border:1px solid #29445d;border-radius:11px;padding:10px;background:#0b2333;min-width:0}
+.platform-diagnostics-meta span,.platform-diagnostics-meta strong{display:block}
+.platform-diagnostics-meta strong{margin-top:5px;font-size:13px;overflow-wrap:anywhere}
+@media(max-width:680px){
+  .platform-tenant-mode-banner{top:72px;align-items:flex-start;flex-direction:column}
+  .platform-diagnostics-meta{grid-template-columns:1fr}
+  .platform-diagnostic-row{grid-template-columns:14px 1fr}
+  .platform-diagnostic-latency{grid-column:2}
 }
 </style>
 <style>
@@ -1049,7 +1076,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.60</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.61</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1073,6 +1100,14 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </aside>
 <main>
+<div id="platformTenantModeBanner" class="platform-tenant-mode-banner hidden">
+  <div>
+    <strong>Mandantenmodus:</strong>
+    <span id="platformTenantModeName">—</span>
+    <span class="muted">· Vollzugriff zur Administration / Fehlerbehebung</span>
+  </div>
+  <button type="button" onclick="exitPlatformTenantMode()">Mandantenmodus verlassen</button>
+</div>
 <section class="section active" id="dashboard">
 <div id="platformAdminDashboard" style="display:none">
   <div class="pa-dashboard-head">
@@ -1081,7 +1116,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.60</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.61</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1147,6 +1182,21 @@ body.public-report-mode>#photoViewer{display:none!important}
       <div class="pa-status-line"><span>●</span> Supabase Verbindung</div>
       <div class="pa-status-line"><span>●</span> Datenbank erreichbar</div>
       <div class="pa-status-line"><span>●</span> Dateispeicher verfügbar</div>
+      <button class="pa-refresh-btn pa-refresh-wide" type="button" onclick="togglePlatformDiagnostics()">Technische Diagnose</button>
+      <div id="platformDiagnosticsPanel" class="platform-diagnostics hidden">
+        <div class="platform-diagnostics-head">
+          <strong>Technische Diagnose</strong>
+          <button type="button" class="pa-refresh-btn" onclick="runPlatformDiagnostics()">Neu prüfen</button>
+        </div>
+        <div id="platformDiagnosticsList" class="platform-diagnostics-list">
+          <div class="muted">Diagnose wurde noch nicht ausgeführt.</div>
+        </div>
+        <div class="platform-diagnostics-meta">
+          <div><span class="muted">Letzte erfolgreiche Synchronisierung</span><strong id="diagLastSync">—</strong></div>
+          <div><span class="muted">Fehler letzte 24h (dieses Gerät)</span><strong id="diagErrorCount24h">0</strong></div>
+          <div><span class="muted">Letzter Fehler (dieses Gerät)</span><strong id="diagLastError">—</strong></div>
+        </div>
+      </div>
     </div>
     <div class="pa-panel pa-status-card">
       <div class="pa-panel-title"><span class="pa-clock">◷</span>Letzte Aktualisierung</div>
@@ -2795,7 +2845,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.18.60';
+const APP_VERSION='2.18.61';
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -3592,6 +3642,16 @@ let platformOrganizationMemberships=[];
 let platformOrganizationProfiles=[];
 let userAdminMemberships=[];
 
+// v2.18.61: Platform-Admin kann einen Mandanten bewusst administrieren.
+// Der globale Plattformkontext bleibt davon getrennt.
+let platformTenantModeOrgId='';
+let platformTenantModeOrganization=null;
+let platformTenantModeEnteredAt=null;
+
+function isPlatformTenantMode(){
+  return effectiveUserRole()==='platform_admin' && !!platformTenantModeOrgId;
+}
+
 const ROLE_LABELS={
   platform_admin:'Administrator / GF',
   staff:'Objektbetreuer (Legacy)',
@@ -3616,8 +3676,8 @@ function effectiveOrganizationRole(){
 }
 function currentOrganizationId(){return currentOrganizationMembership?.organization_id||''}
 function isAdminRole(){return effectiveUserRole()==='platform_admin'}
-function isTenantAdminRole(){return !isAdminRole()&&effectiveOrganizationRole()==='tenant_admin'}
-function isAdminDelegate(){return !isAdminRole()&&effectiveOrganizationRole()==='admin_delegate'}
+function isTenantAdminRole(){return effectiveOrganizationRole()==='tenant_admin'&&(!isAdminRole()||isPlatformTenantMode())}
+function isAdminDelegate(){return effectiveOrganizationRole()==='admin_delegate'&&!isPlatformTenantMode()&&!isAdminRole()}
 function hasOperationalAdminAccess(){return isTenantAdminRole()||isAdminDelegate()}
 function canManageUsersUI(){return isTenantAdminRole()||isAdminDelegate()}
 function isObjectManagerRole(){return !hasOperationalAdminAccess()&&['object_manager','staff'].includes(effectiveUserRole())}
@@ -3627,7 +3687,7 @@ function canManageObjectsUI(){return hasOperationalAdminAccess()}
 function canUseDecisionsUI(){return hasOperationalAdminAccess()||isCustomerRole()||isTestUserRole()}
 function canUseWorkQueueUI(){return hasOperationalAdminAccess()||isObjectManagerRole()||isTestUserRole()}
 function canCreateDocumentationUI(){return hasOperationalAdminAccess()||isObjectManagerRole()||isCustomerRole()||isTestUserRole()}
-function canUseSettingsUI(){return isAdminRole()}
+function canUseSettingsUI(){return isAdminRole()&&!isPlatformTenantMode()}
 function canSeeInternalPersonnelUI(){return hasOperationalAdminAccess()||(!isCustomerRole()&&!isTestUserRole())}
 function customerSafeText(v){return isCustomerRole()?'':(v||'')}
 function currentUserId(){return currentUserProfile?.id||cloudSession?.user?.id||''}
@@ -3671,7 +3731,7 @@ async function cloudLoadCurrentProfile(){
   currentUserProfile=p;
   currentUserRole=String(p.role||cloudSession?.user?.user_metadata?.app_role||'').trim().toLowerCase();
 
-  // v2.18.60: Die globale Profilrolle muss sofort wirksam werden.
+  // v2.18.61: Die globale Profilrolle muss sofort wirksam werden.
   // Ein Fehler beim Laden der Mandanten-Mitgliedschaft darf insbesondere
   // einen platform_admin weder Navigation noch globalen Zugriff verlieren lassen.
   currentOrganizationMembership=null;
@@ -3900,7 +3960,7 @@ function applyRoleUI(){
     const headerRoleLabel=isAdminDelegate()
       ? 'Admin-Vertretung'
       : role==='platform_admin'
-        ? 'Plattform-Admin'
+        ? (isPlatformTenantMode()?'Plattform-Admin · Mandantenmodus':'Plattform-Admin')
         : isTenantAdminRole()
           ? 'Mandanten-Admin'
         : role==='object_manager'
@@ -3932,7 +3992,7 @@ function applyRoleUI(){
   // Hamburger-Menü: nur Funktionen anzeigen, die für die aktuelle Rolle nutzbar sind.
   // Keine ausgegrauten / nicht ausführbaren Menüpunkte.
   const hasAppRole=!!role;
-  const platformMode=isAdminRole();
+  const platformMode=isAdminRole()&&!isPlatformTenantMode();
   show('navDashboard',hasAppRole);
   show('navObjects',hasAppRole && !platformMode);
   show('navInspections',false);
@@ -3951,7 +4011,12 @@ function applyRoleUI(){
   if(platformDashboard)platformDashboard.style.display=platformMode?'':'none';
   if(operationalDashboard)operationalDashboard.style.display=platformMode?'none':'';
 
-  // v2.18.60: Der reine Platform-Admin benötigt kein Hamburger-Menü.
+  const tenantModeBanner=document.getElementById('platformTenantModeBanner');
+  const tenantModeName=document.getElementById('platformTenantModeName');
+  if(tenantModeBanner)tenantModeBanner.classList.toggle('hidden',!isPlatformTenantMode());
+  if(tenantModeName)tenantModeName.textContent=platformTenantModeOrganization?.name||currentOrganization?.name||'Mandant';
+
+  // v2.18.61: Der reine Platform-Admin benötigt kein Hamburger-Menü.
   // Mandantenrollen behalten die vollständige operative Navigation.
   const menuTrigger =
     document.querySelector('button[onclick="openMenu()"]') ||
@@ -4130,7 +4195,7 @@ async function cloudLogin(){
     await cloudReloadObjects();
   }catch(e){
     console.error('Anmeldung / Profilinitialisierung fehlgeschlagen',e);
-    // v2.18.60: Die App darf bei fehlgeschlagener Profilinitialisierung
+    // v2.18.61: Die App darf bei fehlgeschlagener Profilinitialisierung
     // nicht mit leerer Navigation hinter einem ausgeblendeten Login-Gate stehen.
     currentUserProfile=null;
     currentUserRole='';
@@ -4157,6 +4222,105 @@ async function cloudLogout(){
   cloudSetStatus('Nicht angemeldet','bad');
   cloudShowGate(true);
 }
+
+const PLATFORM_DIAG_ERROR_KEY='duschl_platform_diag_errors_v1';
+let platformLastSuccessfulSync='';
+let platformDiagnosticsRunning=false;
+
+function loadPlatformDiagnosticErrors(){
+  try{
+    const raw=JSON.parse(localStorage.getItem(PLATFORM_DIAG_ERROR_KEY)||'[]');
+    const cutoff=Date.now()-24*60*60*1000;
+    const cleaned=(Array.isArray(raw)?raw:[]).filter(x=>Number(x?.ts||0)>=cutoff).slice(-100);
+    localStorage.setItem(PLATFORM_DIAG_ERROR_KEY,JSON.stringify(cleaned));
+    return cleaned;
+  }catch(_e){return []}
+}
+function recordPlatformDiagnosticError(message,path=''){
+  if(effectiveUserRole()!=='platform_admin')return;
+  try{
+    const rows=loadPlatformDiagnosticErrors();
+    rows.push({ts:Date.now(),message:String(message||'Unbekannter Fehler').slice(0,300),path:String(path||'').slice(0,180)});
+    localStorage.setItem(PLATFORM_DIAG_ERROR_KEY,JSON.stringify(rows.slice(-100)));
+  }catch(_e){}
+}
+function platformDiagnosticMeta(){
+  const rows=loadPlatformDiagnosticErrors();
+  const last=rows[rows.length-1];
+  return {
+    count:rows.length,
+    last:last?`${new Date(last.ts).toLocaleString('de-DE')} · ${last.message}`:'—'
+  };
+}
+function togglePlatformDiagnostics(){
+  const p=document.getElementById('platformDiagnosticsPanel');
+  if(!p)return;
+  const opening=p.classList.contains('hidden');
+  p.classList.toggle('hidden',!opening);
+  if(opening)runPlatformDiagnostics();
+}
+function renderPlatformDiagnosticRows(rows){
+  const box=document.getElementById('platformDiagnosticsList');
+  if(!box)return;
+  box.innerHTML=(rows||[]).map(r=>`<div class="platform-diagnostic-row">
+    <span class="platform-diagnostic-dot ${esc(r.state||'warn')}"></span>
+    <div><div class="platform-diagnostic-name">${esc(r.name||'Prüfung')}</div><div class="platform-diagnostic-detail">${esc(r.detail||'')}</div></div>
+    <div class="platform-diagnostic-latency">${Number.isFinite(r.ms)?r.ms+' ms':''}</div>
+  </div>`).join('');
+}
+async function platformDiagnosticCheck(name,fn){
+  const start=performance.now();
+  try{
+    const detail=await fn();
+    return {name,state:'ok',detail:detail||'OK',ms:Math.round(performance.now()-start)};
+  }catch(e){
+    return {name,state:'bad',detail:e?.message||String(e),ms:Math.round(performance.now()-start)};
+  }
+}
+async function runPlatformDiagnostics(){
+  if(!isAdminRole()||platformDiagnosticsRunning)return;
+  platformDiagnosticsRunning=true;
+  const box=document.getElementById('platformDiagnosticsList');
+  if(box)box.innerHTML='<div class="muted">Technische Prüfungen laufen …</div>';
+  try{
+    const uid=currentUserId();
+    const checks=[];
+    checks.push(await platformDiagnosticCheck('Authentifizierung',async()=>{
+      const rows=await cloudRequest(`profiles?select=id,role,active&id=eq.${encodeURIComponent(uid)}&limit=1`);
+      if(!rows?.[0]?.active)throw new Error('Aktives Profil nicht lesbar');
+      return `Session aktiv · Rolle ${rows[0].role}`;
+    }));
+    checks.push(await platformDiagnosticCheck('Datenbank',async()=>{
+      await cloudRequest('organizations?select=id&limit=1');
+      return 'REST-Datenbankzugriff erfolgreich';
+    }));
+    checks.push(await platformDiagnosticCheck('RLS / Berechtigungen',async()=>{
+      await cloudRequest('objects?select=id,organization_id&limit=1');
+      return 'Objektzugriff durch RLS erfolgreich';
+    }));
+    checks.push(await platformDiagnosticCheck('Storage / RPC',async()=>{
+      await cloudRequest('rpc/platform_storage_summary',{method:'POST',body:JSON.stringify({})});
+      return 'Speicher-Summary erreichbar';
+    }));
+    checks.push(await platformDiagnosticCheck('Session-Laufzeit',async()=>{
+      const exp=Number(cloudSession?.expires_at||0)*1000;
+      if(!exp)return 'Kein Ablaufzeitpunkt gemeldet';
+      const min=Math.round((exp-Date.now())/60000);
+      if(min<0)throw new Error('Session abgelaufen');
+      return `noch ca. ${min} Minuten gültig`;
+    }));
+    renderPlatformDiagnosticRows(checks);
+
+    const meta=platformDiagnosticMeta();
+    const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v};
+    set('diagLastSync',platformLastSuccessfulSync?new Date(platformLastSuccessfulSync).toLocaleString('de-DE'):'—');
+    set('diagErrorCount24h',String(meta.count));
+    set('diagLastError',meta.last);
+  }finally{
+    platformDiagnosticsRunning=false;
+  }
+}
+
 async function cloudRequest(path,options={},retry=true){
   if(!cloudSession?.access_token)throw new Error('Nicht angemeldet.');
 
@@ -4193,6 +4357,7 @@ async function cloudRequest(path,options={},retry=true){
     const msg=(data && typeof data==='object')
       ?(data.message||data.details||data.error||text)
       :text;
+    recordPlatformDiagnosticError(msg||`HTTP ${r.status}`,path);
     throw new Error(msg||`HTTP ${r.status}`);
   }
   if(r.status===204)return null;
@@ -4394,7 +4559,8 @@ function cloudTaskToLocal(t){
 }
 async function cloudLoadTasks(){
   const rows=await cloudRequest('tasks?select=id,object_id,finding_id,title,task_type,status,owner_id,owner_name,due_date,work_note,completed_by,completed_by_name,completed_at,created_at,updated_at&order=due_date.asc.nullslast,created_at.desc');
-  const tasks=(rows||[]).map(cloudTaskToLocal);
+  const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
+  const tasks=(rows||[]).filter(t=>accessibleObjectIds.has(t.object_id)).map(cloudTaskToLocal);
   db.tasks=tasks;
   applyTasksToFindings();
   return tasks;
@@ -4505,8 +4671,12 @@ function findingCreatorMetaHtml(f){
 
 async function cloudReloadFindings(){
   if(!cloudSession?.access_token)return;
-  const rows=await cloudRequest('findings?select=id,object_id,inspection_id,source_resident_report_id,type,area_id,area,area_detail,title,category,priority,description,recommended_action,activity,status,completion_type,completion_note,work_required,created_by,created_at,updated_at&order=created_at.desc');
-  const decisions=await cloudRequest('decisions?select=id,finding_id,required,status,decided_by,decided_by_name,decided_at,decision_date,implementation_responsibility,comment,amount,created_at,updated_at');
+  const rowsRaw=await cloudRequest('findings?select=id,object_id,inspection_id,source_resident_report_id,type,area_id,area,area_detail,title,category,priority,description,recommended_action,activity,status,completion_type,completion_note,work_required,created_by,created_at,updated_at&order=created_at.desc');
+  const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
+  const rows=(rowsRaw||[]).filter(f=>accessibleObjectIds.has(f.object_id));
+  const findingIds=new Set(rows.map(f=>f.id));
+  const decisionsRaw=await cloudRequest('decisions?select=id,finding_id,required,status,decided_by,decided_by_name,decided_at,decision_date,implementation_responsibility,comment,amount,created_at,updated_at');
+  const decisions=(decisionsRaw||[]).filter(d=>findingIds.has(d.finding_id));
   const dm=new Map((decisions||[]).map(d=>[d.finding_id,d]));
   const pm=await cloudLoadPhotoRefs();
   const cloudRows=(rows||[]).map(f=>{
@@ -4781,7 +4951,8 @@ function objectAreaById(id){return (cloudObjectAreas||[]).find(a=>a.id===id)||nu
 async function cloudLoadObjectAreas(){
   if(!cloudSession?.access_token){cloudObjectAreas=[];return cloudObjectAreas;}
   const rows=await cloudRequest('object_areas?select=id,object_id,name,active,sort_order,created_at,updated_at&order=object_id.asc,sort_order.asc,name.asc');
-  cloudObjectAreas=Array.isArray(rows)?rows:[];
+  const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
+  cloudObjectAreas=(Array.isArray(rows)?rows:[]).filter(a=>accessibleObjectIds.has(a.object_id));
   db.objectAreas=cloudObjectAreas.map(a=>({id:a.id,objectId:a.object_id,name:a.name,active:a.active!==false,sortOrder:Number(a.sort_order||0)}));
   return cloudObjectAreas;
 }
@@ -4883,6 +5054,7 @@ async function loadPlatformSystemStatus(){
     await cloudLoadOrganizations();
     await cloudLoadPlatformStorage();
     const now=new Date();
+    platformLastSuccessfulSync=now.toISOString();
     const last=document.getElementById('paLastUpdated');
     if(last)last.textContent=`Heute, ${now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})} Uhr`;
     const status=document.getElementById('paPlatformStatusText');
@@ -4963,9 +5135,81 @@ function renderOrganizations(){
     const warn=Number(org.storage_warning_percent||80);
     const storageText=limit>0?`${formatBytes(used)} von ${formatBytes(limit)} · ${pct}%`:'Kein Speicherlimit definiert';
     const storageClass=limit>0&&pct>=warn?'bad':'';
-    return `<div class="card"><div class="row space"><div><h3 style="margin:0">${esc(org.name)}</h3><div class="muted" style="margin-top:5px">${esc(org.organization_type||'Unternehmen')} · ${org.active===false?'Inaktiv':'Aktiv'}</div></div><span class="badge">${summary.count} Benutzer</span></div><div style="margin-top:12px"><div class="muted">Mandanten-Admin</div><div style="font-weight:800;margin-top:4px">${adminText}</div></div><div style="margin-top:12px"><div class="muted">Vertraglicher Speicher</div><div class="${storageClass}" style="font-weight:800;margin-top:4px">${storageText}</div></div><div class="row" style="margin-top:12px"><button onclick="openOrganizationModal('${esc(org.id)}')">Mandant bearbeiten</button><button onclick="openTenantAdminAssignmentModal('${esc(org.id)}')">${summary.admins.length?'Mandanten-Admin ändern':'Mandanten-Admin festlegen'}</button></div></div>`;
+    return `<div class="card"><div class="row space"><div><h3 style="margin:0">${esc(org.name)}</h3><div class="muted" style="margin-top:5px">${esc(org.organization_type||'Unternehmen')} · ${org.active===false?'Inaktiv':'Aktiv'}</div></div><span class="badge">${summary.count} Benutzer</span></div><div style="margin-top:12px"><div class="muted">Mandanten-Admin</div><div style="font-weight:800;margin-top:4px">${adminText}</div></div><div style="margin-top:12px"><div class="muted">Vertraglicher Speicher</div><div class="${storageClass}" style="font-weight:800;margin-top:4px">${storageText}</div></div><div class="row" style="margin-top:12px"><button class="primary" onclick="enterPlatformTenantMode('${esc(org.id)}')">Mandant administrieren</button><button onclick="openOrganizationModal('${esc(org.id)}')">Mandant bearbeiten</button><button onclick="openTenantAdminAssignmentModal('${esc(org.id)}')">${summary.admins.length?'Mandanten-Admin ändern':'Mandanten-Admin festlegen'}</button></div></div>`;
   }).join('');
 }
+
+async function cloudLogPlatformTenantAccess(action,orgId){
+  if(!isAdminRole()||!orgId)return;
+  try{
+    await cloudRequest('platform_admin_access_log',{
+      method:'POST',
+      headers:{Prefer:'return=minimal'},
+      body:JSON.stringify({
+        platform_admin_id:currentUserId(),
+        organization_id:orgId,
+        action,
+        entered_at:action==='enter'?new Date().toISOString():null,
+        exited_at:action==='exit'?new Date().toISOString():null,
+        frontend_version:APP_VERSION
+      })
+    });
+  }catch(e){
+    console.warn('Mandantenmodus-Audit konnte nicht geschrieben werden',e);
+  }
+}
+
+async function enterPlatformTenantMode(orgId){
+  if(!isAdminRole())return alert('Nur der Plattformadministrator kann den Mandantenmodus öffnen.');
+  const org=cloudOrganizations.find(o=>o.id===orgId);
+  if(!org)return alert('Mandant wurde nicht gefunden.');
+  platformTenantModeOrgId=org.id;
+  platformTenantModeOrganization=org;
+  platformTenantModeEnteredAt=new Date().toISOString();
+
+  // Synthetischer Mandantenkontext: globale Identität bleibt platform_admin,
+  // die operative UI arbeitet für diesen Mandanten wie ein tenant_admin.
+  currentOrganization=org;
+  currentOrganizationMembership={
+    id:'platform-tenant-mode',
+    organization_id:org.id,
+    user_id:currentUserId(),
+    role:'tenant_admin',
+    __platform_override:true
+  };
+  await cloudLogPlatformTenantAccess('enter',org.id);
+  applyRoleUI();
+  closeModal();
+  showSection('dashboard');
+  await cloudReloadObjects();
+}
+
+async function exitPlatformTenantMode(){
+  if(!isPlatformTenantMode())return;
+  const orgId=platformTenantModeOrgId;
+  await cloudLogPlatformTenantAccess('exit',orgId);
+
+  platformTenantModeOrgId='';
+  platformTenantModeOrganization=null;
+  platformTenantModeEnteredAt=null;
+  currentOrganizationMembership=null;
+  currentOrganization=null;
+
+  // Operative Mandantendaten aus dem aktuellen In-Memory-Kontext entfernen.
+  db.objects=[];
+  db.inspections=[];
+  db.findings=(db.findings||[]).filter(f=>!f.cloud);
+  db.tasks=[];
+  cloudObjectAreas=[];
+  cloudResidentReports=[];
+  cloudResidentReportMedia=[];
+  userDashboardMessages=[];
+
+  applyRoleUI();
+  showSection('dashboard');
+  await cloudReloadObjects();
+}
+
 function openOrganizationModal(id=''){
   if(!requireAdminUI(id?'Unternehmen bearbeiten':'Unternehmen anlegen'))return;
   const org=cloudOrganizations.find(o=>o.id===id)||{name:'',organization_type:'object_service',active:true};
@@ -5144,9 +5388,9 @@ async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
   cloudSetStatus('Supabase wird geladen …','wait');
   try{
-    // v2.18.60: Reine Plattform-Admins arbeiten im Systemkontext und laden
+    // v2.18.61: Reine Plattform-Admins arbeiten im Systemkontext und laden
     // standardmäßig keine operativen Objekt-/Vorgangsdaten.
-    if(isAdminRole()){
+    if(isAdminRole()&&!isPlatformTenantMode()){
       await cloudLoadOrganizations();
       await cloudLoadPlatformStorage();
       renderAll();
@@ -5155,7 +5399,10 @@ async function cloudReloadObjects(){
       return;
     }
     // Mandantenrollen laden ausschließlich die per RLS freigegebenen Objekte.
-    const rows=await cloudRequest('objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&order=name.asc');
+    const objectPath=isPlatformTenantMode()
+      ? `objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(platformTenantModeOrgId)}&order=name.asc`
+      : 'objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&order=name.asc';
+    const rows=await cloudRequest(objectPath);
     db.objects=(rows||[]).map(cloudObjectToLocal);
     try{await cloudLoadOrganizations();}catch(e){
       console.warn('Unternehmen/Mandanten konnten nicht geladen werden',e);
@@ -5163,7 +5410,8 @@ async function cloudReloadObjects(){
     }
     await cloudLoadObjectAreas();
     const inspectionRows=await cloudRequest('inspections?select=id,object_id,started_at,ended_at,notes,created_by,created_at,updated_at&order=started_at.desc');
-    db.inspections=(inspectionRows||[]).map(cloudInspectionToLocal);
+    const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
+    db.inspections=(inspectionRows||[]).filter(i=>accessibleObjectIds.has(i.object_id)).map(cloudInspectionToLocal);
     await cloudReloadFindings();
     if(!isCustomerRole()){try{await cloudLoadResidentReports();}catch(e){console.warn('Meldungen konnten nicht geladen werden',e);}}else{cloudResidentReports=[];cloudResidentReportMedia=[];}
     await loadUserMessages();
@@ -5172,7 +5420,7 @@ async function cloudReloadObjects(){
   }catch(e){
     console.error('Objekte laden fehlgeschlagen',e);
     cloudSetStatus('Verbindungsfehler: '+(e.message||e),'bad');
-    alert('Supabase-Verbindung fehlgeschlagen. Details stehen unter System.');
+    alert('Supabase-Verbindung fehlgeschlagen. Technische Diagnose im Plattform-Dashboard prüfen.');
   }
 }
 async function cloudSaveObject(id,data){
@@ -6357,7 +6605,7 @@ async function loadUserAdminData(){
     userAdminProfiles=(userAdminProfiles||[]).filter(p=>!p.deleted_at);
     userAdminMemberships=await cloudRequest('organization_memberships?select=id,organization_id,user_id,role')||[];
     userAdminAssignments=await cloudRequest('object_user_assignments?select=id,object_id,user_id,active')||[];
-    if(!isAdminRole()){
+    if(!isAdminRole()||isPlatformTenantMode()){
       const orgId=currentOrganizationId();
       const allowedIds=new Set(userAdminMemberships.filter(m=>m.organization_id===orgId).map(m=>m.user_id));
       userAdminProfiles=userAdminProfiles.filter(p=>allowedIds.has(p.id));
