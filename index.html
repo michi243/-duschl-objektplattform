@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.56</title>
+<title>Duschl Service – Objektplattform v2.18.57</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -424,6 +424,36 @@ main{padding-top:18px}
 .user-message-audience-tab.active{border-color:var(--accent)!important;background:rgba(47,143,255,.16)!important;color:var(--text)!important;box-shadow:inset 0 0 0 1px rgba(47,143,255,.24)}
 .user-message-audience-count{font-size:12px;font-weight:600;opacity:.8}
 .user-message-recipient-row.message-scope-hidden{display:none}
+
+/* v2.18.57 – Platform-Admin Dashboard */
+.platform-kpi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.platform-kpi-card{border:1px solid var(--border);background:var(--card);border-radius:18px;padding:16px;min-width:0}
+.platform-kpi-label{color:var(--muted);font-size:14px;font-weight:700}
+.platform-kpi-value{font-size:34px;font-weight:900;line-height:1.05;margin-top:7px}
+.platform-kpi-sub{color:var(--muted);font-size:13px;line-height:1.35;margin-top:6px}
+.platform-storage-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.platform-storage-value{font-size:22px;font-weight:900;margin-top:4px}
+.platform-status-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.storage-progress{height:12px;border-radius:999px;background:rgba(148,163,184,.16);overflow:hidden;border:1px solid var(--border)}
+.storage-progress-fill{height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--accent),#66b8ff);transition:width .25s ease}
+.platform-tenant-row{border:1px solid var(--border);border-radius:16px;padding:14px;margin-top:10px;background:rgba(255,255,255,.015)}
+.platform-tenant-main{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.platform-tenant-name{font-weight:900;font-size:16px}
+.platform-tenant-meta{color:var(--muted);font-size:13px;line-height:1.45;margin-top:4px}
+.platform-tenant-storage{margin-top:10px}
+.platform-tenant-storage-head{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:12px;margin-bottom:6px}
+.platform-tenant-admin{margin-top:9px;font-size:13px}
+@media(max-width:680px){
+  .platform-kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .platform-kpi-card{padding:11px 10px;border-radius:14px}
+  .platform-kpi-label{font-size:11px}
+  .platform-kpi-value{font-size:25px;margin-top:5px}
+  .platform-kpi-sub{font-size:10px;line-height:1.25}
+  .platform-storage-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .platform-storage-value{font-size:17px}
+  .platform-status-grid{grid-template-columns:1fr}
+  .platform-tenant-main{align-items:center}
+}
 </style>
 <style>
 .object-file{border:1px solid #dfe5e8;border-radius:14px;background:#fff;margin-bottom:14px;overflow:hidden}
@@ -894,7 +924,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.56</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.57</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -909,7 +939,6 @@ body.public-report-mode>#photoViewer{display:none!important}
 <button id="navReports" onclick="showSection('reports')"><span class="nav-icon">▥</span><span>Berichte</span></button>
 <button id="navOrganizations" onclick="showSection('organizations')"><span class="nav-icon">▣</span><span>Unternehmen / Mandanten</span></button>
 <button id="navUsers" onclick="showSection('users')"><span class="nav-icon">♙</span><span>Benutzer &amp; Berechtigungen</span></button>
-<button id="navSettings" onclick="showSection('settings')"><span class="nav-icon">◫</span><span>System</span></button>
 </nav>
 <div class="app-menu-actions">
 <button id="globalRefreshBtn" onclick="refreshAllCloudData();closeAppMenu()">↻ <span>Aktualisieren</span></button>
@@ -921,17 +950,71 @@ body.public-report-mode>#photoViewer{display:none!important}
 <main>
 <section class="section active" id="dashboard">
 <div id="platformAdminDashboard" style="display:none">
-  <div class="row space" style="align-items:flex-start">
-    <div><h2>Plattformverwaltung</h2><div class="muted">Systemweite Administration der Duschl Service Objektplattform</div></div>
+  <div class="row space" style="align-items:flex-start;gap:12px">
+    <div>
+      <h2 style="margin-bottom:4px">Plattform-Dashboard</h2>
+      <div class="muted">Mandanten, Benutzer und Speicherkapazität der Duschl Service Objektplattform</div>
+    </div>
+    <button onclick="loadPlatformSystemStatus()" type="button">Aktualisieren</button>
   </div>
-  <div class="grid g3" style="margin-top:14px">
-    <div class="card"><div class="muted">Mandanten</div><div class="kpi" id="kpiPlatformOrganizations">0</div></div>
-    <div class="card"><div class="muted">Rolle</div><div style="font-size:20px;font-weight:800;margin-top:8px">Plattform-Admin</div></div>
-    <div class="card"><div class="muted">Betriebsmodus</div><div style="font-size:20px;font-weight:800;margin-top:8px">Administration</div></div>
+
+  <div class="platform-kpi-grid" style="margin-top:14px">
+    <div class="platform-kpi-card">
+      <div class="platform-kpi-label">Mandanten</div>
+      <div class="platform-kpi-value" id="sysTenantCount">0</div>
+      <div class="platform-kpi-sub">aktive Unternehmen</div>
+    </div>
+    <div class="platform-kpi-card">
+      <div class="platform-kpi-label">Benutzer</div>
+      <div class="platform-kpi-value" id="sysUserCount">0</div>
+      <div class="platform-kpi-sub">aktive Benutzer</div>
+    </div>
+    <div class="platform-kpi-card">
+      <div class="platform-kpi-label">Speicherauslastung</div>
+      <div class="platform-kpi-value" id="sysStoragePercent">—</div>
+      <div class="platform-kpi-sub" id="sysStorageHeadline">wird geladen</div>
+    </div>
   </div>
+
   <div class="card" style="margin-top:14px">
-    <h3 style="margin-top:0">Plattformkontext</h3>
-    <div class="muted">Der Plattform-Admin legt Mandanten und deren initialen Mandanten-Admin an. Die weitere Benutzer-, Rollen-, Objekt- und Prozessverwaltung erfolgt vollständig innerhalb des jeweiligen Mandanten.</div>
+    <div class="row space" style="align-items:center;gap:12px">
+      <div>
+        <h3 style="margin:0">Plattform-Speicher</h3>
+        <div class="muted" style="margin-top:5px">Tatsächlicher Verbrauch im Verhältnis zu den vertraglich vergebenen Mandantenkontingenten.</div>
+      </div>
+      <div class="badge" id="sysStorageStatusBadge">—</div>
+    </div>
+
+    <div class="storage-progress" style="margin-top:16px">
+      <div class="storage-progress-fill" id="sysStorageProgressFill" style="width:0%"></div>
+    </div>
+
+    <div class="platform-storage-grid" style="margin-top:14px">
+      <div><div class="muted">Belegt</div><div class="platform-storage-value" id="sysStorageUsed">—</div></div>
+      <div><div class="muted">Vertraglich vergeben</div><div class="platform-storage-value" id="sysStorageContracted">—</div></div>
+      <div><div class="muted">Noch verfügbar</div><div class="platform-storage-value" id="sysStorageFree">—</div></div>
+    </div>
+    <div class="muted" id="sysStorageNote" style="margin-top:10px">Speicherwerte werden aus Supabase geladen.</div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div class="row space" style="align-items:center">
+      <div>
+        <h3 style="margin:0">Mandantenübersicht</h3>
+        <div class="muted" style="margin-top:5px">Benutzerzahl, Mandanten-Admin und vertragliche Speicherauslastung.</div>
+      </div>
+      <button onclick="showSection('organizations')" type="button">Mandanten verwalten</button>
+    </div>
+    <div id="sysTenantStorageList" style="margin-top:12px"><div class="empty">Mandantendaten werden geladen …</div></div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin-top:0">Plattformstatus</h3>
+    <div class="cloud-banner" id="cloudStatus"><span class="cloud-dot wait" id="cloudDot"></span><span id="cloudStatusText">Verbindung wird geprüft …</span></div>
+    <div class="platform-status-grid" style="margin-top:12px">
+      <div><div class="muted">Frontend-Version</div><div style="font-weight:800">v2.18.57</div></div>
+      <div><div class="muted">Datenbasis</div><div style="font-weight:800">Supabase · Central EU (Frankfurt)</div></div>
+    </div>
   </div>
 </div>
 <div id="operationalDashboard">
@@ -1198,51 +1281,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 <div id="userAdminEditor"></div>
 </section>
-<section class="section" id="settings">
-<div class="row space">
-  <div>
-    <h2>System</h2>
-    <div class="muted">Plattformweite technische Steuerung. Operative Mandantendaten werden hier nicht bearbeitet.</div>
-  </div>
-  <button onclick="loadPlatformSystemStatus()" type="button">Aktualisieren</button>
-</div>
 
-<div class="grid g3" style="margin-top:14px">
-  <div class="kpi"><div class="muted">Mandanten</div><div class="num" id="sysTenantCount">0</div><div class="small">aktive Unternehmen</div></div>
-  <div class="kpi"><div class="muted">Benutzer</div><div class="num" id="sysUserCount">0</div><div class="small">aktive Benutzer gesamt</div></div>
-  <div class="kpi"><div class="muted">Speicherauslastung</div><div class="num" id="sysStoragePercent">—</div><div class="small" id="sysStorageHeadline">wird geladen</div></div>
-</div>
-
-<div class="card" style="margin-top:14px">
-  <div class="row space" style="align-items:center">
-    <div>
-      <h3 style="margin:0">Plattform-Speicher</h3>
-      <div class="muted" style="margin-top:6px">Vertragliche Mandantenlimits und tatsächlich belegter Cloud-Speicher.</div>
-    </div>
-  </div>
-  <div class="grid g3" style="margin-top:14px">
-    <div><div class="muted">Belegt</div><div style="font-size:22px;font-weight:900" id="sysStorageUsed">—</div></div>
-    <div><div class="muted">Vertraglich vergeben</div><div style="font-size:22px;font-weight:900" id="sysStorageContracted">—</div></div>
-    <div><div class="muted">Noch verfügbar</div><div style="font-size:22px;font-weight:900" id="sysStorageFree">—</div></div>
-  </div>
-  <div class="muted" id="sysStorageNote" style="margin-top:12px">Speicherwerte werden aus Supabase geladen.</div>
-</div>
-
-<div class="card" style="margin-top:14px">
-  <h3>Speicher je Mandant</h3>
-  <div class="muted" style="margin-bottom:12px">Die Warnschwelle wird je Mandant vertraglich festgelegt. Das Speicherlimit ist Teil der Mandantenvereinbarung.</div>
-  <div id="sysTenantStorageList"><div class="empty">Speicherwerte werden geladen …</div></div>
-</div>
-
-<div class="card" style="margin-top:14px">
-  <h3>Plattformstatus</h3>
-  <div class="cloud-banner" id="cloudStatus"><span class="cloud-dot wait" id="cloudDot"></span><span id="cloudStatusText">Verbindung wird geprüft …</span></div>
-  <div class="grid g2" style="margin-top:12px">
-    <div><div class="muted">Frontend-Version</div><div style="font-weight:800">v2.18.56</div></div>
-    <div><div class="muted">Datenbasis</div><div style="font-weight:800">Supabase · Central EU (Frankfurt)</div></div>
-  </div>
-</div>
-</section>
 </main>
 <div id="modalRoot"></div>
 <script id="duschl-qr-local-v2183">
@@ -2588,7 +2627,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.18.56';
+const APP_VERSION='2.18.57';
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -3464,7 +3503,7 @@ async function cloudLoadCurrentProfile(){
   currentUserProfile=p;
   currentUserRole=String(p.role||cloudSession?.user?.user_metadata?.app_role||'').trim().toLowerCase();
 
-  // v2.18.56: Die globale Profilrolle muss sofort wirksam werden.
+  // v2.18.57: Die globale Profilrolle muss sofort wirksam werden.
   // Ein Fehler beim Laden der Mandanten-Mitgliedschaft darf insbesondere
   // einen platform_admin weder Navigation noch globalen Zugriff verlieren lassen.
   currentOrganizationMembership=null;
@@ -3736,7 +3775,7 @@ function applyRoleUI(){
   show('navDecisions',hasAppRole && !platformMode && canUseDecisionsUI());
   show('navOrganizations',hasAppRole && platformMode);
   show('navUsers',hasAppRole && !platformMode && canManageUsersUI());
-  show('navSettings',hasAppRole && canUseSettingsUI());
+  show('navSettings',false);
   const platformDashboard=document.getElementById('platformAdminDashboard');
   const operationalDashboard=document.getElementById('operationalDashboard');
   if(platformDashboard)platformDashboard.style.display=platformMode?'':'none';
@@ -3881,7 +3920,7 @@ async function cloudLogin(){
     await cloudReloadObjects();
   }catch(e){
     console.error('Anmeldung / Profilinitialisierung fehlgeschlagen',e);
-    // v2.18.56: Die App darf bei fehlgeschlagener Profilinitialisierung
+    // v2.18.57: Die App darf bei fehlgeschlagener Profilinitialisierung
     // nicht mit leerer Navigation hinter einem ausgeblendeten Login-Gate stehen.
     currentUserProfile=null;
     currentUserRole='';
@@ -4594,6 +4633,14 @@ function renderPlatformSystemStatus(){
   set('sysStorageContracted',formatBytes(contracted));
   set('sysStorageFree',formatBytes(free));
   set('sysStorageNote',contracted>0?'Die freie Kapazität bezieht sich auf die Summe der vertraglich vergebenen Mandantenkontingente.':'Noch keine vertraglichen Speicherlimits definiert.');
+  const progress=document.getElementById('sysStorageProgressFill');
+  if(progress)progress.style.width=`${Math.min(Math.max(pct,0),100)}%`;
+  const statusBadge=document.getElementById('sysStorageStatusBadge');
+  if(statusBadge){
+    statusBadge.textContent=contracted<=0?'Keine Limits':pct>=100?'Limit überschritten':pct>=80?'Beobachten':'Im Rahmen';
+    statusBadge.classList.toggle('bad',pct>=100);
+  }
+
   const list=document.getElementById('sysTenantStorageList');
   if(list){
     if(!activeOrgs.length){list.innerHTML='<div class="empty">Keine aktiven Mandanten.</div>';return;}
@@ -4603,8 +4650,25 @@ function renderPlatformSystemStatus(){
       const limit=Number(org.storage_limit_bytes||0);
       const percent=limit>0?Math.round((usedBytes/limit)*100):0;
       const warn=Number(org.storage_warning_percent||80);
+      const summary=platformOrganizationUserSummary(org.id);
+      const adminText=summary.admins.length
+        ? summary.admins.map(p=>esc(p.full_name||p.email||'Mandanten-Admin')).join(', ')
+        : 'Noch kein Mandanten-Admin';
       const status=limit<=0?'Kein Limit':percent>=100?'Limit überschritten':percent>=warn?'Warnschwelle erreicht':'Im Rahmen';
-      return `<div class="card" style="margin:10px 0"><div class="row space"><div><strong>${esc(org.name)}</strong><div class="muted" style="margin-top:4px">${formatBytes(usedBytes)} belegt · ${formatBytes(Math.max(limit-usedBytes,0))} frei</div></div><span class="badge">${limit>0?percent+'%':'—'}</span></div><div class="muted" style="margin-top:8px">Vertragliches Limit: <strong>${limit>0?formatBytes(limit):'nicht definiert'}</strong> · Warnschwelle: ${warn}% · Status: <strong>${status}</strong></div></div>`;
+      return `<div class="platform-tenant-row">
+        <div class="platform-tenant-main">
+          <div>
+            <div class="platform-tenant-name">${esc(org.name)}</div>
+            <div class="platform-tenant-meta">${summary.count} aktive Benutzer · ${org.active===false?'Inaktiv':'Aktiv'}</div>
+          </div>
+          <span class="badge">${limit>0?percent+'%':'—'}</span>
+        </div>
+        <div class="platform-tenant-storage">
+          <div class="platform-tenant-storage-head"><span>${formatBytes(usedBytes)} belegt</span><span>${limit>0?formatBytes(limit):'kein Limit'}</span></div>
+          <div class="storage-progress"><div class="storage-progress-fill" style="width:${Math.min(Math.max(percent,0),100)}%"></div></div>
+        </div>
+        <div class="platform-tenant-admin"><span class="muted">Mandanten-Admin:</span> <strong>${adminText}</strong> · <span class="muted">${status}</span></div>
+      </div>`;
     }).join('');
   }
 }
@@ -4688,13 +4752,23 @@ function renderOrganizations(){
     const warn=Number(org.storage_warning_percent||80);
     const storageText=limit>0?`${formatBytes(used)} von ${formatBytes(limit)} · ${pct}%`:'Kein Speicherlimit definiert';
     const storageClass=limit>0&&pct>=warn?'bad':'';
-    return `<div class="card"><div class="row space"><div><h3 style="margin:0">${esc(org.name)}</h3><div class="muted" style="margin-top:5px">${esc(org.organization_type||'Unternehmen')} · ${org.active===false?'Inaktiv':'Aktiv'}</div></div><span class="badge">${summary.count} Benutzer</span></div><div style="margin-top:12px"><div class="muted">Mandanten-Admin</div><div style="font-weight:800;margin-top:4px">${adminText}</div></div><div style="margin-top:12px"><div class="muted">Vertraglicher Speicher</div><div class="${storageClass}" style="font-weight:800;margin-top:4px">${storageText}</div></div><div class="row" style="margin-top:12px"><button onclick="openOrganizationModal('${esc(org.id)}')">Mandant bearbeiten</button>${summary.admins.length?'':`<button onclick="openTenantAdminModal('${esc(org.id)}')">Mandanten-Admin anlegen</button>`}</div></div>`;
+    return `<div class="card"><div class="row space"><div><h3 style="margin:0">${esc(org.name)}</h3><div class="muted" style="margin-top:5px">${esc(org.organization_type||'Unternehmen')} · ${org.active===false?'Inaktiv':'Aktiv'}</div></div><span class="badge">${summary.count} Benutzer</span></div><div style="margin-top:12px"><div class="muted">Mandanten-Admin</div><div style="font-weight:800;margin-top:4px">${adminText}</div></div><div style="margin-top:12px"><div class="muted">Vertraglicher Speicher</div><div class="${storageClass}" style="font-weight:800;margin-top:4px">${storageText}</div></div><div class="row" style="margin-top:12px"><button onclick="openOrganizationModal('${esc(org.id)}')">Mandant bearbeiten</button><button onclick="openTenantAdminAssignmentModal('${esc(org.id)}')">${summary.admins.length?'Mandanten-Admin ändern':'Mandanten-Admin festlegen'}</button></div></div>`;
   }).join('');
 }
 function openOrganizationModal(id=''){
   if(!requireAdminUI(id?'Unternehmen bearbeiten':'Unternehmen anlegen'))return;
   const org=cloudOrganizations.find(o=>o.id===id)||{name:'',organization_type:'object_service',active:true};
-  const adminFields=id?'':`
+  const currentAdminSummary=id?platformOrganizationUserSummary(id):{admins:[]};
+  const currentAdminText=currentAdminSummary.admins.length
+    ? currentAdminSummary.admins.map(p=>esc(p.full_name||p.email||'Mandanten-Admin')).join(', ')
+    : 'Noch kein Mandanten-Admin festgelegt';
+  const adminFields=id?`
+    <div class="card" style="margin-top:16px">
+      <h3 style="margin-top:0">Mandanten-Admin</h3>
+      <div style="font-weight:800">${currentAdminText}</div>
+      <div class="muted" style="margin-top:6px">Der Mandanten-Admin verantwortet anschließend Benutzer, Rollen und Objektzugriffe innerhalb des Mandanten.</div>
+      <div class="row" style="margin-top:12px"><button type="button" onclick="closeModal();openTenantAdminAssignmentModal('${esc(id)}')">Mandanten-Admin ${currentAdminSummary.admins.length?'ändern':'festlegen'}</button></div>
+    </div>`:`
     <div class="card" style="margin-top:16px">
       <h3 style="margin-top:0">Initialer Mandanten-Admin</h3>
       <p class="muted">Dieser Benutzer übernimmt anschließend die komplette Benutzer-, Rollen- und Objektverwaltung innerhalb des Mandanten.</p>
@@ -4717,6 +4791,66 @@ function openOrganizationModal(id=''){
     ${adminFields}
     <div class="row" style="margin-top:14px"><button class="primary" onclick="saveOrganization('${esc(id)}')">${id?'Speichern':'Mandant + Admin anlegen'}</button></div>`);
 }
+
+function organizationMembersWithProfiles(orgId){
+  const memberships=(platformOrganizationMemberships||[]).filter(m=>m.organization_id===orgId);
+  const profileById=new Map((platformOrganizationProfiles||[]).map(p=>[p.id,p]));
+  return memberships.map(m=>({membership:m,profile:profileById.get(m.user_id)}))
+    .filter(x=>x.profile && x.profile.active!==false && !x.profile.deleted_at);
+}
+function openTenantAdminAssignmentModal(orgId){
+  if(!requireAdminUI('Mandanten-Admin festlegen'))return;
+  const org=cloudOrganizations.find(o=>o.id===orgId);
+  if(!org)return alert('Mandant wurde nicht gefunden.');
+  const members=organizationMembersWithProfiles(orgId);
+  const current=members.find(x=>x.membership.role==='tenant_admin');
+  const options=members.map(x=>{
+    const p=x.profile;
+    return `<option value="${esc(p.id)}" ${current?.profile?.id===p.id?'selected':''}>${esc(p.full_name||p.email||'Benutzer')} · ${esc(p.email||'')} · ${esc(ROLE_LABELS[x.membership.role]||x.membership.role)}</option>`;
+  }).join('');
+  modal(`<div class="row space"><h2>Mandanten-Admin festlegen</h2><button onclick="closeModal()">✕</button></div>
+    <p class="muted">Mandant: <strong>${esc(org.name)}</strong></p>
+    <p class="muted">Der Plattform-Admin legt nur den verantwortlichen Mandanten-Admin fest. Die weitere Benutzer- und Rechteverwaltung erfolgt innerhalb des Mandanten.</p>
+    ${members.length?`
+      <label>Bestehenden Benutzer als Mandanten-Admin festlegen</label>
+      <select id="tenantAdminExistingUser">${options}</select>
+      <div class="row" style="margin-top:14px">
+        <button class="primary" onclick="setExistingTenantAdmin('${esc(orgId)}')">Als Mandanten-Admin festlegen</button>
+      </div>
+      <div class="muted" style="margin:14px 0 8px">oder</div>`:''}
+    <button onclick="openTenantAdminModal('${esc(orgId)}')">Neuen Mandanten-Admin anlegen</button>`);
+}
+async function setExistingTenantAdmin(orgId){
+  if(!isAdminRole())return alert('Nur der Plattformadministrator darf den Mandanten-Admin festlegen.');
+  const userId=document.getElementById('tenantAdminExistingUser')?.value||'';
+  if(!userId)return alert('Bitte einen Benutzer auswählen.');
+  const members=organizationMembersWithProfiles(orgId);
+  const selected=members.find(x=>x.profile.id===userId);
+  if(!selected)return alert('Der Benutzer gehört nicht zu diesem Mandanten.');
+  try{
+    // Genau einen primären tenant_admin sicherstellen.
+    for(const x of members.filter(x=>x.membership.role==='tenant_admin' && x.profile.id!==userId)){
+      await cloudRequest(`organization_memberships?id=eq.${encodeURIComponent(x.membership.id)}`,{
+        method:'PATCH',
+        headers:{Prefer:'return=minimal'},
+        body:JSON.stringify({role:'admin_delegate'})
+      });
+    }
+    if(selected.membership.role!=='tenant_admin'){
+      await cloudRequest(`organization_memberships?id=eq.${encodeURIComponent(selected.membership.id)}`,{
+        method:'PATCH',
+        headers:{Prefer:'return=minimal'},
+        body:JSON.stringify({role:'tenant_admin'})
+      });
+    }
+    closeModal();
+    await cloudLoadOrganizations();
+    await cloudLoadPlatformStorage();
+  }catch(e){
+    alert('Mandanten-Admin konnte nicht geändert werden: '+(e?.message||e));
+  }
+}
+
 function openTenantAdminModal(orgId){
   if(!requireAdminUI('Mandanten-Admin anlegen'))return;
   const org=cloudOrganizations.find(o=>o.id===orgId);
@@ -4799,7 +4933,7 @@ async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
   cloudSetStatus('Supabase wird geladen …','wait');
   try{
-    // v2.18.56: Reine Plattform-Admins arbeiten im Systemkontext und laden
+    // v2.18.57: Reine Plattform-Admins arbeiten im Systemkontext und laden
     // standardmäßig keine operativen Objekt-/Vorgangsdaten.
     if(isAdminRole()){
       await cloudLoadOrganizations();
@@ -5363,7 +5497,7 @@ function showSection(id){
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('primary'));
   [...document.querySelectorAll('nav button')].find(b=>b.getAttribute('onclick')?.includes(`'${id}'`))?.classList.add('primary');
-  if(id==='settings'){loadPlatformSystemStatus();}if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='users')loadUserAdminData();
+  if(id==='dashboard'&&isAdminRole()){loadPlatformSystemStatus();}if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='users')loadUserAdminData();
 }
 function priorityLabel(p){
   return ({P1:'Sofort',P2:'Dringend',P3:'Planbar',P4:'Beobachten'})[p]||p||'';
