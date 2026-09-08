@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.54</title>
+<title>Duschl Service – Objektplattform v2.18.55</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -894,7 +894,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.54</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.55</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -931,7 +931,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   </div>
   <div class="card" style="margin-top:14px">
     <h3 style="margin-top:0">Plattformkontext</h3>
-    <div class="muted">Der Plattform-Admin verwaltet Unternehmen, Benutzer und Systemfunktionen. Operative Objekt-, Dokumentations- und Auftragsdaten werden in diesem Modus nicht im Arbeitsmenü angeboten.</div>
+    <div class="muted">Der Plattform-Admin legt Mandanten und deren initialen Mandanten-Admin an. Die weitere Benutzer-, Rollen-, Objekt- und Prozessverwaltung erfolgt vollständig innerhalb des jeweiligen Mandanten.</div>
   </div>
 </div>
 <div id="operationalDashboard">
@@ -1153,7 +1153,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div id="reportContent"></div>
 </section>
 <section class="section" id="organizations">
-<div class="row space"><div><h2>Unternehmen / Mandanten</h2><div class="muted">Plattformweite Verwaltung der Unternehmen. Nur Plattformadministratoren können Mandanten anlegen oder ändern.</div></div><button class="primary" id="addOrganizationBtn" onclick="openOrganizationModal()">+ Unternehmen</button></div>
+<div class="row space"><div><h2>Unternehmen / Mandanten</h2><div class="muted">Plattformweite Mandantenverwaltung. Der Plattform-Admin legt den Mandanten und dessen initialen Mandanten-Admin an. Die weitere Benutzer- und Objektverwaltung erfolgt innerhalb des Mandanten.</div></div><button class="primary" id="addOrganizationBtn" onclick="openOrganizationModal()">+ Mandant</button></div>
 <div class="grid g2" id="organizationList" style="margin-top:14px"></div>
 </section>
 <section class="section" id="users">
@@ -2627,7 +2627,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.18.54';
+const APP_VERSION='2.18.55';
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -3420,6 +3420,8 @@ let currentUserRole='';
 let currentOrganizationMembership=null;
 let currentOrganization=null;
 let cloudOrganizations=[];
+let platformOrganizationMemberships=[];
+let platformOrganizationProfiles=[];
 let userAdminMemberships=[];
 
 const ROLE_LABELS={
@@ -3449,7 +3451,7 @@ function isAdminRole(){return effectiveUserRole()==='platform_admin'}
 function isTenantAdminRole(){return !isAdminRole()&&effectiveOrganizationRole()==='tenant_admin'}
 function isAdminDelegate(){return !isAdminRole()&&effectiveOrganizationRole()==='admin_delegate'}
 function hasOperationalAdminAccess(){return isTenantAdminRole()||isAdminDelegate()}
-function canManageUsersUI(){return isAdminRole()||isTenantAdminRole()||isAdminDelegate()}
+function canManageUsersUI(){return isTenantAdminRole()||isAdminDelegate()}
 function isObjectManagerRole(){return !hasOperationalAdminAccess()&&['object_manager','staff'].includes(effectiveUserRole())}
 function isCustomerRole(){return effectiveUserRole()==='customer'&&!hasOperationalAdminAccess()}
 function isTestUserRole(){return effectiveUserRole()==='test_user'&&!hasOperationalAdminAccess()}
@@ -3501,7 +3503,7 @@ async function cloudLoadCurrentProfile(){
   currentUserProfile=p;
   currentUserRole=String(p.role||cloudSession?.user?.user_metadata?.app_role||'').trim().toLowerCase();
 
-  // v2.18.54: Die globale Profilrolle muss sofort wirksam werden.
+  // v2.18.55: Die globale Profilrolle muss sofort wirksam werden.
   // Ein Fehler beim Laden der Mandanten-Mitgliedschaft darf insbesondere
   // einen platform_admin weder Navigation noch globalen Zugriff verlieren lassen.
   currentOrganizationMembership=null;
@@ -3772,7 +3774,7 @@ function applyRoleUI(){
   show('navReports',hasAppRole && !platformMode);
   show('navDecisions',hasAppRole && !platformMode && canUseDecisionsUI());
   show('navOrganizations',hasAppRole && platformMode);
-  show('navUsers',hasAppRole && canManageUsersUI());
+  show('navUsers',hasAppRole && !platformMode && canManageUsersUI());
   show('navSettings',hasAppRole && canUseSettingsUI());
   const platformDashboard=document.getElementById('platformAdminDashboard');
   const operationalDashboard=document.getElementById('operationalDashboard');
@@ -3780,7 +3782,7 @@ function applyRoleUI(){
   if(operationalDashboard)operationalDashboard.style.display=platformMode?'none':'';
   const platformOrgKpi=document.getElementById('kpiPlatformOrganizations');
   if(platformOrgKpi)platformOrgKpi.textContent=String((cloudOrganizations||[]).filter(o=>o.active!==false).length);
-  const newUserCard=document.getElementById('newUserCard');if(newUserCard)newUserCard.style.display=isAdminRole()?'':'none';
+  const newUserCard=document.getElementById('newUserCard');if(newUserCard)newUserCard.style.display=isTenantAdminRole()?'':'none';
   const softResetCard=document.getElementById('softResetCard');if(softResetCard)softResetCard.style.display=isAdminRole()?'':'none';
   show('addObjectBtn',canManageObjectsUI());
   const backupBtn=document.getElementById('backupBtn')||document.querySelector('[data-backup-button="1"]');
@@ -3918,7 +3920,7 @@ async function cloudLogin(){
     await cloudReloadObjects();
   }catch(e){
     console.error('Anmeldung / Profilinitialisierung fehlgeschlagen',e);
-    // v2.18.54: Die App darf bei fehlgeschlagener Profilinitialisierung
+    // v2.18.55: Die App darf bei fehlgeschlagener Profilinitialisierung
     // nicht mit leerer Navigation hinter einem ausgeblendeten Login-Gate stehen.
     currentUserProfile=null;
     currentUserRole='';
@@ -4516,7 +4518,7 @@ async function refreshAllCloudData(){
     await cloudLoadOrganizations();
     // Benutzer/Zuweisungen nur laden, wenn die aktuelle Berechtigung dies zulässt.
     if(canManageUsersUI())await loadUserAdminData();
-    if(isAdminRole())await loadUserActivity();
+    if(isAdminRole())await cloudLoadOrganizations();
     await loadUserMessages();
     renderAll();
     cloudSetStatus('Verbunden · Daten zentral aktualisiert','ok');
@@ -4587,9 +4589,25 @@ async function cloudSetObjectAreaActive(id,active){
 }
 
 async function cloudLoadOrganizations(){
-  if(!cloudSession?.access_token){cloudOrganizations=[];return cloudOrganizations;}
+  if(!cloudSession?.access_token){
+    cloudOrganizations=[];
+    platformOrganizationMemberships=[];
+    platformOrganizationProfiles=[];
+    return cloudOrganizations;
+  }
   const rows=await cloudRequest('organizations?select=id,name,organization_type,active,created_at&order=name.asc');
   cloudOrganizations=Array.isArray(rows)?rows:[];
+  if(isAdminRole()){
+    try{
+      platformOrganizationMemberships=await cloudRequest('organization_memberships?select=id,organization_id,user_id,role')||[];
+      platformOrganizationProfiles=await cloudRequest('profiles?select=id,full_name,email,active,deleted_at')||[];
+      platformOrganizationProfiles=(platformOrganizationProfiles||[]).filter(p=>!p.deleted_at);
+    }catch(e){
+      console.warn('Mandanten-Benutzerkennzahlen konnten nicht geladen werden',e);
+      platformOrganizationMemberships=[];
+      platformOrganizationProfiles=[];
+    }
+  }
   renderOrganizations();
   populateTenantSelectors();
   applyRoleUI();
@@ -4601,40 +4619,120 @@ function populateTenantSelectors(){
   const wrap=document.getElementById('newUserOrganizationWrap');
   if(select){
     const current=select.value;
-    const allowed=isAdminRole()?cloudOrganizations.filter(o=>o.active!==false):(currentOrganization?[currentOrganization]:[]);
+    const allowed=currentOrganization?[currentOrganization]:[];
     select.innerHTML=allowed.map(o=>`<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('');
     if(current&&allowed.some(o=>o.id===current))select.value=current;
   }
   if(wrap)wrap.style.display='';
 }
+function platformOrganizationUserSummary(orgId){
+  const memberships=(platformOrganizationMemberships||[]).filter(m=>m.organization_id===orgId);
+  const profileById=new Map((platformOrganizationProfiles||[]).map(p=>[p.id,p]));
+  const activeMemberships=memberships.filter(m=>{
+    const p=profileById.get(m.user_id);
+    return p && p.active!==false && !p.deleted_at;
+  });
+  const admins=activeMemberships
+    .filter(m=>m.role==='tenant_admin')
+    .map(m=>profileById.get(m.user_id))
+    .filter(Boolean);
+  return {count:activeMemberships.length,admins};
+}
 function renderOrganizations(){
   const box=document.getElementById('organizationList');
   if(!box)return;
   if(!isAdminRole()){box.innerHTML='<div class="empty">Nur Plattformadministratoren können Unternehmen verwalten.</div>';return;}
-  if(!cloudOrganizations.length){box.innerHTML='<div class="empty">Noch keine Unternehmen vorhanden.</div>';return;}
+  if(!cloudOrganizations.length){box.innerHTML='<div class="empty">Noch keine Mandanten vorhanden.</div>';return;}
   box.innerHTML=cloudOrganizations.map(org=>{
-    const objectCount=(db.objects||[]).filter(o=>o.organizationId===org.id).length;
-    return `<div class="card"><div class="row space"><div><h3 style="margin:0">${esc(org.name)}</h3><div class="muted" style="margin-top:5px">${esc(org.organization_type||'Unternehmen')} · ${org.active===false?'Inaktiv':'Aktiv'}</div></div><span class="badge">${objectCount} Objekt(e)</span></div><div class="row" style="margin-top:12px"><button onclick="openOrganizationModal('${esc(org.id)}')">Bearbeiten</button></div></div>`;
+    const summary=platformOrganizationUserSummary(org.id);
+    const adminText=summary.admins.length
+      ? summary.admins.map(p=>esc(p.full_name||p.email||'Mandanten-Admin')).join(', ')
+      : 'Noch kein Mandanten-Admin';
+    return `<div class="card"><div class="row space"><div><h3 style="margin:0">${esc(org.name)}</h3><div class="muted" style="margin-top:5px">${esc(org.organization_type||'Unternehmen')} · ${org.active===false?'Inaktiv':'Aktiv'}</div></div><span class="badge">${summary.count} Benutzer</span></div><div style="margin-top:12px"><div class="muted">Mandanten-Admin</div><div style="font-weight:800;margin-top:4px">${adminText}</div></div><div class="row" style="margin-top:12px"><button onclick="openOrganizationModal('${esc(org.id)}')">Mandant bearbeiten</button>${summary.admins.length?'':`<button onclick="openTenantAdminModal('${esc(org.id)}')">Mandanten-Admin anlegen</button>`}</div></div>`;
   }).join('');
 }
 function openOrganizationModal(id=''){
   if(!requireAdminUI(id?'Unternehmen bearbeiten':'Unternehmen anlegen'))return;
   const org=cloudOrganizations.find(o=>o.id===id)||{name:'',organization_type:'object_service',active:true};
-  modal(`<div class="row space"><h2>${id?'Unternehmen bearbeiten':'Unternehmen anlegen'}</h2><button onclick="closeModal()">✕</button></div>
+  const adminFields=id?'':`
+    <div class="card" style="margin-top:16px">
+      <h3 style="margin-top:0">Initialer Mandanten-Admin</h3>
+      <p class="muted">Dieser Benutzer übernimmt anschließend die komplette Benutzer-, Rollen- und Objektverwaltung innerhalb des Mandanten.</p>
+      <label>Anzeigename *</label><input id="orgAdminName" placeholder="z. B. Max Mustermann">
+      <label>E-Mail / Benutzername *</label><input id="orgAdminEmail" type="email" autocomplete="off" placeholder="admin@unternehmen.de">
+    </div>`;
+  modal(`<div class="row space"><h2>${id?'Mandant bearbeiten':'Mandant anlegen'}</h2><button onclick="closeModal()">✕</button></div>
     <label>Unternehmensname *</label><input id="orgName" value="${esc(org.name||'')}" placeholder="z. B. Muster Objektservice GmbH">
     <label>Typ</label><select id="orgType"><option value="object_service" ${org.organization_type==='object_service'?'selected':''}>Objektservice</option><option value="property_management" ${org.organization_type==='property_management'?'selected':''}>Hausverwaltung</option><option value="facility_management" ${org.organization_type==='facility_management'?'selected':''}>Facility Management</option><option value="other" ${org.organization_type==='other'?'selected':''}>Sonstiges</option></select>
     <label class="row" style="gap:10px;align-items:center;margin-top:14px"><input id="orgActive" type="checkbox" ${org.active!==false?'checked':''}><span>Unternehmen aktiv</span></label>
-    <div class="row" style="margin-top:14px"><button class="primary" onclick="saveOrganization('${esc(id)}')">Speichern</button></div>`);
+    ${adminFields}
+    <div class="row" style="margin-top:14px"><button class="primary" onclick="saveOrganization('${esc(id)}')">${id?'Speichern':'Mandant + Admin anlegen'}</button></div>`);
+}
+function openTenantAdminModal(orgId){
+  if(!requireAdminUI('Mandanten-Admin anlegen'))return;
+  const org=cloudOrganizations.find(o=>o.id===orgId);
+  if(!org)return alert('Mandant wurde nicht gefunden.');
+  modal(`<div class="row space"><h2>Mandanten-Admin anlegen</h2><button onclick="closeModal()">✕</button></div>
+    <p class="muted">Mandant: <strong>${esc(org.name)}</strong></p>
+    <label>Anzeigename *</label><input id="orgAdminName" placeholder="z. B. Max Mustermann">
+    <label>E-Mail / Benutzername *</label><input id="orgAdminEmail" type="email" autocomplete="off" placeholder="admin@unternehmen.de">
+    <div class="row" style="margin-top:14px"><button class="primary" onclick="createTenantAdminForOrganization('${esc(orgId)}')">Mandanten-Admin anlegen</button></div>`);
+}
+async function createTenantAdminForOrganization(organizationId,providedName='',providedEmail=''){
+  if(!isAdminRole())throw new Error('Nur der Plattformadministrator darf den initialen Mandanten-Admin anlegen.');
+  const fullName=(providedName||document.getElementById('orgAdminName')?.value||'').trim();
+  const email=(providedEmail||document.getElementById('orgAdminEmail')?.value||'').trim().toLowerCase();
+  if(!fullName)throw new Error('Bitte einen Anzeigenamen für den Mandanten-Admin eingeben.');
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new Error('Bitte eine gültige E-Mail-Adresse für den Mandanten-Admin eingeben.');
+  const res=await fetch(`${SUPABASE_URL}/functions/v1/invite-user`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':`Bearer ${cloudSession?.access_token||''}`,'apikey':SUPABASE_PUBLISHABLE_KEY},
+    body:JSON.stringify({fullName,email,role:'object_manager',objectIds:[]})
+  });
+  const responseText=await res.text();
+  let data={};
+  try{data=responseText?JSON.parse(responseText):{};}catch{}
+  if(!res.ok || data?.ok===false)throw new Error(data?.error||responseText||`HTTP ${res.status}`);
+  if(!data?.initialPassword)throw new Error('Initialpasswort wurde von der Benutzerfunktion nicht zurückgegeben.');
+  const profiles=await cloudRequest(`profiles?select=id,email,role&email=eq.${encodeURIComponent(email)}&limit=1`);
+  const profile=profiles?.[0];
+  if(!profile?.id)throw new Error('Benutzer wurde angelegt, das Profil konnte aber nicht gefunden werden.');
+  await cloudRequest('organization_memberships',{
+    method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},
+    body:JSON.stringify({organization_id:organizationId,user_id:profile.id,role:'tenant_admin'})
+  });
+  await cloudLoadOrganizations();
+  showInitialPasswordResult(data.email||email,data.initialPassword);
+  return profile;
 }
 async function saveOrganization(id=''){
   if(!requireAdminUI(id?'Unternehmen bearbeiten':'Unternehmen anlegen'))return;
   const name=document.getElementById('orgName')?.value.trim()||'';
   if(!name)return alert('Bitte einen Unternehmensnamen eingeben.');
   const payload={name,organization_type:document.getElementById('orgType')?.value||'object_service',active:!!document.getElementById('orgActive')?.checked};
+  const adminName=(document.getElementById('orgAdminName')?.value||'').trim();
+  const adminEmail=(document.getElementById('orgAdminEmail')?.value||'').trim().toLowerCase();
+  if(!id){
+    if(!adminName)return alert('Bitte einen Anzeigenamen für den initialen Mandanten-Admin eingeben.');
+    if(!adminEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail))return alert('Bitte eine gültige E-Mail-Adresse für den initialen Mandanten-Admin eingeben.');
+  }
   try{
-    if(id)await cloudRequest(`organizations?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(payload)});
-    else await cloudRequest('organizations',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(payload)});
-    closeModal();await cloudLoadOrganizations();await cloudReloadObjects();
+    if(id){
+      await cloudRequest(`organizations?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(payload)});
+      closeModal();
+      await cloudLoadOrganizations();
+      return;
+    }
+    const created=await cloudRequest('organizations',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)});
+    const org=created?.[0];
+    if(!org?.id)throw new Error('Mandant wurde angelegt, konnte aber nicht zurückgelesen werden.');
+    try{
+      await createTenantAdminForOrganization(org.id,adminName,adminEmail);
+    }catch(adminError){
+      await cloudLoadOrganizations();
+      alert('Mandant wurde angelegt, der Mandanten-Admin jedoch nicht vollständig erstellt: '+(adminError?.message||adminError));
+      return;
+    }
   }catch(e){alert('Unternehmen konnte nicht gespeichert werden: '+(e.message||e));}
 }
 
@@ -4642,7 +4740,7 @@ async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
   cloudSetStatus('Supabase wird geladen …','wait');
   try{
-    // v2.18.54: Reine Plattform-Admins arbeiten im Systemkontext und laden
+    // v2.18.55: Reine Plattform-Admins arbeiten im Systemkontext und laden
     // standardmäßig keine operativen Objekt-/Vorgangsdaten.
     if(isAdminRole()){
       await cloudLoadOrganizations();
@@ -5889,11 +5987,11 @@ function loadUserAdminEditor(){
 }
 
 async function createUserAndInvite(){
-  if(!isAdminRole())return alert('Neue Benutzerkonten werden derzeit ausschließlich durch den Plattformadministrator angelegt.');
+  if(!isTenantAdminRole())return alert('Neue Benutzerkonten werden innerhalb des Mandanten ausschließlich durch den Mandanten-Admin angelegt.');
   const fullName=document.getElementById('newUserFullName')?.value.trim()||'';
   const email=document.getElementById('newUserEmail')?.value.trim().toLowerCase()||'';
   const role=document.getElementById('newUserRole')?.value||'object_manager';
-  const organizationId=document.getElementById('newUserOrganization')?.value||currentOrganizationId();
+  const organizationId=currentOrganizationId()||document.getElementById('newUserOrganization')?.value||'';
   const objectIds=[]; // Objektzugriffe werden bewusst erst nach der Benutzeranlage vergeben.
 
   if(!fullName)return alert('Bitte einen Anzeigenamen eingeben.');
