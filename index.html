@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.55</title>
+<title>Duschl Service – Objektplattform v2.18.56</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -894,7 +894,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.55</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.56</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -909,7 +909,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <button id="navReports" onclick="showSection('reports')"><span class="nav-icon">▥</span><span>Berichte</span></button>
 <button id="navOrganizations" onclick="showSection('organizations')"><span class="nav-icon">▣</span><span>Unternehmen / Mandanten</span></button>
 <button id="navUsers" onclick="showSection('users')"><span class="nav-icon">♙</span><span>Benutzer &amp; Berechtigungen</span></button>
-<button id="navSettings" onclick="showSection('settings')"><span class="nav-icon">◫</span><span>Daten</span></button>
+<button id="navSettings" onclick="showSection('settings')"><span class="nav-icon">◫</span><span>System</span></button>
 </nav>
 <div class="app-menu-actions">
 <button id="globalRefreshBtn" onclick="refreshAllCloudData();closeAppMenu()">↻ <span>Aktualisieren</span></button>
@@ -1199,87 +1199,48 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div id="userAdminEditor"></div>
 </section>
 <section class="section" id="settings">
-<div class="card" style="margin-bottom:14px">
-<h3>Zentrale Datenbasis</h3>
-<div class="cloud-banner" id="cloudStatus"><span class="cloud-dot wait" id="cloudDot"></span><span id="cloudStatusText">Verbindung wird geprüft …</span></div>
-<div class="row">
-<button onclick="cloudReloadObjects()" type="button">Objekte neu laden</button>
-<button onclick="cloudLogout()" type="button">Abmelden</button>
+<div class="row space">
+  <div>
+    <h2>System</h2>
+    <div class="muted">Plattformweite technische Steuerung. Operative Mandantendaten werden hier nicht bearbeitet.</div>
+  </div>
+  <button onclick="loadPlatformSystemStatus()" type="button">Aktualisieren</button>
 </div>
-<div class="muted" style="margin-top:8px">Objekte, Dokumentationen, Fotos und der Arbeitsvorrat werden zentral in Supabase gespeichert. Lokale IndexedDB-Fotos bleiben als Rückfall- und Migrationsquelle erhalten.</div>
+
+<div class="grid g3" style="margin-top:14px">
+  <div class="kpi"><div class="muted">Mandanten</div><div class="num" id="sysTenantCount">0</div><div class="small">aktive Unternehmen</div></div>
+  <div class="kpi"><div class="muted">Benutzer</div><div class="num" id="sysUserCount">0</div><div class="small">aktive Benutzer gesamt</div></div>
+  <div class="kpi"><div class="muted">Speicherauslastung</div><div class="num" id="sysStoragePercent">—</div><div class="small" id="sysStorageHeadline">wird geladen</div></div>
 </div>
-<div class="card" style="margin-bottom:14px">
-<h3>Supabase Foto-Voraussetzung</h3>
-<div class="muted">v2.4.3 nutzt den bereits vorhandenen privaten Storage-Bucket <b>objektplattform-media</b> und die bereits vorhandene zentrale Tabelle <b>media</b>. Eine zusätzliche Foto-Tabelle ist nicht erforderlich.</div>
-</div>
-<div class="card" style="margin-bottom:14px">
-<h3>Speicherstatus</h3>
-<div class="muted" id="storageStatus">Bildspeicher wird geprüft …</div>
-</div>
-<div class="card" style="margin-bottom:14px">
-<div class="row space" style="align-items:center">
-<div>
-<h3 style="margin:0">Aktive Benutzer</h3>
-<div class="muted" style="margin-top:6px">Zeigt die letzte Aktivität angemeldeter Benutzer. Online = Aktivität innerhalb der letzten 5 Minuten.</div>
-</div>
-<button onclick="loadUserActivity()" type="button">Aktualisieren</button>
-</div>
-<div class="muted" id="userActivityList" style="margin-top:12px">Aktivitätsdaten werden geladen …</div>
-</div>
-<div class="card" style="margin-bottom:14px">
-<h3>Datensicherung</h3>
-<div class="muted">Vor weiteren Änderungen kannst du den aktuell wiederhergestellten Master-Datenbestand als JSON sichern.</div>
-<button onclick="downloadMasterBackup()" type="button">Master-Backup herunterladen</button>
-</div>
-<div class="card" style="margin-bottom:14px">
-<h3>Datenwiederherstellung</h3>
-<div class="muted" id="recoveryStatus">Alle lokal vorhandenen Datenstände werden automatisch geprüft.</div>
-<button onclick="showRecoveryStatus()" type="button">Wiederherstellung prüfen</button>
-</div>
-<h2>Daten &amp; Sicherung</h2>
-<div class="grid g2">
-<div class="card">
-<h3>Sicherung exportieren</h3>
-<p class="muted">Lädt alle Objekte und Dokumentationen als JSON-Datei herunter.</p>
-<button class="primary" onclick="exportData()">Sicherung erstellen</button>
-</div>
-<div class="card">
-<h3>Sicherung wiederherstellen</h3>
-<p class="muted">Importiert eine zuvor exportierte JSON-Datei. Vorhandene Daten werden ersetzt.</p>
-<input accept="application/json" id="importFile" type="file"/>
-<button onclick="importData()" style="margin-top:10px">Importieren</button>
-</div>
-</div>
-<div class="card" style="margin-top:14px" id="softResetCard">
-<h3>Daten gezielt zurücksetzen</h3>
-<p class="muted">Nur der Administrator / GF kann operative Daten dauerhaft löschen. Benutzerkonten, Rollen und Systemeinstellungen bleiben erhalten. Vor dem Reset sollte eine Sicherung erstellt werden.</p>
-<div class="grid g2" style="margin-top:12px">
-<label class="row" style="gap:10px;align-items:flex-start;margin:0"><input type="checkbox" class="soft-reset-option" id="softResetObjects" onchange="updateSoftResetUI()"><span><strong>Objekte</strong><br><span class="muted">Alle Objektstammdaten inklusive Zuordnungen und aller objektbezogenen Daten.</span></span></label>
-<label class="row" style="gap:10px;align-items:flex-start;margin:0"><input type="checkbox" class="soft-reset-option" id="softResetDocumentation" onchange="updateSoftResetUI()"><span><strong>Dokumentationen</strong><br><span class="muted">Feststellungen, Leistungen, Entscheidungen, Arbeitsvorrat, technische Alt-Begehungen und Dokumentationsfotos.</span></span></label>
-<label class="row" style="gap:10px;align-items:flex-start;margin:0"><input type="checkbox" class="soft-reset-option" id="softResetReports" onchange="updateSoftResetUI()"><span><strong>Meldungen</strong><br><span class="muted">Bewohnermeldungen inklusive Ereignissen und Meldungsfotos.</span></span></label>
-<label class="row" style="gap:10px;align-items:flex-start;margin:0"><input type="checkbox" class="soft-reset-option" id="softResetMessages" onchange="updateSoftResetUI()"><span><strong>Mitteilungen</strong><br><span class="muted">Persönliche Mitteilungen inklusive Antworten und Lesestatus.</span></span></label>
-<label class="row" style="gap:10px;align-items:flex-start;margin:0"><input type="checkbox" class="soft-reset-option" id="softResetTestData" onchange="updateSoftResetUI()"><span><strong>Test-/Demodaten</strong><br><span class="muted">Alle als TEST markierten Objekte inklusive ihrer zugehörigen Dokumentationen, Meldungen, Medien und Objektzuordnungen.</span></span></label>
-<label class="row" style="gap:10px;align-items:flex-start;margin:0"><input type="checkbox" id="softResetAll" onchange="toggleSoftResetAll(this.checked)"><span><strong>Alle operativen Daten</strong><br><span class="muted">Wählt Objekte, Dokumentationen, Meldungen und Mitteilungen gemeinsam aus.</span></span></label>
-</div>
-<div class="muted" id="softResetSummary" style="margin-top:12px">Noch keine Datenkategorie ausgewählt.</div>
-<label>Sicherheitsbestätigung</label>
-<input autocomplete="off" id="softResetConfirm" placeholder="RESET eingeben" type="text" oninput="updateSoftResetUI()"/>
-<button class="danger" disabled id="softResetBtn" onclick="executeSoftReset()" style="margin-top:10px" type="button">Ausgewählte Daten dauerhaft löschen</button>
-</div>
+
 <div class="card" style="margin-top:14px">
-<h3>Objektdaten bereinigen</h3>
-<p class="muted">Setzt ein Objekt auf einen sauberen Ausgangszustand zurück. Dokumentationen, Entscheidungen, Aufgaben, zugehörige Medien, technische Alt-Begehungen sowie Bewohnermeldungen inklusive Ereignissen und Fotos werden gelöscht. Objektstammdaten und Benutzerzuordnungen bleiben erhalten.</p>
-<label>Objekt auswählen</label>
-<select id="cleanupObjectSelect" onchange="previewObjectCleanup()"><option value="">Bitte auswählen</option></select>
-<div class="muted" id="cleanupPreview" style="margin-top:10px">Bitte zuerst ein Objekt auswählen.</div>
-<label>Sicherheitsbestätigung</label>
-<input autocomplete="off" id="cleanupConfirmName" placeholder="Objektbezeichnung exakt eingeben" type="text"/>
-<button class="danger" disabled="" id="cleanupObjectBtn" onclick="cleanupObjectData()" style="margin-top:10px" type="button">Objektdaten bereinigen</button>
+  <div class="row space" style="align-items:center">
+    <div>
+      <h3 style="margin:0">Plattform-Speicher</h3>
+      <div class="muted" style="margin-top:6px">Vertragliche Mandantenlimits und tatsächlich belegter Cloud-Speicher.</div>
+    </div>
+  </div>
+  <div class="grid g3" style="margin-top:14px">
+    <div><div class="muted">Belegt</div><div style="font-size:22px;font-weight:900" id="sysStorageUsed">—</div></div>
+    <div><div class="muted">Vertraglich vergeben</div><div style="font-size:22px;font-weight:900" id="sysStorageContracted">—</div></div>
+    <div><div class="muted">Noch verfügbar</div><div style="font-size:22px;font-weight:900" id="sysStorageFree">—</div></div>
+  </div>
+  <div class="muted" id="sysStorageNote" style="margin-top:12px">Speicherwerte werden aus Supabase geladen.</div>
 </div>
+
 <div class="card" style="margin-top:14px">
-<h3>Lokale Daten</h3>
-<p class="muted">Objekte, Dokumentationen und der Arbeitsvorrat werden zentral über Supabase gespeichert. Neue Fotos werden in Supabase Storage gespeichert; vorhandene lokale Fotos bleiben erhalten und werden beim nächsten Speichern einer Dokumentation hochgeladen.</p>
-<button class="danger" onclick="resetData()">Alle lokalen Daten löschen</button>
+  <h3>Speicher je Mandant</h3>
+  <div class="muted" style="margin-bottom:12px">Die Warnschwelle wird je Mandant vertraglich festgelegt. Das Speicherlimit ist Teil der Mandantenvereinbarung.</div>
+  <div id="sysTenantStorageList"><div class="empty">Speicherwerte werden geladen …</div></div>
+</div>
+
+<div class="card" style="margin-top:14px">
+  <h3>Plattformstatus</h3>
+  <div class="cloud-banner" id="cloudStatus"><span class="cloud-dot wait" id="cloudDot"></span><span id="cloudStatusText">Verbindung wird geprüft …</span></div>
+  <div class="grid g2" style="margin-top:12px">
+    <div><div class="muted">Frontend-Version</div><div style="font-weight:800">v2.18.56</div></div>
+    <div><div class="muted">Datenbasis</div><div style="font-weight:800">Supabase · Central EU (Frankfurt)</div></div>
+  </div>
 </div>
 </section>
 </main>
@@ -2627,7 +2588,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.18.55';
+const APP_VERSION='2.18.56';
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -3503,7 +3464,7 @@ async function cloudLoadCurrentProfile(){
   currentUserProfile=p;
   currentUserRole=String(p.role||cloudSession?.user?.user_metadata?.app_role||'').trim().toLowerCase();
 
-  // v2.18.55: Die globale Profilrolle muss sofort wirksam werden.
+  // v2.18.56: Die globale Profilrolle muss sofort wirksam werden.
   // Ein Fehler beim Laden der Mandanten-Mitgliedschaft darf insbesondere
   // einen platform_admin weder Navigation noch globalen Zugriff verlieren lassen.
   currentOrganizationMembership=null;
@@ -3920,7 +3881,7 @@ async function cloudLogin(){
     await cloudReloadObjects();
   }catch(e){
     console.error('Anmeldung / Profilinitialisierung fehlgeschlagen',e);
-    // v2.18.55: Die App darf bei fehlgeschlagener Profilinitialisierung
+    // v2.18.56: Die App darf bei fehlgeschlagener Profilinitialisierung
     // nicht mit leerer Navigation hinter einem ausgeblendeten Login-Gate stehen.
     currentUserProfile=null;
     currentUserRole='';
@@ -4588,6 +4549,77 @@ async function cloudSetObjectAreaActive(id,active){
   await cloudRequest(`object_areas?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({active:!!active,updated_at:new Date().toISOString()})});
 }
 
+
+let platformStorageRows=[];
+function formatBytes(bytes){
+  const n=Number(bytes||0);
+  if(!Number.isFinite(n)||n<=0)return '0 MB';
+  const units=['B','KB','MB','GB','TB'];
+  let value=n,i=0;
+  while(value>=1024&&i<units.length-1){value/=1024;i++}
+  const decimals=i>=3?1:(i===2?0:0);
+  return `${value.toLocaleString('de-DE',{minimumFractionDigits:decimals,maximumFractionDigits:decimals})} ${units[i]}`;
+}
+async function cloudLoadPlatformStorage(){
+  if(!isAdminRole()||!cloudSession?.access_token){platformStorageRows=[];return platformStorageRows;}
+  try{
+    const rows=await cloudRequest('rpc/platform_storage_summary',{method:'POST',body:JSON.stringify({})});
+    platformStorageRows=Array.isArray(rows)?rows:[];
+  }catch(e){
+    console.warn('Plattform-Speicher konnte nicht geladen werden',e);
+    platformStorageRows=[];
+  }
+  renderPlatformSystemStatus();
+  renderOrganizations();
+  return platformStorageRows;
+}
+function renderPlatformSystemStatus(){
+  if(!isAdminRole())return;
+  const activeOrgs=(cloudOrganizations||[]).filter(o=>o.active!==false);
+  const activeUsers=(platformOrganizationProfiles||[]).filter(p=>p.active!==false&&!p.deleted_at);
+  const byOrg=new Map((platformStorageRows||[]).map(r=>[r.organization_id,r]));
+  let used=0,contracted=0;
+  for(const org of activeOrgs){
+    used+=Number(byOrg.get(org.id)?.used_bytes||0);
+    contracted+=Number(org.storage_limit_bytes||0);
+  }
+  const free=Math.max(contracted-used,0);
+  const pct=contracted>0?Math.round((used/contracted)*100):0;
+  const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
+  set('sysTenantCount',String(activeOrgs.length));
+  set('sysUserCount',String(activeUsers.length));
+  set('sysStoragePercent',contracted>0?`${pct}%`:'—');
+  set('sysStorageHeadline',contracted>0?'der vertraglich vergebenen Kapazität belegt':'noch keine Limits definiert');
+  set('sysStorageUsed',formatBytes(used));
+  set('sysStorageContracted',formatBytes(contracted));
+  set('sysStorageFree',formatBytes(free));
+  set('sysStorageNote',contracted>0?'Die freie Kapazität bezieht sich auf die Summe der vertraglich vergebenen Mandantenkontingente.':'Noch keine vertraglichen Speicherlimits definiert.');
+  const list=document.getElementById('sysTenantStorageList');
+  if(list){
+    if(!activeOrgs.length){list.innerHTML='<div class="empty">Keine aktiven Mandanten.</div>';return;}
+    list.innerHTML=activeOrgs.map(org=>{
+      const r=byOrg.get(org.id)||{};
+      const usedBytes=Number(r.used_bytes||0);
+      const limit=Number(org.storage_limit_bytes||0);
+      const percent=limit>0?Math.round((usedBytes/limit)*100):0;
+      const warn=Number(org.storage_warning_percent||80);
+      const status=limit<=0?'Kein Limit':percent>=100?'Limit überschritten':percent>=warn?'Warnschwelle erreicht':'Im Rahmen';
+      return `<div class="card" style="margin:10px 0"><div class="row space"><div><strong>${esc(org.name)}</strong><div class="muted" style="margin-top:4px">${formatBytes(usedBytes)} belegt · ${formatBytes(Math.max(limit-usedBytes,0))} frei</div></div><span class="badge">${limit>0?percent+'%':'—'}</span></div><div class="muted" style="margin-top:8px">Vertragliches Limit: <strong>${limit>0?formatBytes(limit):'nicht definiert'}</strong> · Warnschwelle: ${warn}% · Status: <strong>${status}</strong></div></div>`;
+    }).join('');
+  }
+}
+async function loadPlatformSystemStatus(){
+  if(!isAdminRole())return;
+  cloudSetStatus('Systemstatus wird aktualisiert …','wait');
+  try{
+    await cloudLoadOrganizations();
+    await cloudLoadPlatformStorage();
+    cloudSetStatus(`Verbunden · Plattformverwaltung · ${(cloudOrganizations||[]).filter(o=>o.active!==false).length} Mandant(en)`,'ok');
+  }catch(e){
+    cloudSetStatus('Systemstatus konnte nicht geladen werden: '+(e?.message||e),'bad');
+  }
+}
+
 async function cloudLoadOrganizations(){
   if(!cloudSession?.access_token){
     cloudOrganizations=[];
@@ -4595,7 +4627,7 @@ async function cloudLoadOrganizations(){
     platformOrganizationProfiles=[];
     return cloudOrganizations;
   }
-  const rows=await cloudRequest('organizations?select=id,name,organization_type,active,created_at&order=name.asc');
+  const rows=await cloudRequest('organizations?select=id,name,organization_type,active,storage_limit_bytes,storage_warning_percent,created_at&order=name.asc');
   cloudOrganizations=Array.isArray(rows)?rows:[];
   if(isAdminRole()){
     try{
@@ -4643,12 +4675,20 @@ function renderOrganizations(){
   if(!box)return;
   if(!isAdminRole()){box.innerHTML='<div class="empty">Nur Plattformadministratoren können Unternehmen verwalten.</div>';return;}
   if(!cloudOrganizations.length){box.innerHTML='<div class="empty">Noch keine Mandanten vorhanden.</div>';return;}
+  const usageByOrg=new Map((platformStorageRows||[]).map(r=>[r.organization_id,r]));
   box.innerHTML=cloudOrganizations.map(org=>{
     const summary=platformOrganizationUserSummary(org.id);
     const adminText=summary.admins.length
       ? summary.admins.map(p=>esc(p.full_name||p.email||'Mandanten-Admin')).join(', ')
       : 'Noch kein Mandanten-Admin';
-    return `<div class="card"><div class="row space"><div><h3 style="margin:0">${esc(org.name)}</h3><div class="muted" style="margin-top:5px">${esc(org.organization_type||'Unternehmen')} · ${org.active===false?'Inaktiv':'Aktiv'}</div></div><span class="badge">${summary.count} Benutzer</span></div><div style="margin-top:12px"><div class="muted">Mandanten-Admin</div><div style="font-weight:800;margin-top:4px">${adminText}</div></div><div class="row" style="margin-top:12px"><button onclick="openOrganizationModal('${esc(org.id)}')">Mandant bearbeiten</button>${summary.admins.length?'':`<button onclick="openTenantAdminModal('${esc(org.id)}')">Mandanten-Admin anlegen</button>`}</div></div>`;
+    const usage=usageByOrg.get(org.id)||{};
+    const limit=Number(org.storage_limit_bytes||0);
+    const used=Number(usage.used_bytes||0);
+    const pct=limit>0?Math.round((used/limit)*100):0;
+    const warn=Number(org.storage_warning_percent||80);
+    const storageText=limit>0?`${formatBytes(used)} von ${formatBytes(limit)} · ${pct}%`:'Kein Speicherlimit definiert';
+    const storageClass=limit>0&&pct>=warn?'bad':'';
+    return `<div class="card"><div class="row space"><div><h3 style="margin:0">${esc(org.name)}</h3><div class="muted" style="margin-top:5px">${esc(org.organization_type||'Unternehmen')} · ${org.active===false?'Inaktiv':'Aktiv'}</div></div><span class="badge">${summary.count} Benutzer</span></div><div style="margin-top:12px"><div class="muted">Mandanten-Admin</div><div style="font-weight:800;margin-top:4px">${adminText}</div></div><div style="margin-top:12px"><div class="muted">Vertraglicher Speicher</div><div class="${storageClass}" style="font-weight:800;margin-top:4px">${storageText}</div></div><div class="row" style="margin-top:12px"><button onclick="openOrganizationModal('${esc(org.id)}')">Mandant bearbeiten</button>${summary.admins.length?'':`<button onclick="openTenantAdminModal('${esc(org.id)}')">Mandanten-Admin anlegen</button>`}</div></div>`;
   }).join('');
 }
 function openOrganizationModal(id=''){
@@ -4664,6 +4704,15 @@ function openOrganizationModal(id=''){
   modal(`<div class="row space"><h2>${id?'Mandant bearbeiten':'Mandant anlegen'}</h2><button onclick="closeModal()">✕</button></div>
     <label>Unternehmensname *</label><input id="orgName" value="${esc(org.name||'')}" placeholder="z. B. Muster Objektservice GmbH">
     <label>Typ</label><select id="orgType"><option value="object_service" ${org.organization_type==='object_service'?'selected':''}>Objektservice</option><option value="property_management" ${org.organization_type==='property_management'?'selected':''}>Hausverwaltung</option><option value="facility_management" ${org.organization_type==='facility_management'?'selected':''}>Facility Management</option><option value="other" ${org.organization_type==='other'?'selected':''}>Sonstiges</option></select>
+    <div class="grid2">
+      <label>Vertragliches Speicherlimit (GB) *
+        <input id="orgStorageLimitGb" type="number" min="1" step="1" value="${esc(String(Math.max(1,Math.round(Number(org.storage_limit_bytes||5368709120)/1073741824))))}">
+      </label>
+      <label>Warnschwelle (%)
+        <input id="orgStorageWarning" type="number" min="50" max="100" step="1" value="${esc(String(Number(org.storage_warning_percent||80)))}">
+      </label>
+    </div>
+    <div class="muted" style="margin-top:6px">Das Speicherlimit ist Bestandteil der vertraglichen Mandantenvereinbarung. Die Warnschwelle steuert die Plattformhinweise.</div>
     <label class="row" style="gap:10px;align-items:center;margin-top:14px"><input id="orgActive" type="checkbox" ${org.active!==false?'checked':''}><span>Unternehmen aktiv</span></label>
     ${adminFields}
     <div class="row" style="margin-top:14px"><button class="primary" onclick="saveOrganization('${esc(id)}')">${id?'Speichern':'Mandant + Admin anlegen'}</button></div>`);
@@ -4709,7 +4758,17 @@ async function saveOrganization(id=''){
   if(!requireAdminUI(id?'Unternehmen bearbeiten':'Unternehmen anlegen'))return;
   const name=document.getElementById('orgName')?.value.trim()||'';
   if(!name)return alert('Bitte einen Unternehmensnamen eingeben.');
-  const payload={name,organization_type:document.getElementById('orgType')?.value||'object_service',active:!!document.getElementById('orgActive')?.checked};
+  const storageLimitGb=Number(document.getElementById('orgStorageLimitGb')?.value||0);
+  const storageWarning=Number(document.getElementById('orgStorageWarning')?.value||80);
+  if(!Number.isFinite(storageLimitGb)||storageLimitGb<1)return alert('Bitte ein vertragliches Speicherlimit von mindestens 1 GB eingeben.');
+  if(!Number.isFinite(storageWarning)||storageWarning<50||storageWarning>100)return alert('Bitte eine Warnschwelle zwischen 50 % und 100 % eingeben.');
+  const payload={
+    name,
+    organization_type:document.getElementById('orgType')?.value||'object_service',
+    active:!!document.getElementById('orgActive')?.checked,
+    storage_limit_bytes:Math.round(storageLimitGb*1073741824),
+    storage_warning_percent:Math.round(storageWarning)
+  };
   const adminName=(document.getElementById('orgAdminName')?.value||'').trim();
   const adminEmail=(document.getElementById('orgAdminEmail')?.value||'').trim().toLowerCase();
   if(!id){
@@ -4740,10 +4799,11 @@ async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
   cloudSetStatus('Supabase wird geladen …','wait');
   try{
-    // v2.18.55: Reine Plattform-Admins arbeiten im Systemkontext und laden
+    // v2.18.56: Reine Plattform-Admins arbeiten im Systemkontext und laden
     // standardmäßig keine operativen Objekt-/Vorgangsdaten.
     if(isAdminRole()){
       await cloudLoadOrganizations();
+      await cloudLoadPlatformStorage();
       renderAll();
       applyRoleUI();
       cloudSetStatus(`Verbunden · Plattformverwaltung · ${cloudOrganizations.filter(o=>o.active!==false).length} Mandant(en)`,'ok');
@@ -4767,7 +4827,7 @@ async function cloudReloadObjects(){
   }catch(e){
     console.error('Objekte laden fehlgeschlagen',e);
     cloudSetStatus('Verbindungsfehler: '+(e.message||e),'bad');
-    alert('Supabase-Verbindung fehlgeschlagen. Details stehen unter Daten.');
+    alert('Supabase-Verbindung fehlgeschlagen. Details stehen unter System.');
   }
 }
 async function cloudSaveObject(id,data){
@@ -5303,7 +5363,7 @@ function showSection(id){
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('primary'));
   [...document.querySelectorAll('nav button')].find(b=>b.getAttribute('onclick')?.includes(`'${id}'`))?.classList.add('primary');
-  if(id==='settings'){renderCleanupObjectOptions();loadUserActivity();}if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='users')loadUserAdminData();
+  if(id==='settings'){loadPlatformSystemStatus();}if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='users')loadUserAdminData();
 }
 function priorityLabel(p){
   return ({P1:'Sofort',P2:'Dringend',P3:'Planbar',P4:'Beobachten'})[p]||p||'';
