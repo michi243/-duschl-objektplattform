@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.50</title>
+<title>Duschl Service – Objektplattform v2.18.51</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -894,7 +894,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.50</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.51</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -907,6 +907,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <button id="navDecisions" onclick="showSection('decisions')"><span class="nav-icon">✓</span><span>Entscheidungen</span><span class="badge nav-count" id="decisionNavCount">0</span></button>
 <button id="navWorkqueue" onclick="showSection('workqueue')"><span class="nav-icon">⌁</span><span>Arbeitsvorrat</span><span class="badge nav-count" id="workqueueNavCount">0</span></button>
 <button id="navReports" onclick="showSection('reports')"><span class="nav-icon">▥</span><span>Berichte</span></button>
+<button id="navOrganizations" onclick="showSection('organizations')"><span class="nav-icon">▣</span><span>Unternehmen / Mandanten</span></button>
 <button id="navUsers" onclick="showSection('users')"><span class="nav-icon">♙</span><span>Benutzer &amp; Berechtigungen</span></button>
 <button id="navSettings" onclick="showSection('settings')"><span class="nav-icon">◫</span><span>Daten</span></button>
 </nav>
@@ -1135,10 +1136,14 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 <div id="reportContent"></div>
 </section>
+<section class="section" id="organizations">
+<div class="row space"><div><h2>Unternehmen / Mandanten</h2><div class="muted">Plattformweite Verwaltung der Unternehmen. Nur Plattformadministratoren können Mandanten anlegen oder ändern.</div></div><button class="primary" id="addOrganizationBtn" onclick="openOrganizationModal()">+ Unternehmen</button></div>
+<div class="grid g2" id="organizationList" style="margin-top:14px"></div>
+</section>
 <section class="section" id="users">
 <div class="card">
 <h2>Benutzer &amp; Berechtigungen</h2>
-<div class="card" style="margin-bottom:16px">
+<div class="card" id="newUserCard" style="margin-bottom:16px">
 <h3>Neuen Benutzer anlegen</h3>
 <div class="grid2">
 <label>Anzeigename
@@ -1147,8 +1152,13 @@ body.public-report-mode>#photoViewer{display:none!important}
 <label>E-Mail / Benutzername
       <input autocomplete="off" id="newUserEmail" placeholder="name@firma.de" type="email"/>
 </label>
+<label id="newUserOrganizationWrap">Unternehmen / Mandant
+      <select id="newUserOrganization"></select>
+</label>
 <label>Rolle
       <select id="newUserRole">
+<option value="tenant_admin">Mandanten-Admin</option>
+<option value="admin_delegate">Admin-Vertretung</option>
 <option value="object_manager">Objektbetreuer</option>
 <option value="customer">Auftraggeber</option>
 <option value="test_user">Testbenutzer</option>
@@ -2601,7 +2611,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.18.50';
+const APP_VERSION='2.18.51';
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -2644,9 +2654,10 @@ if(!window.__duschlUserMessageVisibilityHook){
 
 
 function dashboardRoleContextText(){
-  if(isAdminDelegate())return 'Operative Gesamtübersicht in Admin-Vertretung';
+  if(isAdminDelegate())return `Operative Gesamtübersicht · ${currentOrganization?.name||'Mandant'} · Admin-Vertretung`;
+  if(isTenantAdminRole())return `Gesamtübersicht · ${currentOrganization?.name||'Mandant'}`;
   const role=effectiveUserRole();
-  if(role==='platform_admin')return 'Gesamtübersicht für Steuerung, Entscheidungen und offene Punkte';
+  if(role==='platform_admin')return 'Plattformweite Gesamtübersicht für Steuerung, Entscheidungen und offene Punkte';
   if(role==='object_manager'||role==='staff')return 'Deine zugewiesenen Objekte, offenen Punkte und Aufgaben';
   if(role==='customer')return 'Deine Objekte, Dokumentationen und offenen Entscheidungen';
   if(role==='test_user')return 'Testübersicht für deine freigegebenen Testobjekte';
@@ -3390,6 +3401,10 @@ async function copyResidentReportPhotosToFinding(reportId,findingId,objectId){
 
 let currentUserProfile=null;
 let currentUserRole='';
+let currentOrganizationMembership=null;
+let currentOrganization=null;
+let cloudOrganizations=[];
+let userAdminMemberships=[];
 
 const ROLE_LABELS={
   platform_admin:'Administrator / GF',
@@ -3397,7 +3412,9 @@ const ROLE_LABELS={
   object_manager:'Objektbetreuer',
   employee:'Mitarbeiter (Alt)',
   customer:'Auftraggeber',
-  test_user:'Testbenutzer'
+  test_user:'Testbenutzer',
+  tenant_admin:'Mandanten-Admin',
+  admin_delegate:'Admin-Vertretung'
 };
 
 function effectiveUserRole(){
@@ -3408,13 +3425,18 @@ function effectiveUserRole(){
     ''
   ).trim().toLowerCase();
 }
+function effectiveOrganizationRole(){
+  return String(currentOrganizationMembership?.role||'').trim().toLowerCase();
+}
+function currentOrganizationId(){return currentOrganizationMembership?.organization_id||''}
 function isAdminRole(){return effectiveUserRole()==='platform_admin'}
-function isAdminDelegate(){return currentUserProfile?.admin_delegate===true&&!isAdminRole()}
-function hasOperationalAdminAccess(){return isAdminRole()||isAdminDelegate()}
-function canManageUsersUI(){return isAdminRole()||isAdminDelegate()}
-function isObjectManagerRole(){return ['object_manager','staff'].includes(effectiveUserRole())}
-function isCustomerRole(){return effectiveUserRole()==='customer'&&!isAdminDelegate()}
-function isTestUserRole(){return effectiveUserRole()==='test_user'&&!isAdminDelegate()}
+function isTenantAdminRole(){return !isAdminRole()&&effectiveOrganizationRole()==='tenant_admin'}
+function isAdminDelegate(){return !isAdminRole()&&effectiveOrganizationRole()==='admin_delegate'}
+function hasOperationalAdminAccess(){return isAdminRole()||isTenantAdminRole()||isAdminDelegate()}
+function canManageUsersUI(){return isAdminRole()||isTenantAdminRole()||isAdminDelegate()}
+function isObjectManagerRole(){return !hasOperationalAdminAccess()&&['object_manager','staff'].includes(effectiveUserRole())}
+function isCustomerRole(){return effectiveUserRole()==='customer'&&!hasOperationalAdminAccess()}
+function isTestUserRole(){return effectiveUserRole()==='test_user'&&!hasOperationalAdminAccess()}
 function canManageObjectsUI(){return hasOperationalAdminAccess()}
 function canUseDecisionsUI(){return hasOperationalAdminAccess()||isCustomerRole()||isTestUserRole()}
 function canUseWorkQueueUI(){return hasOperationalAdminAccess()||isObjectManagerRole()||isTestUserRole()}
@@ -3451,7 +3473,7 @@ function formatDocumentationTimestamp(f){
 
 async function cloudLoadCurrentProfile(){
   if(!cloudSession?.access_token){
-    currentUserProfile=null;currentUserRole='';return null;
+    currentUserProfile=null;currentUserRole='';currentOrganizationMembership=null;currentOrganization=null;return null;
   }
   const uid=cloudSession?.user?.id;
   if(!uid)throw new Error('Benutzer-ID der Supabase-Sitzung fehlt.');
@@ -3462,6 +3484,14 @@ async function cloudLoadCurrentProfile(){
   if(!p||p.active!==true)throw new Error('Kein aktives Benutzerprofil gefunden.');
   currentUserProfile=p;
   currentUserRole=String(p.role||cloudSession?.user?.user_metadata?.app_role||'').trim().toLowerCase();
+
+  const memberships=await cloudRequest(`organization_memberships?select=id,organization_id,user_id,role&user_id=eq.${encodeURIComponent(uid)}`)||[];
+  currentOrganizationMembership=memberships[0]||null;
+  currentOrganization=null;
+  if(currentOrganizationMembership?.organization_id){
+    const orgRows=await cloudRequest(`organizations?select=id,name,organization_type,active&id=eq.${encodeURIComponent(currentOrganizationMembership.organization_id)}&limit=1`);
+    currentOrganization=orgRows?.[0]||null;
+  }
   applyRoleUI();
   startUserActivityHeartbeat();
   startUserMessageAutoRefresh();
@@ -3666,11 +3696,14 @@ function applyRoleUI(){
   if(rb||menuIdentity){
     const displayName=(currentUserProfile?.full_name||cloudSession?.user?.user_metadata?.full_name||cloudSession?.user?.email||'').trim();
     const roleLabel=(ROLE_LABELS[role]||role||'Unbekannte Rolle');
-    const delegateLabel=isAdminDelegate()?' · Admin-Vertretung':'';
+    const orgRoleLabel=effectiveOrganizationRole();
+    const delegateLabel=isAdminDelegate()?' · Admin-Vertretung':isTenantAdminRole()?' · Mandanten-Admin':'';
     const headerRoleLabel=isAdminDelegate()
       ? 'Admin-Vertretung'
       : role==='platform_admin'
-        ? 'Admin'
+        ? 'Plattform-Admin'
+        : isTenantAdminRole()
+          ? 'Mandanten-Admin'
         : role==='object_manager'
           ? 'Objektbetreuer'
           : role==='customer'
@@ -3683,7 +3716,7 @@ function applyRoleUI(){
                   ? 'Mitarbeiter'
                   : (roleLabel||'Benutzer');
     const initials=(displayName||roleLabel||'?').split(/\s+/).filter(Boolean).slice(0,2).map(v=>v.charAt(0).toUpperCase()).join('').slice(0,2)||'?';
-    const menuIdentityHtml=`<span class="topbar-user-avatar">${esc(initials)}</span><span class="topbar-user-copy"><span class="topbar-user-name">${esc(displayName||'Angemeldet')}</span><span class="topbar-user-role${isAdminDelegate()?' topbar-user-delegate':''}">${esc(roleLabel+delegateLabel)}</span></span>`;
+    const menuIdentityHtml=`<span class="topbar-user-avatar">${esc(initials)}</span><span class="topbar-user-copy"><span class="topbar-user-name">${esc(displayName||'Angemeldet')}</span><span class="topbar-user-role${isAdminDelegate()?' topbar-user-delegate':''}">${esc(roleLabel+delegateLabel)}${currentOrganization?.name?` · ${esc(currentOrganization.name)}`:''}</span></span>`;
     const headerIdentityHtml=`<span class="topbar-user-avatar">${esc(initials)}</span><span class="topbar-user-copy"><span class="topbar-user-name">${esc(headerRoleLabel)}</span></span>`;
     if(rb){rb.innerHTML=headerIdentityHtml;rb.style.display=role?'flex':'none';rb.title=`Angemeldet als ${displayName||'Benutzer'} · ${roleLabel}${delegateLabel}`;}
     if(menuIdentity){menuIdentity.innerHTML=menuIdentityHtml;menuIdentity.style.display=role?'flex':'none';}
@@ -3708,8 +3741,10 @@ function applyRoleUI(){
   show('navWorkqueue',hasAppRole && canUseWorkQueueUI());
   show('navReports',hasAppRole);
   show('navDecisions',hasAppRole && canUseDecisionsUI());
+  show('navOrganizations',hasAppRole && isAdminRole());
   show('navUsers',hasAppRole && canManageUsersUI());
   show('navSettings',hasAppRole && canUseSettingsUI());
+  const newUserCard=document.getElementById('newUserCard');if(newUserCard)newUserCard.style.display=isAdminRole()?'':'none';
   const softResetCard=document.getElementById('softResetCard');if(softResetCard)softResetCard.style.display=isAdminRole()?'':'none';
   show('addObjectBtn',canManageObjectsUI());
   const backupBtn=document.getElementById('backupBtn')||document.querySelector('[data-backup-button="1"]');
@@ -3781,6 +3816,8 @@ function cloudHandleSessionLoss(message='Sitzung abgelaufen. Bitte erneut anmeld
   cloudStoreSession(null);
   currentUserProfile=null;
   currentUserRole='';
+  currentOrganizationMembership=null;
+  currentOrganization=null;
   applyRoleUI();
   cloudSetStatus('Nicht angemeldet','bad');
   cloudShowGate(true);
@@ -3853,6 +3890,8 @@ async function cloudLogout(){
   cloudStoreSession(null);
   currentUserProfile=null;
   currentUserRole='';
+  currentOrganizationMembership=null;
+  currentOrganization=null;
   applyRoleUI();
   cloudSetStatus('Nicht angemeldet','bad');
   cloudShowGate(true);
@@ -3902,6 +3941,7 @@ function cloudObjectToLocal(o){
   const address=[o.street,o.postal_code,o.city].filter(Boolean).join(', ');
   return {
     id:o.id,
+    organizationId:o.organization_id||'',
     name:o.name||'',
     address,
     notes:o.notes||'',
@@ -4424,6 +4464,7 @@ async function refreshAllCloudData(){
     await cloudLoadCurrentProfile();
     // Zentrale Fachdaten: Objekte, Dokumentationen, Entscheidungen, Aufgaben, Fotos und Meldungen.
     await cloudReloadObjects();
+    await cloudLoadOrganizations();
     // Benutzer/Zuweisungen nur laden, wenn die aktuelle Berechtigung dies zulässt.
     if(canManageUsersUI())await loadUserAdminData();
     if(isAdminRole())await loadUserActivity();
@@ -4496,11 +4537,63 @@ async function cloudSetObjectAreaActive(id,active){
   await cloudRequest(`object_areas?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({active:!!active,updated_at:new Date().toISOString()})});
 }
 
+async function cloudLoadOrganizations(){
+  if(!cloudSession?.access_token){cloudOrganizations=[];return cloudOrganizations;}
+  const rows=await cloudRequest('organizations?select=id,name,organization_type,active,created_at&order=name.asc');
+  cloudOrganizations=Array.isArray(rows)?rows:[];
+  renderOrganizations();
+  populateTenantSelectors();
+  return cloudOrganizations;
+}
+function organizationName(id){return cloudOrganizations.find(o=>o.id===id)?.name||''}
+function populateTenantSelectors(){
+  const select=document.getElementById('newUserOrganization');
+  const wrap=document.getElementById('newUserOrganizationWrap');
+  if(select){
+    const current=select.value;
+    const allowed=isAdminRole()?cloudOrganizations.filter(o=>o.active!==false):(currentOrganization?[currentOrganization]:[]);
+    select.innerHTML=allowed.map(o=>`<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('');
+    if(current&&allowed.some(o=>o.id===current))select.value=current;
+  }
+  if(wrap)wrap.style.display='';
+}
+function renderOrganizations(){
+  const box=document.getElementById('organizationList');
+  if(!box)return;
+  if(!isAdminRole()){box.innerHTML='<div class="empty">Nur Plattformadministratoren können Unternehmen verwalten.</div>';return;}
+  if(!cloudOrganizations.length){box.innerHTML='<div class="empty">Noch keine Unternehmen vorhanden.</div>';return;}
+  box.innerHTML=cloudOrganizations.map(org=>{
+    const objectCount=(db.objects||[]).filter(o=>o.organizationId===org.id).length;
+    return `<div class="card"><div class="row space"><div><h3 style="margin:0">${esc(org.name)}</h3><div class="muted" style="margin-top:5px">${esc(org.organization_type||'Unternehmen')} · ${org.active===false?'Inaktiv':'Aktiv'}</div></div><span class="badge">${objectCount} Objekt(e)</span></div><div class="row" style="margin-top:12px"><button onclick="openOrganizationModal('${esc(org.id)}')">Bearbeiten</button></div></div>`;
+  }).join('');
+}
+function openOrganizationModal(id=''){
+  if(!requireAdminUI(id?'Unternehmen bearbeiten':'Unternehmen anlegen'))return;
+  const org=cloudOrganizations.find(o=>o.id===id)||{name:'',organization_type:'object_service',active:true};
+  modal(`<div class="row space"><h2>${id?'Unternehmen bearbeiten':'Unternehmen anlegen'}</h2><button onclick="closeModal()">✕</button></div>
+    <label>Unternehmensname *</label><input id="orgName" value="${esc(org.name||'')}" placeholder="z. B. Muster Objektservice GmbH">
+    <label>Typ</label><select id="orgType"><option value="object_service" ${org.organization_type==='object_service'?'selected':''}>Objektservice</option><option value="property_management" ${org.organization_type==='property_management'?'selected':''}>Hausverwaltung</option><option value="facility_management" ${org.organization_type==='facility_management'?'selected':''}>Facility Management</option><option value="other" ${org.organization_type==='other'?'selected':''}>Sonstiges</option></select>
+    <label class="row" style="gap:10px;align-items:center;margin-top:14px"><input id="orgActive" type="checkbox" ${org.active!==false?'checked':''}><span>Unternehmen aktiv</span></label>
+    <div class="row" style="margin-top:14px"><button class="primary" onclick="saveOrganization('${esc(id)}')">Speichern</button></div>`);
+}
+async function saveOrganization(id=''){
+  if(!requireAdminUI(id?'Unternehmen bearbeiten':'Unternehmen anlegen'))return;
+  const name=document.getElementById('orgName')?.value.trim()||'';
+  if(!name)return alert('Bitte einen Unternehmensnamen eingeben.');
+  const payload={name,organization_type:document.getElementById('orgType')?.value||'object_service',active:!!document.getElementById('orgActive')?.checked};
+  try{
+    if(id)await cloudRequest(`organizations?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(payload)});
+    else await cloudRequest('organizations',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(payload)});
+    closeModal();await cloudLoadOrganizations();await cloudReloadObjects();
+  }catch(e){alert('Unternehmen konnte nicht gespeichert werden: '+(e.message||e));}
+}
+
 async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
   cloudSetStatus('Supabase wird geladen …','wait');
   try{
-    const rows=await cloudRequest('objects?select=id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&order=name.asc');
+    await cloudLoadOrganizations();
+    const rows=await cloudRequest('objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&order=name.asc');
     db.objects=(rows||[]).map(cloudObjectToLocal);
     await cloudLoadObjectAreas();
     const inspectionRows=await cloudRequest('inspections?select=id,object_id,started_at,ended_at,notes,created_by,created_at,updated_at&order=started_at.desc');
@@ -4520,6 +4613,7 @@ async function cloudSaveObject(id,data){
   const addr=splitAddress(data.address);
   const payload={
     name:data.name,
+    organization_id:data.organizationId||null,
     street:addr.street||null,
     postal_code:addr.postal_code,
     city:addr.city,
@@ -5681,11 +5775,21 @@ async function loadUserAdminData(){
   if(!sel||!ed)return;
   ed.innerHTML='<div class="card"><p class="muted">Benutzerdaten werden geladen …</p></div>';
   try{
-    userAdminProfiles=await cloudRequest('profiles?select=id,full_name,email,role,active,admin_delegate,must_change_password&order=email.asc')||[];
-    
-  userAdminProfiles=(userAdminProfiles||[]).filter(p=>!p.deleted_at);userAdminAssignments=await cloudRequest('object_user_assignments?select=id,object_id,user_id,active')||[];
+    userAdminProfiles=await cloudRequest('profiles?select=id,full_name,email,role,active,admin_delegate,must_change_password,deleted_at&order=email.asc')||[];
+    userAdminProfiles=(userAdminProfiles||[]).filter(p=>!p.deleted_at);
+    userAdminMemberships=await cloudRequest('organization_memberships?select=id,organization_id,user_id,role')||[];
+    userAdminAssignments=await cloudRequest('object_user_assignments?select=id,object_id,user_id,active')||[];
+    if(!isAdminRole()){
+      const orgId=currentOrganizationId();
+      const allowedIds=new Set(userAdminMemberships.filter(m=>m.organization_id===orgId).map(m=>m.user_id));
+      userAdminProfiles=userAdminProfiles.filter(p=>allowedIds.has(p.id));
+    }
     const keep=sel.value;
-    sel.innerHTML='<option value="">Benutzer auswählen …</option>'+userAdminProfiles.map(p=>`<option value="${esc(p.id)}">${esc(p.email||p.full_name||p.id)}${p.full_name&&p.email?' · '+esc(p.full_name):''} · ${esc(ROLE_LABELS[p.role]||p.role)}${p.active===false?' · inaktiv':''}</option>`).join('');
+    sel.innerHTML='<option value="">Benutzer auswählen …</option>'+userAdminProfiles.map(p=>{
+      const m=userAdminMemberships.find(x=>x.user_id===p.id);
+      const label=ROLE_LABELS[m?.role]||ROLE_LABELS[p.role]||m?.role||p.role;
+      return `<option value="${esc(p.id)}">${esc(p.email||p.full_name||p.id)}${p.full_name&&p.email?' · '+esc(p.full_name):''} · ${esc(label)}${p.active===false?' · inaktiv':''}</option>`;
+    }).join('');
     if(keep&&userAdminProfiles.some(p=>p.id===keep))sel.value=keep;
     loadUserAdminEditor();
   }catch(e){ed.innerHTML=`<div class="card"><h3>Fehler</h3><p>${esc(e.message)}</p></div>`}
@@ -5695,30 +5799,33 @@ function loadUserAdminEditor(){
   const uid=document.getElementById('userAdminSelect')?.value,ed=document.getElementById('userAdminEditor');
   if(!ed)return;if(!uid){ed.innerHTML='';return}
   const p=userAdminProfiles.find(x=>x.id===uid);if(!p){ed.innerHTML='';return}
+  const membership=userAdminMemberships.find(m=>m.user_id===uid)||null;
+  const orgId=membership?.organization_id||currentOrganizationId();
   const assigned=new Set(userAdminAssignments.filter(a=>a.user_id===uid&&a.active!==false).map(a=>a.object_id));
-  const roles=[['platform_admin','Administrator / GF'],['object_manager','Objektbetreuer'],['customer','Auftraggeber'],['test_user','Testbenutzer']];
-  const legacyEmployee=p.role==='employee'?'<option value="employee" selected disabled>Mitarbeiter (Alt) – bitte auf eine der 3 Rollen umstellen</option>':'';
-  const roleOptions=legacyEmployee+roles.map(([v,l])=>`<option value="${v}" ${p.role===v?'selected':''}>${l}</option>`).join('');
-  const objectRows=(db.objects||[]).map(o=>`<label class="row" style="gap:10px;align-items:center;margin:8px 0"><input type="checkbox" class="userObjectAssignment" value="${esc(o.id)}" ${assigned.has(o.id)?'checked':''} ${p.role==='test_user'&&!o.isTest?'disabled':''}><span><strong>${esc(o.name||'Objekt')}</strong>${o.isTest?' <span class="badge">TEST</span>':''}${o.address?`<br><span class="muted">${esc(o.address)}</span>`:''}</span></label>`).join('')||'<p class="muted">Keine Objekte vorhanden.</p>';
-  ed.innerHTML=`<div class="card"><h3>${esc(p.email||p.full_name||'Benutzer')}</h3><div class="grid2"><label>Anzeigename<input id="userAdminFullName" value="${esc(p.full_name||'')}" placeholder="z. B. Hans Müller"></label><label>Rolle<select id="userAdminRole">${roleOptions}</select></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminActive" type="checkbox" ${p.active!==false?'checked':''}><span>Benutzer aktiv</span></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminDelegate" type="checkbox" ${p.admin_delegate===true?'checked':''} ${!isAdminRole()?'disabled':''}><span>Admin-Vertretung</span></label></div><p class="muted">Admin-Vertretung: objektübergreifender operativer Zugriff inkl. Meldungen, Arbeitsvorrat, Objekte sowie Benutzer-/Objektzuweisungen. Datenbereinigung, Benutzerlöschung, Backup und Systemadministration bleiben beim Administrator / GF.</p><h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px">
+  const roles=[['tenant_admin','Mandanten-Admin'],['admin_delegate','Admin-Vertretung'],['object_manager','Objektbetreuer'],['customer','Auftraggeber'],['test_user','Testbenutzer']];
+  const allowedRoles=isAdminDelegate()?roles.filter(([v])=>!['tenant_admin','admin_delegate'].includes(v)):roles;
+  const roleOptions=allowedRoles.map(([v,l])=>`<option value="${v}" ${membership?.role===v?'selected':''}>${l}</option>`).join('');
+  const objectRows=(db.objects||[]).filter(o=>!orgId||o.organizationId===orgId).map(o=>`<label class="row" style="gap:10px;align-items:center;margin:8px 0"><input type="checkbox" class="userObjectAssignment" value="${esc(o.id)}" ${assigned.has(o.id)?'checked':''} ${membership?.role==='test_user'&&!o.isTest?'disabled':''}><span><strong>${esc(o.name||'Objekt')}</strong>${o.isTest?' <span class="badge">TEST</span>':''}${o.address?`<br><span class="muted">${esc(o.address)}</span>`:''}</span></label>`).join('')||'<p class="muted">Keine Objekte vorhanden.</p>';
+  const orgName=organizationName(orgId)||currentOrganization?.name||'—';
+  ed.innerHTML=`<div class="card"><h3>${esc(p.email||p.full_name||'Benutzer')}</h3><div class="muted" style="margin-bottom:12px">Unternehmen: <strong>${esc(orgName)}</strong></div><div class="grid2"><label>Anzeigename<input id="userAdminFullName" value="${esc(p.full_name||'')}" placeholder="z. B. Hans Müller"></label><label>Mandantenrolle<select id="userAdminRole">${roleOptions}</select></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminActive" type="checkbox" ${p.active!==false?'checked':''}><span>Benutzer aktiv</span></label></div><p class="muted">Berechtigungen gelten ausschließlich innerhalb des zugeordneten Unternehmens. Plattformadministrator-Rechte können hier nicht vergeben werden.</p><h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px">
   <button onclick="saveUserAdminPermissions()">Speichern</button>
   ${isAdminRole()?'<button onclick="resetSelectedUserInitialPassword()">Initialpasswort erzeugen</button>':''}
   ${isAdminRole()?'<button class="danger" onclick="deleteSelectedUser()">Benutzer löschen</button>':''}
-</div>
-${isAdminRole()?`<p class="muted" style="margin-top:12px">Initialpasswort: ersetzt das aktuelle Passwort sofort. Der Benutzer muss beim nächsten Login ein neues persönliches Passwort vergeben.${p.must_change_password===true?' <b>Für diesen Benutzer ist bereits ein Passwortwechsel erforderlich.</b>':''}</p>`:''}
-</div>`;
+</div></div>`;
 }
 
 async function createUserAndInvite(){
-  if(!isAdminRole())return requireAdminUI('Benutzer anlegen');
+  if(!isAdminRole())return alert('Neue Benutzerkonten werden derzeit ausschließlich durch den Plattformadministrator angelegt.');
   const fullName=document.getElementById('newUserFullName')?.value.trim()||'';
   const email=document.getElementById('newUserEmail')?.value.trim().toLowerCase()||'';
   const role=document.getElementById('newUserRole')?.value||'object_manager';
+  const organizationId=document.getElementById('newUserOrganization')?.value||currentOrganizationId();
   const objectIds=[]; // Objektzugriffe werden bewusst erst nach der Benutzeranlage vergeben.
 
   if(!fullName)return alert('Bitte einen Anzeigenamen eingeben.');
+  if(!organizationId)return alert('Bitte ein Unternehmen / einen Mandanten auswählen.');
   if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return alert('Bitte eine gültige E-Mail-Adresse eingeben.');
-  if(!['object_manager','customer','test_user'].includes(role))return alert('Ungültige Rolle.');
+  if(!['tenant_admin','admin_delegate','object_manager','customer','test_user'].includes(role))return alert('Ungültige Rolle.');
 
   const btn=event?.currentTarget;
   if(btn){btn.disabled=true;btn.textContent='Benutzer wird angelegt…';}
@@ -5730,7 +5837,7 @@ async function createUserAndInvite(){
         'Authorization':`Bearer ${cloudSession?.access_token||''}`,
         'apikey':SUPABASE_PUBLISHABLE_KEY
       },
-      body:JSON.stringify({fullName,email,role:(role==='test_user'?'object_manager':role),objectIds})
+      body:JSON.stringify({fullName,email,role:(['tenant_admin','admin_delegate','test_user'].includes(role)?'object_manager':role),objectIds})
     });
 
     const responseText=await res.text();
@@ -5741,14 +5848,18 @@ async function createUserAndInvite(){
 
     // Die bestehende Edge Function kennt nur Objektbetreuer/Auftraggeber.
     // Testbenutzer wird unmittelbar danach serverseitig im Profil gesetzt; das Profil ist für die App maßgeblich.
+    const profiles=await cloudRequest(`profiles?select=id,email,role&email=eq.${encodeURIComponent(email)}&limit=1`);
+    const profile=profiles?.[0];
+    if(!profile?.id)throw new Error('Benutzer wurde angelegt, das Profil konnte aber nicht gefunden werden.');
     if(role==='test_user'){
-      const profiles=await cloudRequest(`profiles?select=id,email,role&email=eq.${encodeURIComponent(email)}&limit=1`);
-      const profile=profiles?.[0];
-      if(!profile?.id)throw new Error('Testbenutzer wurde angelegt, das Profil konnte aber nicht gefunden werden.');
       await cloudRequest(`profiles?id=eq.${encodeURIComponent(profile.id)}`,{
         method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({role:'test_user'})
       });
     }
+    await cloudRequest('organization_memberships',{
+      method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify({organization_id:organizationId,user_id:profile.id,role})
+    });
 
     document.getElementById('newUserFullName').value='';
     document.getElementById('newUserEmail').value='';
@@ -5891,25 +6002,29 @@ async function deleteSelectedUser(){
 }
 
 async function saveUserAdminPermissions(){
-  if(!canManageUsersUI())return requireAdminUI('Benutzer & Berechtigungen');
+  if(!canManageUsersUI())return alert('Benutzerverwaltung ist für diese Rolle nicht freigegeben.');
   const uid=document.getElementById('userAdminSelect')?.value,
         fullName=document.getElementById('userAdminFullName')?.value.trim()||'',
-        role=document.getElementById('userAdminRole')?.value,
-        active=!!document.getElementById('userAdminActive')?.checked,
-        adminDelegate=isAdminRole()&&!!document.getElementById('userAdminDelegate')?.checked;
-  if(!uid||!role)return alert('Benutzer und Rolle fehlen.');
+        organizationRole=document.getElementById('userAdminRole')?.value,
+        active=!!document.getElementById('userAdminActive')?.checked;
+  if(!uid||!organizationRole)return alert('Benutzer und Mandantenrolle fehlen.');
   if(!fullName)return alert('Bitte einen Anzeigenamen eingeben.');
-  const targetProfile=userAdminProfiles.find(x=>x.id===uid);
-  if(isAdminDelegate()&&(targetProfile?.role==='platform_admin'||role==='platform_admin'))return alert('Administrator-/GF-Rechte können nur vom Administrator / GF verwaltet werden.');
-  if(uid===currentUserProfile?.id&&(!active||role!=='platform_admin'))return alert('Der aktuell angemeldete Administrator kann sich nicht selbst deaktivieren oder seine Administratorrolle entfernen.');
+  if(isAdminDelegate()&&['tenant_admin','admin_delegate'].includes(organizationRole))return alert('Admin-Vertretungen dürfen keine administrativen Mandantenrollen vergeben.');
+  const membership=userAdminMemberships.find(m=>m.user_id===uid);
+  const orgId=membership?.organization_id||currentOrganizationId();
+  if(!orgId)return alert('Für den Benutzer fehlt die Mandantenzuordnung.');
+  if(!isAdminRole()&&orgId!==currentOrganizationId())return alert('Benutzer eines anderen Mandanten dürfen nicht bearbeitet werden.');
+  if(uid===currentUserProfile?.id&&!active)return alert('Der aktuell angemeldete Benutzer kann sich nicht selbst deaktivieren.');
   const checked=[...document.querySelectorAll('.userObjectAssignment:checked')].map(x=>x.value);
-  if(role==='test_user'){
-    const invalid=checked.filter(id=>!(db.objects||[]).find(o=>o.id===id&&o.isTest===true));
-    if(invalid.length)return alert('Testbenutzer dürfen ausschließlich Testobjekten zugeordnet werden. Bitte produktive Objektzuordnungen entfernen.');
+  if(organizationRole==='test_user'){
+    const invalid=checked.filter(id=>!(db.objects||[]).find(o=>o.id===id&&o.isTest===true&&o.organizationId===orgId));
+    if(invalid.length)return alert('Testbenutzer dürfen ausschließlich Testobjekten ihres Mandanten zugeordnet werden.');
   }
+  const globalRole=organizationRole==='customer'?'customer':organizationRole==='test_user'?'test_user':'object_manager';
   try{
-    await cloudRequest('profiles?id=eq.'+encodeURIComponent(uid),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(isAdminRole()?{full_name:fullName,role,active,admin_delegate:adminDelegate}:{full_name:fullName,role,active})});
-    const existing=userAdminAssignments.filter(a=>a.user_id===uid);
+    await cloudRequest('profiles?id=eq.'+encodeURIComponent(uid),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({full_name:fullName,role:globalRole,active})});
+    await cloudRequest(`organization_memberships?organization_id=eq.${encodeURIComponent(orgId)}&user_id=eq.${encodeURIComponent(uid)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({role:organizationRole})});
+    const existing=userAdminAssignments.filter(a=>a.user_id===uid && (db.objects||[]).some(o=>o.id===a.object_id&&o.organizationId===orgId));
     for(const a of existing){
       const should=checked.includes(a.object_id);
       if(a.active!==should)await cloudRequest('object_user_assignments?id=eq.'+encodeURIComponent(a.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({active:should,updated_at:new Date().toISOString()})});
@@ -5922,7 +6037,7 @@ async function saveUserAdminPermissions(){
 }
 
 function renderAll(){
-  renderDashboard();renderObjects();renderInspections();renderSelects();renderFindings();renderReport();
+  renderOrganizations();populateTenantSelectors();renderDashboard();renderObjects();renderInspections();renderSelects();renderFindings();renderReport();
 if(canUseDecisionsUI())renderDecisions();if(canUseWorkQueueUI())renderWorkQueue();if(!isCustomerRole())renderResidentReports();
   const ro=document.getElementById('reportObject');
   if(ro){
@@ -6965,9 +7080,15 @@ async function toggleObjectArea(objectId,areaId,active){
 }
 
 function openObjectModal(id=''){
-  if(!requireAdminUI(id?'Objekt bearbeiten':'Objekt anlegen'))return;
-  const o=db.objects.find(x=>x.id===id)||{id:'',name:'',address:'',notes:'',isTest:false};
+  if(!canManageObjectsUI())return alert('Objektverwaltung ist für diese Rolle nicht freigegeben.');
+  const o=db.objects.find(x=>x.id===id)||{id:'',organizationId:currentOrganizationId(),name:'',address:'',notes:'',isTest:false};
+  const allowedOrgs=isAdminRole()?cloudOrganizations.filter(x=>x.active!==false):(currentOrganization?[currentOrganization]:[]);
+  const fixedOrgId=id?o.organizationId:(o.organizationId||allowedOrgs[0]?.id||'');
+  const orgControl=isAdminRole()&&!id
+    ? `<label>Unternehmen / Mandant *</label><select id="oOrganization">${allowedOrgs.map(org=>`<option value="${esc(org.id)}" ${org.id===fixedOrgId?'selected':''}>${esc(org.name)}</option>`).join('')}</select>`
+    : `<div class="card" style="margin-top:12px;padding:12px"><span class="muted">Unternehmen / Mandant</span><div style="font-weight:800;margin-top:4px">${esc(organizationName(fixedOrgId)||currentOrganization?.name||'—')}</div><input id="oOrganization" type="hidden" value="${esc(fixedOrgId)}"></div>`;
   modal(`<div class="row space"><h2>${id?'Objekt bearbeiten':'Objekt anlegen'}</h2><button onclick="closeModal()">✕</button></div>
+  ${orgControl}
   <label>Objektbezeichnung *</label><input id="oName" value="${esc(o.name)}" placeholder="z. B. WEG Musterstraße 12">
   <label>Adresse</label><input id="oAddress" value="${esc(o.address)}" placeholder="Straße, PLZ Ort">
   <label>Notizen</label><textarea id="oNotes">${esc(o.notes)}</textarea>
@@ -6976,10 +7097,13 @@ function openObjectModal(id=''){
   <div class="row" style="margin-top:14px"><button class="primary" onclick="saveObject('${id}')">Speichern</button>${id?`<button class="danger" onclick="deleteObject('${id}')">Löschen</button>`:''}</div>`);
 }
 async function saveObject(id){
-  if(!requireAdminUI(id?'Objekt bearbeiten':'Objekt anlegen'))return;
+  if(!canManageObjectsUI())return alert('Objektverwaltung ist für diese Rolle nicht freigegeben.');
   const name=document.getElementById('oName').value.trim();
   if(!name)return alert('Bitte Objektbezeichnung eingeben.');
+  const organizationId=document.getElementById('oOrganization')?.value||currentOrganizationId();
+  if(!organizationId)return alert('Bitte ein Unternehmen / einen Mandanten auswählen.');
   const data={
+    organizationId,
     name,
     address:document.getElementById('oAddress').value.trim(),
     notes:document.getElementById('oNotes').value.trim(),
@@ -7008,7 +7132,7 @@ async function saveObject(id){
   }
 }
 async function deleteObject(id){
-  if(!requireAdminUI('Objekt löschen'))return;
+  if(!canManageObjectsUI())return alert('Objektverwaltung ist für diese Rolle nicht freigegeben.');
   if(!confirm('Objekt inklusive zugehöriger Daten löschen? In dieser Teststufe werden nur zentral gespeicherte Objekte gelöscht.'))return;
   try{
     await cloudDeleteObject(id);
