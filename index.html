@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.66</title>
+<title>Duschl Service – Objektplattform v2.18.67</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -425,7 +425,7 @@ main{padding-top:18px}
 .user-message-audience-count{font-size:12px;font-weight:600;opacity:.8}
 .user-message-recipient-row.message-scope-hidden{display:none}
 
-/* v2.18.66 – Platform-Admin Dashboard */
+/* v2.18.67 – Platform-Admin Dashboard */
 .platform-kpi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .platform-kpi-card{border:1px solid var(--border);background:var(--card);border-radius:18px;padding:16px;min-width:0}
 .platform-kpi-label{color:var(--muted);font-size:14px;font-weight:700}
@@ -455,7 +455,7 @@ main{padding-top:18px}
   .platform-tenant-main{align-items:center}
 }
 
-/* v2.18.66 – Platform Admin Dashboard */
+/* v2.18.67 – Platform Admin Dashboard */
 #platformAdminDashboard{padding-bottom:92px}
 .pa-dashboard-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:22px}
 .pa-eyebrow{font-size:12px;font-weight:900;letter-spacing:.12em;color:#9fb2c5;margin-bottom:8px}
@@ -538,7 +538,7 @@ button.pa-kpi-card{width:100%;font:inherit;cursor:pointer}
   .pa-status-grid{grid-template-columns:1fr}
 }
 
-/* v2.18.66 – Mandantenoberflächen im Platform-Design */
+/* v2.18.67 – Mandantenoberflächen im Platform-Design */
 .tenant-dashboard-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:22px}
 .tenant-eyebrow{font-size:12px;font-weight:900;letter-spacing:.12em;color:#9fb2c5;margin-bottom:8px}
 .tenant-dashboard-title{font-size:42px;line-height:1;margin:0 0 10px;font-weight:950}
@@ -580,7 +580,7 @@ button.pa-kpi-card{width:100%;font:inherit;cursor:pointer}
   .tenant-action-btn{padding:9px 11px!important;font-size:12px!important}
 }
 
-/* v2.18.66 – Mandantenmodus + technische Diagnose */
+/* v2.18.67 – Mandantenmodus + technische Diagnose */
 .platform-tenant-mode-banner{position:sticky;top:82px;z-index:70;margin:0 0 14px;padding:11px 14px;border:1px solid #8a6d22;border-radius:14px;background:linear-gradient(145deg,#3b3010,#211d0d);color:#f4df93;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 8px 22px rgba(0,0,0,.22)}
 .platform-tenant-mode-banner.hidden{display:none!important}
 .platform-tenant-mode-banner button{border-color:#8a6d22!important;background:#4b3d13!important;color:#fff1b9!important}
@@ -607,7 +607,7 @@ button.pa-kpi-card{width:100%;font:inherit;cursor:pointer}
   .platform-diagnostic-latency{grid-column:2}
 }
 
-/* v2.18.66 – Safe area above fixed bottom navigation.
+/* v2.18.67 – Safe area above fixed bottom navigation.
    Keeps the final card/action row fully clickable on mobile and desktop. */
 body{
   padding-bottom:calc(110px + env(safe-area-inset-bottom, 0px));
@@ -618,7 +618,7 @@ main,
   scroll-padding-bottom:calc(130px + env(safe-area-inset-bottom, 0px));
 }
 
-/* v2.18.66 – Modal must always sit above fixed bottom navigation.
+/* v2.18.67 – Modal must always sit above fixed bottom navigation.
    Mobile modals are vertically scrollable, including with the iOS keyboard open. */
 #modal{
   z-index:10050!important;
@@ -1109,7 +1109,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.66</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.67</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1149,7 +1149,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.66</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.67</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1489,6 +1489,17 @@ body.public-report-mode>#photoViewer{display:none!important}
 <section class="section" id="organizations">
 <div class="row space"><div><h2>Unternehmen / Mandanten</h2><div class="muted">Plattformweite Mandantenverwaltung. Der Plattform-Admin legt den Mandanten und dessen initialen Mandanten-Admin an. Die weitere Benutzer- und Objektverwaltung erfolgt innerhalb des Mandanten.</div></div><button class="primary" id="addOrganizationBtn" onclick="openOrganizationModal()">+ Mandant</button></div>
 <div class="grid g2" id="organizationList" style="margin-top:14px"></div>
+
+<div class="pa-panel" id="platformMessagingCard" style="display:none;margin-top:18px">
+  <div class="pa-panel-head">
+    <div>
+      <div class="pa-panel-title"><span class="pa-panel-icon">✉</span>Plattform-Mitteilungen</div>
+      <div class="pa-panel-sub">Nachrichten an Mandanten-Admins werden im bestehenden Mitteilungsbereich zugestellt.</div>
+    </div>
+    <button class="pa-refresh-btn" type="button" onclick="openPlatformMessageModal()">+ Mitteilung</button>
+  </div>
+  <div class="muted" style="margin-top:10px">Empfänger: einzelne Administratoren, alle Admins eines Mandanten oder alle Mandanten-Admins der Plattform.</div>
+</div>
 
 <div class="pa-panel" id="platformAccessCard" style="display:none;margin-top:18px">
   <div class="pa-panel-head">
@@ -2889,7 +2900,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.18.66';
+const APP_VERSION='2.18.67';
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -3686,7 +3697,7 @@ let platformOrganizationMemberships=[];
 let platformOrganizationProfiles=[];
 let userAdminMemberships=[];
 
-// v2.18.66: Platform-Admin kann einen Mandanten bewusst administrieren.
+// v2.18.67: Platform-Admin kann einen Mandanten bewusst administrieren.
 // Der globale Plattformkontext bleibt davon getrennt.
 let platformTenantModeOrgId='';
 let platformTenantModeOrganization=null;
@@ -3778,7 +3789,7 @@ async function cloudLoadCurrentProfile(){
   currentUserProfile=p;
   currentUserRole=String(p.role||cloudSession?.user?.user_metadata?.app_role||'').trim().toLowerCase();
 
-  // v2.18.66: Die globale Profilrolle muss sofort wirksam werden.
+  // v2.18.67: Die globale Profilrolle muss sofort wirksam werden.
   // Ein Fehler beim Laden der Mandanten-Mitgliedschaft darf insbesondere
   // einen platform_admin weder Navigation noch globalen Zugriff verlieren lassen.
   currentOrganizationMembership=null;
@@ -4065,7 +4076,7 @@ function applyRoleUI(){
   if(tenantModeBanner)tenantModeBanner.classList.toggle('hidden',!isPlatformTenantMode());
   if(tenantModeName)tenantModeName.textContent=platformTenantModeOrganization?.name||currentOrganization?.name||'Mandant';
 
-  // v2.18.66: Der reine Platform-Admin benötigt kein Hamburger-Menü.
+  // v2.18.67: Der reine Platform-Admin benötigt kein Hamburger-Menü.
   // Tatsächlicher Header-Trigger ist #appMenuBtn / toggleAppMenu().
   // Im Mandantenmodus und für reguläre Mandantenrollen bleibt das Menü erhalten.
   const menuTrigger =
@@ -4114,6 +4125,8 @@ function applyRoleUI(){
   }
   const platformOrgKpi=document.getElementById('kpiPlatformOrganizations');
   if(platformOrgKpi)platformOrgKpi.textContent=String((cloudOrganizations||[]).filter(o=>o.active!==false).length);
+  const platformMessagingCard=document.getElementById('platformMessagingCard');
+  if(platformMessagingCard)platformMessagingCard.style.display=platformMode?'':'none';
   const platformAccessCard=document.getElementById('platformAccessCard');
   if(platformAccessCard)platformAccessCard.style.display=(platformMode&&isAdminRole())?'':'none';
   const platformBackupNavBtn=document.getElementById('platformBackupNavBtn');
@@ -4256,7 +4269,7 @@ async function cloudLogin(){
     await cloudReloadObjects();
   }catch(e){
     console.error('Anmeldung / Profilinitialisierung fehlgeschlagen',e);
-    // v2.18.66: Die App darf bei fehlgeschlagener Profilinitialisierung
+    // v2.18.67: Die App darf bei fehlgeschlagener Profilinitialisierung
     // nicht mit leerer Navigation hinter einem ausgeblendeten Login-Gate stehen.
     currentUserProfile=null;
     currentUserRole='';
@@ -5273,6 +5286,157 @@ async function exitPlatformTenantMode(){
 }
 
 
+
+let platformMessageRecipientsCache=[];
+
+async function loadPlatformMessageRecipients(){
+  if(!isPlatformOperatorRole())return [];
+  try{
+    const [profiles,memberships,orgs]=await Promise.all([
+      cloudRequest('profiles?select=id,full_name,email,role,active,deleted_at'),
+      cloudRequest('organization_memberships?select=user_id,organization_id,role'),
+      cloudRequest('organizations?select=id,name,active')
+    ]);
+    const pById=new Map((profiles||[]).map(p=>[p.id,p]));
+    const oById=new Map((orgs||[]).map(o=>[o.id,o]));
+    platformMessageRecipientsCache=(memberships||[])
+      .filter(m=>['tenant_admin','admin_delegate'].includes(m.role))
+      .map(m=>{
+        const p=pById.get(m.user_id);
+        const o=oById.get(m.organization_id);
+        if(!p||p.active===false||p.deleted_at||!o||o.active===false)return null;
+        return {
+          user_id:m.user_id,
+          organization_id:m.organization_id,
+          tenant_role:m.role,
+          full_name:p.full_name||p.email||'Admin',
+          email:p.email||'',
+          organization_name:o.name||'Mandant'
+        };
+      })
+      .filter(Boolean)
+      .sort((a,b)=>(a.organization_name+a.full_name).localeCompare(b.organization_name+b.full_name,'de'));
+    return platformMessageRecipientsCache;
+  }catch(e){
+    console.error('Platform recipients load failed',e);
+    platformMessageRecipientsCache=[];
+    throw e;
+  }
+}
+
+function openPlatformMessageModal(){
+  if(!isPlatformOperatorRole())return alert('Nur die Plattformadministration kann Plattform-Mitteilungen versenden.');
+  modal(`<div class="row space"><h2>Plattform-Mitteilung</h2><button onclick="closeModal()">✕</button></div>
+    <p class="muted">Die Nachricht erscheint beim Empfänger im bestehenden Mitteilungsfeld und ist als Plattform-Mitteilung gekennzeichnet.</p>
+    <label>Empfängergruppe *</label>
+    <select id="platformMessageMode" onchange="renderPlatformMessageRecipientFields()">
+      <option value="individual">Einzelne Administratoren</option>
+      <option value="tenant_all">Alle Admins eines Mandanten</option>
+      <option value="platform_all">Alle Mandanten-Admins der Plattform</option>
+    </select>
+    <div id="platformMessageRecipientFields" style="margin-top:10px"><div class="muted">Empfänger werden geladen …</div></div>
+    <label>Betreff *</label>
+    <input id="platformMessageSubject" maxlength="160" placeholder="z. B. Wartungsfenster am Samstag">
+    <label>Nachricht *</label>
+    <textarea id="platformMessageBody" rows="7" placeholder="Mitteilung eingeben"></textarea>
+    <div class="row" style="margin-top:14px"><button class="primary" onclick="sendPlatformMessage()">Mitteilung senden</button></div>`);
+  loadPlatformMessageRecipients().then(renderPlatformMessageRecipientFields).catch(e=>{
+    const box=document.getElementById('platformMessageRecipientFields');
+    if(box)box.innerHTML='<div class="error">Empfänger konnten nicht geladen werden: '+esc(e?.message||String(e))+'</div>';
+  });
+}
+
+function renderPlatformMessageRecipientFields(){
+  const box=document.getElementById('platformMessageRecipientFields');
+  if(!box)return;
+  const mode=document.getElementById('platformMessageMode')?.value||'individual';
+  const rows=platformMessageRecipientsCache||[];
+
+  if(mode==='platform_all'){
+    const count=new Set(rows.map(r=>r.user_id)).size;
+    box.innerHTML=`<div class="card"><b>Alle Mandanten-Admins der Plattform</b><div class="muted">${count} eindeutige Empfänger</div></div>`;
+    return;
+  }
+
+  if(mode==='tenant_all'){
+    const tenants=[...new Map(rows.map(r=>[r.organization_id,{id:r.organization_id,name:r.organization_name}])).values()]
+      .sort((a,b)=>a.name.localeCompare(b.name,'de'));
+    box.innerHTML=`<label>Mandant *</label><select id="platformMessageTenant">
+      <option value="">Mandant auswählen …</option>
+      ${tenants.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}
+    </select>`;
+    return;
+  }
+
+  if(!rows.length){
+    box.innerHTML='<div class="empty">Keine aktiven Mandanten-Administratoren gefunden.</div>';
+    return;
+  }
+
+  box.innerHTML=`<label>Administratoren *</label>
+    <div style="max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:14px;padding:10px">
+      ${rows.map(r=>`<label class="row" style="align-items:flex-start;gap:10px;margin:0 0 10px 0">
+        <input type="checkbox" class="platformMessageRecipientCheck" value="${esc(r.user_id)}">
+        <span><b>${esc(r.full_name)}</b><br><span class="muted">${esc(r.organization_name)} · ${r.tenant_role==='tenant_admin'?'Mandanten-Admin':'Admin-Vertretung'}${r.email?' · '+esc(r.email):''}</span></span>
+      </label>`).join('')}
+    </div>`;
+}
+
+function resolvePlatformMessageRecipients(){
+  const mode=document.getElementById('platformMessageMode')?.value||'individual';
+  const rows=platformMessageRecipientsCache||[];
+  if(mode==='platform_all'){
+    return [...new Set(rows.map(r=>r.user_id))];
+  }
+  if(mode==='tenant_all'){
+    const orgId=document.getElementById('platformMessageTenant')?.value||'';
+    if(!orgId)return [];
+    return [...new Set(rows.filter(r=>r.organization_id===orgId).map(r=>r.user_id))];
+  }
+  return [...document.querySelectorAll('.platformMessageRecipientCheck:checked')].map(el=>el.value);
+}
+
+async function sendPlatformMessage(){
+  if(!isPlatformOperatorRole())return alert('Nur die Plattformadministration kann Plattform-Mitteilungen versenden.');
+  const subject=document.getElementById('platformMessageSubject')?.value.trim()||'';
+  const body=document.getElementById('platformMessageBody')?.value.trim()||'';
+  const mode=document.getElementById('platformMessageMode')?.value||'individual';
+  const recipients=resolvePlatformMessageRecipients();
+
+  if(!subject)return alert('Bitte einen Betreff eingeben.');
+  if(!body)return alert('Bitte eine Nachricht eingeben.');
+  if(!recipients.length)return alert('Bitte mindestens einen Empfänger auswählen.');
+
+  if(mode==='platform_all' && !isAdminRole()){
+    return alert('Eine Mitteilung an alle Mandanten-Admins darf nur der primäre Platform Admin senden.');
+  }
+  if(mode==='platform_all'){
+    if(!confirm(`Mitteilung wirklich an ${recipients.length} Mandanten-Admins senden?`))return;
+  }
+
+  try{
+    for(const recipientId of recipients){
+      await cloudRequest('messages',{
+        method:'POST',
+        headers:{Prefer:'return=minimal'},
+        body:JSON.stringify({
+          sender_id:currentUserId(),
+          recipient_id:recipientId,
+          subject:`[Plattform] ${subject}`,
+          body:body,
+          message_type:'platform',
+          created_at:new Date().toISOString()
+        })
+      });
+    }
+    closeModal();
+    alert(`Plattform-Mitteilung an ${recipients.length} Empfänger gesendet.`);
+  }catch(e){
+    console.error(e);
+    alert('Plattform-Mitteilung konnte nicht vollständig gesendet werden: '+(e?.message||e));
+  }
+}
+
 let platformAccessProfiles=[];
 
 async function loadPlatformAccessProfiles(){
@@ -5547,7 +5711,7 @@ async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
   cloudSetStatus('Supabase wird geladen …','wait');
   try{
-    // v2.18.66: Reine Plattform-Admins arbeiten im Systemkontext und laden
+    // v2.18.67: Reine Plattform-Admins arbeiten im Systemkontext und laden
     // standardmäßig keine operativen Objekt-/Vorgangsdaten.
     if(isPlatformOperatorRole()&&!isPlatformTenantMode()){
       await cloudLoadOrganizations();
