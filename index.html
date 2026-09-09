@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.76</title>
+<title>Duschl Service – Objektplattform v2.18.77</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -426,7 +426,7 @@ main{padding-top:18px}
 .user-message-audience-count{font-size:12px;font-weight:600;opacity:.8}
 .user-message-recipient-row.message-scope-hidden{display:none}
 
-/* v2.18.76 – Platform-Admin Dashboard */
+/* v2.18.77 – Platform-Admin Dashboard */
 .platform-kpi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .platform-kpi-card{border:1px solid var(--border);background:var(--card);border-radius:18px;padding:16px;min-width:0}
 .platform-kpi-label{color:var(--muted);font-size:14px;font-weight:700}
@@ -456,7 +456,7 @@ main{padding-top:18px}
   .platform-tenant-main{align-items:center}
 }
 
-/* v2.18.76 – Platform Admin Dashboard */
+/* v2.18.77 – Platform Admin Dashboard */
 #platformAdminDashboard{padding-bottom:92px}
 .pa-dashboard-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:22px}
 .pa-eyebrow{font-size:12px;font-weight:900;letter-spacing:.12em;color:#9fb2c5;margin-bottom:8px}
@@ -539,7 +539,7 @@ button.pa-kpi-card{width:100%;font:inherit;cursor:pointer}
   .pa-status-grid{grid-template-columns:1fr}
 }
 
-/* v2.18.76 – Mandantenoberflächen im Platform-Design */
+/* v2.18.77 – Mandantenoberflächen im Platform-Design */
 .tenant-dashboard-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:22px}
 .tenant-eyebrow{font-size:12px;font-weight:900;letter-spacing:.12em;color:#9fb2c5;margin-bottom:8px}
 .tenant-dashboard-title{font-size:42px;line-height:1;margin:0 0 10px;font-weight:950}
@@ -581,7 +581,7 @@ button.pa-kpi-card{width:100%;font:inherit;cursor:pointer}
   .tenant-action-btn{padding:9px 11px!important;font-size:12px!important}
 }
 
-/* v2.18.76 – Mandantenmodus + technische Diagnose */
+/* v2.18.77 – Mandantenmodus + technische Diagnose */
 .platform-tenant-mode-banner{position:sticky;top:82px;z-index:70;margin:0 0 14px;padding:11px 14px;border:1px solid #8a6d22;border-radius:14px;background:linear-gradient(145deg,#3b3010,#211d0d);color:#f4df93;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 8px 22px rgba(0,0,0,.22)}
 .platform-tenant-mode-banner.hidden{display:none!important}
 .platform-tenant-mode-banner button{border-color:#8a6d22!important;background:#4b3d13!important;color:#fff1b9!important}
@@ -608,7 +608,7 @@ button.pa-kpi-card{width:100%;font:inherit;cursor:pointer}
   .platform-diagnostic-latency{grid-column:2}
 }
 
-/* v2.18.76 – Safe area above fixed bottom navigation.
+/* v2.18.77 – Safe area above fixed bottom navigation.
    Keeps the final card/action row fully clickable on mobile and desktop. */
 body{
   padding-bottom:calc(110px + env(safe-area-inset-bottom, 0px));
@@ -619,7 +619,7 @@ main,
   scroll-padding-bottom:calc(130px + env(safe-area-inset-bottom, 0px));
 }
 
-/* v2.18.76 – Modal must always sit above fixed bottom navigation.
+/* v2.18.77 – Modal must always sit above fixed bottom navigation.
    Mobile modals are vertically scrollable, including with the iOS keyboard open. */
 #modal{
   z-index:10050!important;
@@ -641,7 +641,7 @@ nav.bottom-nav{
   z-index:1000;
 }
 
-/* v2.18.76 – Plattformverwaltung über Hamburger-Menü; fixe Bottom-Navigation deaktiviert. */
+/* v2.18.77 – Plattformverwaltung über Hamburger-Menü; fixe Bottom-Navigation deaktiviert. */
 #platformBottomNav{display:none!important;}
 body.platform-menu-mode{
   padding-bottom:calc(20px + env(safe-area-inset-bottom, 0px))!important;
@@ -1127,7 +1127,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.76</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.77</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1169,7 +1169,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.76</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.77</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1281,6 +1281,17 @@ body.public-report-mode>#photoViewer{display:none!important}
       <div class="tenant-kpi-icon">!</div><div class="tenant-kpi-arrow">›</div>
       <div class="tenant-kpi-label">Dringend</div><div class="tenant-kpi-value" id="kpiCritical">0</div><div class="tenant-kpi-sub">P1 / P2 offen</div>
     </button>
+  </div>
+
+  <div class="tenant-panel" id="dashboardCareRequestsWrap" style="display:none">
+    <div class="tenant-panel-head">
+      <div>
+        <div class="tenant-panel-title"><span class="tenant-panel-icon">⇄</span>Betreuungsanfragen</div>
+        <div class="tenant-panel-sub">Offene Einladungen anderer Mandanten zur Betreuung ihrer Objekte.</div>
+      </div>
+      <span class="badge" id="dashboardCareRequestsCount">0 offen</span>
+    </div>
+    <div class="grid tenant-message-grid" id="dashboardCareRequests" style="margin-top:14px"></div>
   </div>
 
   <div class="tenant-panel" id="dashboardMessagesWrap" style="display:none">
@@ -2931,7 +2942,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.18.76';
+const APP_VERSION='2.18.77';
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -3734,7 +3745,7 @@ let platformOrganizationMemberships=[];
 let platformOrganizationProfiles=[];
 let userAdminMemberships=[];
 
-// v2.18.76: Platform-Admin kann einen Mandanten bewusst administrieren.
+// v2.18.77: Platform-Admin kann einen Mandanten bewusst administrieren.
 // Der globale Plattformkontext bleibt davon getrennt.
 let platformTenantModeOrgId='';
 let platformTenantModeOrganization=null;
@@ -3826,7 +3837,7 @@ async function cloudLoadCurrentProfile(){
   currentUserProfile=p;
   currentUserRole=String(p.role||cloudSession?.user?.user_metadata?.app_role||'').trim().toLowerCase();
 
-  // v2.18.76: Die globale Profilrolle muss sofort wirksam werden.
+  // v2.18.77: Die globale Profilrolle muss sofort wirksam werden.
   // Ein Fehler beim Laden der Mandanten-Mitgliedschaft darf insbesondere
   // einen platform_admin weder Navigation noch globalen Zugriff verlieren lassen.
   currentOrganizationMembership=null;
@@ -4145,7 +4156,7 @@ function applyRoleUI(){
   if(tenantModeBanner)tenantModeBanner.classList.toggle('hidden',!isPlatformTenantMode());
   if(tenantModeName)tenantModeName.textContent=platformTenantModeOrganization?.name||currentOrganization?.name||'Mandant';
 
-  // v2.18.76: Der reine Platform-Admin benötigt kein Hamburger-Menü.
+  // v2.18.77: Der reine Platform-Admin benötigt kein Hamburger-Menü.
   // Tatsächlicher Header-Trigger ist #appMenuBtn / toggleAppMenu().
   // Im Mandantenmodus und für reguläre Mandantenrollen bleibt das Menü erhalten.
   const menuTrigger =
@@ -4233,7 +4244,7 @@ function requireAdminUI(action='Diese Funktion'){
   alert(`${action} ist nur für Administratoren freigegeben.`);
   return false;
 }
-// v2.18.76: Operative Mandantenrechte werden ausschließlich aus der
+// v2.18.77: Operative Mandantenrechte werden ausschließlich aus der
 // aktuellen Tenant-Mitgliedschaft abgeleitet. Die globale Profilrolle
 // object_manager darf einen tenant_admin/admin_delegate nicht herabstufen.
 function requireOperationalAdminUI(action='Diese Funktion'){
@@ -4342,7 +4353,7 @@ async function cloudLogin(){
     await cloudReloadObjects();
   }catch(e){
     console.error('Anmeldung / Profilinitialisierung fehlgeschlagen',e);
-    // v2.18.76: Die App darf bei fehlgeschlagener Profilinitialisierung
+    // v2.18.77: Die App darf bei fehlgeschlagener Profilinitialisierung
     // nicht mit leerer Navigation hinter einem ausgeblendeten Login-Gate stehen.
     currentUserProfile=null;
     currentUserRole='';
@@ -5059,7 +5070,7 @@ async function refreshAllCloudData(){
   }
 }
 
-// v2.18.76 – Mandantenübergreifende Zusammenarbeit.
+// v2.18.77 – Mandantenübergreifende Zusammenarbeit.
 // Ein Auftrag bleibt Eigentum des Quellmandanten. Der ausführende Mandant erhält
 // ausschließlich Zugriff auf den freigegebenen Auftrag und arbeitet im eigenen Kontext.
 async function cloudLoadSharedObjects(){
@@ -5085,20 +5096,35 @@ async function cloudLoadObjectCollaborations(render=true){
   }catch(e){console.warn('Betreuungsbeziehungen konnten nicht geladen werden',e);cloudObjectCollaborations=[];if(render)renderObjectCollaborations();}
 }
 function renderObjectCollaborations(){
-  const box=document.getElementById('objectCollaborationsList');if(!box)return;
+  const box=document.getElementById('objectCollaborationsList');
   const orgId=currentOrganizationId();
   const ownOrg=cloudOrganizations.find(o=>o.id===orgId);const codeBox=document.getElementById('myTenantPublicCode');
-  if(codeBox)codeBox.innerHTML=ownOrg?.public_code?`Eigene Mandanten-ID: <strong style="letter-spacing:.06em">${esc(ownOrg.public_code)}</strong> <button type="button" style="padding:4px 8px;margin-left:6px" onclick="navigator.clipboard?.writeText('${esc(ownOrg.public_code)}')">Kopieren</button>`:'Mandanten-ID wird nach Datenbank-Update angezeigt.';
+  if(codeBox)codeBox.innerHTML=ownOrg?.public_code?`Eigene Mandanten-ID: <strong style="letter-spacing:.06em">${esc(ownOrg.public_code)}</strong> <button type="button" style="padding:4px 8px;margin-left:6px" onclick="copyTenantPublicCode()">Kopieren</button>`:'Mandanten-ID wird nach Datenbank-Update angezeigt.';
   const btn=document.getElementById('shareObjectCareBtn');if(btn)btn.style.display=hasOperationalAdminAccess()?'':'none';
-  if(!cloudObjectCollaborations.length){box.innerHTML='<div class="empty">Keine dauerhaften Objektbetreuungen vorhanden.</div>';return;}
-  box.innerHTML=cloudObjectCollaborations.map(c=>{
-    const incoming=c.service_organization_id===orgId;
-    const partner=incoming?(c.owner_organization_name||'Auftraggeber'):(c.service_organization_name||'Dienstleister');
-    const assignee=c.assigned_user_name||'';
-    const status=c.status||'active';
-    const actions=incoming&&hasOperationalAdminAccess()?(status==='pending'?`<div class="row" style="margin-top:10px"><button class="primary" onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',true)">Annehmen</button><button onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',false)">Ablehnen</button></div>`:(status==='active'?`<div class="row" style="margin-top:10px"><button onclick="openSharedObjectAssignmentModal('${esc(c.collaboration_id)}')">${assignee?'Zuweisung ändern':'Objektbetreuer zuweisen'}</button></div>`:'')):'';
-    return `<div class="card" style="margin:8px 0"><div class="row space"><div><span class="badge">${incoming?(status==='pending'?'Anfrage':'Betreut'):(status==='pending'?'Angefragt':'Freigegeben')}</span> <strong>${esc(c.object_name||'Objekt')}</strong></div><span class="badge">${status==='pending'?'Ausstehend':status==='rejected'?'Abgelehnt':c.active===false?'Inaktiv':'Aktiv'}</span></div><div class="muted" style="margin-top:5px">${esc(partner)}${c.object_address?' · '+esc(c.object_address):''}</div>${assignee?`<div class="muted" style="margin-top:6px">Verantwortlich: <strong>${esc(assignee)}</strong></div>`:''}${actions}</div>`;
-  }).join('');
+  const statusLabel=v=>v==='pending'?'Offen':v==='active'?'Angenommen':v==='rejected'?'Abgelehnt':v==='cancelled'?'Beendet':v||'—';
+  const rows=cloudObjectCollaborations||[];
+  if(box){
+    if(!rows.length)box.innerHTML='<div class="empty">Keine dauerhaften Objektbetreuungen vorhanden.</div>';
+    else box.innerHTML=rows.map(c=>{
+      const incoming=c.service_organization_id===orgId;
+      const partner=incoming?(c.owner_organization_name||'Auftraggeber'):(c.service_organization_name||'Dienstleister');
+      const partnerCode=incoming?(c.owner_public_code||''):(c.service_public_code||'');
+      const assignee=c.assigned_user_name||'';const status=c.status||'active';
+      const requested=c.requested_at?new Date(c.requested_at).toLocaleString('de-DE'):'—';
+      const actions=incoming&&hasOperationalAdminAccess()?(status==='pending'?`<div class="row" style="margin-top:10px"><button class="primary" onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',true)">Annehmen</button><button onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',false)">Ablehnen</button></div>`:(status==='active'?`<div class="row" style="margin-top:10px"><button onclick="openSharedObjectAssignmentModal('${esc(c.collaboration_id)}')">${assignee?'Zuweisung ändern':'Objektbetreuer zuweisen'}</button></div>`:'')):'';
+      return `<div class="card" style="margin:8px 0"><div class="row space"><div><span class="badge">${incoming?'Eingehend':'Ausgehend'}</span> <strong>${esc(c.object_name||'Objekt')}</strong></div><span class="badge">${esc(statusLabel(status))}</span></div><div class="muted" style="margin-top:7px">${esc(partner)}${partnerCode?` · Mandanten-ID <strong>${esc(partnerCode)}</strong>`:''}${c.object_address?' · '+esc(c.object_address):''}</div><div class="muted" style="margin-top:5px">Angefragt: ${esc(requested)}</div>${c.service_scope?`<div style="margin-top:7px"><strong>Leistungsumfang:</strong> ${esc(c.service_scope)}</div>`:''}${assignee?`<div class="muted" style="margin-top:6px">Verantwortlich: <strong>${esc(assignee)}</strong></div>`:''}${actions}</div>`;
+    }).join('');
+  }
+  renderDashboardCareRequests();
+}
+function renderDashboardCareRequests(){
+  const wrap=document.getElementById('dashboardCareRequestsWrap');const box=document.getElementById('dashboardCareRequests');const count=document.getElementById('dashboardCareRequestsCount');
+  if(!wrap||!box)return;
+  const orgId=currentOrganizationId();
+  const pending=(cloudObjectCollaborations||[]).filter(c=>c.service_organization_id===orgId&&c.status==='pending');
+  wrap.style.display=pending.length&&hasOperationalAdminAccess()?'':'none';
+  if(count)count.textContent=`${pending.length} offen`;
+  box.innerHTML=pending.map(c=>`<div class="dashboard-message-card unread"><div class="dashboard-message-title">Betreuungsanfrage: ${esc(c.object_name||'Objekt')}</div><div class="dashboard-message-meta"><strong>Von: ${esc(c.owner_organization_name||'Mandant')}</strong>${c.owner_public_code?` · ${esc(c.owner_public_code)}`:''}<br>${c.requested_at?esc(new Date(c.requested_at).toLocaleString('de-DE')):''}</div>${c.service_scope?`<div class="dashboard-message-text">${esc(c.service_scope)}</div>`:''}<div class="dashboard-message-actions"><button class="primary" onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',true)">Annehmen</button><button onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',false)">Ablehnen</button></div></div>`).join('');
 }
 async function openObjectCollaborationModal(preselectedObjectId=''){
   if(!hasOperationalAdminAccess())return alert('Nur Mandanten-Admin oder Admin-Vertretung können Objektbetreuungen freigeben.');
@@ -5106,12 +5132,12 @@ async function openObjectCollaborationModal(preselectedObjectId=''){
   const objs=(db.objects||[]).filter(o=>!o.externalManaged&&o.organizationId===currentOrganizationId());if(!objs.length)return alert('Kein eigenes Objekt für die Freigabe vorhanden.');
   const selected=objs.some(o=>o.id===preselectedObjectId)?preselectedObjectId:objs[0].id;
   const existing=cloudObjectCollaborations.filter(c=>c.object_id===selected&&c.owner_organization_id===currentOrganizationId()&&c.status!=='rejected'&&c.active!==false);
-  document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Objektbetreuung anfragen</h2><p class="muted">Gib die öffentliche Mandanten-ID des Partnerunternehmens ein. Der Partner muss die Betreuung anschließend bestätigen. Mehrere Partner pro Objekt sind möglich.</p><label>Objekt *</label><select id="socObject" onchange="refreshObjectCollaborationHint()">${objs.map(o=>`<option value="${esc(o.id)}" ${o.id===selected?'selected':''}>${esc(o.name)}</option>`).join('')}</select><div id="socExistingHint" class="muted" style="margin-top:6px">${existing.length?`Bestehende Anfragen/Betreuungen: ${existing.map(c=>esc(c.service_organization_name||'Partnerunternehmen')).join(', ')}`:'Noch keine Betreuung für dieses Objekt.'}</div><label>Mandanten-ID des Partners *</label><input id="socPartnerCode" autocomplete="off" autocapitalize="characters" placeholder="z. B. DS-7K4P9X" style="text-transform:uppercase"><div id="socPartnerLookup" class="muted" style="margin-top:5px">Die interne Mandanten-UUID wird nicht benötigt.</div><label>Leistungsumfang</label><textarea id="socScope" rows="4" placeholder="z. B. Objektbetreuung, Winterdienst, Kleinreparaturen"></textarea><div class="modal-actions"><button class="primary" onclick="createObjectCollaboration()">Betreuung anfragen</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
+  document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Objektbetreuung anfragen</h2><p class="muted">Gib die öffentliche Mandanten-ID des Partnerunternehmens ein. Der Partner muss die Betreuung anschließend bestätigen. Mehrere Partner pro Objekt sind möglich.</p><label>Objekt *</label><select id="socObject" onchange="refreshObjectCollaborationHint()">${objs.map(o=>`<option value="${esc(o.id)}" ${o.id===selected?'selected':''}>${esc(o.name)}</option>`).join('')}</select><div id="socExistingHint" class="muted" style="margin-top:6px">${existing.length?`Bestehende Anfragen/Betreuungen: ${existing.map(c=>`${esc(c.service_organization_name||'Partnerunternehmen')}${c.service_public_code?' · '+esc(c.service_public_code):''} · ${esc(c.status==='pending'?'Offen':c.status==='active'?'Angenommen':c.status==='rejected'?'Abgelehnt':c.status||'—')}`).join('<br>')}`:'Noch keine Betreuung für dieses Objekt.'}</div><label>Mandanten-ID des Partners *</label><input id="socPartnerCode" autocomplete="off" autocapitalize="characters" placeholder="z. B. DS-7K4P9X" style="text-transform:uppercase"><div id="socPartnerLookup" class="muted" style="margin-top:5px">Die interne Mandanten-UUID wird nicht benötigt.</div><label>Leistungsumfang</label><textarea id="socScope" rows="4" placeholder="z. B. Objektbetreuung, Winterdienst, Kleinreparaturen"></textarea><div class="modal-actions"><button class="primary" onclick="createObjectCollaboration()">Betreuung anfragen</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
 }
 function refreshObjectCollaborationHint(){
   const objectId=document.getElementById('socObject')?.value||'';const box=document.getElementById('socExistingHint');if(!box)return;
   const existing=cloudObjectCollaborations.filter(c=>c.object_id===objectId&&c.owner_organization_id===currentOrganizationId()&&c.status!=='rejected'&&c.active!==false);
-  box.innerHTML=existing.length?`Bestehende Anfragen/Betreuungen: ${existing.map(c=>esc(c.service_organization_name||'Partnerunternehmen')).join(', ')}`:'Noch keine Betreuung für dieses Objekt.';
+  box.innerHTML=existing.length?`Bestehende Anfragen/Betreuungen: ${existing.map(c=>`${esc(c.service_organization_name||'Partnerunternehmen')}${c.service_public_code?' · '+esc(c.service_public_code):''} · ${esc(c.status==='pending'?'Offen':c.status==='active'?'Angenommen':c.status==='rejected'?'Abgelehnt':c.status||'—')}`).join('<br>')}`:'Noch keine Betreuung für dieses Objekt.';
 }
 async function createObjectCollaboration(){
   const objectId=document.getElementById('socObject')?.value||'';const code=(document.getElementById('socPartnerCode')?.value||'').trim().toUpperCase();const scope=(document.getElementById('socScope')?.value||'').trim();
@@ -5928,7 +5954,7 @@ async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
   cloudSetStatus('Supabase wird geladen …','wait');
   try{
-    // v2.18.76: Reine Plattform-Admins arbeiten im Systemkontext und laden
+    // v2.18.77: Reine Plattform-Admins arbeiten im Systemkontext und laden
     // standardmäßig keine operativen Objekt-/Vorgangsdaten.
     if(isPlatformOperatorRole()&&!isPlatformTenantMode()){
       await cloudLoadOrganizations();
@@ -5987,7 +6013,7 @@ async function cloudSaveObject(id,data){
     });
     return rows?.[0];
   }
-  // v2.18.76: Neue Objekte werden serverseitig angelegt.
+  // v2.18.77: Neue Objekte werden serverseitig angelegt.
   // Die RPC prüft die Mandantenrolle anhand der aktuellen Auth-Session
   // und erzeugt die Standardbereiche atomar mit dem Objekt.
   const result=await cloudRequest('rpc/create_tenant_object',{
@@ -7461,6 +7487,7 @@ function openObjectOpenFindings(objectId){
 
 function renderDashboard(){
   renderDashboardMessages();
+  renderDashboardCareRequests();
   document.getElementById('kpiObjects').textContent=db.objects.length;
   const open=db.findings.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt');
   document.getElementById('kpiOpen').textContent=open.length;
@@ -8498,7 +8525,7 @@ async function saveObject(id){
     const row=await cloudSaveObject(id,data);
     if(!row)throw new Error('Keine Rückgabe aus Supabase.');
 
-    // v2.18.76: Bei Neuanlage wurden die Standardbereiche bereits
+    // v2.18.77: Bei Neuanlage wurden die Standardbereiche bereits
     // innerhalb derselben serverseitigen Transaktion erzeugt.
     closeModal();
     await cloudReloadObjects();
