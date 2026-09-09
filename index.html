@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.01</title>
+<title>Duschl Service – Objektplattform v2.19.02</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1127,7 +1127,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.01</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.02</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1169,7 +1169,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.01</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.02</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -2954,7 +2954,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.01'; // Dynamische Erfassungslogik nach Mandantentyp, Dokumentationstyp und Prozessphase.
+const APP_VERSION='2.19.02'; // Dynamische Formularsteuerung nach Mandantentyp und Dokumentationsart.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -4164,7 +4164,7 @@ async function copyTenantPublicCode(){
 function applyRoleUI(){
   const role=effectiveUserRole();
 
-  // v2.19.01: Im operativen Mandantenkontext zeigt der Header immer
+  // v2.19.02: Im operativen Mandantenkontext zeigt der Header immer
   // den aktuell ausgewählten Mandanten statt der Plattformmarke.
   // Im reinen Plattformmodus bleibt "Duschl Service" als Plattformbetreiber sichtbar.
   const appBrandName=document.getElementById('appBrandName');
@@ -4949,7 +4949,7 @@ async function cloudReloadFindings(){
   const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
   let rows=(rowsRaw||[]).filter(f=>accessibleObjectIds.has(f.object_id));
 
-  // v2.19.01: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
+  // v2.19.02: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
   // Sicht des simulierten Mandanten sehen. Seine globale Admin-RLS darf daher
   // nicht dazu führen, dass parallele Dienstleister gegenseitig ihre Findings sehen.
   if(isPlatformTenantMode()){
@@ -5217,7 +5217,7 @@ async function cloudLoadSharedObjects(){
   try{
     let rows=[];
     if(isPlatformTenantMode()){
-      // v2.19.01: autoritative Support-RPC mit explizitem Mandantenkontext.
+      // v2.19.02: autoritative Support-RPC mit explizitem Mandantenkontext.
       rows=await cloudRequest('rpc/platform_support_get_shared_objects',{
         method:'POST',
         body:JSON.stringify({p_organization_id:currentOrganizationId()})
@@ -5400,7 +5400,7 @@ async function openRouteFindingModal(findingId){
   if(!canRouteFindingUI(f))return alert('Nur der berechtigte Entscheider des führenden Mandanten kann diesen Vorgang an ein anderes Unternehmen routen.');
   const o=(db.objects||[]).find(x=>x.id===f.objectId);if(!o)return alert('Objekt nicht gefunden.');
 
-  // v2.19.01: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
+  // v2.19.02: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
   // Dadurch muss die öffentliche Mandanten-ID im Regelprozess nicht mehr manuell eingegeben werden.
   try{await cloudLoadObjectCollaborations(false);}catch(_e){}
   const currentOrgId=currentOrganizationId();
@@ -9602,6 +9602,50 @@ document.addEventListener('change',e=>{
     applyDocumentationFieldPolicy(document);
   }
 });
+
+function dsProcessProfile(){
+  const org=(typeof currentOrganization!=='undefined'&&currentOrganization)||{};
+  const t=String(org.organization_type||org.type||'objektservice');
+  const map={
+    objektservice:{decision:true,work:true,beforeAfter:true},
+    property_management:{decision:true,work:false,beforeAfter:false},
+    facility_management:{decision:true,work:true,beforeAfter:true},
+    hotel:{decision:false,work:true,beforeAfter:true},
+    other:{decision:true,work:true,beforeAfter:true}
+  };
+  return map[t]||map.other;
+}
+function dsDocType(){
+  const el=document.querySelector('[name="docType"],#docType,#documentationType');
+  const v=String(el?.value||'finding').toLowerCase();
+  return (v.includes('service')||v.includes('leistung'))?'service':'finding';
+}
+function dsFieldBox(el){
+  return el?.closest('.field,.form-group,.form-row,.row,.card,label')||el?.parentElement||null;
+}
+function dsShowByLabel(text,show){
+  [...document.querySelectorAll('label,.label,strong,span')].forEach(n=>{
+    if(String(n.textContent||'').trim().toLowerCase().includes(text.toLowerCase())){
+      const box=dsFieldBox(n);
+      if(box) box.hidden=!show;
+    }
+  });
+}
+function dsApplyProcessForm(){
+  const p=dsProcessProfile(), service=dsDocType()==='service';
+  dsShowByLabel('Kategorie',!service);
+  dsShowByLabel('Priorität',!service);
+  dsShowByLabel('Entscheidung erforderlich?',!service&&p.decision);
+  dsShowByLabel('Empfohlene Maßnahme / nächster Schritt',!service);
+  dsShowByLabel('Fotos vorher',service&&p.beforeAfter);
+  dsShowByLabel('Fotos nachher',service&&p.beforeAfter);
+  dsShowByLabel('Nächster Prozessschritt',!service&&p.work);
+}
+document.addEventListener('change',e=>{
+  const k=(String(e.target?.id||'')+' '+String(e.target?.name||'')).toLowerCase();
+  if(k.includes('doctype')||k.includes('documentationtype')) dsApplyProcessForm();
+});
+document.addEventListener('DOMContentLoaded',()=>setTimeout(dsApplyProcessForm,0));
 </script>
 <div id="platformBottomNav" class="pa-bottom-nav hidden">
   <button type="button" data-pa-nav="dashboard" onclick="showSection('dashboard')"><span>⌂</span><small>Dashboard</small></button>
