@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.20</title>
+<title>Duschl Service – Objektplattform v2.19.21</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -657,6 +657,15 @@ body.platform-menu-mode #platformAdminDashboard{
 body.platform-menu-mode #organizationList{
   margin-bottom:18px!important;
 }
+
+.platform-danger-zone{margin-top:16px;padding:14px;border:1px solid #7d3232;border-radius:14px;background:rgba(120,25,25,.12)}
+.platform-danger-zone h3{margin:0 0 6px;color:#ffb2b2}
+.platform-danger-btn{background:#5c1f24!important;border-color:#9a4148!important;color:#fff!important}
+.platform-warning-btn{background:#4b3d13!important;border-color:#8a6d22!important;color:#fff1b9!important}
+.delete-preview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.delete-preview-item{padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,.02)}
+@media(max-width:700px){.delete-preview-grid{grid-template-columns:1fr}}
+
 </style>
 <style>
 .object-file{border:1px solid #dfe5e8;border-radius:14px;background:#fff;margin-bottom:14px;overflow:hidden}
@@ -1127,7 +1136,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.20</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.21</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1170,7 +1179,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.20</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.21</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1322,8 +1331,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.20</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.20 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.21</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.21 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -2956,7 +2965,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.20'; // Fix Seitennavigation: aktive Section wird zusätzlich per Inline-Display erzwungen; unabhängig von CSS-Klassen.
+const APP_VERSION='2.19.21'; // Platform-Admin: Mandanten deaktivieren, Löschanalyse und sichere endgültige Löschung.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -4170,7 +4179,7 @@ async function copyTenantPublicCode(){
 function applyRoleUI(){
   const role=effectiveUserRole();
 
-  // v2.19.20: Im operativen Mandantenkontext zeigt der Header immer
+  // v2.19.21: Im operativen Mandantenkontext zeigt der Header immer
   // den aktuell ausgewählten Mandanten statt der Plattformmarke.
   // Im reinen Plattformmodus bleibt "Duschl Service" als Plattformbetreiber sichtbar.
   const appBrandName=document.getElementById('appBrandName');
@@ -4956,7 +4965,7 @@ async function cloudReloadFindings(){
   const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
   let rows=(rowsRaw||[]).filter(f=>accessibleObjectIds.has(f.object_id));
 
-  // v2.19.20: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
+  // v2.19.21: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
   // Sicht des simulierten Mandanten sehen. Seine globale Admin-RLS darf daher
   // nicht dazu führen, dass parallele Dienstleister gegenseitig ihre Findings sehen.
   if(isPlatformTenantMode()){
@@ -5224,7 +5233,7 @@ async function cloudLoadSharedObjects(){
   try{
     let rows=[];
     if(isPlatformTenantMode()){
-      // v2.19.20: autoritative Support-RPC mit explizitem Mandantenkontext.
+      // v2.19.21: autoritative Support-RPC mit explizitem Mandantenkontext.
       rows=await cloudRequest('rpc/platform_support_get_shared_objects',{
         method:'POST',
         body:JSON.stringify({p_organization_id:currentOrganizationId()})
@@ -5407,7 +5416,7 @@ async function openRouteFindingModal(findingId){
   if(!canRouteFindingUI(f))return alert('Nur der berechtigte Entscheider des führenden Mandanten kann diesen Vorgang an ein anderes Unternehmen routen.');
   const o=(db.objects||[]).find(x=>x.id===f.objectId);if(!o)return alert('Objekt nicht gefunden.');
 
-  // v2.19.20: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
+  // v2.19.21: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
   // Dadurch muss die öffentliche Mandanten-ID im Regelprozess nicht mehr manuell eingegeben werden.
   try{await cloudLoadObjectCollaborations(false);}catch(_e){}
   const currentOrgId=currentOrganizationId();
@@ -5777,7 +5786,13 @@ function renderOrganizations(){
     const warn=Number(org.storage_warning_percent||80);
     const storageText=limit>0?`${formatBytes(used)} von ${formatBytes(limit)} · ${pct}%`:'Kein Speicherlimit definiert';
     const storageClass=limit>0&&pct>=warn?'bad':'';
-    return `<div class="card" style="display:block!important;visibility:visible!important;opacity:1!important"><div class="row space"><div><h3 style="margin:0">${esc(org.name)}</h3><div class="muted" style="margin-top:5px">${esc(org.organization_type||'Unternehmen')} · ${org.active===false?'Inaktiv':'Aktiv'}</div></div><span class="badge">${summary.count} Benutzer</span></div><div style="margin-top:12px"><div class="muted">Mandanten-Admin</div><div style="font-weight:800;margin-top:4px">${adminText}</div></div><div style="margin-top:12px"><div class="muted">Vertraglicher Speicher</div><div class="${storageClass}" style="font-weight:800;margin-top:4px">${storageText}</div></div><div class="row" style="margin-top:12px"><button class="primary" onclick="enterPlatformTenantMode('${esc(org.id)}')">Mandant administrieren</button><button onclick="openOrganizationModal('${esc(org.id)}')">Mandant bearbeiten</button><button onclick="openTenantAdminAssignmentModal('${esc(org.id)}')">${summary.admins.length?'Mandanten-Admin ändern':'Mandanten-Admin festlegen'}</button></div></div>`;
+    return `<div class="card" style="display:block!important;visibility:visible!important;opacity:1!important"><div class="row space"><div><h3 style="margin:0">${esc(org.name)}</h3><div class="muted" style="margin-top:5px">${esc(org.organization_type||'Unternehmen')} · ${org.active===false?'Inaktiv':'Aktiv'}</div></div><span class="badge">${summary.count} Benutzer</span></div><div style="margin-top:12px"><div class="muted">Mandanten-Admin</div><div style="font-weight:800;margin-top:4px">${adminText}</div></div><div style="margin-top:12px"><div class="muted">Vertraglicher Speicher</div><div class="${storageClass}" style="font-weight:800;margin-top:4px">${storageText}</div></div><div class="row" style="margin-top:12px">
+      <button class="primary" onclick="enterPlatformTenantMode('${esc(org.id)}')">Mandant administrieren</button>
+      <button onclick="openOrganizationModal('${esc(org.id)}')">Mandant bearbeiten</button>
+      <button onclick="openTenantAdminAssignmentModal('${esc(org.id)}')">${summary.admins.length?'Mandanten-Admin ändern':'Mandanten-Admin festlegen'}</button>
+      ${isAdminRole()?`<button class="${org.active===false?'':'platform-warning-btn'}" onclick="platformToggleTenantActive('${esc(org.id)}',${org.active===false?'true':'false'})">${org.active===false?'Mandant aktivieren':'Mandant deaktivieren'}</button>
+      <button class="platform-danger-btn" onclick="openPlatformTenantDeleteModal('${esc(org.id)}')">Mandant löschen</button>`:''}
+    </div></div>`;
   }).join('');
 }
 
@@ -6099,6 +6114,110 @@ async function setPlatformDelegateActive(userId,active){
   }
 }
 
+
+async function platformToggleTenantActive(orgId,active){
+  if(!isAdminRole())return alert('Nur der primäre Platform Admin darf Mandanten aktivieren oder deaktivieren.');
+  const org=cloudOrganizations.find(o=>o.id===orgId);
+  if(!org)return alert('Mandant wurde nicht gefunden.');
+  const action=active?'aktivieren':'deaktivieren';
+  if(!confirm(`${org.name} wirklich ${action}?`))return;
+  try{
+    await cloudRequest('rpc/platform_set_tenant_active',{
+      method:'POST',
+      body:JSON.stringify({p_organization_id:orgId,p_active:!!active})
+    });
+    await cloudLoadOrganizations();
+    renderOrganizations();
+    alert(`Mandant „${org.name}“ wurde ${active?'aktiviert':'deaktiviert'}.`);
+  }catch(e){
+    console.error(e);
+    alert(`Mandant konnte nicht ${action} werden: `+(e?.message||e));
+  }
+}
+
+function platformTenantDeletePreviewHtml(data){
+  const counts=data?.counts||{};
+  const rows=[
+    ['Benutzerzuordnungen',counts.memberships],
+    ['Objekte',counts.objects],
+    ['Dokumentationen/Feststellungen',counts.findings],
+    ['Medien',counts.media],
+    ['Objektfreigaben',counts.object_collaborations],
+    ['Cross-Tenant-Aufträge',counts.shared_work_orders]
+  ];
+  return `<div class="delete-preview-grid">${rows.map(([label,value])=>
+    `<div class="delete-preview-item"><div class="muted">${esc(label)}</div><div style="font-size:22px;font-weight:900;margin-top:3px">${Number(value||0)}</div></div>`
+  ).join('')}</div>`;
+}
+
+async function openPlatformTenantDeleteModal(orgId){
+  if(!isAdminRole())return alert('Nur der primäre Platform Admin darf Mandanten endgültig löschen.');
+  const org=cloudOrganizations.find(o=>o.id===orgId);
+  if(!org)return alert('Mandant wurde nicht gefunden.');
+
+  modal(`<div class="row space"><h2>Mandant löschen</h2><button onclick="closeModal()">✕</button></div>
+    <div class="platform-danger-zone">
+      <h3>${esc(org.name)}</h3>
+      <div>Die endgültige Löschung ist nur zulässig, wenn keine geschützten Objekt- oder Cross-Tenant-Abhängigkeiten bestehen.</div>
+      <div class="muted" style="margin-top:6px">Duschl Service ist technisch gegen endgültige Löschung geschützt.</div>
+    </div>
+    <div id="platformTenantDeletePreview" style="margin-top:14px"><div class="muted">Löschanalyse wird geladen …</div></div>
+    <div id="platformTenantDeleteActions" style="margin-top:14px"></div>`);
+
+  try{
+    const result=await cloudRequest('rpc/platform_tenant_delete_preview',{
+      method:'POST',
+      body:JSON.stringify({p_organization_id:orgId})
+    });
+    const data=Array.isArray(result)?result[0]:result;
+    const preview=document.getElementById('platformTenantDeletePreview');
+    const actions=document.getElementById('platformTenantDeleteActions');
+    if(!preview||!actions)return;
+
+    const blocked=!!data?.blocked;
+    preview.innerHTML=`
+      ${platformTenantDeletePreviewHtml(data)}
+      <div class="${blocked?'error':'muted'}" style="margin-top:12px">${esc(data?.reason||'Analyse abgeschlossen.')}</div>`;
+
+    if(blocked){
+      actions.innerHTML='<div class="muted">Endgültige Löschung ist gesperrt. Mandant kann weiterhin deaktiviert werden.</div>';
+      return;
+    }
+
+    actions.innerHTML=`
+      <label>Zur Bestätigung <strong>LÖSCHEN</strong> eingeben</label>
+      <input id="platformTenantDeleteConfirm" autocomplete="off" placeholder="LÖSCHEN">
+      <div class="row" style="margin-top:12px">
+        <button class="platform-danger-btn" onclick="executePlatformTenantDelete('${esc(orgId)}','${esc(org.name)}')">Mandant endgültig löschen</button>
+      </div>`;
+  }catch(e){
+    const preview=document.getElementById('platformTenantDeletePreview');
+    if(preview)preview.innerHTML='<div class="error">Löschanalyse fehlgeschlagen: '+esc(e?.message||String(e))+'</div>';
+  }
+}
+
+async function executePlatformTenantDelete(orgId,orgName){
+  if(!isAdminRole())return alert('Nur der primäre Platform Admin darf Mandanten endgültig löschen.');
+  const confirmText=(document.getElementById('platformTenantDeleteConfirm')?.value||'').trim();
+  if(confirmText!=='LÖSCHEN')return alert('Bitte LÖSCHEN exakt eingeben.');
+  if(!confirm(`Mandant „${orgName}“ wirklich endgültig löschen?\n\nDieser Schritt kann nicht rückgängig gemacht werden.`))return;
+
+  try{
+    const result=await cloudRequest('rpc/platform_delete_tenant',{
+      method:'POST',
+      body:JSON.stringify({p_organization_id:orgId,p_confirmation:'LÖSCHEN'})
+    });
+    const data=Array.isArray(result)?result[0]:result;
+    closeModal();
+    await cloudLoadOrganizations();
+    renderOrganizations();
+    alert(data?.message||`Mandant „${orgName}“ wurde endgültig gelöscht.`);
+  }catch(e){
+    console.error(e);
+    alert('Mandant konnte nicht gelöscht werden: '+(e?.message||e));
+  }
+}
+
 function openOrganizationModal(id=''){
   if(!requireAdminUI(id?'Unternehmen bearbeiten':'Unternehmen anlegen'))return;
   const org=cloudOrganizations.find(o=>o.id===id)||{name:'',organization_type:'object_service',active:true};
@@ -6294,7 +6413,7 @@ async function cloudReloadObjects(){
       const objectPath=`objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(platformTenantModeOrgId)}&order=name.asc`;
       rows=await cloudRequest(objectPath);
     }else{
-      // v2.19.20: Mandantenobjekte nicht mehr von einer möglicherweise zu restriktiven
+      // v2.19.21: Mandantenobjekte nicht mehr von einer möglicherweise zu restriktiven
       // generischen objects-RLS abhängig machen. Die RPC entscheidet serverseitig:
       // Tenant-Admin/Admin-Vertretung = alle Objekte des Mandanten;
       // Objektbetreuer = ausschließlich aktive Zuweisungen;
@@ -6313,7 +6432,7 @@ async function cloudReloadObjects(){
           });
         }
 
-        // v2.19.20: Sicherheitsnetz für Mandanten-Admins.
+        // v2.19.21: Sicherheitsnetz für Mandanten-Admins.
         // Bei Rollenmodell global=object_manager + tenant_membership=tenant_admin
         // darf ein leerer RPC-Return nicht dazu führen, dass der Admin "keine Objekte" sieht.
         if((!rows||rows.length===0) && typeof currentOrganizationId==='function'){
@@ -6349,7 +6468,7 @@ async function cloudReloadObjects(){
     const ownIds=new Set(ownObjects.map(o=>o.id));
     db.objects=ownObjects.concat(cloudSharedObjects.filter(o=>!ownIds.has(o.id)));
 
-    // v2.19.20: Objekte sind ein eigenständiger Kernbestand.
+    // v2.19.21: Objekte sind ein eigenständiger Kernbestand.
     // Sobald sie geladen sind, werden sie sofort sichtbar gemacht.
     // Ein Fehler in nachgelagerten Modulen darf die Objektansicht nicht mehr leer lassen.
     try{
@@ -7968,7 +8087,7 @@ function renderObjectsDirect(){
   const status=document.getElementById('objectListStatus');
   if(!el)return;
   const objects=Array.isArray(db?.objects)?db.objects:[];
-  if(status)status.textContent=`Objektmodul v2.19.20 · ${objects.length} Objekt${objects.length===1?'':'e'} geladen`;
+  if(status)status.textContent=`Objektmodul v2.19.21 · ${objects.length} Objekt${objects.length===1?'':'e'} geladen`;
   if(!objects.length){
     el.innerHTML='<div class="empty">Keine Objekte im aktuellen Mandantenkontext.</div>';
     return;
