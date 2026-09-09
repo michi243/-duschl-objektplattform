@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.09</title>
+<title>Duschl Service – Objektplattform v2.19.10</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1127,7 +1127,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.09</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.10</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1169,7 +1169,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.09</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.10</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -2954,7 +2954,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.09'; // Lesestatus mandantengerecht: personenbezogen nur intern, Cross-Tenant nur aggregiert, Platform-Broadcast mandantenbezogen.
+const APP_VERSION='2.19.10'; // Mandanten-Navigation: eigener Menüpunkt Daten mit selektiver Daten- und Speicherbereinigung.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -4164,7 +4164,7 @@ async function copyTenantPublicCode(){
 function applyRoleUI(){
   const role=effectiveUserRole();
 
-  // v2.19.09: Im operativen Mandantenkontext zeigt der Header immer
+  // v2.19.10: Im operativen Mandantenkontext zeigt der Header immer
   // den aktuell ausgewählten Mandanten statt der Plattformmarke.
   // Im reinen Plattformmodus bleibt "Duschl Service" als Plattformbetreiber sichtbar.
   const appBrandName=document.getElementById('appBrandName');
@@ -4949,7 +4949,7 @@ async function cloudReloadFindings(){
   const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
   let rows=(rowsRaw||[]).filter(f=>accessibleObjectIds.has(f.object_id));
 
-  // v2.19.09: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
+  // v2.19.10: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
   // Sicht des simulierten Mandanten sehen. Seine globale Admin-RLS darf daher
   // nicht dazu führen, dass parallele Dienstleister gegenseitig ihre Findings sehen.
   if(isPlatformTenantMode()){
@@ -5217,7 +5217,7 @@ async function cloudLoadSharedObjects(){
   try{
     let rows=[];
     if(isPlatformTenantMode()){
-      // v2.19.09: autoritative Support-RPC mit explizitem Mandantenkontext.
+      // v2.19.10: autoritative Support-RPC mit explizitem Mandantenkontext.
       rows=await cloudRequest('rpc/platform_support_get_shared_objects',{
         method:'POST',
         body:JSON.stringify({p_organization_id:currentOrganizationId()})
@@ -5400,7 +5400,7 @@ async function openRouteFindingModal(findingId){
   if(!canRouteFindingUI(f))return alert('Nur der berechtigte Entscheider des führenden Mandanten kann diesen Vorgang an ein anderes Unternehmen routen.');
   const o=(db.objects||[]).find(x=>x.id===f.objectId);if(!o)return alert('Objekt nicht gefunden.');
 
-  // v2.19.09: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
+  // v2.19.10: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
   // Dadurch muss die öffentliche Mandanten-ID im Regelprozess nicht mehr manuell eingegeben werden.
   try{await cloudLoadObjectCollaborations(false);}catch(_e){}
   const currentOrgId=currentOrganizationId();
@@ -9875,37 +9875,7 @@ async function dsTenantCleanupExecute(){
     if(typeof cloudReloadAll==='function')await cloudReloadAll();
   }catch(e){alert('Löschen fehlgeschlagen: '+(e.message||e));}
 }
-function dsInjectTenantCleanup(){
-  if(document.getElementById('tenantStorageCleanup'))return;
-  const orgId=(typeof currentOrganizationId==='function'&&currentOrganizationId())||null;
-  if(!orgId)return;
-  const isAdmin=(typeof isTenantAdmin==='function'&&isTenantAdmin()) ||
-                (typeof isTenantAdminDelegate==='function'&&isTenantAdminDelegate());
-  if(!isAdmin)return;
-  const heads=[...document.querySelectorAll('h1,h2,h3,strong')];
-  const anchor=heads.find(x=>/Speicher|Benutzer|Administration/i.test(String(x.textContent||'')));
-  if(!anchor)return;
-  const card=document.createElement('div');
-  card.id='tenantStorageCleanup'; card.className='card'; card.style.marginTop='14px';
-  card.innerHTML=`
-    <h3 style="margin-top:0">Mandantendaten & Speicher bereinigen</h3>
-    <div class="muted">Nur Daten des eigenen Mandanten. Zugehörige Bilder/Dateien werden bei Meldungen, Dokumentationen und Objekten mit entfernt.</div>
-    <div id="tenantCleanupResult" style="margin:12px 0"></div>
-    <div style="display:grid;gap:8px;margin:10px 0">
-      <label><input type="checkbox" data-tenant-cleanup value="messages"> Mitteilungen</label>
-      <label><input type="checkbox" data-tenant-cleanup value="reports"> Meldungen inkl. Bilder</label>
-      <label><input type="checkbox" data-tenant-cleanup value="findings"> Dokumentationen inkl. Bilder</label>
-      <label><input type="checkbox" data-tenant-cleanup value="objects"> Objekte inkl. zugehöriger Daten und Bilder</label>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="secondary" onclick="dsTenantCleanupPreview()">Analysieren</button>
-      <button class="danger" onclick="dsTenantCleanupExecute()">Ausgewählte Daten dauerhaft löschen</button>
-    </div>`;
-  const parent=anchor.closest('.card,section')?.parentElement||anchor.parentElement;
-  parent?.appendChild(card);
-  dsTenantCleanupPreview();
-}
-document.addEventListener('DOMContentLoaded',()=>setTimeout(dsInjectTenantCleanup,180));
+
 
 function dsRemoveLegacyTestObjectUI(){
   [...document.querySelectorAll('label,.label,strong,span,div')].forEach(n=>{
@@ -9979,6 +9949,78 @@ function dsRecipientReadStatusHtml(message, recipients){
   const anyRead=[...byOrg.values()].some(x=>x.read);
   return `<div class="muted">${anyRead?'Vom Empfängermandanten gelesen':'Vom Empfängermandanten noch ungelesen'}</div>`;
 }
+
+function dsCanManageTenantData(){
+  try{
+    return (typeof isTenantAdmin==='function'&&isTenantAdmin()) ||
+           (typeof isTenantAdminDelegate==='function'&&isTenantAdminDelegate());
+  }catch(e){return false;}
+}
+function dsOpenDataManagement(){
+  if(!dsCanManageTenantData()){
+    alert('Nur Mandanten-Admin bzw. Admin-Vertretung darf Mandantendaten verwalten.');
+    return;
+  }
+  let modal=document.getElementById('dsDataManagementModal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='dsDataManagementModal';
+    modal.className='modal';
+    modal.style.display='none';
+    modal.innerHTML=`
+      <div class="modal-card" style="max-width:760px">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
+          <div>
+            <div class="muted">MANDANTEN-ADMINISTRATION</div>
+            <h2 style="margin:4px 0 0">Daten</h2>
+          </div>
+          <button class="secondary" onclick="document.getElementById('dsDataManagementModal').style.display='none'">✕</button>
+        </div>
+        <p class="muted">Daten und Speicher des eigenen Mandanten gezielt verwalten. Mandantenübergreifende Daten anderer Unternehmen werden nicht gelöscht.</p>
+        <div id="tenantCleanupResult" class="card" style="margin:12px 0"></div>
+        <div class="card">
+          <h3 style="margin-top:0">Datenbereiche auswählen</h3>
+          <div style="display:grid;gap:12px">
+            <label><input type="checkbox" data-tenant-cleanup value="messages"> <strong>Mitteilungen</strong><br><span class="muted">Eigene Mandantenkommunikation und zugehörige Lesestatusdaten.</span></label>
+            <label><input type="checkbox" data-tenant-cleanup value="reports"> <strong>Meldungen</strong><br><span class="muted">Bewohner-/QR-Meldungen des Mandanten inklusive zugehöriger Bilder.</span></label>
+            <label><input type="checkbox" data-tenant-cleanup value="findings"> <strong>Dokumentationen</strong><br><span class="muted">Dokumentationen/Feststellungen inklusive zugehöriger Bilder und Medien.</span></label>
+            <label><input type="checkbox" data-tenant-cleanup value="objects"> <strong>Objekte</strong><br><span class="muted">Eigene Objekte inklusive abhängiger eigener Daten und Bilder. Cross-Tenant-Historien müssen serverseitig geschützt bleiben.</span></label>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+          <button class="secondary" onclick="dsTenantCleanupPreview()">Speicher analysieren</button>
+          <button class="danger" onclick="dsTenantCleanupExecute()">Ausgewählte Daten dauerhaft löschen</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+  modal.style.display='flex';
+  dsTenantCleanupPreview();
+}
+function dsInjectDataNavButton(){
+  if(!dsCanManageTenantData()||document.getElementById('dsDataNavButton'))return;
+
+  // Bevorzugt: unterer Bereich des Hamburger-/Seitennavigationsmenüs.
+  const navs=[...document.querySelectorAll('nav,.menu,.sidebar,.drawer,[class*="menu"],[class*="nav"]')];
+  const nav=navs.find(n=>/Abmelden|Passwort|Benutzer|Objekte/i.test(String(n.textContent||'')));
+  if(!nav)return;
+
+  const b=document.createElement('button');
+  b.id='dsDataNavButton';
+  b.className='secondary';
+  b.type='button';
+  b.textContent='Daten';
+  b.style.width='100%';
+  b.style.marginTop='8px';
+  b.onclick=dsOpenDataManagement;
+
+  // Direkt vor Logout, sofern auffindbar; sonst am unteren Ende.
+  const logout=[...nav.querySelectorAll('button,a')].find(x=>/Abmelden|Logout/i.test(String(x.textContent||'')));
+  if(logout) logout.parentElement?.insertBefore(b,logout);
+  else nav.appendChild(b);
+}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(dsInjectDataNavButton,120));
+document.addEventListener('click',()=>setTimeout(dsInjectDataNavButton,30));
 </script>
 <div id="platformBottomNav" class="pa-bottom-nav hidden">
   <button type="button" data-pa-nav="dashboard" onclick="showSection('dashboard')"><span>⌂</span><small>Dashboard</small></button>
