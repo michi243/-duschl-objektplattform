@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.96</title>
+<title>Duschl Service – Objektplattform v2.18.97</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1127,7 +1127,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.96</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.97</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1169,7 +1169,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.96</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.97</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -2954,7 +2954,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.18.95'; // Owner-Visibility: Objekteigentümer sieht alle Dokumentationen seines Objekts; Fremddienstleister bleiben voneinander getrennt.
+const APP_VERSION='2.18.97'; // End-to-End-Vorgangshistorie: Entscheidung, Routing, Annahme, Bearbeitung und Abschluss nachvollziehbar.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -3829,7 +3829,19 @@ function routedFindingOrders(findingId){
 function findingRouteMetaHtml(f){
   const rows=routedFindingOrders(f?.id);
   if(!rows.length)return '';
-  return `<div class="muted" style="margin-top:7px"><strong>Geroutet an:</strong> ${rows.map(x=>`${esc(partnerName(x.executor_organization_id))} · ${esc(externalOrderStatusLabel(x.status))}`).join(' · ')}</div>`;
+  const ordered=[...rows].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
+  return ordered.map(x=>{
+    const snap=x.source_snapshot||{};
+    const routedBy=snap.routed_by_name||snap.routedByName||'';
+    const routedByOrg=snap.routed_by_organization_name||snap.routedByOrganizationName||partnerName(x.source_organization_id);
+    const actor=[routedBy,routedByOrg].filter(Boolean).join(' · ');
+    const when=x.created_at?fmt(x.created_at):'';
+    return `<div class="muted" style="margin-top:7px">
+      ${actor?`<div><strong>Geroutet von:</strong> ${esc(actor)}</div>`:''}
+      <div><strong>Geroutet an:</strong> ${esc(partnerName(x.executor_organization_id))}${when?` · ${esc(when)}`:''}</div>
+      <div><strong>Status Routing:</strong> ${esc(externalOrderStatusLabel(x.status))}</div>
+    </div>`;
+  }).join('');
 }
 
 function refreshFindingDecisionAccess(){
@@ -4130,7 +4142,7 @@ async function copyTenantPublicCode(){
 function applyRoleUI(){
   const role=effectiveUserRole();
 
-  // v2.18.96: Im operativen Mandantenkontext zeigt der Header immer
+  // v2.18.97: Im operativen Mandantenkontext zeigt der Header immer
   // den aktuell ausgewählten Mandanten statt der Plattformmarke.
   // Im reinen Plattformmodus bleibt "Duschl Service" als Plattformbetreiber sichtbar.
   const appBrandName=document.getElementById('appBrandName');
@@ -4915,7 +4927,7 @@ async function cloudReloadFindings(){
   const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
   let rows=(rowsRaw||[]).filter(f=>accessibleObjectIds.has(f.object_id));
 
-  // v2.18.96: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
+  // v2.18.97: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
   // Sicht des simulierten Mandanten sehen. Seine globale Admin-RLS darf daher
   // nicht dazu führen, dass parallele Dienstleister gegenseitig ihre Findings sehen.
   if(isPlatformTenantMode()){
@@ -5183,7 +5195,7 @@ async function cloudLoadSharedObjects(){
   try{
     let rows=[];
     if(isPlatformTenantMode()){
-      // v2.18.96: autoritative Support-RPC mit explizitem Mandantenkontext.
+      // v2.18.97: autoritative Support-RPC mit explizitem Mandantenkontext.
       rows=await cloudRequest('rpc/platform_support_get_shared_objects',{
         method:'POST',
         body:JSON.stringify({p_organization_id:currentOrganizationId()})
@@ -5310,7 +5322,7 @@ async function saveSharedObjectAssignment(collaborationId){
   const uid=document.getElementById('socAssignee')?.value||null;
   try{await cloudRequest('rpc/assign_shared_object',{method:'POST',body:JSON.stringify({p_collaboration_id:collaborationId,p_user_id:uid})});closeModal();await cloudLoadObjectCollaborations(false);await cloudReloadObjects();}catch(e){alert('Zuweisung konnte nicht gespeichert werden: '+(e.message||e));}
 }
-function externalOrderStatusLabel(v){return ({requested:'Angefragt',accepted:'Angenommen',in_progress:'In Bearbeitung',completed:'Erledigt',rejected:'Abgelehnt',cancelled:'Storniert'})[v]||v||'—';}
+function externalOrderStatusLabel(v){return ({requested:'Übermittelt',accepted:'Angenommen',in_progress:'In Bearbeitung',completed:'Erledigt',rejected:'Abgelehnt',cancelled:'Storniert'})[v]||v||'—';}
 function externalOrderIsOpen(v){return !['completed','rejected','cancelled'].includes(String(v||''));}
 async function cloudLoadExternalOrders(render=true){
   if(!cloudSession?.access_token||isPlatformOperatorRole()&&!isPlatformTenantMode())return;
@@ -5366,7 +5378,7 @@ async function openRouteFindingModal(findingId){
   if(!canRouteFindingUI(f))return alert('Nur der berechtigte Entscheider des führenden Mandanten kann diesen Vorgang an ein anderes Unternehmen routen.');
   const o=(db.objects||[]).find(x=>x.id===f.objectId);if(!o)return alert('Objekt nicht gefunden.');
 
-  // v2.18.96: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
+  // v2.18.97: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
   // Dadurch muss die öffentliche Mandanten-ID im Regelprozess nicht mehr manuell eingegeben werden.
   try{await cloudLoadObjectCollaborations(false);}catch(_e){}
   const currentOrgId=currentOrganizationId();
@@ -6837,7 +6849,7 @@ const DECISION_STATUS_LABELS={
   pending:'Entscheidung ausstehend',
   quote_requested:'Angebot erwünscht',
   quote_sent:'Angebot versendet',
-  approved:'Beauftragt',
+  approved:'Durchführen',
   rejected:'Nicht beauftragt',
   deferred:'Zurückgestellt',
   question:'Rückfrage erforderlich',
