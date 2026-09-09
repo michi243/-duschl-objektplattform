@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.25</title>
+<title>Duschl Service – Objektplattform v2.19.26</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1136,7 +1136,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.25</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.26</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1180,7 +1180,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.25</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.26</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1191,12 +1191,13 @@ body.public-report-mode>#photoViewer{display:none!important}
       <div class="pa-kpi-value" id="sysTenantCount">0</div>
       <div class="pa-kpi-sub">aktive Unternehmen</div>
     </button>
-    <div class="pa-kpi-card pa-kpi-green">
+    <button class="pa-kpi-card pa-kpi-green" type="button" onclick="showSection('users')">
       <div class="pa-kpi-icon">♟</div>
+      <div class="pa-kpi-arrow">›</div>
       <div class="pa-kpi-label">Benutzer</div>
       <div class="pa-kpi-value" id="sysUserCount">0</div>
       <div class="pa-kpi-sub">aktive Benutzer</div>
-    </div>
+    </button>
     <div class="pa-kpi-card pa-kpi-purple">
       <div class="pa-kpi-icon">▰</div>
       <div class="pa-kpi-label">Speicher</div>
@@ -1332,8 +1333,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.25</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.25 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.26</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.26 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -1556,6 +1557,15 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="users">
+<div id="platformOrphanUserCard" class="card platform-danger-zone hidden" style="margin-bottom:16px">
+  <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
+    <div>
+      <h2 style="margin:0">Benutzer ohne Mandant</h2>
+      <div class="muted" style="margin-top:6px">Verwaiste Benutzerkonten prüfen und gezielt aus der aktiven Plattform entfernen. Platform-Administratoren sind ausgeschlossen.</div>
+    </div>
+    <button class="platform-danger-btn" type="button" onclick="openOrphanUserCleanupModal()">Benutzer ohne Mandant anzeigen</button>
+  </div>
+</div>
 <div class="card">
 <h2>Benutzer &amp; Berechtigungen</h2>
 <div class="card" id="newUserCard" style="margin-bottom:16px">
@@ -2966,7 +2976,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.25'; // Platform-Admin: eigener Workflow zum Prüfen und Löschen verwaister Benutzer ohne Mandantenzuordnung.
+const APP_VERSION='2.19.26'; // Platform-Admin Benutzerbereich: sichtbarer eigener Bereich 'Benutzer ohne Mandant' mit Löschworkflow.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -4180,7 +4190,7 @@ async function copyTenantPublicCode(){
 function applyRoleUI(){
   const role=effectiveUserRole();
 
-  // v2.19.25: Im operativen Mandantenkontext zeigt der Header immer
+  // v2.19.26: Im operativen Mandantenkontext zeigt der Header immer
   // den aktuell ausgewählten Mandanten statt der Plattformmarke.
   // Im reinen Plattformmodus bleibt "Duschl Service" als Plattformbetreiber sichtbar.
   const appBrandName=document.getElementById('appBrandName');
@@ -4258,6 +4268,7 @@ function applyRoleUI(){
   show('navSettings',false);
   show('headerDataBtn',hasAppRole && !platformMode && dsCanManageTenantData());
   show('orphanUserCleanupBtn',isAdminRole() && !platformMode);
+  show('platformOrphanUserCard',isAdminRole() && !platformMode);
   const platformDashboard=document.getElementById('platformAdminDashboard');
   const operationalDashboard=document.getElementById('operationalDashboard');
   const platformBottomNav=document.getElementById('platformBottomNav');
@@ -4967,7 +4978,7 @@ async function cloudReloadFindings(){
   const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
   let rows=(rowsRaw||[]).filter(f=>accessibleObjectIds.has(f.object_id));
 
-  // v2.19.25: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
+  // v2.19.26: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
   // Sicht des simulierten Mandanten sehen. Seine globale Admin-RLS darf daher
   // nicht dazu führen, dass parallele Dienstleister gegenseitig ihre Findings sehen.
   if(isPlatformTenantMode()){
@@ -5235,7 +5246,7 @@ async function cloudLoadSharedObjects(){
   try{
     let rows=[];
     if(isPlatformTenantMode()){
-      // v2.19.25: autoritative Support-RPC mit explizitem Mandantenkontext.
+      // v2.19.26: autoritative Support-RPC mit explizitem Mandantenkontext.
       rows=await cloudRequest('rpc/platform_support_get_shared_objects',{
         method:'POST',
         body:JSON.stringify({p_organization_id:currentOrganizationId()})
@@ -5435,7 +5446,7 @@ async function openRouteFindingModal(findingId){
   if(!canRouteFindingUI(f))return alert('Nur der berechtigte Entscheider des führenden Mandanten kann diesen Vorgang an ein anderes Unternehmen routen.');
   const o=(db.objects||[]).find(x=>x.id===f.objectId);if(!o)return alert('Objekt nicht gefunden.');
 
-  // v2.19.25: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
+  // v2.19.26: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
   // Dadurch muss die öffentliche Mandanten-ID im Regelprozess nicht mehr manuell eingegeben werden.
   try{await cloudLoadObjectCollaborations(false);}catch(_e){}
   const currentOrgId=currentOrganizationId();
@@ -6135,6 +6146,24 @@ async function setPlatformDelegateActive(userId,active){
 
 
 
+
+async function refreshPlatformOrphanUserCard(){
+  const card=document.getElementById('platformOrphanUserCard');
+  if(!card || !isAdminRole() || isPlatformTenantMode())return;
+  const btn=card.querySelector('button');
+  try{
+    const result=await cloudRequest('rpc/platform_orphan_users_preview',{
+      method:'POST',
+      body:JSON.stringify({})
+    });
+    const users=Array.isArray(result)?result:(result?.users||[]);
+    if(btn)btn.textContent=`Benutzer ohne Mandant anzeigen (${users.length})`;
+  }catch(e){
+    if(btn)btn.textContent='Benutzer ohne Mandant anzeigen';
+    console.warn('Verwaiste Benutzer konnten nicht vorab gezählt werden',e);
+  }
+}
+
 async function openOrphanUserCleanupModal(){
   if(!isAdminRole())return alert('Nur der primäre Platform Admin darf verwaiste Benutzer verwalten.');
 
@@ -6530,7 +6559,7 @@ async function cloudReloadObjects(){
       const objectPath=`objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(platformTenantModeOrgId)}&order=name.asc`;
       rows=await cloudRequest(objectPath);
     }else{
-      // v2.19.25: Mandantenobjekte nicht mehr von einer möglicherweise zu restriktiven
+      // v2.19.26: Mandantenobjekte nicht mehr von einer möglicherweise zu restriktiven
       // generischen objects-RLS abhängig machen. Die RPC entscheidet serverseitig:
       // Tenant-Admin/Admin-Vertretung = alle Objekte des Mandanten;
       // Objektbetreuer = ausschließlich aktive Zuweisungen;
@@ -6549,7 +6578,7 @@ async function cloudReloadObjects(){
           });
         }
 
-        // v2.19.25: Sicherheitsnetz für Mandanten-Admins.
+        // v2.19.26: Sicherheitsnetz für Mandanten-Admins.
         // Bei Rollenmodell global=object_manager + tenant_membership=tenant_admin
         // darf ein leerer RPC-Return nicht dazu führen, dass der Admin "keine Objekte" sieht.
         if((!rows||rows.length===0) && typeof currentOrganizationId==='function'){
@@ -6585,7 +6614,7 @@ async function cloudReloadObjects(){
     const ownIds=new Set(ownObjects.map(o=>o.id));
     db.objects=ownObjects.concat(cloudSharedObjects.filter(o=>!ownIds.has(o.id)));
 
-    // v2.19.25: Objekte sind ein eigenständiger Kernbestand.
+    // v2.19.26: Objekte sind ein eigenständiger Kernbestand.
     // Sobald sie geladen sind, werden sie sofort sichtbar gemacht.
     // Ein Fehler in nachgelagerten Modulen darf die Objektansicht nicht mehr leer lassen.
     try{
@@ -7216,6 +7245,7 @@ function showSection(id){
   [...document.querySelectorAll('nav button')].find(b=>b.getAttribute('onclick')?.includes(`'${id}'`))?.classList.add('primary');
   document.querySelectorAll('#platformBottomNav [data-pa-nav]').forEach(b=>b.classList.toggle('active',b.getAttribute('data-pa-nav')===id));
   if(id==='objects'){renderObjectsDirect();try{renderObjects();}catch(e){console.error('Detail-Renderer Objektseite fehlgeschlagen',e);}}
+  if(id==='users' && isAdminRole() && !isPlatformTenantMode()){refreshPlatformOrphanUserCard();}
   if(id==='dashboard'&&isAdminRole()){loadPlatformSystemStatus();}if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='externalOrders')cloudLoadExternalOrders();if(id==='users')loadUserAdminData();
 }
 function priorityLabel(p){
@@ -8204,7 +8234,7 @@ function renderObjectsDirect(){
   const status=document.getElementById('objectListStatus');
   if(!el)return;
   const objects=Array.isArray(db?.objects)?db.objects:[];
-  if(status)status.textContent=`Objektmodul v2.19.25 · ${objects.length} Objekt${objects.length===1?'':'e'} geladen`;
+  if(status)status.textContent=`Objektmodul v2.19.26 · ${objects.length} Objekt${objects.length===1?'':'e'} geladen`;
   if(!objects.length){
     el.innerHTML='<div class="empty">Keine Objekte im aktuellen Mandantenkontext.</div>';
     return;
