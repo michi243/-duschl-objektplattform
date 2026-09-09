@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.84</title>
+<title>Duschl Service – Objektplattform v2.18.85</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1127,7 +1127,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.84</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.85</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1169,7 +1169,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.84</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.85</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1564,7 +1564,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <option value="admin_delegate">Admin-Vertretung</option>
 <option value="object_manager">Objektbetreuer</option>
 <option value="customer">Auftraggeber</option>
-<option value="test_user">Testbenutzer</option>
+<option value="external_contractor">Externer Auftragnehmer</option>
 </select>
 </label>
 </div>
@@ -3763,7 +3763,8 @@ const ROLE_LABELS={
   object_manager:'Objektbetreuer',
   employee:'Mitarbeiter (Alt)',
   customer:'Auftraggeber',
-  test_user:'Testbenutzer',
+  test_user:'Testbenutzer (Legacy)',
+  external_contractor:'Externer Auftragnehmer',
   tenant_admin:'Mandanten-Admin',
   admin_delegate:'Admin-Vertretung'
 };
@@ -3788,6 +3789,7 @@ function isAdminDelegate(){return effectiveOrganizationRole()==='admin_delegate'
 function hasOperationalAdminAccess(){return isTenantAdminRole()||isAdminDelegate()}
 function canManageUsersUI(){return isTenantAdminRole()||isAdminDelegate()}
 function isObjectManagerRole(){return !hasOperationalAdminAccess()&&['object_manager','staff'].includes(effectiveUserRole())}
+function isExternalContractorRole(){return effectiveOrganizationRole()==='external_contractor'&&!hasOperationalAdminAccess()}
 function isCustomerRole(){return effectiveUserRole()==='customer'&&!hasOperationalAdminAccess()}
 function isTestUserRole(){return effectiveUserRole()==='test_user'&&!hasOperationalAdminAccess()}
 function canManageObjectsUI(){return hasOperationalAdminAccess()}
@@ -3810,8 +3812,8 @@ function refreshFindingDecisionAccess(){
   if(card)card.style.display=allowed?'':'none';
   if(hint)hint.classList.toggle('hidden',allowed);
 }
-function canUseWorkQueueUI(){return hasOperationalAdminAccess()||isObjectManagerRole()||isTestUserRole()}
-function canCreateDocumentationUI(){return hasOperationalAdminAccess()||isObjectManagerRole()||isCustomerRole()||isTestUserRole()}
+function canUseWorkQueueUI(){return hasOperationalAdminAccess()||isObjectManagerRole()||isExternalContractorRole()||isTestUserRole()}
+function canCreateDocumentationUI(){return hasOperationalAdminAccess()||isObjectManagerRole()||isExternalContractorRole()||isCustomerRole()||isTestUserRole()}
 function canUseSettingsUI(){return isAdminRole()&&!isPlatformTenantMode()}
 function canSeeInternalPersonnelUI(){return hasOperationalAdminAccess()||(!isCustomerRole()&&!isTestUserRole())}
 function customerSafeText(v){return isCustomerRole()?'':(v||'')}
@@ -3824,7 +3826,7 @@ function canEditFindingUI(f){
   if(!f)return canCreateDocumentationUI();
   return hasOperationalAdminAccess()
     || isTestUserRole()
-    || (isObjectManagerRole()&&isAccessibleObjectUI(f.objectId))
+    || ((isObjectManagerRole()||isExternalContractorRole())&&isAccessibleObjectUI(f.objectId))
     || (isCustomerRole()&&f.createdBy&&f.createdBy===currentUserId());
 }
 function canEditInspectionUI(i){
@@ -4917,7 +4919,7 @@ async function cloudSaveFinding(id,data){
   const isCloudId=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||'');
   if(!isCloudId){
     payload.created_by=currentUserId();
-    // v2.18.84: Herkunft wird bei Erstellung historisch eingefroren.
+    // v2.18.85: Herkunft wird bei Erstellung historisch eingefroren.
     payload.creator_name_snapshot=(currentUserProfile?.full_name||cloudSession?.user?.user_metadata?.full_name||cloudSession?.user?.email||'').trim()||null;
     payload.creator_organization_id_snapshot=currentOrganizationId()||null;
     payload.creator_organization_name_snapshot=(currentOrganization?.name||organizationName(currentOrganizationId())||'').trim()||null;
@@ -5114,6 +5116,7 @@ async function refreshAllCloudData(){
   }
 }
 
+// v2.18.85 – Rollen-/Vergabemodell: test_user nur Legacy; externe Auftragnehmer und mehrstufige Auftragsketten.
 // v2.18.82 – Mandantenübergreifende Zusammenarbeit.
 // Ein Auftrag bleibt Eigentum des Quellmandanten. Der ausführende Mandant erhält
 // ausschließlich Zugriff auf den freigegebenen Auftrag und arbeitet im eigenen Kontext.
@@ -5227,7 +5230,7 @@ function externalOrderIsOpen(v){return !['completed','rejected','cancelled'].inc
 async function cloudLoadExternalOrders(render=true){
   if(!cloudSession?.access_token||isPlatformOperatorRole()&&!isPlatformTenantMode())return;
   try{
-    const rows=await cloudRequest('shared_work_orders?select=id,source_organization_id,executor_organization_id,source_object_id,source_object_name,source_object_address,title,description,priority,status,assigned_user_id,created_by,created_at,accepted_at,completed_at,updated_at&order=created_at.desc');
+    const rows=await cloudRequest('shared_work_orders?select=id,parent_work_order_id,root_work_order_id,source_organization_id,executor_organization_id,source_object_id,source_object_name,source_object_address,title,description,priority,status,assigned_user_id,created_by,created_at,accepted_at,completed_at,updated_at,subcontracting_allowed,visibility_scope&order=created_at.desc');
     cloudExternalOrders=Array.isArray(rows)?rows:[];
     try{const p=await cloudRequest('rpc/get_collaboration_partners',{method:'POST',body:JSON.stringify({})});cloudCollaborationPartners=Array.isArray(p)?p:[];}catch(_e){cloudCollaborationPartners=[];}
     if(hasOperationalAdminAccess()){try{const a=await cloudRequest('rpc/get_external_order_assignees',{method:'POST',body:JSON.stringify({})});cloudExternalOrderAssignees=Array.isArray(a)?a:[];}catch(_e){cloudExternalOrderAssignees=[];}}
@@ -5254,7 +5257,7 @@ function renderExternalOrders(){
     const other=isIn?partnerName(x.source_organization_id):partnerName(x.executor_organization_id);
     const direction=isIn?'Eingehend':'Ausgehend';
     const assignedName=cloudExternalOrderAssignees.find(a=>a.user_id===x.assigned_user_id)?.display_name||'';
-    const actions=isIn&&hasOperationalAdminAccess()?`<div class="row" style="margin-top:10px;gap:8px">${x.status==='requested'?`<button class="primary" onclick="updateExternalOrderStatus('${esc(x.id)}','accepted')">Annehmen</button><button onclick="updateExternalOrderStatus('${esc(x.id)}','rejected')">Ablehnen</button>`:''}${['accepted','in_progress'].includes(x.status)?`<button class="primary" onclick="updateExternalOrderStatus('${esc(x.id)}','in_progress')">In Bearbeitung</button><button onclick="updateExternalOrderStatus('${esc(x.id)}','completed')">Erledigt</button>`:''}<button onclick="openExternalOrderAssignmentModal('${esc(x.id)}')">${x.assigned_user_id?'Zuweisung ändern':'Objektbetreuer zuweisen'}</button></div>`:'';
+    const actions=isIn&&hasOperationalAdminAccess()?`<div class="row" style="margin-top:10px;gap:8px">${x.status==='requested'?`<button class="primary" onclick="updateExternalOrderStatus('${esc(x.id)}','accepted')">Annehmen</button><button onclick="updateExternalOrderStatus('${esc(x.id)}','rejected')">Ablehnen</button>`:''}${['accepted','in_progress'].includes(x.status)?`<button class="primary" onclick="updateExternalOrderStatus('${esc(x.id)}','in_progress')">In Bearbeitung</button><button onclick="updateExternalOrderStatus('${esc(x.id)}','completed')">Erledigt</button>`:''}${['accepted','in_progress'].includes(x.status)&&x.subcontracting_allowed!==false?`<button onclick="openSubcontractOrderModal('${esc(x.id)}')">Weitervergeben</button>`:''}<button onclick="openExternalOrderAssignmentModal('${esc(x.id)}')">${x.assigned_user_id?'Zuweisung ändern':'Objektbetreuer zuweisen'}</button></div>`:'';
     return `<div class="card" style="margin:10px 0"><div class="row space"><div><span class="badge">${direction}</span> ${badgeP(x.priority||'P3')}</div><span class="badge">${esc(externalOrderStatusLabel(x.status))}</span></div><h3 style="margin:10px 0 4px">${esc(x.title||'Externer Auftrag')}</h3><div class="muted">${esc(other)} · ${esc(x.source_object_name||'Objekt')}${x.source_object_address?` · ${esc(x.source_object_address)}`:''}</div>${x.description?`<div style="margin-top:9px">${esc(x.description)}</div>`:''}${assignedName?`<div class="muted" style="margin-top:8px">Verantwortlich: <strong>${esc(assignedName)}</strong></div>`:''}<div class="muted" style="margin-top:8px">Erstellt: ${esc(fmt(x.created_at))}</div>${actions}</div>`;
   }).join('');
 }
@@ -5265,17 +5268,37 @@ async function openExternalOrderModal(){
   if(!partners.length)return alert('Für diesen Mandanten ist noch kein Partnerunternehmen für externe Beauftragungen freigeschaltet.');
   const objs=(db.objects||[]).filter(o=>!currentOrganizationId()||o.organizationId===currentOrganizationId());
   const root=document.getElementById('modalRoot');
-  root.innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Extern beauftragen</h2><p class="muted">Der Auftrag wird dem Partner freigegeben. Du bleibst im eigenen Mandanten.</p><label>Partnerunternehmen *</label><select id="ewoPartner">${partners.map(p=>`<option value="${esc(p.organization_id)}">${esc(p.organization_name)}</option>`).join('')}</select><label>Objekt *</label><select id="ewoObject">${objs.map(o=>`<option value="${esc(o.id)}">${esc(o.name||'Objekt')}</option>`).join('')}</select><label>Titel *</label><input id="ewoTitle" placeholder="z. B. Defekte Beleuchtung prüfen"><label>Beschreibung</label><textarea id="ewoDescription" rows="4" placeholder="Auftrag und gewünschtes Ergebnis"></textarea><label>Priorität</label><select id="ewoPriority"><option value="P1">Sofort</option><option value="P2">Dringend</option><option value="P3" selected>Planbar</option><option value="P4">Beobachten</option></select><div class="modal-actions"><button class="primary" onclick="createExternalOrder()">Auftrag senden</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
+  root.innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Extern beauftragen</h2><p class="muted">Der Auftrag wird dem Partner freigegeben. Du bleibst im eigenen Mandanten.</p><label>Partnerunternehmen *</label><select id="ewoPartner">${partners.map(p=>`<option value="${esc(p.organization_id)}">${esc(p.organization_name)}</option>`).join('')}</select><label>Objekt *</label><select id="ewoObject">${objs.map(o=>`<option value="${esc(o.id)}">${esc(o.name||'Objekt')}</option>`).join('')}</select><label>Titel *</label><input id="ewoTitle" placeholder="z. B. Defekte Beleuchtung prüfen"><label>Beschreibung</label><textarea id="ewoDescription" rows="4" placeholder="Auftrag und gewünschtes Ergebnis"></textarea><label class="row" style="gap:8px;align-items:center;margin-top:12px"><input id="ewoSubcontracting" type="checkbox" checked> Weitervergabe an Subunternehmer erlaubt</label><label>Priorität</label><select id="ewoPriority"><option value="P1">Sofort</option><option value="P2">Dringend</option><option value="P3" selected>Planbar</option><option value="P4">Beobachten</option></select><div class="modal-actions"><button class="primary" onclick="createExternalOrder()">Auftrag senden</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
 }
 async function createExternalOrder(){
-  const partner=document.getElementById('ewoPartner')?.value||'';const objectId=document.getElementById('ewoObject')?.value||'';const title=(document.getElementById('ewoTitle')?.value||'').trim();const description=(document.getElementById('ewoDescription')?.value||'').trim();const priority=document.getElementById('ewoPriority')?.value||'P3';
+  const partner=document.getElementById('ewoPartner')?.value||'';const objectId=document.getElementById('ewoObject')?.value||'';const title=(document.getElementById('ewoTitle')?.value||'').trim();const description=(document.getElementById('ewoDescription')?.value||'').trim();const priority=document.getElementById('ewoPriority')?.value||'P3';const subcontractingAllowed=document.getElementById('ewoSubcontracting')?.checked!==false;
   if(!partner||!objectId||!title)return alert('Partnerunternehmen, Objekt und Titel sind Pflichtfelder.');
   const o=(db.objects||[]).find(x=>x.id===objectId); if(!o)return alert('Objekt nicht gefunden.');
   try{
-    await cloudRequest('shared_work_orders',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify({source_organization_id:currentOrganizationId(),executor_organization_id:partner,source_object_id:objectId,source_object_name:o.name||'Objekt',source_object_address:o.address||'',title,description,priority,status:'requested',created_by:currentUserId()})});
+    await cloudRequest('shared_work_orders',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify({source_organization_id:currentOrganizationId(),executor_organization_id:partner,source_object_id:objectId,source_object_name:o.name||'Objekt',source_object_address:o.address||'',title,description,priority,status:'requested',subcontracting_allowed:subcontractingAllowed,visibility_scope:'order_only',created_by:currentUserId()})});
     closeModal();await cloudLoadExternalOrders();alert('Der Auftrag wurde dem Partnerunternehmen freigegeben.');
   }catch(e){alert('Externer Auftrag konnte nicht erstellt werden: '+(e.message||e));}
 }
+async function openSubcontractOrderModal(parentId){
+  if(!hasOperationalAdminAccess())return alert('Nur Mandanten-Admin oder Admin-Vertretung können einen Auftrag weitervergeben.');
+  const parent=cloudExternalOrders.find(x=>x.id===parentId);if(!parent)return alert('Ausgangsauftrag nicht gefunden.');
+  if(parent.subcontracting_allowed===false)return alert('Der Auftraggeber hat eine Weitervergabe für diesen Auftrag ausgeschlossen.');
+  await cloudLoadExternalOrders(false);
+  const partners=cloudCollaborationPartners.filter(p=>p.can_send===true&&p.organization_id!==parent.source_organization_id);
+  if(!partners.length)return alert('Kein weiteres Partnerunternehmen für die Weitervergabe freigeschaltet.');
+  const root=document.getElementById('modalRoot');
+  root.innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Auftrag weitervergeben</h2><p class="muted">Der Subunternehmer arbeitet im Auftrag von <strong>${esc(currentOrganization?.name||'deinem Unternehmen')}</strong>. Er erhält nur diesen Auftrag und ausdrücklich freigegebene Informationen – keinen allgemeinen Zugriff auf fremde Dokumentationen.</p><label>Subunternehmer *</label><select id="subPartner">${partners.map(p=>`<option value="${esc(p.organization_id)}">${esc(p.organization_name)}</option>`).join('')}</select><label>Titel *</label><input id="subTitle" value="${esc(parent.title||'')}"><label>Beschreibung / freigegebener Leistungsumfang</label><textarea id="subDescription" rows="4">${esc(parent.description||'')}</textarea><div class="modal-actions"><button class="primary" onclick="createSubcontractOrder('${esc(parentId)}')">Weitergeben</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
+}
+async function createSubcontractOrder(parentId){
+  const parent=cloudExternalOrders.find(x=>x.id===parentId);if(!parent)return alert('Ausgangsauftrag nicht gefunden.');
+  const partner=document.getElementById('subPartner')?.value||'';const title=(document.getElementById('subTitle')?.value||'').trim();const description=(document.getElementById('subDescription')?.value||'').trim();
+  if(!partner||!title)return alert('Subunternehmer und Titel sind Pflichtfelder.');
+  try{
+    await cloudRequest('rpc/create_subcontract_work_order',{method:'POST',body:JSON.stringify({p_parent_work_order_id:parentId,p_executor_organization_id:partner,p_title:title,p_description:description})});
+    closeModal();await cloudLoadExternalOrders();alert('Der Auftrag wurde kontrolliert an den Subunternehmer weitergegeben.');
+  }catch(e){alert('Weitervergabe konnte nicht erstellt werden: '+(e.message||e));}
+}
+
 async function openExternalOrderAssignmentModal(id){
   if(!hasOperationalAdminAccess())return;
   const order=cloudExternalOrders.find(x=>x.id===id);if(!order)return;
@@ -7278,7 +7301,7 @@ function loadUserAdminEditor(){
   const membership=userAdminMemberships.find(m=>m.user_id===uid)||null;
   const orgId=membership?.organization_id||currentOrganizationId();
   const assigned=new Set(userAdminAssignments.filter(a=>a.user_id===uid&&a.active!==false).map(a=>a.object_id));
-  const roles=[['tenant_admin','Mandanten-Admin'],['admin_delegate','Admin-Vertretung'],['object_manager','Objektbetreuer'],['customer','Auftraggeber'],['test_user','Testbenutzer']];
+  const roles=[['tenant_admin','Mandanten-Admin'],['admin_delegate','Admin-Vertretung'],['object_manager','Objektbetreuer'],['external_contractor','Externer Auftragnehmer'],['customer','Auftraggeber']];
   const allowedRoles=isAdminDelegate()?roles.filter(([v])=>!['tenant_admin','admin_delegate'].includes(v)):roles;
   const roleOptions=allowedRoles.map(([v,l])=>`<option value="${v}" ${membership?.role===v?'selected':''}>${l}</option>`).join('');
   const objectRows=(db.objects||[]).filter(o=>!orgId||o.organizationId===orgId).map(o=>`<label class="row" style="gap:10px;align-items:center;margin:8px 0"><input type="checkbox" class="userObjectAssignment" value="${esc(o.id)}" ${assigned.has(o.id)?'checked':''} ${membership?.role==='test_user'&&!o.isTest?'disabled':''}><span><strong>${esc(o.name||'Objekt')}</strong>${o.isTest?' <span class="badge">TEST</span>':''}${o.address?`<br><span class="muted">${esc(o.address)}</span>`:''}</span></label>`).join('')||'<p class="muted">Keine Objekte vorhanden.</p>';
@@ -7301,7 +7324,7 @@ async function createUserAndInvite(){
   if(!fullName)return alert('Bitte einen Anzeigenamen eingeben.');
   if(!organizationId)return alert('Bitte ein Unternehmen / einen Mandanten auswählen.');
   if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return alert('Bitte eine gültige E-Mail-Adresse eingeben.');
-  if(!['tenant_admin','admin_delegate','object_manager','customer','test_user'].includes(role))return alert('Ungültige Rolle.');
+  if(!['tenant_admin','admin_delegate','object_manager','external_contractor','customer'].includes(role))return alert('Ungültige Rolle.');
 
   const btn=event?.currentTarget;
   if(btn){btn.disabled=true;btn.textContent='Benutzer wird angelegt…';}
@@ -7313,7 +7336,7 @@ async function createUserAndInvite(){
         'Authorization':`Bearer ${cloudSession?.access_token||''}`,
         'apikey':SUPABASE_PUBLISHABLE_KEY
       },
-      body:JSON.stringify({fullName,email,role:(['tenant_admin','admin_delegate','test_user'].includes(role)?'object_manager':role),objectIds})
+      body:JSON.stringify({fullName,email,role:(['tenant_admin','admin_delegate','external_contractor'].includes(role)?'object_manager':role),objectIds})
     });
 
     const responseText=await res.text();
@@ -7496,7 +7519,7 @@ async function saveUserAdminPermissions(){
     const invalid=checked.filter(id=>!(db.objects||[]).find(o=>o.id===id&&o.isTest===true&&o.organizationId===orgId));
     if(invalid.length)return alert('Testbenutzer dürfen ausschließlich Testobjekten ihres Mandanten zugeordnet werden.');
   }
-  const globalRole=organizationRole==='customer'?'customer':organizationRole==='test_user'?'test_user':'object_manager';
+  const globalRole=organizationRole==='customer'?'customer':'object_manager';
   try{
     await cloudRequest('profiles?id=eq.'+encodeURIComponent(uid),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({full_name:fullName,role:globalRole,active})});
     await cloudRequest(`organization_memberships?organization_id=eq.${encodeURIComponent(orgId)}&user_id=eq.${encodeURIComponent(uid)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({role:organizationRole})});
@@ -7552,7 +7575,7 @@ function openObjectOpenFindings(objectId){
 }
 
 function openObjectDocumentation(objectId){
-  // v2.18.84: Objekthistorie unabhängig vom Offen-Status öffnen.
+  // v2.18.85: Objekthistorie unabhängig vom Offen-Status öffnen.
   // Damit bleiben auch erledigte Feststellungen und Leistungen sichtbar.
   showSection('findings');
   const object=document.getElementById('filterObject'); if(object)object.value=objectId;
