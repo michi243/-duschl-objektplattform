@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.98</title>
+<title>Duschl Service – Objektplattform v2.18.99</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1127,7 +1127,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.98</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.99</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1169,7 +1169,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.98</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.99</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -2954,7 +2954,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.18.98'; // E2E-Verantwortungsübergabe: pro Vorgang nur ein aktiver Empfängermandant; frühere Routings bleiben als Historie erhalten.
+const APP_VERSION='2.18.99'; // Direkte Mandantensicht: Fremdmandanten sehen nur ihre eigene Routing-Beziehung; Objekteigentümer behält die vollständige E2E-Historie.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -3827,8 +3827,27 @@ function routedFindingOrders(findingId){
   return (cloudExternalOrders||[]).filter(x=>String(x.source_finding_id||'')===String(findingId||'')&&String(x.order_kind||'')==='finding_route');
 }
 function findingRouteMetaHtml(f){
-  const rows=routedFindingOrders(f?.id);
+  const allRows=routedFindingOrders(f?.id);
+  if(!allRows.length)return '';
+
+  const currentOrgId=String(currentOrganizationId()||'');
+  const object=(db.objects||[]).find(o=>String(o.id||'')===String(f?.objectId||''));
+  const ownerOrgId=String(object?.organizationId||'');
+
+  // Governance:
+  // - Der Objekteigentümer / führende Mandant sieht die vollständige E2E-Kette.
+  // - Jeder andere Mandant sieht ausschließlich Routing-Kanten, an denen er selbst
+  //   direkt als Absender oder Empfänger beteiligt ist.
+  // - Plattform-Admin im Mandantenmodus erhält exakt dieselbe Mandantensicht.
+  const rows=(currentOrgId && ownerOrgId && currentOrgId===ownerOrgId)
+    ? allRows
+    : allRows.filter(x=>
+        String(x.source_organization_id||'')===currentOrgId ||
+        String(x.executor_organization_id||'')===currentOrgId
+      );
+
   if(!rows.length)return '';
+
   const ordered=[...rows].sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0));
   return ordered.map(x=>{
     const snap=x.source_snapshot||{};
@@ -3838,6 +3857,7 @@ function findingRouteMetaHtml(f){
     const when=x.created_at?fmt(x.created_at):'';
     const transferred=String(x.status||'')==='cancelled' && (snap.routing_end_reason==='transferred'||snap.routingEndReason==='transferred');
     const statusLabel=transferred?'Weitergegeben':externalOrderStatusLabel(x.status);
+
     return `<div class="muted" style="margin-top:7px">
       ${actor?`<div><strong>Geroutet von:</strong> ${esc(actor)}</div>`:''}
       <div><strong>Geroutet an:</strong> ${esc(partnerName(x.executor_organization_id))}${when?` · ${esc(when)}`:''}</div>
@@ -4144,7 +4164,7 @@ async function copyTenantPublicCode(){
 function applyRoleUI(){
   const role=effectiveUserRole();
 
-  // v2.18.98: Im operativen Mandantenkontext zeigt der Header immer
+  // v2.18.99: Im operativen Mandantenkontext zeigt der Header immer
   // den aktuell ausgewählten Mandanten statt der Plattformmarke.
   // Im reinen Plattformmodus bleibt "Duschl Service" als Plattformbetreiber sichtbar.
   const appBrandName=document.getElementById('appBrandName');
@@ -4929,7 +4949,7 @@ async function cloudReloadFindings(){
   const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
   let rows=(rowsRaw||[]).filter(f=>accessibleObjectIds.has(f.object_id));
 
-  // v2.18.98: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
+  // v2.18.99: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
   // Sicht des simulierten Mandanten sehen. Seine globale Admin-RLS darf daher
   // nicht dazu führen, dass parallele Dienstleister gegenseitig ihre Findings sehen.
   if(isPlatformTenantMode()){
@@ -5197,7 +5217,7 @@ async function cloudLoadSharedObjects(){
   try{
     let rows=[];
     if(isPlatformTenantMode()){
-      // v2.18.98: autoritative Support-RPC mit explizitem Mandantenkontext.
+      // v2.18.99: autoritative Support-RPC mit explizitem Mandantenkontext.
       rows=await cloudRequest('rpc/platform_support_get_shared_objects',{
         method:'POST',
         body:JSON.stringify({p_organization_id:currentOrganizationId()})
@@ -5380,7 +5400,7 @@ async function openRouteFindingModal(findingId){
   if(!canRouteFindingUI(f))return alert('Nur der berechtigte Entscheider des führenden Mandanten kann diesen Vorgang an ein anderes Unternehmen routen.');
   const o=(db.objects||[]).find(x=>x.id===f.objectId);if(!o)return alert('Objekt nicht gefunden.');
 
-  // v2.18.98: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
+  // v2.18.99: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
   // Dadurch muss die öffentliche Mandanten-ID im Regelprozess nicht mehr manuell eingegeben werden.
   try{await cloudLoadObjectCollaborations(false);}catch(_e){}
   const currentOrgId=currentOrganizationId();
