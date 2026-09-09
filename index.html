@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.85</title>
+<title>Duschl Service – Objektplattform v2.18.86</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1127,7 +1127,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.85</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.86</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1169,7 +1169,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.85</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.86</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -2942,7 +2942,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.18.84';
+const APP_VERSION='2.18.86';
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -3737,6 +3737,7 @@ let currentOrganizationMembership=null;
 let currentOrganization=null;
 let cloudOrganizations=[];
 let cloudExternalOrders=[];
+let cloudExternalOrderRouteMedia=[];
 let cloudCollaborationPartners=[];
 let cloudExternalOrderAssignees=[];
 let cloudSharedObjects=[];
@@ -3804,6 +3805,21 @@ function canUseDecisionsForObject(objectId){
     && !o.externalManaged
     && String(o.organizationId||'')===String(currentOrganizationId()||'');
 }
+function canRouteFindingUI(f){
+  if(!f||String(f.type||'Feststellung')!=='Feststellung')return false;
+  // Routing ist eine explizite Entscheidung des führenden Mandanten.
+  // Externe Betreuer dürfen Vorgänge nicht eigenmächtig an andere Mandanten freigeben.
+  return canUseDecisionsForObject(f.objectId);
+}
+function routedFindingOrders(findingId){
+  return (cloudExternalOrders||[]).filter(x=>String(x.source_finding_id||'')===String(findingId||'')&&String(x.order_kind||'')==='finding_route');
+}
+function findingRouteMetaHtml(f){
+  const rows=routedFindingOrders(f?.id);
+  if(!rows.length)return '';
+  return `<div class="muted" style="margin-top:7px"><strong>Geroutet an:</strong> ${rows.map(x=>`${esc(partnerName(x.executor_organization_id))} · ${esc(externalOrderStatusLabel(x.status))}`).join(' · ')}</div>`;
+}
+
 function refreshFindingDecisionAccess(){
   const oid=document.getElementById('fObject')?.value||'';
   const card=document.getElementById('findingDecisionCard');
@@ -5230,8 +5246,14 @@ function externalOrderIsOpen(v){return !['completed','rejected','cancelled'].inc
 async function cloudLoadExternalOrders(render=true){
   if(!cloudSession?.access_token||isPlatformOperatorRole()&&!isPlatformTenantMode())return;
   try{
-    const rows=await cloudRequest('shared_work_orders?select=id,parent_work_order_id,root_work_order_id,source_organization_id,executor_organization_id,source_object_id,source_object_name,source_object_address,title,description,priority,status,assigned_user_id,created_by,created_at,accepted_at,completed_at,updated_at,subcontracting_allowed,visibility_scope&order=created_at.desc');
+    const rows=await cloudRequest('shared_work_orders?select=id,parent_work_order_id,root_work_order_id,source_organization_id,executor_organization_id,source_object_id,source_object_name,source_object_address,title,description,priority,status,assigned_user_id,created_by,created_at,accepted_at,completed_at,updated_at,subcontracting_allowed,visibility_scope,source_finding_id,order_kind,source_snapshot&order=created_at.desc');
     cloudExternalOrders=Array.isArray(rows)?rows:[];
+    try{
+      const routeIds=cloudExternalOrders.filter(x=>x.order_kind==='finding_route').map(x=>x.id);
+      cloudExternalOrderRouteMedia=routeIds.length
+        ? await cloudRequest(`finding_route_media?select=work_order_id,storage_path,phase,original_filename&work_order_id=in.(${routeIds.join(',')})&order=created_at.asc`)
+        : [];
+    }catch(_e){cloudExternalOrderRouteMedia=[];}
     try{const p=await cloudRequest('rpc/get_collaboration_partners',{method:'POST',body:JSON.stringify({})});cloudCollaborationPartners=Array.isArray(p)?p:[];}catch(_e){cloudCollaborationPartners=[];}
     if(hasOperationalAdminAccess()){try{const a=await cloudRequest('rpc/get_external_order_assignees',{method:'POST',body:JSON.stringify({})});cloudExternalOrderAssignees=Array.isArray(a)?a:[];}catch(_e){cloudExternalOrderAssignees=[];}}
     if(render){renderExternalOrders();await cloudLoadObjectCollaborations(true);}
@@ -5241,6 +5263,12 @@ async function cloudLoadExternalOrders(render=true){
   }
 }
 function partnerName(id){return cloudCollaborationPartners.find(p=>p.organization_id===id)?.organization_name||organizationName(id)||'Partnerunternehmen';}
+function externalOrderRouteMediaHtml(orderId){
+  const rows=(cloudExternalOrderRouteMedia||[]).filter(m=>m.work_order_id===orderId);
+  if(!rows.length)return '';
+  return `<div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">${rows.map((m,i)=>`<div><small class="muted">${esc(m.phase==='after'?'Nachher':'Vorher / Zustand')}</small><br>${mediaImg('cloudmedia:'+m.storage_path,m.original_filename||`Foto ${i+1}`,'thumb')}</div>`).join('')}</div>`;
+}
+
 function renderExternalOrders(){
   const orgId=currentOrganizationId();
   const list=document.getElementById('externalOrdersList'); if(!list)return;
@@ -5258,9 +5286,34 @@ function renderExternalOrders(){
     const direction=isIn?'Eingehend':'Ausgehend';
     const assignedName=cloudExternalOrderAssignees.find(a=>a.user_id===x.assigned_user_id)?.display_name||'';
     const actions=isIn&&hasOperationalAdminAccess()?`<div class="row" style="margin-top:10px;gap:8px">${x.status==='requested'?`<button class="primary" onclick="updateExternalOrderStatus('${esc(x.id)}','accepted')">Annehmen</button><button onclick="updateExternalOrderStatus('${esc(x.id)}','rejected')">Ablehnen</button>`:''}${['accepted','in_progress'].includes(x.status)?`<button class="primary" onclick="updateExternalOrderStatus('${esc(x.id)}','in_progress')">In Bearbeitung</button><button onclick="updateExternalOrderStatus('${esc(x.id)}','completed')">Erledigt</button>`:''}${['accepted','in_progress'].includes(x.status)&&x.subcontracting_allowed!==false?`<button onclick="openSubcontractOrderModal('${esc(x.id)}')">Weitervergeben</button>`:''}<button onclick="openExternalOrderAssignmentModal('${esc(x.id)}')">${x.assigned_user_id?'Zuweisung ändern':'Objektbetreuer zuweisen'}</button></div>`:'';
-    return `<div class="card" style="margin:10px 0"><div class="row space"><div><span class="badge">${direction}</span> ${badgeP(x.priority||'P3')}</div><span class="badge">${esc(externalOrderStatusLabel(x.status))}</span></div><h3 style="margin:10px 0 4px">${esc(x.title||'Externer Auftrag')}</h3><div class="muted">${esc(other)} · ${esc(x.source_object_name||'Objekt')}${x.source_object_address?` · ${esc(x.source_object_address)}`:''}</div>${x.description?`<div style="margin-top:9px">${esc(x.description)}</div>`:''}${assignedName?`<div class="muted" style="margin-top:8px">Verantwortlich: <strong>${esc(assignedName)}</strong></div>`:''}<div class="muted" style="margin-top:8px">Erstellt: ${esc(fmt(x.created_at))}</div>${actions}</div>`;
+    const routeBadge=x.order_kind==='finding_route'?` <span class="badge">Gerouteter Vorgang</span>`:'';
+    const snapshot=x.source_snapshot||{};
+    const routeContext=x.order_kind==='finding_route'&&snapshot.area?`<div class="muted" style="margin-top:6px">Bereich: ${esc(snapshot.area)}${snapshot.area_detail?` · ${esc(snapshot.area_detail)}`:''}</div>`:'';
+    return `<div class="card" style="margin:10px 0"><div class="row space"><div><span class="badge">${direction}</span>${routeBadge} ${badgeP(x.priority||'P3')}</div><span class="badge">${esc(externalOrderStatusLabel(x.status))}</span></div><h3 style="margin:10px 0 4px">${esc(x.title||'Externer Auftrag')}</h3><div class="muted">${esc(other)} · ${esc(x.source_object_name||'Objekt')}${x.source_object_address?` · ${esc(x.source_object_address)}`:''}</div>${routeContext}${x.description?`<div style="margin-top:9px">${esc(x.description)}</div>`:''}${externalOrderRouteMediaHtml(x.id)}${assignedName?`<div class="muted" style="margin-top:8px">Verantwortlich: <strong>${esc(assignedName)}</strong></div>`:''}<div class="muted" style="margin-top:8px">Erstellt: ${esc(fmt(x.created_at))}</div>${actions}</div>`;
   }).join('');
 }
+async function openRouteFindingModal(findingId){
+  const f=(db.findings||[]).find(x=>x.id===findingId);if(!f)return alert('Vorgang nicht gefunden.');
+  if(!canRouteFindingUI(f))return alert('Nur der berechtigte Entscheider des führenden Mandanten kann diesen Vorgang an ein anderes Unternehmen routen.');
+  const o=(db.objects||[]).find(x=>x.id===f.objectId);if(!o)return alert('Objekt nicht gefunden.');
+  const root=document.getElementById('modalRoot');
+  root.innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Vorgang an Firma routen</h2><p class="muted">Die Empfängerfirma erhält ausschließlich diesen Vorgang und die hier freigegebenen Informationen. Andere Dokumentationen des Objekts bleiben unsichtbar.</p><div class="card" style="margin:10px 0"><strong>${esc(f.title||'Feststellung')}</strong><div class="muted">${esc(o.name||'Objekt')}${f.area?' · '+esc(f.area):''}</div></div><label>Mandanten-ID der Empfängerfirma *</label><input id="routePartnerCode" autocomplete="off" autocapitalize="characters" placeholder="z. B. ORG-808D0B87" style="text-transform:uppercase"><label>Hinweis / Auftrag an die Firma</label><textarea id="routeInstruction" rows="4" placeholder="Was soll die Firma prüfen oder ausführen?"></textarea><label class="row" style="gap:8px;align-items:center;margin-top:12px"><input id="routeIncludePhotos" type="checkbox" checked> Fotos dieses Vorgangs mitfreigeben</label><label class="row" style="gap:8px;align-items:center;margin-top:8px"><input id="routeSubcontracting" type="checkbox"> Weitervergabe durch Empfänger erlauben</label><div class="modal-actions"><button class="primary" onclick="routeFindingToOrganization('${esc(findingId)}')">Vorgang senden</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
+}
+async function routeFindingToOrganization(findingId){
+  const code=(document.getElementById('routePartnerCode')?.value||'').trim().toUpperCase();
+  const instruction=(document.getElementById('routeInstruction')?.value||'').trim();
+  const includePhotos=document.getElementById('routeIncludePhotos')?.checked!==false;
+  const subcontractingAllowed=document.getElementById('routeSubcontracting')?.checked===true;
+  if(!code)return alert('Die Mandanten-ID der Empfängerfirma ist erforderlich.');
+  try{
+    await cloudRequest('rpc/route_finding_to_organization_by_code',{method:'POST',body:JSON.stringify({p_finding_id:findingId,p_partner_code:code,p_instruction:instruction||null,p_include_photos:includePhotos,p_subcontracting_allowed:subcontractingAllowed})});
+    closeModal();
+    await cloudLoadExternalOrders(false);
+    renderFindings();
+    alert('Der Vorgang wurde gezielt an die Empfängerfirma geroutet. Andere Dokumentationen des Objekts wurden nicht freigegeben.');
+  }catch(e){alert('Vorgang konnte nicht geroutet werden: '+(e.message||e));}
+}
+
 async function openExternalOrderModal(){
   if(!hasOperationalAdminAccess())return alert('Nur Mandanten-Admin oder Admin-Vertretung können externe Aufträge auslösen.');
   await cloudLoadExternalOrders(false);
@@ -7738,13 +7791,13 @@ function findingCard(f){
     <h3 style="margin-bottom:5px">${esc(f.title)}</h3>
     <div class="muted">${esc(objectName(f.objectId))}${f.area?' · '+esc(f.area):''}${f.areaDetail?' · '+esc(f.areaDetail):''}</div>
     ${findingCreatorMetaHtml(f)}
-    ${type==='Feststellung'?`<div class="muted">Entscheidung: ${esc(decisionLabel(f.decisionStatus||'pending'))}</div>${decisionMetaHtml(f)}`:''}
+    ${type==='Feststellung'?`<div class="muted">Entscheidung: ${esc(decisionLabel(f.decisionStatus||'pending'))}</div>${decisionMetaHtml(f)}${findingRouteMetaHtml(f)}`:''}
     ${(before||after)?`<div class="row" style="margin-top:10px">${before?`<div><small class="muted">Vorher</small><br>${mediaImg(before,'Vorher','thumb')}</div>`:''}${after?`<div><small class="muted">Nachher</small><br>${mediaImg(after,'Nachher','thumb')}</div>`:''}</div>`:''}
     ${f.description?`<p>${esc(f.description)}</p>`:''}
     ${type==='Leistung'&&f.activity?`<p><b>Durchgeführt:</b> ${esc(f.activity)}</p>`:''}
     ${type==='Feststellung'&&f.action?`<p><b>Empfehlung:</b> ${esc(f.action)}</p>`:''}
     ${f.status==='Erledigt'&&f.completionType?`<p><b>Abschluss:</b> ${esc(f.completionType)}${f.completionNote?' – '+esc(f.completionNote):''}</p>`:''}
-    <div class="row">${canEditFindingUI(f)?`<button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}')">Bearbeiten</button>${f.status!=='Erledigt'?`<button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}',true)">Abschließen</button>`:''}`:`<span class="muted">Nur durch Ersteller, zugewiesenen Objektbetreuer oder Admin/GF änderbar.</span>`}</div>
+    <div class="row">${canEditFindingUI(f)?`<button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}')">Bearbeiten</button>${f.status!=='Erledigt'?`<button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}',true)">Abschließen</button>`:''}`:`<span class="muted">Nur durch Ersteller, zugewiesenen Objektbetreuer oder Admin/GF änderbar.</span>`}${canRouteFindingUI(f)?`<button onclick="openRouteFindingModal('${f.id}')">Weiterleiten / routen</button>`:''}</div>
   </div>`;
 }
 let customerCurrentObjectId='';
