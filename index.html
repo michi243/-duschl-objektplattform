@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.87</title>
+<title>Duschl Service – Objektplattform v2.18.88</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1127,7 +1127,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.87</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.88</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1169,7 +1169,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.87</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.88</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -2954,7 +2954,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.18.87';
+const APP_VERSION='2.18.88';
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -5008,14 +5008,16 @@ async function cloudSaveFinding(id,data){
   return row;
 }
 async function cloudDeleteFinding(id){
-  try{await cloudDeleteTaskForFinding(id)}catch(_e){}
-  if(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||'')){
-    try{
-      const photos=await cloudRequest(`media?select=storage_path&finding_id=eq.${encodeURIComponent(id)}&media_type=eq.photo`);
-      for(const p of (photos||[]))try{await cloudMediaDelete('cloudmedia:'+p.storage_path)}catch(_e){}
-    }catch(_e){}
-    await cloudRequest(`findings?id=eq.${encodeURIComponent(id)}`,{method:'DELETE'});
+  const isCloudId=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||'');
+  if(!isCloudId)return {deleted:true,localOnly:true};
+  const result=await cloudRequest('rpc/delete_finding_authoritative',{method:'POST',body:JSON.stringify({p_finding_id:id})});
+  const row=Array.isArray(result)?result[0]:result;
+  if(!row || row.deleted!==true)throw new Error(row?.message||'Die Dokumentation wurde serverseitig nicht gelöscht.');
+  for(const storagePath of (row.storage_paths||[])){
+    if(!storagePath)continue;
+    try{await cloudMediaDelete('cloudmedia:'+storagePath)}catch(e){console.warn('Verwaiste Storage-Datei konnte nicht entfernt werden',storagePath,e);}
   }
+  return row;
 }
 
 async function cloudLoadResidentReports(){
@@ -9272,6 +9274,8 @@ async function deleteFinding(id){
   if(!confirm(`${label} endgültig löschen?`))return;
   try{
     await cloudDeleteFinding(id);
+    await cloudReloadFindings();
+    if((db.findings||[]).some(x=>x.id===id))throw new Error('Die Dokumentation ist nach der Serverprüfung weiterhin vorhanden.');
     db.findings=db.findings.filter(x=>x.id!==id);
     closeModal();save();
   }catch(e){
