@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.83</title>
+<title>Duschl Service – Objektplattform v2.18.84</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1127,7 +1127,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.83</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.84</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1169,7 +1169,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.83</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.84</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -2942,7 +2942,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.18.83';
+const APP_VERSION='2.18.84';
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -4917,7 +4917,7 @@ async function cloudSaveFinding(id,data){
   const isCloudId=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||'');
   if(!isCloudId){
     payload.created_by=currentUserId();
-    // v2.18.83: Herkunft wird bei Erstellung historisch eingefroren.
+    // v2.18.84: Herkunft wird bei Erstellung historisch eingefroren.
     payload.creator_name_snapshot=(currentUserProfile?.full_name||cloudSession?.user?.user_metadata?.full_name||cloudSession?.user?.email||'').trim()||null;
     payload.creator_organization_id_snapshot=currentOrganizationId()||null;
     payload.creator_organization_name_snapshot=(currentOrganization?.name||organizationName(currentOrganizationId())||'').trim()||null;
@@ -7551,6 +7551,18 @@ function openObjectOpenFindings(objectId){
   requestAnimationFrame(()=>document.getElementById('findingList')?.scrollIntoView({behavior:'smooth',block:'start'}));
 }
 
+function openObjectDocumentation(objectId){
+  // v2.18.84: Objekthistorie unabhängig vom Offen-Status öffnen.
+  // Damit bleiben auch erledigte Feststellungen und Leistungen sichtbar.
+  showSection('findings');
+  const object=document.getElementById('filterObject'); if(object)object.value=objectId;
+  const status=document.getElementById('filterStatus'); if(status)status.value='';
+  const priority=document.getElementById('filterPriority'); if(priority)priority.value='';
+  const type=document.getElementById('filterType'); if(type)type.value='';
+  const decision=document.getElementById('filterDecision'); if(decision)decision.value='';
+  renderFindings();
+}
+
 function renderDashboard(){
   renderDashboardMessages();
   renderDashboardCareRequests();
@@ -7582,11 +7594,15 @@ function renderObjects(){
   el.innerHTML=db.objects.length?db.objects.map(o=>{
     const fs=db.findings.filter(f=>f.objectId===o.id);
     const open=fs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt').length;
+    const documentationCount=fs.length;
+    const documentationBadge=documentationCount
+      ? `<span class="badge badge-action" role="button" tabindex="0" aria-label="${documentationCount} Dokumentationen für ${esc(o.name)} anzeigen" title="Alle Dokumentationen anzeigen" onclick="openObjectDocumentation('${o.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openObjectDocumentation('${o.id}');}">${documentationCount} Dokumentation${documentationCount===1?'':'en'}</span>`
+      : `<span class="badge" aria-disabled="true">0 Dokumentationen</span>`;
     const openBadge=open
       ? `<span class="badge badge-action" role="button" tabindex="0" aria-label="${open} offene Feststellungen für ${esc(o.name)} anzeigen" title="Offene Feststellungen anzeigen" onclick="openObjectOpenFindings('${o.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openObjectOpenFindings('${o.id}');}">${open} offen</span>`
       : `<span class="badge" aria-disabled="true">0 offen</span>`;
     return `<div class="card">
-      <div class="row space"><div><h3 style="margin:0">${esc(o.name)} ${o.isTest?'<span class="badge" style="margin-left:6px">TEST</span>':''} ${o.externalManaged?'<span class="badge" style="margin-left:6px">EXTERN BETREUT</span>':''}</h3><div class="muted">${esc(o.address||'')}</div>${o.externalManaged?`<div class="muted" style="margin-top:4px">Auftraggeber: ${esc(o.ownerOrganizationName||'Partnerunternehmen')}</div>`:''}</div>${openBadge}</div>
+      <div class="row space"><div><h3 style="margin:0">${esc(o.name)} ${o.isTest?'<span class="badge" style="margin-left:6px">TEST</span>':''} ${o.externalManaged?'<span class="badge" style="margin-left:6px">EXTERN BETREUT</span>':''}</h3><div class="muted">${esc(o.address||'')}</div>${o.externalManaged?`<div class="muted" style="margin-top:4px">Auftraggeber: ${esc(o.ownerOrganizationName||'Partnerunternehmen')}</div>`:''}</div><div class="row" style="justify-content:flex-end">${documentationBadge}${openBadge}</div></div>
       <p>${esc(o.notes||'')}</p>
       ${!o.externalManaged?objectCollaborationAccessHtml(o.id):`${o.serviceScope?`<div class="muted" style="margin-top:6px"><strong>Freigegebener Leistungsumfang:</strong> ${esc(o.serviceScope)}</div>`:''}<div class="muted" style="margin-top:6px">Dieses Objekt wurde deinem Unternehmen zur Betreuung freigegeben.</div>`}
       <div class="row">${o.externalManaged?`<button class="primary" onclick="openFindingModal('${o.id}','')">Dokumentation erfassen</button><button onclick="showObjectReport('${o.id}')">Bericht</button><button onclick="showSection('externalOrders')">Externe Aufträge</button>`:`<button onclick="openFindingModal('${o.id}','')">Dokumentation erfassen</button>${!isCustomerRole()?`<button onclick="openObjectQrCode('${o.id}')">Objekt-QR</button>`:''}${canManageObjectsUI()?`<button onclick="openObjectAreasModal('${o.id}')">Bereiche</button><button onclick="openObjectModal('${o.id}')">Bearbeiten</button>`:''}<button onclick="showObjectReport('${o.id}')">Bericht</button>`}</div>
