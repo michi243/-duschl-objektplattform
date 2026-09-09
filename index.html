@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.19</title>
+<title>Duschl Service – Objektplattform v2.19.20</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1127,7 +1127,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.19</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.20</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1170,7 +1170,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.19</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.20</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1322,8 +1322,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.19</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.19 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.20</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.20 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -2956,7 +2956,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.19'; // Diagnose/Fix Objektansicht: sichtbarer Build-Marker und unabhängiger Direkt-Renderer aus db.objects.
+const APP_VERSION='2.19.20'; // Fix Seitennavigation: aktive Section wird zusätzlich per Inline-Display erzwungen; unabhängig von CSS-Klassen.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -4170,7 +4170,7 @@ async function copyTenantPublicCode(){
 function applyRoleUI(){
   const role=effectiveUserRole();
 
-  // v2.19.19: Im operativen Mandantenkontext zeigt der Header immer
+  // v2.19.20: Im operativen Mandantenkontext zeigt der Header immer
   // den aktuell ausgewählten Mandanten statt der Plattformmarke.
   // Im reinen Plattformmodus bleibt "Duschl Service" als Plattformbetreiber sichtbar.
   const appBrandName=document.getElementById('appBrandName');
@@ -4956,7 +4956,7 @@ async function cloudReloadFindings(){
   const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
   let rows=(rowsRaw||[]).filter(f=>accessibleObjectIds.has(f.object_id));
 
-  // v2.19.19: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
+  // v2.19.20: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
   // Sicht des simulierten Mandanten sehen. Seine globale Admin-RLS darf daher
   // nicht dazu führen, dass parallele Dienstleister gegenseitig ihre Findings sehen.
   if(isPlatformTenantMode()){
@@ -5224,7 +5224,7 @@ async function cloudLoadSharedObjects(){
   try{
     let rows=[];
     if(isPlatformTenantMode()){
-      // v2.19.19: autoritative Support-RPC mit explizitem Mandantenkontext.
+      // v2.19.20: autoritative Support-RPC mit explizitem Mandantenkontext.
       rows=await cloudRequest('rpc/platform_support_get_shared_objects',{
         method:'POST',
         body:JSON.stringify({p_organization_id:currentOrganizationId()})
@@ -5407,7 +5407,7 @@ async function openRouteFindingModal(findingId){
   if(!canRouteFindingUI(f))return alert('Nur der berechtigte Entscheider des führenden Mandanten kann diesen Vorgang an ein anderes Unternehmen routen.');
   const o=(db.objects||[]).find(x=>x.id===f.objectId);if(!o)return alert('Objekt nicht gefunden.');
 
-  // v2.19.19: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
+  // v2.19.20: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
   // Dadurch muss die öffentliche Mandanten-ID im Regelprozess nicht mehr manuell eingegeben werden.
   try{await cloudLoadObjectCollaborations(false);}catch(_e){}
   const currentOrgId=currentOrganizationId();
@@ -6294,7 +6294,7 @@ async function cloudReloadObjects(){
       const objectPath=`objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(platformTenantModeOrgId)}&order=name.asc`;
       rows=await cloudRequest(objectPath);
     }else{
-      // v2.19.19: Mandantenobjekte nicht mehr von einer möglicherweise zu restriktiven
+      // v2.19.20: Mandantenobjekte nicht mehr von einer möglicherweise zu restriktiven
       // generischen objects-RLS abhängig machen. Die RPC entscheidet serverseitig:
       // Tenant-Admin/Admin-Vertretung = alle Objekte des Mandanten;
       // Objektbetreuer = ausschließlich aktive Zuweisungen;
@@ -6313,7 +6313,7 @@ async function cloudReloadObjects(){
           });
         }
 
-        // v2.19.19: Sicherheitsnetz für Mandanten-Admins.
+        // v2.19.20: Sicherheitsnetz für Mandanten-Admins.
         // Bei Rollenmodell global=object_manager + tenant_membership=tenant_admin
         // darf ein leerer RPC-Return nicht dazu führen, dass der Admin "keine Objekte" sieht.
         if((!rows||rows.length===0) && typeof currentOrganizationId==='function'){
@@ -6349,7 +6349,7 @@ async function cloudReloadObjects(){
     const ownIds=new Set(ownObjects.map(o=>o.id));
     db.objects=ownObjects.concat(cloudSharedObjects.filter(o=>!ownIds.has(o.id)));
 
-    // v2.19.19: Objekte sind ein eigenständiger Kernbestand.
+    // v2.19.20: Objekte sind ein eigenständiger Kernbestand.
     // Sobald sie geladen sind, werden sie sofort sichtbar gemacht.
     // Ein Fehler in nachgelagerten Modulen darf die Objektansicht nicht mehr leer lassen.
     try{
@@ -6956,8 +6956,26 @@ function showSection(id){
   if(id==='users'&&!canManageUsersUI())return requireAdminUI('Benutzer & Berechtigungen');
   if(id==='settings'&&!canUseSettingsUI())return requireAdminUI('Daten & Administration');
   closeAppMenu();
-  document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.section').forEach(x=>{
+    x.classList.remove('active');
+    x.style.setProperty('display','none','important');
+  });
+  const targetSection=document.getElementById(id);
+  if(!targetSection){
+    console.error('Section nicht gefunden:',id);
+    return;
+  }
+  targetSection.classList.remove('hidden');
+  targetSection.classList.add('active');
+  targetSection.style.setProperty('display','block','important');
+  targetSection.style.setProperty('visibility','visible','important');
+  targetSection.style.setProperty('opacity','1','important');
+  console.info('Section geöffnet',{
+    id,
+    className:targetSection.className,
+    display:getComputedStyle(targetSection).display,
+    objects:Array.isArray(db?.objects)?db.objects.length:null
+  });
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('primary'));
   [...document.querySelectorAll('nav button')].find(b=>b.getAttribute('onclick')?.includes(`'${id}'`))?.classList.add('primary');
   document.querySelectorAll('#platformBottomNav [data-pa-nav]').forEach(b=>b.classList.toggle('active',b.getAttribute('data-pa-nav')===id));
@@ -7950,7 +7968,7 @@ function renderObjectsDirect(){
   const status=document.getElementById('objectListStatus');
   if(!el)return;
   const objects=Array.isArray(db?.objects)?db.objects:[];
-  if(status)status.textContent=`Objektmodul v2.19.19 · ${objects.length} Objekt${objects.length===1?'':'e'} geladen`;
+  if(status)status.textContent=`Objektmodul v2.19.20 · ${objects.length} Objekt${objects.length===1?'':'e'} geladen`;
   if(!objects.length){
     el.innerHTML='<div class="empty">Keine Objekte im aktuellen Mandantenkontext.</div>';
     return;
