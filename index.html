@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.02</title>
+<title>Duschl Service – Objektplattform v2.19.03</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1127,7 +1127,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.02</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.03</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1169,7 +1169,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.02</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.03</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -2954,7 +2954,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.02'; // Dynamische Formularsteuerung nach Mandantentyp und Dokumentationsart.
+const APP_VERSION='2.19.03'; // Dynamische Objektanlage: Bezeichnungen und Standardbereiche nach Mandantentyp, gemeinsames Datenmodell bleibt erhalten.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -4164,7 +4164,7 @@ async function copyTenantPublicCode(){
 function applyRoleUI(){
   const role=effectiveUserRole();
 
-  // v2.19.02: Im operativen Mandantenkontext zeigt der Header immer
+  // v2.19.03: Im operativen Mandantenkontext zeigt der Header immer
   // den aktuell ausgewählten Mandanten statt der Plattformmarke.
   // Im reinen Plattformmodus bleibt "Duschl Service" als Plattformbetreiber sichtbar.
   const appBrandName=document.getElementById('appBrandName');
@@ -4949,7 +4949,7 @@ async function cloudReloadFindings(){
   const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
   let rows=(rowsRaw||[]).filter(f=>accessibleObjectIds.has(f.object_id));
 
-  // v2.19.02: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
+  // v2.19.03: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
   // Sicht des simulierten Mandanten sehen. Seine globale Admin-RLS darf daher
   // nicht dazu führen, dass parallele Dienstleister gegenseitig ihre Findings sehen.
   if(isPlatformTenantMode()){
@@ -5217,7 +5217,7 @@ async function cloudLoadSharedObjects(){
   try{
     let rows=[];
     if(isPlatformTenantMode()){
-      // v2.19.02: autoritative Support-RPC mit explizitem Mandantenkontext.
+      // v2.19.03: autoritative Support-RPC mit explizitem Mandantenkontext.
       rows=await cloudRequest('rpc/platform_support_get_shared_objects',{
         method:'POST',
         body:JSON.stringify({p_organization_id:currentOrganizationId()})
@@ -5400,7 +5400,7 @@ async function openRouteFindingModal(findingId){
   if(!canRouteFindingUI(f))return alert('Nur der berechtigte Entscheider des führenden Mandanten kann diesen Vorgang an ein anderes Unternehmen routen.');
   const o=(db.objects||[]).find(x=>x.id===f.objectId);if(!o)return alert('Objekt nicht gefunden.');
 
-  // v2.19.02: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
+  // v2.19.03: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
   // Dadurch muss die öffentliche Mandanten-ID im Regelprozess nicht mehr manuell eingegeben werden.
   try{await cloudLoadObjectCollaborations(false);}catch(_e){}
   const currentOrgId=currentOrganizationId();
@@ -9646,6 +9646,91 @@ document.addEventListener('change',e=>{
   if(k.includes('doctype')||k.includes('documentationtype')) dsApplyProcessForm();
 });
 document.addEventListener('DOMContentLoaded',()=>setTimeout(dsApplyProcessForm,0));
+
+function dsObjectProfile(){
+  const org=(typeof currentOrganization!=='undefined'&&currentOrganization)||{};
+  const t=String(org.organization_type||org.type||'objektservice');
+  const profiles={
+    objektservice:{
+      objectLabel:'Kundenobjekt',
+      objectPlaceholder:'z. B. WEG Knorrstraße 7',
+      areaLabel:'Bereiche',
+      defaultAreas:['Außenanlage','Eingangsbereich','Treppenhaus','Keller','Tiefgarage','Technik','Sonstiges']
+    },
+    property_management:{
+      objectLabel:'Liegenschaft / Objekt',
+      objectPlaceholder:'z. B. WEG Musterstraße 6',
+      areaLabel:'Gebäudebereiche',
+      defaultAreas:['Außenanlage','Eingangsbereich','Treppenhaus','Aufzug','Keller','Tiefgarage','Technikraum','Gemeinschaftsfläche','Sonstiges']
+    },
+    facility_management:{
+      objectLabel:'Standort / Objekt',
+      objectPlaceholder:'z. B. Standort München Nord',
+      areaLabel:'Funktionsbereiche',
+      defaultAreas:['Außenbereich','Empfang','Bürofläche','Sanitär','Technik','Lager','Parkfläche','Sonstiges']
+    },
+    hotel:{
+      objectLabel:'Hotel / Unterkunft',
+      objectPlaceholder:'z. B. Hotel München Zentrum',
+      areaLabel:'Standardbereiche',
+      defaultAreas:['Zimmer / Einheit','Bad','Flur','Lobby / Empfang','Frühstück / Gastronomie','Außenbereich','Technik','Housekeeping / Lager','Sonstiges']
+    },
+    other:{
+      objectLabel:'Objekt',
+      objectPlaceholder:'Objektbezeichnung',
+      areaLabel:'Bereiche',
+      defaultAreas:['Allgemein','Außenbereich','Innenbereich','Technik','Sonstiges']
+    }
+  };
+  return profiles[t]||profiles.other;
+}
+function dsApplyObjectProfile(root=document){
+  const p=dsObjectProfile();
+
+  // Objektbezeichnung kontextbezogen benennen.
+  [...root.querySelectorAll('label,.label,strong')].forEach(n=>{
+    const txt=String(n.textContent||'').trim();
+    if(txt==='Objektbezeichnung'||txt==='Objektname'){
+      n.textContent=p.objectLabel;
+      const box=n.closest('.field,.form-group,.form-row,.row,label')||n.parentElement;
+      const input=box?.querySelector('input[type="text"]');
+      if(input && (!input.value)) input.placeholder=p.objectPlaceholder;
+    }
+    if(txt==='Standardbereiche'||txt==='Bereiche'){
+      n.textContent=p.areaLabel;
+    }
+  });
+
+  // Standardbereiche nur als Vorschlag – individuelle Bereiche bleiben weiterhin möglich.
+  const areaInputs=[...root.querySelectorAll('textarea,input[type="text"]')].filter(el=>{
+    const box=el.closest('.field,.form-group,.form-row,.row,label')||el.parentElement;
+    const txt=String(box?.textContent||'').toLowerCase();
+    return txt.includes('standardbereich')||txt.includes('gebäudebereich')||txt.includes('funktionsbereich');
+  });
+  areaInputs.forEach(el=>{
+    if(!el.value && !el.dataset.dsProfileInitialized){
+      el.placeholder=p.defaultAreas.join(', ');
+      el.dataset.dsProfileInitialized='1';
+    }
+  });
+}
+function dsRefreshContextUI(){
+  if(typeof dsApplyProcessForm==='function') dsApplyProcessForm();
+  dsApplyObjectProfile(document);
+}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(dsRefreshContextUI,20));
+
+function dsApplyPlatformOnlyFields(){
+  const isPlatform=(typeof isPlatformAdmin==='function'&&isPlatformAdmin()) ||
+                   (typeof isPlatformOperator==='function'&&isPlatformOperator());
+  [...document.querySelectorAll('label,.label,strong,span')].forEach(n=>{
+    if(String(n.textContent||'').includes('Testobjekt (nur Platform-Administration)')){
+      const box=n.closest('.field,.form-group,.form-row,.row,label')||n.parentElement;
+      if(box) box.hidden=!isPlatform;
+    }
+  });
+}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(dsApplyPlatformOnlyFields,30));
 </script>
 <div id="platformBottomNav" class="pa-bottom-nav hidden">
   <button type="button" data-pa-nav="dashboard" onclick="showSection('dashboard')"><span>⌂</span><small>Dashboard</small></button>
