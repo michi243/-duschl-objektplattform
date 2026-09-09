@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.86</title>
+<title>Duschl Service – Objektplattform v2.18.87</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1127,7 +1127,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.86</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.87</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1169,7 +1169,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.86</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.87</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1582,6 +1582,18 @@ body.public-report-mode>#photoViewer{display:none!important}
 </label>
 <button onclick="loadUserAdminData()">Aktualisieren</button>
 </div>
+</div>
+<div id="tenantStorageCard" class="card" style="margin-top:16px;display:none">
+<h2>Mandanten-Speicher</h2>
+<div class="muted">Speicher des eigenen Mandanten prüfen und gezielt bereinigen. Geroutete oder noch referenzierte Dateien sind geschützt.</div>
+<div class="grid3" style="margin-top:14px">
+<div class="card"><div class="muted">Belegt</div><div class="big" id="tenantStorageUsed">—</div></div>
+<div class="card"><div class="muted">Limit</div><div class="big" id="tenantStorageLimit">—</div></div>
+<div class="card"><div class="muted">Auslastung</div><div class="big" id="tenantStoragePercent">—</div></div>
+</div>
+<div class="row" style="margin-top:14px"><button class="primary" type="button" onclick="loadTenantStorageCleanup()">Speicher analysieren</button><button type="button" onclick="selectTenantCleanupCandidates(true)">Bereinigbare auswählen</button><button type="button" onclick="selectTenantCleanupCandidates(false)">Auswahl aufheben</button></div>
+<div id="tenantStorageCleanupList" style="margin-top:14px"><div class="muted">Noch keine Speicheranalyse durchgeführt.</div></div>
+<div class="row space" style="margin-top:14px"><div><strong id="tenantStorageSelectedSummary">0 Dateien ausgewählt</strong><div class="muted">Löschen entfernt die Datei dauerhaft. Geschützte Dateien können nicht ausgewählt werden.</div></div><button class="danger" type="button" onclick="deleteSelectedTenantStorage()">Ausgewählte endgültig löschen</button></div>
 </div>
 <div id="userAdminEditor"></div>
 </section>
@@ -2942,7 +2954,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.18.86';
+const APP_VERSION='2.18.87';
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -4245,6 +4257,7 @@ function applyRoleUI(){
   const platformBackupNavBtn=document.getElementById('platformBackupNavBtn');
   if(platformBackupNavBtn)platformBackupNavBtn.style.display=isAdminRole()?'':'none';
   const newUserCard=document.getElementById('newUserCard');if(newUserCard)newUserCard.style.display=isTenantAdminRole()?'':'none';
+  const tenantStorageCard=document.getElementById('tenantStorageCard');if(tenantStorageCard)tenantStorageCard.style.display=isTenantAdminRole()?'':'none';
   const softResetCard=document.getElementById('softResetCard');if(softResetCard)softResetCard.style.display=isAdminRole()?'':'none';
   show('addObjectBtn',canManageObjectsUI());
   const backupBtn=document.getElementById('backupBtn')||document.querySelector('[data-backup-button="1"]');
@@ -5520,6 +5533,58 @@ async function loadPlatformSystemStatus(){
     if(status)status.textContent='Prüfung erforderlich';
     cloudSetStatus('Plattformstatus konnte nicht geladen werden: '+(e?.message||e),'bad');
   }
+}
+
+let tenantStorageCleanupRows=[];
+function tenantStorageUpdateSelection(){
+  const boxes=[...document.querySelectorAll('.tenant-storage-select:checked')];
+  const bytes=boxes.reduce((sum,b)=>sum+Number(b.dataset.bytes||0),0);
+  const el=document.getElementById('tenantStorageSelectedSummary');
+  if(el)el.textContent=`${boxes.length} Datei(en) ausgewählt · ${formatBytes(bytes)} freigeben`;
+}
+function renderTenantStorageCleanup(){
+  const box=document.getElementById('tenantStorageCleanupList'); if(!box)return;
+  if(!tenantStorageCleanupRows.length){box.innerHTML='<div class="empty">Keine Dateien im Mandantenspeicher gefunden.</div>';tenantStorageUpdateSelection();return;}
+  box.innerHTML=tenantStorageCleanupRows.map(r=>{
+    const protectedFile=!!r.protected;
+    const reason=protectedFile?(r.protection_reason||'Datei wird noch benötigt'):'Bereinigbar';
+    return `<div class="card" style="margin:8px 0"><div class="row space"><label style="display:flex;gap:10px;align-items:center"><input class="tenant-storage-select" type="checkbox" data-id="${esc(r.media_id)}" data-path="${esc(r.storage_path||'')}" data-bytes="${Number(r.size_bytes||0)}" ${protectedFile?'disabled':''} onchange="tenantStorageUpdateSelection()"><span><strong>${esc(r.original_filename||r.storage_path||'Datei')}</strong><div class="muted">${esc(r.object_name||'Objekt')} · ${esc(r.finding_title||'Dokumentation')} · ${formatBytes(r.size_bytes||0)}</div></span></label><span class="badge ${protectedFile?'bad':''}">${esc(reason)}</span></div></div>`;
+  }).join(''); tenantStorageUpdateSelection();
+}
+async function loadTenantStorageCleanup(){
+  if(!isTenantAdminRole())return alert('Die Speicherverwaltung ist ausschließlich für den Mandanten-Admin freigegeben.');
+  const orgId=currentOrganizationId(); if(!orgId)return;
+  try{
+    const rows=await cloudRequest('rpc/tenant_storage_cleanup_candidates',{method:'POST',body:JSON.stringify({p_organization_id:orgId})});
+    tenantStorageCleanupRows=Array.isArray(rows)?rows:[];
+    const used=tenantStorageCleanupRows.reduce((a,r)=>a+Number(r.size_bytes||0),0);
+    const limit=Number(currentOrganization?.storage_limit_bytes||0); const pct=limit>0?Math.round(used/limit*100):0;
+    document.getElementById('tenantStorageUsed').textContent=formatBytes(used);
+    document.getElementById('tenantStorageLimit').textContent=limit?formatBytes(limit):'kein Limit';
+    document.getElementById('tenantStoragePercent').textContent=limit?`${pct}%`:'—';
+    renderTenantStorageCleanup();
+  }catch(e){alert('Speicheranalyse fehlgeschlagen: '+(e?.message||e));}
+}
+function selectTenantCleanupCandidates(on){document.querySelectorAll('.tenant-storage-select:not(:disabled)').forEach(b=>b.checked=!!on);tenantStorageUpdateSelection();}
+async function deleteSelectedTenantStorage(){
+  if(!isTenantAdminRole())return alert('Nur der Mandanten-Admin darf Speicher bereinigen.');
+  const boxes=[...document.querySelectorAll('.tenant-storage-select:checked:not(:disabled)')]; if(!boxes.length)return alert('Keine bereinigbaren Dateien ausgewählt.');
+  const bytes=boxes.reduce((a,b)=>a+Number(b.dataset.bytes||0),0);
+  if(!confirm(`${boxes.length} Datei(en) (${formatBytes(bytes)}) endgültig löschen? Dieser Vorgang kann nicht rückgängig gemacht werden.`))return;
+  let deleted=0,failed=0;
+  for(const b of boxes){
+    try{
+      const prep=await cloudRequest('rpc/tenant_prepare_media_delete',{method:'POST',body:JSON.stringify({p_organization_id:currentOrganizationId(),p_media_id:b.dataset.id})});
+      const authorizedPath=Array.isArray(prep)?prep[0]?.storage_path:prep?.storage_path;
+      if(authorizedPath){
+        const res=await fetch(`${SUPABASE_URL}/storage/v1/object/objektplattform-media/${authorizedPath.split('/').map(encodeURIComponent).join('/')}`,{method:'DELETE',headers:cloudHeaders()});
+        if(!res.ok && res.status!==404)throw new Error(await res.text());
+      }
+      await cloudRequest('rpc/tenant_finalize_media_delete',{method:'POST',body:JSON.stringify({p_organization_id:currentOrganizationId(),p_media_id:b.dataset.id})});
+      deleted++;
+    }catch(e){console.error('Speicherbereinigung',e);failed++;}
+  }
+  alert(`${deleted} Datei(en) bereinigt${failed?`, ${failed} fehlgeschlagen`:''}.`); await loadTenantStorageCleanup(); await cloudReloadFindings();
 }
 
 async function cloudLoadOrganizations(){
