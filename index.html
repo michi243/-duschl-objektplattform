@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.11</title>
+<title>Duschl Service – Objektplattform v2.19.13</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1127,7 +1127,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.11</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.13</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1146,6 +1146,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <button id="navUsers" onclick="showSection('users')"><span class="nav-icon">♙</span><span>Benutzer &amp; Berechtigungen</span></button>
 </nav>
 <div class="app-menu-actions">
+<button id="headerDataBtn" class="hidden" onclick="closeAppMenu();dsOpenDataManagement()">▧ <span>Daten</span></button>
 <button id="globalRefreshBtn" onclick="refreshAllCloudData();closeAppMenu()">↻ <span>Aktualisieren</span></button>
 <button id="headerPasswordBtn" onclick="closeAppMenu();showVoluntaryPasswordChange()">⌘ <span>Passwort ändern</span></button>
 <button data-backup-button="1" id="backupBtn" onclick="exportData()">⇩ <span>Sicherung</span></button>
@@ -1169,7 +1170,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.11</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.13</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -2954,7 +2955,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.11'; // Objektladen für Mandanten über autoritative RPC: Tenant-Admin sieht alle eigenen Objekte, Objektbetreuer nur zugewiesene, Platform-Support unverändert.
+const APP_VERSION='2.19.13'; // Fix Mandanten-Admin Duschl Service: eigene Objekte werden zuverlässig geladen; Membership-Rollen objekt_manager+tenant_admin berücksichtigt.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -4164,7 +4165,7 @@ async function copyTenantPublicCode(){
 function applyRoleUI(){
   const role=effectiveUserRole();
 
-  // v2.19.11: Im operativen Mandantenkontext zeigt der Header immer
+  // v2.19.13: Im operativen Mandantenkontext zeigt der Header immer
   // den aktuell ausgewählten Mandanten statt der Plattformmarke.
   // Im reinen Plattformmodus bleibt "Duschl Service" als Plattformbetreiber sichtbar.
   const appBrandName=document.getElementById('appBrandName');
@@ -4949,7 +4950,7 @@ async function cloudReloadFindings(){
   const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
   let rows=(rowsRaw||[]).filter(f=>accessibleObjectIds.has(f.object_id));
 
-  // v2.19.11: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
+  // v2.19.13: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
   // Sicht des simulierten Mandanten sehen. Seine globale Admin-RLS darf daher
   // nicht dazu führen, dass parallele Dienstleister gegenseitig ihre Findings sehen.
   if(isPlatformTenantMode()){
@@ -5217,7 +5218,7 @@ async function cloudLoadSharedObjects(){
   try{
     let rows=[];
     if(isPlatformTenantMode()){
-      // v2.19.11: autoritative Support-RPC mit explizitem Mandantenkontext.
+      // v2.19.13: autoritative Support-RPC mit explizitem Mandantenkontext.
       rows=await cloudRequest('rpc/platform_support_get_shared_objects',{
         method:'POST',
         body:JSON.stringify({p_organization_id:currentOrganizationId()})
@@ -5400,7 +5401,7 @@ async function openRouteFindingModal(findingId){
   if(!canRouteFindingUI(f))return alert('Nur der berechtigte Entscheider des führenden Mandanten kann diesen Vorgang an ein anderes Unternehmen routen.');
   const o=(db.objects||[]).find(x=>x.id===f.objectId);if(!o)return alert('Objekt nicht gefunden.');
 
-  // v2.19.11: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
+  // v2.19.13: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
   // Dadurch muss die öffentliche Mandanten-ID im Regelprozess nicht mehr manuell eingegeben werden.
   try{await cloudLoadObjectCollaborations(false);}catch(_e){}
   const currentOrgId=currentOrganizationId();
@@ -6287,7 +6288,7 @@ async function cloudReloadObjects(){
       const objectPath=`objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(platformTenantModeOrgId)}&order=name.asc`;
       rows=await cloudRequest(objectPath);
     }else{
-      // v2.19.11: Mandantenobjekte nicht mehr von einer möglicherweise zu restriktiven
+      // v2.19.13: Mandantenobjekte nicht mehr von einer möglicherweise zu restriktiven
       // generischen objects-RLS abhängig machen. Die RPC entscheidet serverseitig:
       // Tenant-Admin/Admin-Vertretung = alle Objekte des Mandanten;
       // Objektbetreuer = ausschließlich aktive Zuweisungen;
@@ -6297,9 +6298,29 @@ async function cloudReloadObjects(){
           method:'POST',
           body:JSON.stringify({})
         });
+
+        // v2.19.13: Sicherheitsnetz für Mandanten-Admins.
+        // Bei Rollenmodell global=object_manager + tenant_membership=tenant_admin
+        // darf ein leerer RPC-Return nicht dazu führen, dass der Admin "keine Objekte" sieht.
+        if((!rows||rows.length===0) && typeof currentOrganizationId==='function'){
+          const orgId=currentOrganizationId();
+          const canSeeAllOwn=(typeof isTenantAdmin==='function'&&isTenantAdmin()) ||
+                             (typeof isTenantAdminDelegate==='function'&&isTenantAdminDelegate());
+          if(orgId && canSeeAllOwn){
+            rows=await cloudRequest(
+              `objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(orgId)}&order=name.asc`
+            );
+          }
+        }
       }catch(rpcError){
         console.warn('tenant_get_accessible_objects nicht verfügbar, Fallback auf objects-RLS',rpcError);
-        rows=await cloudRequest('objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&order=name.asc');
+        const orgId=(typeof currentOrganizationId==='function'&&currentOrganizationId())||'';
+        const canSeeAllOwn=(typeof isTenantAdmin==='function'&&isTenantAdmin()) ||
+                           (typeof isTenantAdminDelegate==='function'&&isTenantAdminDelegate());
+        const path=(orgId&&canSeeAllOwn)
+          ? `objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(orgId)}&order=name.asc`
+          : 'objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&order=name.asc';
+        rows=await cloudRequest(path);
       }
     }
     const ownObjects=(rows||[]).map(cloudObjectToLocal);
@@ -10013,30 +10034,16 @@ function dsOpenDataManagement(){
   modal.style.display='flex';
   dsTenantCleanupPreview();
 }
-function dsInjectDataNavButton(){
-  if(!dsCanManageTenantData()||document.getElementById('dsDataNavButton'))return;
 
-  // Bevorzugt: unterer Bereich des Hamburger-/Seitennavigationsmenüs.
-  const navs=[...document.querySelectorAll('nav,.menu,.sidebar,.drawer,[class*="menu"],[class*="nav"]')];
-  const nav=navs.find(n=>/Abmelden|Passwort|Benutzer|Objekte/i.test(String(n.textContent||'')));
-  if(!nav)return;
 
-  const b=document.createElement('button');
-  b.id='dsDataNavButton';
-  b.className='secondary';
-  b.type='button';
-  b.textContent='Daten';
-  b.style.width='100%';
-  b.style.marginTop='8px';
-  b.onclick=dsOpenDataManagement;
-
-  // Direkt vor Logout, sofern auffindbar; sonst am unteren Ende.
-  const logout=[...nav.querySelectorAll('button,a')].find(x=>/Abmelden|Logout/i.test(String(x.textContent||'')));
-  if(logout) logout.parentElement?.insertBefore(b,logout);
-  else nav.appendChild(b);
+function dsRefreshDataMenuButton(){
+  const btn=document.getElementById('headerDataBtn');
+  if(!btn)return;
+  const allowed=dsCanManageTenantData();
+  btn.classList.toggle('hidden',!allowed);
 }
-document.addEventListener('DOMContentLoaded',()=>setTimeout(dsInjectDataNavButton,120));
-document.addEventListener('click',()=>setTimeout(dsInjectDataNavButton,30));
+document.addEventListener('DOMContentLoaded',()=>setTimeout(dsRefreshDataMenuButton,120));
+document.addEventListener('click',()=>setTimeout(dsRefreshDataMenuButton,20));
 </script>
 <div id="platformBottomNav" class="pa-bottom-nav hidden">
   <button type="button" data-pa-nav="dashboard" onclick="showSection('dashboard')"><span>⌂</span><small>Dashboard</small></button>
