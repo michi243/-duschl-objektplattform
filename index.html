@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.94</title>
+<title>Duschl Service – Objektplattform v2.18.95</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1127,7 +1127,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.94</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.95</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1169,7 +1169,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.94</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.95</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -2954,7 +2954,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.18.94'; // Owner-Visibility: Objekteigentümer sieht alle Dokumentationen seines Objekts; Fremddienstleister bleiben voneinander getrennt.
+const APP_VERSION='2.18.95'; // Owner-Visibility: Objekteigentümer sieht alle Dokumentationen seines Objekts; Fremddienstleister bleiben voneinander getrennt.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -4130,7 +4130,7 @@ async function copyTenantPublicCode(){
 function applyRoleUI(){
   const role=effectiveUserRole();
 
-  // v2.18.94: Im operativen Mandantenkontext zeigt der Header immer
+  // v2.18.95: Im operativen Mandantenkontext zeigt der Header immer
   // den aktuell ausgewählten Mandanten statt der Plattformmarke.
   // Im reinen Plattformmodus bleibt "Duschl Service" als Plattformbetreiber sichtbar.
   const appBrandName=document.getElementById('appBrandName');
@@ -4913,7 +4913,19 @@ async function cloudReloadFindings(){
   if(!cloudSession?.access_token)return;
   const rowsRaw=await cloudRequest('findings?select=id,object_id,inspection_id,source_resident_report_id,type,area_id,area,area_detail,title,category,priority,description,recommended_action,activity,status,completion_type,completion_note,work_required,created_by,creator_name_snapshot,creator_organization_id_snapshot,creator_organization_name_snapshot,created_at,updated_at&order=created_at.desc');
   const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
-  const rows=(rowsRaw||[]).filter(f=>accessibleObjectIds.has(f.object_id));
+  let rows=(rowsRaw||[]).filter(f=>accessibleObjectIds.has(f.object_id));
+
+  // v2.18.95: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
+  // Sicht des simulierten Mandanten sehen. Seine globale Admin-RLS darf daher
+  // nicht dazu führen, dass parallele Dienstleister gegenseitig ihre Findings sehen.
+  if(isPlatformTenantMode()){
+    const visible=await cloudRequest('rpc/platform_support_get_visible_finding_ids',{
+      method:'POST',
+      body:JSON.stringify({p_organization_id:currentOrganizationId()})
+    });
+    const visibleIds=new Set((Array.isArray(visible)?visible:[]).map(x=>String(x.finding_id||x.id||x)));
+    rows=rows.filter(f=>visibleIds.has(String(f.id)));
+  }
   const findingIds=new Set(rows.map(f=>f.id));
   const decisionsRaw=await cloudRequest('decisions?select=id,finding_id,required,status,decided_by,decided_by_name,decided_at,decision_date,implementation_responsibility,comment,amount,created_at,updated_at');
   const decisions=(decisionsRaw||[]).filter(d=>findingIds.has(d.finding_id));
@@ -5171,7 +5183,7 @@ async function cloudLoadSharedObjects(){
   try{
     let rows=[];
     if(isPlatformTenantMode()){
-      // v2.18.94: autoritative Support-RPC mit explizitem Mandantenkontext.
+      // v2.18.95: autoritative Support-RPC mit explizitem Mandantenkontext.
       rows=await cloudRequest('rpc/platform_support_get_shared_objects',{
         method:'POST',
         body:JSON.stringify({p_organization_id:currentOrganizationId()})
