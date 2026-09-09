@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.82</title>
+<title>Duschl Service – Objektplattform v2.18.83</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1127,7 +1127,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.82</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.83</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1169,7 +1169,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.82</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.83</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -2942,12 +2942,13 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.18.82';
+const APP_VERSION='2.18.83';
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
 let cloudSession=null;
 let cloudFindingCreatorNames=new Map();
+let cloudFindingCreatorMeta=new Map();
 
 let userDashboardMessages=[];
 let userMessagesAvailable=true;
@@ -4664,6 +4665,9 @@ function cloudFindingToLocal(f,decision){
     beforePhotos:[],
     afterPhotos:[],
     createdBy:f.created_by||'',
+    creatorNameSnapshot:f.creator_name_snapshot||'',
+    creatorOrganizationIdSnapshot:f.creator_organization_id_snapshot||'',
+    creatorOrganizationNameSnapshot:f.creator_organization_name_snapshot||'',
     createdAt:f.created_at?new Date(f.created_at).getTime():Date.now(),
     updatedAt:f.updated_at?new Date(f.updated_at).getTime():Date.now(),
     cloud:true
@@ -4817,6 +4821,7 @@ async function cloudDeleteTaskForFinding(findingId){
 async function cloudLoadFindingCreatorNames(){
   if(!cloudSession?.access_token || isCustomerRole()){
     cloudFindingCreatorNames=new Map();
+    cloudFindingCreatorMeta=new Map();
     return;
   }
   try{
@@ -4825,29 +4830,43 @@ async function cloudLoadFindingCreatorNames(){
       body:JSON.stringify({})
     });
     cloudFindingCreatorNames=new Map((rows||[]).map(r=>[r.finding_id,(r.creator_name||'').trim()]));
+    cloudFindingCreatorMeta=new Map((rows||[]).map(r=>[r.finding_id,{
+      name:(r.creator_name||'').trim(),
+      organizationName:(r.creator_organization_name||'').trim()
+    }]));
   }catch(e){
-    console.warn('Erstellernamen konnten nicht geladen werden.',e);
+    console.warn('Ersteller-Herkunft konnte nicht geladen werden.',e);
     cloudFindingCreatorNames=new Map();
+    cloudFindingCreatorMeta=new Map();
   }
 }
 function findingCreatorName(f){
   if(!f||isCustomerRole())return '';
-  const fromCloud=(cloudFindingCreatorNames.get(f.id)||'').trim();
+  const snap=(f.creatorNameSnapshot||'').trim();
+  if(snap)return snap;
+  const fromCloud=(cloudFindingCreatorMeta.get(f.id)?.name||cloudFindingCreatorNames.get(f.id)||'').trim();
   if(fromCloud)return fromCloud;
   if(f.createdBy&&f.createdBy===currentUserId()){
     return (currentUserProfile?.full_name||cloudSession?.user?.user_metadata?.full_name||cloudSession?.user?.email||'').trim();
   }
   return '';
 }
+function findingCreatorOrganizationName(f){
+  if(!f||isCustomerRole())return '';
+  const snap=(f.creatorOrganizationNameSnapshot||'').trim();
+  if(snap)return snap;
+  return (cloudFindingCreatorMeta.get(f.id)?.organizationName||'').trim();
+}
 function findingCreatorMetaHtml(f){
   if(!f||isCustomerRole())return '';
   const name=findingCreatorName(f)||'Unbekannter Benutzer';
-  return `<div class="muted" style="margin-top:4px">Erstellt von: <b>${esc(name)}</b> · ${esc(fmt(f.createdAt))}</div>`;
+  const organization=findingCreatorOrganizationName(f)||'Unbekanntes Unternehmen';
+  return `<div class="muted" style="margin-top:4px">Erstellt von: <b>${esc(name)} · ${esc(organization)}</b> · ${esc(fmt(f.createdAt))}</div>`;
 }
 
 async function cloudReloadFindings(){
   if(!cloudSession?.access_token)return;
-  const rowsRaw=await cloudRequest('findings?select=id,object_id,inspection_id,source_resident_report_id,type,area_id,area,area_detail,title,category,priority,description,recommended_action,activity,status,completion_type,completion_note,work_required,created_by,created_at,updated_at&order=created_at.desc');
+  const rowsRaw=await cloudRequest('findings?select=id,object_id,inspection_id,source_resident_report_id,type,area_id,area,area_detail,title,category,priority,description,recommended_action,activity,status,completion_type,completion_note,work_required,created_by,creator_name_snapshot,creator_organization_id_snapshot,creator_organization_name_snapshot,created_at,updated_at&order=created_at.desc');
   const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
   const rows=(rowsRaw||[]).filter(f=>accessibleObjectIds.has(f.object_id));
   const findingIds=new Set(rows.map(f=>f.id));
@@ -4896,7 +4915,13 @@ async function cloudSaveFinding(id,data){
   };
   let row;
   const isCloudId=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||'');
-  if(!isCloudId)payload.created_by=currentUserId();
+  if(!isCloudId){
+    payload.created_by=currentUserId();
+    // v2.18.83: Herkunft wird bei Erstellung historisch eingefroren.
+    payload.creator_name_snapshot=(currentUserProfile?.full_name||cloudSession?.user?.user_metadata?.full_name||cloudSession?.user?.email||'').trim()||null;
+    payload.creator_organization_id_snapshot=currentOrganizationId()||null;
+    payload.creator_organization_name_snapshot=(currentOrganization?.name||organizationName(currentOrganizationId())||'').trim()||null;
+  }
   if(isCloudId){
     const rows=await cloudRequest(`findings?id=eq.${encodeURIComponent(id)}`,{
       method:'PATCH',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)
