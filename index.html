@@ -1136,7 +1136,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.42</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.43</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1149,7 +1149,6 @@ body.public-report-mode>#photoViewer{display:none!important}
 <button id="navResidentReports" onclick="showSection('residentReports')"><span class="nav-icon">◯</span><span>Meldungen</span><span class="badge nav-count" id="residentReportNavCount">0</span></button>
 <button id="navDecisions" onclick="showSection('decisions')"><span class="nav-icon">✓</span><span>Entscheidungen</span><span class="badge nav-count" id="decisionNavCount">0</span></button>
 <button id="navWorkqueue" onclick="showSection('workqueue')"><span class="nav-icon">⌁</span><span>Arbeitsvorrat</span><span class="badge nav-count" id="workqueueNavCount">0</span></button>
-<button id="navExternalOrders" onclick="showSection('externalOrders')"><span class="nav-icon">⇄</span><span>Externe Aufträge</span><span class="badge nav-count" id="externalOrdersNavCount">0</span></button>
 <button id="navReports" onclick="showSection('reports')"><span class="nav-icon">▥</span><span>Berichte</span></button>
 <button id="navOrganizations" onclick="showSection('organizations')"><span class="nav-icon">▣</span><span>Unternehmen / Mandanten</span></button>
 <button id="navUsers" onclick="showSection('users')"><span class="nav-icon">♙</span><span>Benutzer &amp; Berechtigungen</span></button>
@@ -1180,7 +1179,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.42</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.43</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1287,11 +1286,7 @@ body.public-report-mode>#photoViewer{display:none!important}
     </button>
     <button class="tenant-kpi-card tenant-kpi-green" type="button" onclick="showSection('findings')">
       <div class="tenant-kpi-icon">▤</div><div class="tenant-kpi-arrow">›</div>
-      <div class="tenant-kpi-label">Offene Punkte</div><div class="tenant-kpi-value" id="kpiOpen">0</div><div class="tenant-kpi-sub">Feststellungen offen</div>
-    </button>
-    <button aria-label="Sofort oder dringend offene Feststellungen anzeigen" class="tenant-kpi-card tenant-kpi-purple" id="kpiCriticalCard" onclick="openCriticalFindings()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openCriticalFindings();}" type="button">
-      <div class="tenant-kpi-icon">!</div><div class="tenant-kpi-arrow">›</div>
-      <div class="tenant-kpi-label">Dringend</div><div class="tenant-kpi-value" id="kpiCritical">0</div><div class="tenant-kpi-sub">P1 / P2 offen</div>
+      <div class="tenant-kpi-label">Offene Punkte</div><div class="tenant-kpi-value" id="kpiOpen">0</div><div class="tenant-kpi-sub">Feststellungen offen · <span id="kpiCritical">0</span> dringend</div>
     </button>
     <button aria-label="Offene Bewohnermeldungen anzeigen" class="tenant-kpi-card tenant-kpi-orange" id="kpiResidentReportsCard"
       onclick="openDashboardResidentReports()"
@@ -1438,6 +1433,12 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div class="row space">
 <div>
 <h2>Arbeitsvorrat</h2>
+  <div class="card" style="margin:12px 0">
+    <div class="row space">
+      <div><strong>Externe Aufträge</strong><div class="muted">Eingehende und vergebene mandantenübergreifende Aufträge.</div></div>
+      <button type="button" onclick="showSection('externalOrders')">Öffnen <span class="badge nav-count" id="externalOrdersNavCount">0</span></button>
+    </div>
+  </div>
 <div class="muted">Objektbezogene operative Steuerung aller zentral gespeicherten Aufgaben – ohne personenbezogene Vorab-Zuweisung.</div>
 </div>
 </div>
@@ -3009,7 +3010,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.42'; // Objektbetreuung mandantenrein: Dienstleister sehen keine parallelen Dienstleisterbeziehungen desselben Objekts.
+const APP_VERSION='2.19.43'; // Dashboard: Dringend in Offene Punkte integriert; Externe Aufträge über Arbeitsvorrat erreichbar.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
