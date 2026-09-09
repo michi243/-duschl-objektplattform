@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.80</title>
+<title>Duschl Service – Objektplattform v2.18.81</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -426,7 +426,7 @@ main{padding-top:18px}
 .user-message-audience-count{font-size:12px;font-weight:600;opacity:.8}
 .user-message-recipient-row.message-scope-hidden{display:none}
 
-/* v2.18.80 – Platform-Admin Dashboard */
+/* v2.18.81 – Platform-Admin Dashboard */
 .platform-kpi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .platform-kpi-card{border:1px solid var(--border);background:var(--card);border-radius:18px;padding:16px;min-width:0}
 .platform-kpi-label{color:var(--muted);font-size:14px;font-weight:700}
@@ -456,7 +456,7 @@ main{padding-top:18px}
   .platform-tenant-main{align-items:center}
 }
 
-/* v2.18.80 – Platform Admin Dashboard */
+/* v2.18.81 – Platform Admin Dashboard */
 #platformAdminDashboard{padding-bottom:92px}
 .pa-dashboard-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:22px}
 .pa-eyebrow{font-size:12px;font-weight:900;letter-spacing:.12em;color:#9fb2c5;margin-bottom:8px}
@@ -539,7 +539,7 @@ button.pa-kpi-card{width:100%;font:inherit;cursor:pointer}
   .pa-status-grid{grid-template-columns:1fr}
 }
 
-/* v2.18.80 – Mandantenoberflächen im Platform-Design */
+/* v2.18.81 – Mandantenoberflächen im Platform-Design */
 .tenant-dashboard-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:22px}
 .tenant-eyebrow{font-size:12px;font-weight:900;letter-spacing:.12em;color:#9fb2c5;margin-bottom:8px}
 .tenant-dashboard-title{font-size:42px;line-height:1;margin:0 0 10px;font-weight:950}
@@ -581,7 +581,7 @@ button.pa-kpi-card{width:100%;font:inherit;cursor:pointer}
   .tenant-action-btn{padding:9px 11px!important;font-size:12px!important}
 }
 
-/* v2.18.80 – Mandantenmodus + technische Diagnose */
+/* v2.18.81 – Mandantenmodus + technische Diagnose */
 .platform-tenant-mode-banner{position:sticky;top:82px;z-index:70;margin:0 0 14px;padding:11px 14px;border:1px solid #8a6d22;border-radius:14px;background:linear-gradient(145deg,#3b3010,#211d0d);color:#f4df93;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 8px 22px rgba(0,0,0,.22)}
 .platform-tenant-mode-banner.hidden{display:none!important}
 .platform-tenant-mode-banner button{border-color:#8a6d22!important;background:#4b3d13!important;color:#fff1b9!important}
@@ -608,7 +608,7 @@ button.pa-kpi-card{width:100%;font:inherit;cursor:pointer}
   .platform-diagnostic-latency{grid-column:2}
 }
 
-/* v2.18.80 – Safe area above fixed bottom navigation.
+/* v2.18.81 – Safe area above fixed bottom navigation.
    Keeps the final card/action row fully clickable on mobile and desktop. */
 body{
   padding-bottom:calc(110px + env(safe-area-inset-bottom, 0px));
@@ -619,7 +619,7 @@ main,
   scroll-padding-bottom:calc(130px + env(safe-area-inset-bottom, 0px));
 }
 
-/* v2.18.80 – Modal must always sit above fixed bottom navigation.
+/* v2.18.81 – Modal must always sit above fixed bottom navigation.
    Mobile modals are vertically scrollable, including with the iOS keyboard open. */
 #modal{
   z-index:10050!important;
@@ -641,7 +641,7 @@ nav.bottom-nav{
   z-index:1000;
 }
 
-/* v2.18.80 – Plattformverwaltung über Hamburger-Menü; fixe Bottom-Navigation deaktiviert. */
+/* v2.18.81 – Plattformverwaltung über Hamburger-Menü; fixe Bottom-Navigation deaktiviert. */
 #platformBottomNav{display:none!important;}
 body.platform-menu-mode{
   padding-bottom:calc(20px + env(safe-area-inset-bottom, 0px))!important;
@@ -1127,7 +1127,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.80</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.81</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1169,7 +1169,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.80</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.81</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -2942,7 +2942,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.18.80';
+const APP_VERSION='2.18.81';
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -3745,7 +3745,7 @@ let platformOrganizationMemberships=[];
 let platformOrganizationProfiles=[];
 let userAdminMemberships=[];
 
-// v2.18.80: Platform-Admin kann einen Mandanten bewusst administrieren.
+// v2.18.81: Platform-Admin kann einen Mandanten bewusst administrieren.
 // Der globale Plattformkontext bleibt davon getrennt.
 let platformTenantModeOrgId='';
 let platformTenantModeOrganization=null;
@@ -3791,6 +3791,19 @@ function isCustomerRole(){return effectiveUserRole()==='customer'&&!hasOperation
 function isTestUserRole(){return effectiveUserRole()==='test_user'&&!hasOperationalAdminAccess()}
 function canManageObjectsUI(){return hasOperationalAdminAccess()}
 function canUseDecisionsUI(){return hasOperationalAdminAccess()||isCustomerRole()||isTestUserRole()}
+function canUseDecisionsForObject(objectId){
+  const o=(db.objects||[]).find(x=>x.id===objectId);
+  // Bei extern betreuten Objekten bleibt die Auftraggeberentscheidung beim Eigentümermandanten.
+  return canUseDecisionsUI() && !o?.externalManaged;
+}
+function refreshFindingDecisionAccess(){
+  const oid=document.getElementById('fObject')?.value||'';
+  const card=document.getElementById('findingDecisionCard');
+  const hint=document.getElementById('sharedObjectDecisionHint');
+  const allowed=canUseDecisionsForObject(oid);
+  if(card)card.style.display=allowed?'':'none';
+  if(hint)hint.classList.toggle('hidden',allowed);
+}
 function canUseWorkQueueUI(){return hasOperationalAdminAccess()||isObjectManagerRole()||isTestUserRole()}
 function canCreateDocumentationUI(){return hasOperationalAdminAccess()||isObjectManagerRole()||isCustomerRole()||isTestUserRole()}
 function canUseSettingsUI(){return isAdminRole()&&!isPlatformTenantMode()}
@@ -3837,7 +3850,7 @@ async function cloudLoadCurrentProfile(){
   currentUserProfile=p;
   currentUserRole=String(p.role||cloudSession?.user?.user_metadata?.app_role||'').trim().toLowerCase();
 
-  // v2.18.80: Die globale Profilrolle muss sofort wirksam werden.
+  // v2.18.81: Die globale Profilrolle muss sofort wirksam werden.
   // Ein Fehler beim Laden der Mandanten-Mitgliedschaft darf insbesondere
   // einen platform_admin weder Navigation noch globalen Zugriff verlieren lassen.
   currentOrganizationMembership=null;
@@ -4156,7 +4169,7 @@ function applyRoleUI(){
   if(tenantModeBanner)tenantModeBanner.classList.toggle('hidden',!isPlatformTenantMode());
   if(tenantModeName)tenantModeName.textContent=platformTenantModeOrganization?.name||currentOrganization?.name||'Mandant';
 
-  // v2.18.80: Der reine Platform-Admin benötigt kein Hamburger-Menü.
+  // v2.18.81: Der reine Platform-Admin benötigt kein Hamburger-Menü.
   // Tatsächlicher Header-Trigger ist #appMenuBtn / toggleAppMenu().
   // Im Mandantenmodus und für reguläre Mandantenrollen bleibt das Menü erhalten.
   const menuTrigger =
@@ -4244,7 +4257,7 @@ function requireAdminUI(action='Diese Funktion'){
   alert(`${action} ist nur für Administratoren freigegeben.`);
   return false;
 }
-// v2.18.80: Operative Mandantenrechte werden ausschließlich aus der
+// v2.18.81: Operative Mandantenrechte werden ausschließlich aus der
 // aktuellen Tenant-Mitgliedschaft abgeleitet. Die globale Profilrolle
 // object_manager darf einen tenant_admin/admin_delegate nicht herabstufen.
 function requireOperationalAdminUI(action='Diese Funktion'){
@@ -4353,7 +4366,7 @@ async function cloudLogin(){
     await cloudReloadObjects();
   }catch(e){
     console.error('Anmeldung / Profilinitialisierung fehlgeschlagen',e);
-    // v2.18.80: Die App darf bei fehlgeschlagener Profilinitialisierung
+    // v2.18.81: Die App darf bei fehlgeschlagener Profilinitialisierung
     // nicht mit leerer Navigation hinter einem ausgeblendeten Login-Gate stehen.
     currentUserProfile=null;
     currentUserRole='';
@@ -4910,7 +4923,7 @@ async function cloudSaveFinding(id,data){
 
   // Decision is a separate normalized table in the Supabase schema.
   // Objektbetreuer dokumentiert operativ; Auftraggeber und Admin/GF dürfen Auftraggeberentscheidungen schreiben.
-  if(data.type==='Feststellung' && canUseDecisionsUI()){
+  if(data.type==='Feststellung' && canUseDecisionsForObject(data.objectId)){
     const decisionPayload={
       finding_id:row.id,
       required:!!data.decisionRequired,
@@ -5071,7 +5084,7 @@ async function refreshAllCloudData(){
   }
 }
 
-// v2.18.80 – Mandantenübergreifende Zusammenarbeit.
+// v2.18.81 – Mandantenübergreifende Zusammenarbeit.
 // Ein Auftrag bleibt Eigentum des Quellmandanten. Der ausführende Mandant erhält
 // ausschließlich Zugriff auf den freigegebenen Auftrag und arbeitet im eigenen Kontext.
 async function cloudLoadSharedObjects(){
@@ -5973,7 +5986,7 @@ async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
   cloudSetStatus('Supabase wird geladen …','wait');
   try{
-    // v2.18.80: Reine Plattform-Admins arbeiten im Systemkontext und laden
+    // v2.18.81: Reine Plattform-Admins arbeiten im Systemkontext und laden
     // standardmäßig keine operativen Objekt-/Vorgangsdaten.
     if(isPlatformOperatorRole()&&!isPlatformTenantMode()){
       await cloudLoadOrganizations();
@@ -5990,7 +6003,7 @@ async function cloudReloadObjects(){
     const rows=await cloudRequest(objectPath);
     const ownObjects=(rows||[]).map(cloudObjectToLocal);
     await cloudLoadSharedObjects();
-    // v2.18.80: Betreuungsanfragen bei jedem Mandanten-Reload laden.
+    // v2.18.81: Betreuungsanfragen bei jedem Mandanten-Reload laden.
     // Pending-Anfragen sind absichtlich active=false und müssen trotzdem sichtbar bleiben.
     if(hasOperationalAdminAccess()) await cloudLoadObjectCollaborations(false);
     else cloudObjectCollaborations=[];
@@ -6036,7 +6049,7 @@ async function cloudSaveObject(id,data){
     });
     return rows?.[0];
   }
-  // v2.18.80: Neue Objekte werden serverseitig angelegt.
+  // v2.18.81: Neue Objekte werden serverseitig angelegt.
   // Die RPC prüft die Mandantenrolle anhand der aktuellen Auth-Session
   // und erzeugt die Standardbereiche atomar mit dem Objekt.
   const result=await cloudRequest('rpc/create_tenant_object',{
@@ -8560,7 +8573,7 @@ async function saveObject(id){
     const row=await cloudSaveObject(id,data);
     if(!row)throw new Error('Keine Rückgabe aus Supabase.');
 
-    // v2.18.80: Bei Neuanlage wurden die Standardbereiche bereits
+    // v2.18.81: Bei Neuanlage wurden die Standardbereiche bereits
     // innerhalb derselben serverseitigen Transaktion erzeugt.
     closeModal();
     await cloudReloadObjects();
@@ -8723,7 +8736,7 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   const inspOpts=db.inspections.filter(i=>!f.objectId||i.objectId===f.objectId).map(i=>`<option value="${i.id}" ${i.id===f.inspectionId?'selected':''}>${esc(inspectionName(i.id))}</option>`).join('');
   modal(`<div class="row space"><h2>${editId?'Dokumentation bearbeiten':'Dokumentation erfassen'}</h2><button onclick="closeModal()">✕</button></div>
   ${editId?findingCreatorMetaHtml(f):''}
-  <label>Objekt *</label><select id="fObject" onchange="refreshInspectionOptions();refreshFindingAreaOptions()">${objOpts}</select>
+  <label>Objekt *</label><select id="fObject" onchange="refreshInspectionOptions();refreshFindingAreaOptions();refreshFindingDecisionAccess()">${objOpts}</select>
   <input type="hidden" id="fInspection" value="${f.inspectionId||''}">
   <label>Dokumentationstyp *</label><select id="fType" onchange="toggleDocType()">${['Feststellung','Leistung'].map(x=>`<option ${x===f.type?'selected':''}>${x}</option>`).join('')}</select>
   <label>Bereich</label><select id="fAreaSelect" onchange="toggleFindingAreaCustom()"></select>
@@ -8748,7 +8761,7 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   <div id="findingActionFields">
     <label>Empfohlene Maßnahme</label><textarea id="fAction">${esc(f.action)}</textarea>
 
-    <div id="findingDecisionCard" class="card" style="margin-top:12px;background:#f7f9fa;${canUseDecisionsUI()?'':'display:none'}">
+    <div id="findingDecisionCard" class="card" style="margin-top:12px;background:#f7f9fa;${canUseDecisionsForObject(f.objectId)?'':'display:none'}">
       <h3 style="margin-top:0">Entscheidung Auftraggeber</h3>
       <label>Entscheidung des Auftraggebers erforderlich? *</label>
       <select id="fDecisionRequired" onchange="toggleDecisionRequired()">
@@ -8782,6 +8795,11 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
         <label>Freigabebetrag (€)</label>
         <input id="fDecisionAmount" type="number" min="0" step="0.01" inputmode="decimal" value="${f.decisionAmount!==''&&f.decisionAmount!=null?esc(f.decisionAmount):''}" placeholder="optional">
       </div>
+    </div>
+
+    <div id="sharedObjectDecisionHint" class="card ${canUseDecisionsForObject(f.objectId)?'hidden':''}" style="margin-top:12px;background:#101f2a">
+      <strong>Entscheidung beim Eigentümermandanten</strong>
+      <div class="muted" style="margin-top:6px">Dieses Objekt wird extern betreut. Dokumentation und operative Bearbeitung sind freigegeben; Auftraggeberentscheidungen und Freigaben verbleiben beim Eigentümermandanten.</div>
     </div>
 
     <div id="internalWorkCard" class="card" style="margin-top:12px;background:#101f2a">
@@ -8829,7 +8847,7 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   <div class="row" style="margin-top:14px"><button class="primary" onclick="saveFinding('${editId}')">Speichern</button>${editId&&hasOperationalAdminAccess()?`<button class="danger" onclick="deleteFinding('${editId}')">Löschen</button>`:''}</div>`);
   initPhotoDraft(f);
   refreshFindingAreaOptions(f.areaId||'',f.area||'');
-  toggleDocType();toggleDecisionRequired();toggleCompletion();
+  toggleDocType();refreshFindingDecisionAccess();toggleDecisionRequired();toggleCompletion();
 }
 function refreshFindingAreaOptions(preferredAreaId='',preferredAreaName=''){
   const sel=document.getElementById('fAreaSelect'); if(!sel)return;
@@ -8970,7 +8988,8 @@ async function saveFinding(id){
   const existingForPermission=id?db.findings.find(x=>x.id===id):null;
   if(id&&!canEditFindingUI(existingForPermission)){alert('Diese Dokumentation darf nur durch den Ersteller oder Admin/GF geändert werden.');return;}
   if(!id&&!canCreateDocumentationUI()){alert('Dokumentation ist für diese Rolle nicht freigegeben.');return;}
-  const mayEditDecision=canUseDecisionsUI();
+  const selectedObjectForDecision=document.getElementById('fObject')?.value||existingForPermission?.objectId||'';
+  const mayEditDecision=canUseDecisionsForObject(selectedObjectForDecision);
   const existingFindingForDecision=db.findings.find(x=>x.id===id);
   const preservedDecisionRequired=existingFindingForDecision?.decisionRequired===false ? false : true;
   const decisionRequiredValue=mayEditDecision
