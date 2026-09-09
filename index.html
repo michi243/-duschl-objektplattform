@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.39</title>
+<title>Duschl Service – Objektplattform v2.19.41</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1136,7 +1136,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.39</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.41</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1180,7 +1180,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.39</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.41</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1300,6 +1300,20 @@ body.public-report-mode>#photoViewer{display:none!important}
       <div class="tenant-kpi-icon">✉</div><div class="tenant-kpi-arrow">›</div>
       <div class="tenant-kpi-label">Meldungen</div><div class="tenant-kpi-value" id="kpiResidentReports">0</div><div class="tenant-kpi-sub">offen / ungeprüft</div>
     </button>
+    <button aria-label="Offene Entscheidungen anzeigen" class="tenant-kpi-card tenant-kpi-decision" id="kpiDecisionsCard"
+      onclick="openDashboardDecisions()"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDashboardDecisions();}"
+      type="button">
+      <div class="tenant-kpi-icon">◆</div><div class="tenant-kpi-arrow">›</div>
+      <div class="tenant-kpi-label">Entscheidungen</div><div class="tenant-kpi-value" id="kpiDecisions">0</div><div class="tenant-kpi-sub">offen</div>
+    </button>
+    <button aria-label="Arbeitsvorrat anzeigen" class="tenant-kpi-card tenant-kpi-work" id="kpiWorkQueueCard"
+      onclick="openDashboardWorkQueue()"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDashboardWorkQueue();}"
+      type="button">
+      <div class="tenant-kpi-icon">☰</div><div class="tenant-kpi-arrow">›</div>
+      <div class="tenant-kpi-label">Arbeitsvorrat</div><div class="tenant-kpi-value" id="kpiWorkQueue">0</div><div class="tenant-kpi-sub">offen</div>
+    </button>
   </div>
 
   <div class="tenant-panel" id="dashboardCareRequestsWrap" style="display:none">
@@ -1340,8 +1354,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.39</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.39 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.41</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.41 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -1365,7 +1379,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <option value="rejected">Nicht beauftragt</option>
 <option value="deferred">Zurückgestellt</option>
 <option value="question">Rückfrage erforderlich</option>
-<option value="thirdparty">An Dritten vergeben</option>
+<option value="thirdparty">Extern freigegeben</option>
 </select></div>
 <div><label>Priorität</label><select id="filterPriority" onchange="renderFindings()"><option value="">Alle</option><option value="critical">Sofort + Dringend</option><option value="P1">Sofort</option><option value="P2">Dringend</option><option value="P3">Planbar</option><option value="P4">Beobachten</option></select></div>
 <div><label>Typ</label><select id="filterType" onchange="renderFindings()"><option value="">Alle</option><option>Feststellung</option><option>Leistung</option></select></div>
@@ -1399,7 +1413,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <option value="rejected">Nicht beauftragt</option>
 <option value="deferred">Zurückgestellt</option>
 <option value="question">Rückfrage erforderlich</option>
-<option value="thirdparty">An Dritten vergeben</option>
+<option value="thirdparty">Extern freigegeben</option>
 </select>
 </div>
 <div>
@@ -1521,7 +1535,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <option value="rejected">Nicht beauftragt</option>
 <option value="deferred">Zurückgestellt</option>
 <option value="question">Rückfrage erforderlich</option>
-<option value="thirdparty">An Dritten vergeben</option>
+<option value="thirdparty">Extern freigegeben</option>
 <option value="not_required">Keine Entscheidung erforderlich</option>
 </select>
 </div>
@@ -2995,7 +3009,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.39'; // Bewohnermeldungen: Eingang nur Dokumentieren, Schließen oder Löschen; Weiterleitung erfolgt ausschließlich aus der Dokumentation.
+const APP_VERSION='2.19.41'; // Entscheidung: ausführender Mandant wird ausschließlich im nachgelagerten Routing festgelegt.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -4218,7 +4232,7 @@ async function copyTenantPublicCode(){
 function applyRoleUI(){
   const role=effectiveUserRole();
 
-  // v2.19.39: Im operativen Mandantenkontext zeigt der Header immer
+  // v2.19.41: Im operativen Mandantenkontext zeigt der Header immer
   // den aktuell ausgewählten Mandanten statt der Plattformmarke.
   // Im reinen Plattformmodus bleibt "Duschl Service" als Plattformbetreiber sichtbar.
   const appBrandName=document.getElementById('appBrandName');
@@ -5006,7 +5020,7 @@ async function cloudReloadFindings(){
   const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
   let rows=(rowsRaw||[]).filter(f=>accessibleObjectIds.has(f.object_id));
 
-  // v2.19.39: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
+  // v2.19.41: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
   // Sicht des simulierten Mandanten sehen. Seine globale Admin-RLS darf daher
   // nicht dazu führen, dass parallele Dienstleister gegenseitig ihre Findings sehen.
   if(isPlatformTenantMode()){
@@ -5138,7 +5152,7 @@ async function cloudDeleteFinding(id){
 }
 
 async function cloudLoadResidentReports(){
-  // v2.19.39: Bewohnermeldungen werden nicht mehr über den direkten Tabellenzugriff
+  // v2.19.41: Bewohnermeldungen werden nicht mehr über den direkten Tabellenzugriff
   // geladen. Der Server entscheidet anhand Eigentümermandant + manueller Weiterleitung,
   // welcher Mandant eine Meldung sehen darf.
   if(isCustomerRole()){
@@ -5282,7 +5296,7 @@ async function cloudLoadSharedObjects(){
   try{
     let rows=[];
     if(isPlatformTenantMode()){
-      // v2.19.39: autoritative Support-RPC mit explizitem Mandantenkontext.
+      // v2.19.41: autoritative Support-RPC mit explizitem Mandantenkontext.
       rows=await cloudRequest('rpc/platform_support_get_shared_objects',{
         method:'POST',
         body:JSON.stringify({p_organization_id:currentOrganizationId()})
@@ -5494,7 +5508,7 @@ async function openRouteFindingModal(findingId){
   if(!canRouteFindingUI(f))return alert('Nur der berechtigte Entscheider des führenden Mandanten kann diesen Vorgang an ein anderes Unternehmen routen.');
   const o=(db.objects||[]).find(x=>x.id===f.objectId);if(!o)return alert('Objekt nicht gefunden.');
 
-  // v2.19.39: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
+  // v2.19.41: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
   // Dadurch muss die öffentliche Mandanten-ID im Regelprozess nicht mehr manuell eingegeben werden.
   try{await cloudLoadObjectCollaborations(false);}catch(_e){}
   const currentOrgId=currentOrganizationId();
@@ -6638,7 +6652,7 @@ async function cloudReloadObjects(){
       const objectPath=`objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(platformTenantModeOrgId)}&order=name.asc`;
       rows=await cloudRequest(objectPath);
     }else{
-      // v2.19.39: Mandantenobjekte nicht mehr von einer möglicherweise zu restriktiven
+      // v2.19.41: Mandantenobjekte nicht mehr von einer möglicherweise zu restriktiven
       // generischen objects-RLS abhängig machen. Die RPC entscheidet serverseitig:
       // Tenant-Admin/Admin-Vertretung = alle Objekte des Mandanten;
       // Objektbetreuer = ausschließlich aktive Zuweisungen;
@@ -6657,7 +6671,7 @@ async function cloudReloadObjects(){
           });
         }
 
-        // v2.19.39: Sicherheitsnetz für Mandanten-Admins.
+        // v2.19.41: Sicherheitsnetz für Mandanten-Admins.
         // Bei Rollenmodell global=object_manager + tenant_membership=tenant_admin
         // darf ein leerer RPC-Return nicht dazu führen, dass der Admin "keine Objekte" sieht.
         if((!rows||rows.length===0) && typeof currentOrganizationId==='function'){
@@ -6693,7 +6707,7 @@ async function cloudReloadObjects(){
     const ownIds=new Set(ownObjects.map(o=>o.id));
     db.objects=ownObjects.concat(cloudSharedObjects.filter(o=>!ownIds.has(o.id)));
 
-    // v2.19.39: Objekte sind ein eigenständiger Kernbestand.
+    // v2.19.41: Objekte sind ein eigenständiger Kernbestand.
     // Sobald sie geladen sind, werden sie sofort sichtbar gemacht.
     // Ein Fehler in nachgelagerten Modulen darf die Objektansicht nicht mehr leer lassen.
     try{
@@ -7355,7 +7369,7 @@ const DECISION_STATUS_LABELS={
   rejected:'Nicht beauftragt',
   deferred:'Zurückgestellt',
   question:'Rückfrage erforderlich',
-  thirdparty:'An Dritten vergeben',
+  thirdparty:'Extern freigegeben',
   not_required:'Entscheidung nicht erforderlich'
 };
 function decisionLabel(v){
@@ -7364,7 +7378,7 @@ function decisionLabel(v){
 function decisionMetaHtml(f){
   if(!f||!f.decisionBy||['pending','not_required'].includes(f.decisionStatus||'pending'))return '';
   const when=f.decisionAt?fmt(f.decisionAt):(f.decisionDate||'');
-  const implementation=f.decisionImplementation?` · Umsetzung: ${esc(decisionImplementationLabel(f.decisionImplementation))}`:'';
+  const implementation='';
   return `<div class="muted" style="margin-top:6px">Entschieden von: <b>${esc(f.decisionBy)}</b>${when?` · ${esc(when)}`:''}${implementation}</div>`;
 }
 function inspectionClosed(i){return !!(i && i.endedAt)}
@@ -7496,18 +7510,8 @@ function decisionActorDisplay(f){
   if(f?.decisionBy)return f.decisionBy;
   return (currentUserProfile?.full_name||cloudSession?.user?.user_metadata?.full_name||cloudSession?.user?.email||'Angemeldeter Benutzer').trim();
 }
-function decisionImplementationLabel(v){
-  return ({duschl_service:'Duschl Service',third_party:'Dritter'})[v]||'';
-}
-function toggleDecisionImplementation(){
-  const status=document.getElementById('dStatus')?.value||'';
-  const wrap=document.getElementById('dImplementationWrap');
-  if(wrap)wrap.classList.toggle('hidden',!['approved','thirdparty'].includes(status));
-  if(status==='thirdparty'){
-    const el=document.getElementById('dImplementation');
-    if(el)el.value='third_party';
-  }
-}
+function decisionImplementationLabel(v){return v?'Über Routing festgelegt':'';}
+function toggleDecisionImplementation(){}
 function openDecisionModal(id){
   if(!requireDecisionUI())return;
   const f=db.findings.find(x=>x.id===id); if(!f)return;
@@ -7525,14 +7529,9 @@ function openDecisionModal(id){
     </div>
     <label>Entscheidung *</label>
     <select id="dStatus" onchange="toggleDecisionImplementation()">${options}</select>
-    <div id="dImplementationWrap">
-      <label>Wer setzt die Maßnahme um? *</label>
-      <select id="dImplementation">
-        <option value="" ${!f.decisionImplementation?'selected':''}>Bitte wählen</option>
-        <option value="duschl_service" ${f.decisionImplementation==='duschl_service'?'selected':''}>Duschl Service</option>
-        <option value="third_party" ${f.decisionImplementation==='third_party'?'selected':''}>Dritter</option>
-      </select>
-      <div class="muted" style="margin-top:5px">Nur „Duschl Service“ führt den Vorgang in den operativen Arbeitsvorrat.</div>
+    <div class="card" style="margin-top:12px">
+      <strong>Ausführung / Routing</strong>
+      <div class="muted" style="margin-top:5px">Das ausführende Unternehmen wird nicht in der Entscheidung festgelegt. Nach der Freigabe wird der Vorgang gezielt an den zuständigen Mandanten bzw. Dienstleister geroutet.</div>
     </div>
     <label>Entschieden von</label>
     <input value="${esc(actor)}" readonly>
@@ -7551,12 +7550,11 @@ async function saveDecision(id){
   if(!requireDecisionUI())return;
   const f=db.findings.find(x=>x.id===id); if(!f)return;
   const status=document.getElementById('dStatus')?.value||'pending';
-  const implementation=document.getElementById('dImplementation')?.value||'';
+  const implementation='';
   const comment=document.getElementById('dComment')?.value.trim()||'';
   const amountRaw=document.getElementById('dAmount')?.value??'';
   const amount=amountRaw===''?'':Number(amountRaw);
   const required=status!=='not_required';
-  if(['approved','thirdparty'].includes(status) && !implementation)return alert('Bitte auswählen, wer die Maßnahme umsetzt.');
   const effectiveImplementation=status==='thirdparty'?'third_party':(['approved'].includes(status)?implementation:'');
 
   try{
@@ -8327,6 +8325,19 @@ function messageBelongsToCurrentTenant(message){
 }
 
 
+
+function openDashboardDecisions(){
+  if(!canUseDecisionsUI())return;
+  showSection('decisions');
+  try{renderDecisions();}catch(e){console.error('Entscheidungen konnten nicht dargestellt werden',e);}
+}
+
+function openDashboardWorkQueue(){
+  if(!canUseWorkQueueUI())return;
+  showSection('workqueue');
+  try{renderWorkQueue();}catch(e){console.error('Arbeitsvorrat konnte nicht dargestellt werden',e);}
+}
+
 function openDashboardResidentReports(){
   if(isCustomerRole())return;
   showSection('residentReports');
@@ -8358,6 +8369,36 @@ function renderDashboard(){
     reportCard.style.display=isCustomerRole()?'none':'';
   }
 
+  // Offene Entscheidungen: alle sichtbaren Feststellungen, bei denen noch keine finale Entscheidung vorliegt.
+  const openDecisionCount=(db.findings||[]).filter(f=>{
+    if(String(f.type||'Feststellung')!=='Feststellung')return false;
+    const ds=String(f.decisionStatus||f.decision_status||'').toLowerCase();
+    return !['approved','rejected','not_required','completed','closed','done'].includes(ds);
+  }).length;
+  const decisionKpi=document.getElementById('kpiDecisions');
+  if(decisionKpi)decisionKpi.textContent=openDecisionCount;
+  const decisionCard=document.getElementById('kpiDecisionsCard');
+  if(decisionCard){
+    decisionCard.style.display=canUseDecisionsUI()?'':'none';
+    decisionCard.classList.toggle('is-disabled',openDecisionCount===0);
+    decisionCard.setAttribute('aria-disabled',openDecisionCount===0?'true':'false');
+  }
+
+  // Arbeitsvorrat: sichtbare offene Aufgaben/Vorgänge ohne erledigten Status.
+  const workItems=Array.isArray(db.tasks)?db.tasks:[];
+  const openWorkCount=workItems.filter(t=>{
+    const st=String(t.status||'').toLowerCase();
+    return !['done','completed','closed','cancelled','rejected','erledigt'].includes(st);
+  }).length;
+  const workKpi=document.getElementById('kpiWorkQueue');
+  if(workKpi)workKpi.textContent=openWorkCount;
+  const workCard=document.getElementById('kpiWorkQueueCard');
+  if(workCard){
+    workCard.style.display=canUseWorkQueueUI()?'':'none';
+    workCard.classList.toggle('is-disabled',openWorkCount===0);
+    workCard.setAttribute('aria-disabled',openWorkCount===0?'true':'false');
+  }
+
   const kpiInspections=document.getElementById('kpiInspections'); if(kpiInspections)kpiInspections.textContent=db.inspections.length;
   const box=document.getElementById('dashboardFindings');
   const rows=open.sort((a,b)=>a.priority.localeCompare(b.priority)||b.createdAt-a.createdAt).slice(0,8);
@@ -8380,7 +8421,7 @@ function renderObjectsDirect(){
   const status=document.getElementById('objectListStatus');
   if(!el)return;
   const objects=Array.isArray(db?.objects)?db.objects:[];
-  if(status)status.textContent=`Objektmodul v2.19.39 · ${objects.length} Objekt${objects.length===1?'':'e'} geladen`;
+  if(status)status.textContent=`Objektmodul v2.19.41 · ${objects.length} Objekt${objects.length===1?'':'e'} geladen`;
   if(!objects.length){
     el.innerHTML='<div class="empty">Keine Objekte im aktuellen Mandantenkontext.</div>';
     return;
@@ -9250,7 +9291,7 @@ function printObjectQrCode(objectId,areaId=''){
   const w=window.open('','_blank','noopener,noreferrer');
   if(!w){alert('Druckansicht konnte nicht geöffnet werden. Bitte Pop-ups für diese Seite zulassen.');return;}
   w.document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>QR-Code ${esc(o.name||'Objekt')}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;text-align:center;padding:32px;color:#111}img{width:320px;max-width:90%;height:auto}h1{font-size:24px;margin-bottom:4px}.muted{color:#555;margin-bottom:8px}.area{font-size:20px;font-weight:700;margin:10px 0 18px}.hint{margin:20px auto 0;max-width:520px;font-size:16px;line-height:1.45}.url{font-size:10px;color:#777;word-break:break-all;margin-top:20px}@media print{button{display:none}}
-/* ===== v2.19.39 – Einheitliche Dialogpositionierung Plattform + Mandanten ===== */
+/* ===== v2.19.41 – Einheitliche Dialogpositionierung Plattform + Mandanten ===== */
 #modalRoot:empty{display:none!important}
 #modalRoot:not(:empty){
   position:fixed;
@@ -9332,6 +9373,11 @@ function printObjectQrCode(objectId,areaId=''){
 
 .tenant-kpi-orange{border-color:rgba(255,170,70,.28)}
 .tenant-kpi-orange .tenant-kpi-icon{color:#ffb15c}
+
+.tenant-kpi-decision{border-color:rgba(150,120,255,.28)}
+.tenant-kpi-decision .tenant-kpi-icon{color:#b7a4ff}
+.tenant-kpi-work{border-color:rgba(80,210,170,.28)}
+.tenant-kpi-work .tenant-kpi-icon{color:#67d9b0}
 </style></head><body><h1>Duschl Service OS</h1><div class="muted">${esc(o.name||'Objekt')}${o.address?' · '+esc(o.address):''}</div>${area?`<div class="area">Bereich: ${esc(area.name)}</div>`:''}<img src="${img}" alt="QR-Code Bewohnermeldung"><div class="hint"><strong>Anliegen oder Schaden melden</strong><br>QR-Code mit dem Smartphone scannen und Meldung direkt an Duschl Service senden.</div><div class="url">${esc(url)}</div><script>window.onload=()=>setTimeout(()=>window.print(),150);<\/script></body></html>`);
   w.document.close();
 }
@@ -9849,13 +9895,9 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
             .filter(([v])=>v!=='not_required')
             .map(([v,l])=>`<option value="${v}" ${v===(f.decisionStatus||'pending')?'selected':''}>${esc(l)}</option>`).join('')}
         </select>
-        <div id="fDecisionImplementationWrap">
-          <label>Wer setzt die Maßnahme um? *</label>
-          <select id="fDecisionImplementation">
-            <option value="" ${!f.decisionImplementation?'selected':''}>Bitte wählen</option>
-            <option value="duschl_service" ${f.decisionImplementation==='duschl_service'?'selected':''}>Duschl Service</option>
-            <option value="third_party" ${f.decisionImplementation==='third_party'?'selected':''}>Dritter</option>
-          </select>
+        <div class="card" style="margin-top:12px">
+          <strong>Ausführung / Routing</strong>
+          <div class="muted" style="margin-top:5px">Das ausführende Unternehmen wird nach der Entscheidung über das Routing festgelegt.</div>
         </div>
         <label>Entschieden von</label>
         <input value="${esc(decisionActorDisplay(f))}" readonly>
