@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.18.75</title>
+<title>Duschl Service – Objektplattform v2.18.76</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -370,6 +370,7 @@ a{color:var(--accent-2)!important}
 .app-brand h1{font-size:17px!important;line-height:1.05;margin:0!important;white-space:nowrap}.app-brand small{font-size:12px!important}
 .topbar-meta{margin-left:auto;display:flex;align-items:center;justify-content:flex-end;gap:7px;min-width:0}.topbar-meta .badge{white-space:nowrap}.topbar-meta .version-badge{padding:5px 8px!important;font-size:11px!important}
 .topbar-user{display:flex;align-items:center;gap:8px;min-width:0;padding:4px 9px 4px 5px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:rgba(255,255,255,.06);color:#fff;max-width:280px}.topbar-user-avatar{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;flex:0 0 32px;background:#2f8fff;color:#fff;font-size:12px;font-weight:800;letter-spacing:.2px}.topbar-user-copy{min-width:0;display:flex;flex-direction:column;line-height:1.12}.topbar-user-name{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}.topbar-user-role{font-size:10px;color:#b8c6d1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}.topbar-user-delegate{color:#8fc5ff}.menu-user-card{display:flex;align-items:center;gap:10px;margin:4px 4px 10px;padding:10px;border:1px solid var(--line-soft);border-radius:12px;background:#0d2030}.menu-user-card .topbar-user-avatar{width:36px;height:36px;flex-basis:36px}.menu-user-card .topbar-user-name{font-size:14px}.menu-user-card .topbar-user-role{font-size:11px}
+.menu-tenant-code{margin:0 4px 10px;padding:10px 12px;border:1px solid var(--line-soft);border-radius:12px;background:rgba(47,143,255,.07)}.menu-tenant-code-label{font-size:10px;color:#91a4b3;text-transform:uppercase;letter-spacing:.08em;font-weight:800}.menu-tenant-code-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:5px}.menu-tenant-code-value{font-size:14px;font-weight:900;letter-spacing:.08em;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.menu-tenant-code-copy{padding:6px 9px!important;min-height:32px!important;font-size:11px!important;white-space:nowrap;background:#12314a!important;border-color:#31536c!important}.menu-tenant-code-confirm{font-size:10px;color:#8fc5ff;margin-top:5px;min-height:13px}
 .app-menu-backdrop{position:fixed;inset:0;background:rgba(0,6,11,.62);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);z-index:70;opacity:0;visibility:hidden;transition:opacity .2s ease,visibility .2s ease}
 .app-menu-backdrop.open{opacity:1;visibility:visible}
 .app-menu{position:fixed;left:0;top:0;bottom:0;width:min(340px,88vw);z-index:80;background:linear-gradient(180deg,#0d1b27,#07131d);border-right:1px solid var(--line);box-shadow:18px 0 45px rgba(0,0,0,.35);transform:translateX(-102%);transition:transform .22s ease;display:flex;flex-direction:column;padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom));overflow:auto}
@@ -425,7 +426,7 @@ main{padding-top:18px}
 .user-message-audience-count{font-size:12px;font-weight:600;opacity:.8}
 .user-message-recipient-row.message-scope-hidden{display:none}
 
-/* v2.18.75 – Platform-Admin Dashboard */
+/* v2.18.76 – Platform-Admin Dashboard */
 .platform-kpi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .platform-kpi-card{border:1px solid var(--border);background:var(--card);border-radius:18px;padding:16px;min-width:0}
 .platform-kpi-label{color:var(--muted);font-size:14px;font-weight:700}
@@ -455,7 +456,7 @@ main{padding-top:18px}
   .platform-tenant-main{align-items:center}
 }
 
-/* v2.18.75 – Platform Admin Dashboard */
+/* v2.18.76 – Platform Admin Dashboard */
 #platformAdminDashboard{padding-bottom:92px}
 .pa-dashboard-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:22px}
 .pa-eyebrow{font-size:12px;font-weight:900;letter-spacing:.12em;color:#9fb2c5;margin-bottom:8px}
@@ -538,7 +539,7 @@ button.pa-kpi-card{width:100%;font:inherit;cursor:pointer}
   .pa-status-grid{grid-template-columns:1fr}
 }
 
-/* v2.18.75 – Mandantenoberflächen im Platform-Design */
+/* v2.18.76 – Mandantenoberflächen im Platform-Design */
 .tenant-dashboard-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:22px}
 .tenant-eyebrow{font-size:12px;font-weight:900;letter-spacing:.12em;color:#9fb2c5;margin-bottom:8px}
 .tenant-dashboard-title{font-size:42px;line-height:1;margin:0 0 10px;font-weight:950}
@@ -580,7 +581,7 @@ button.pa-kpi-card{width:100%;font:inherit;cursor:pointer}
   .tenant-action-btn{padding:9px 11px!important;font-size:12px!important}
 }
 
-/* v2.18.75 – Mandantenmodus + technische Diagnose */
+/* v2.18.76 – Mandantenmodus + technische Diagnose */
 .platform-tenant-mode-banner{position:sticky;top:82px;z-index:70;margin:0 0 14px;padding:11px 14px;border:1px solid #8a6d22;border-radius:14px;background:linear-gradient(145deg,#3b3010,#211d0d);color:#f4df93;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 8px 22px rgba(0,0,0,.22)}
 .platform-tenant-mode-banner.hidden{display:none!important}
 .platform-tenant-mode-banner button{border-color:#8a6d22!important;background:#4b3d13!important;color:#fff1b9!important}
@@ -607,7 +608,7 @@ button.pa-kpi-card{width:100%;font:inherit;cursor:pointer}
   .platform-diagnostic-latency{grid-column:2}
 }
 
-/* v2.18.75 – Safe area above fixed bottom navigation.
+/* v2.18.76 – Safe area above fixed bottom navigation.
    Keeps the final card/action row fully clickable on mobile and desktop. */
 body{
   padding-bottom:calc(110px + env(safe-area-inset-bottom, 0px));
@@ -618,7 +619,7 @@ main,
   scroll-padding-bottom:calc(130px + env(safe-area-inset-bottom, 0px));
 }
 
-/* v2.18.75 – Modal must always sit above fixed bottom navigation.
+/* v2.18.76 – Modal must always sit above fixed bottom navigation.
    Mobile modals are vertically scrollable, including with the iOS keyboard open. */
 #modal{
   z-index:10050!important;
@@ -640,7 +641,7 @@ nav.bottom-nav{
   z-index:1000;
 }
 
-/* v2.18.75 – Plattformverwaltung über Hamburger-Menü; fixe Bottom-Navigation deaktiviert. */
+/* v2.18.76 – Plattformverwaltung über Hamburger-Menü; fixe Bottom-Navigation deaktiviert. */
 #platformBottomNav{display:none!important;}
 body.platform-menu-mode{
   padding-bottom:calc(20px + env(safe-area-inset-bottom, 0px))!important;
@@ -1126,11 +1127,12 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.75</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.18.76</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
 <div class="menu-user-card" id="menuUserIdentity" style="display:none"></div>
+<div class="menu-tenant-code" id="menuTenantCode" style="display:none"></div>
 <nav>
 <button class="primary" id="navDashboard" onclick="showSection('dashboard')"><span class="nav-icon">⌂</span><span>Dashboard</span></button>
 <button id="navObjects" onclick="showSection('objects')"><span class="nav-icon">▦</span><span>Objekte</span></button>
@@ -1167,7 +1169,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.75</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.18.76</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -2929,7 +2931,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.18.75';
+const APP_VERSION='2.18.76';
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -3732,7 +3734,7 @@ let platformOrganizationMemberships=[];
 let platformOrganizationProfiles=[];
 let userAdminMemberships=[];
 
-// v2.18.75: Platform-Admin kann einen Mandanten bewusst administrieren.
+// v2.18.76: Platform-Admin kann einen Mandanten bewusst administrieren.
 // Der globale Plattformkontext bleibt davon getrennt.
 let platformTenantModeOrgId='';
 let platformTenantModeOrganization=null;
@@ -3824,7 +3826,7 @@ async function cloudLoadCurrentProfile(){
   currentUserProfile=p;
   currentUserRole=String(p.role||cloudSession?.user?.user_metadata?.app_role||'').trim().toLowerCase();
 
-  // v2.18.75: Die globale Profilrolle muss sofort wirksam werden.
+  // v2.18.76: Die globale Profilrolle muss sofort wirksam werden.
   // Ein Fehler beim Laden der Mandanten-Mitgliedschaft darf insbesondere
   // einen platform_admin weder Navigation noch globalen Zugriff verlieren lassen.
   currentOrganizationMembership=null;
@@ -3835,7 +3837,7 @@ async function cloudLoadCurrentProfile(){
     const memberships=await cloudRequest(`organization_memberships?select=id,organization_id,user_id,role&user_id=eq.${encodeURIComponent(uid)}`)||[];
     currentOrganizationMembership=memberships[0]||null;
     if(currentOrganizationMembership?.organization_id){
-      const orgRows=await cloudRequest(`organizations?select=id,name,organization_type,active&id=eq.${encodeURIComponent(currentOrganizationMembership.organization_id)}&limit=1`);
+      const orgRows=await cloudRequest(`organizations?select=id,name,organization_type,public_code,active&id=eq.${encodeURIComponent(currentOrganizationMembership.organization_id)}&limit=1`);
       currentOrganization=orgRows?.[0]||null;
     }
   }catch(e){
@@ -4041,6 +4043,30 @@ function cloudRecoverySessionFromUrl(){
   };
 }
 
+async function copyTenantPublicCode(){
+  const code=String(currentOrganization?.public_code||'').trim();
+  if(!code)return alert('Mandanten-ID ist noch nicht verfügbar.');
+  let copied=false;
+  try{
+    if(navigator.clipboard?.writeText){
+      await navigator.clipboard.writeText(code);
+      copied=true;
+    }
+  }catch(e){console.warn('Clipboard API nicht verfügbar',e);}
+  if(!copied){
+    const ta=document.createElement('textarea');
+    ta.value=code;
+    ta.setAttribute('readonly','');
+    ta.style.position='fixed';ta.style.opacity='0';ta.style.pointerEvents='none';
+    document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,99999);
+    try{copied=document.execCommand('copy');}catch(e){copied=false;}
+    ta.remove();
+  }
+  const confirm=document.getElementById('menuTenantCodeConfirm');
+  if(confirm){confirm.textContent=copied?'Mandanten-ID kopiert':'Kopieren nicht möglich';setTimeout(()=>{if(confirm)confirm.textContent='';},1800);}
+  if(!copied)alert(`Mandanten-ID: ${code}`);
+}
+
 function applyRoleUI(){
   const role=effectiveUserRole();
   const rb=document.getElementById('roleBadge');
@@ -4074,6 +4100,12 @@ function applyRoleUI(){
     const headerIdentityHtml=`<span class="topbar-user-avatar">${esc(initials)}</span><span class="topbar-user-copy"><span class="topbar-user-name">${esc(headerRoleLabel)}</span></span>`;
     if(rb){rb.innerHTML=headerIdentityHtml;rb.style.display=role?'flex':'none';rb.title=`Angemeldet als ${displayName||'Benutzer'} · ${roleLabel}${delegateLabel}`;}
     if(menuIdentity){menuIdentity.innerHTML=menuIdentityHtml;menuIdentity.style.display=role?'flex':'none';}
+    const menuTenantCode=document.getElementById('menuTenantCode');
+    const showTenantCode=!!currentOrganization?.public_code && (isTenantAdminRole()||isAdminDelegate()||isPlatformTenantMode());
+    if(menuTenantCode){
+      menuTenantCode.style.display=showTenantCode?'block':'none';
+      menuTenantCode.innerHTML=showTenantCode?`<div class="menu-tenant-code-label">${esc(currentOrganization?.name||'Mandant')}</div><div class="menu-tenant-code-row"><span class="menu-tenant-code-value">${esc(currentOrganization.public_code)}</span><button class="menu-tenant-code-copy" type="button" onclick="copyTenantPublicCode()">Kopieren</button></div><div class="menu-tenant-code-confirm" id="menuTenantCodeConfirm"></div>`:'';
+    }
   }
 
   const show=(id,yes)=>{
@@ -4113,7 +4145,7 @@ function applyRoleUI(){
   if(tenantModeBanner)tenantModeBanner.classList.toggle('hidden',!isPlatformTenantMode());
   if(tenantModeName)tenantModeName.textContent=platformTenantModeOrganization?.name||currentOrganization?.name||'Mandant';
 
-  // v2.18.75: Der reine Platform-Admin benötigt kein Hamburger-Menü.
+  // v2.18.76: Der reine Platform-Admin benötigt kein Hamburger-Menü.
   // Tatsächlicher Header-Trigger ist #appMenuBtn / toggleAppMenu().
   // Im Mandantenmodus und für reguläre Mandantenrollen bleibt das Menü erhalten.
   const menuTrigger =
@@ -4201,7 +4233,7 @@ function requireAdminUI(action='Diese Funktion'){
   alert(`${action} ist nur für Administratoren freigegeben.`);
   return false;
 }
-// v2.18.75: Operative Mandantenrechte werden ausschließlich aus der
+// v2.18.76: Operative Mandantenrechte werden ausschließlich aus der
 // aktuellen Tenant-Mitgliedschaft abgeleitet. Die globale Profilrolle
 // object_manager darf einen tenant_admin/admin_delegate nicht herabstufen.
 function requireOperationalAdminUI(action='Diese Funktion'){
@@ -4310,7 +4342,7 @@ async function cloudLogin(){
     await cloudReloadObjects();
   }catch(e){
     console.error('Anmeldung / Profilinitialisierung fehlgeschlagen',e);
-    // v2.18.75: Die App darf bei fehlgeschlagener Profilinitialisierung
+    // v2.18.76: Die App darf bei fehlgeschlagener Profilinitialisierung
     // nicht mit leerer Navigation hinter einem ausgeblendeten Login-Gate stehen.
     currentUserProfile=null;
     currentUserRole='';
@@ -5027,7 +5059,7 @@ async function refreshAllCloudData(){
   }
 }
 
-// v2.18.75 – Mandantenübergreifende Zusammenarbeit.
+// v2.18.76 – Mandantenübergreifende Zusammenarbeit.
 // Ein Auftrag bleibt Eigentum des Quellmandanten. Der ausführende Mandant erhält
 // ausschließlich Zugriff auf den freigegebenen Auftrag und arbeitet im eigenen Kontext.
 async function cloudLoadSharedObjects(){
@@ -5896,7 +5928,7 @@ async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
   cloudSetStatus('Supabase wird geladen …','wait');
   try{
-    // v2.18.75: Reine Plattform-Admins arbeiten im Systemkontext und laden
+    // v2.18.76: Reine Plattform-Admins arbeiten im Systemkontext und laden
     // standardmäßig keine operativen Objekt-/Vorgangsdaten.
     if(isPlatformOperatorRole()&&!isPlatformTenantMode()){
       await cloudLoadOrganizations();
@@ -5955,7 +5987,7 @@ async function cloudSaveObject(id,data){
     });
     return rows?.[0];
   }
-  // v2.18.75: Neue Objekte werden serverseitig angelegt.
+  // v2.18.76: Neue Objekte werden serverseitig angelegt.
   // Die RPC prüft die Mandantenrolle anhand der aktuellen Auth-Session
   // und erzeugt die Standardbereiche atomar mit dem Objekt.
   const result=await cloudRequest('rpc/create_tenant_object',{
@@ -8466,7 +8498,7 @@ async function saveObject(id){
     const row=await cloudSaveObject(id,data);
     if(!row)throw new Error('Keine Rückgabe aus Supabase.');
 
-    // v2.18.75: Bei Neuanlage wurden die Standardbereiche bereits
+    // v2.18.76: Bei Neuanlage wurden die Standardbereiche bereits
     // innerhalb derselben serverseitigen Transaktion erzeugt.
     closeModal();
     await cloudReloadObjects();
