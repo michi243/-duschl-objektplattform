@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.37</title>
+<title>Duschl Service – Objektplattform v2.19.38</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1136,7 +1136,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.37</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.38</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1180,7 +1180,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.37</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.38</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1293,6 +1293,13 @@ body.public-report-mode>#photoViewer{display:none!important}
       <div class="tenant-kpi-icon">!</div><div class="tenant-kpi-arrow">›</div>
       <div class="tenant-kpi-label">Dringend</div><div class="tenant-kpi-value" id="kpiCritical">0</div><div class="tenant-kpi-sub">P1 / P2 offen</div>
     </button>
+    <button aria-label="Offene Bewohnermeldungen anzeigen" class="tenant-kpi-card tenant-kpi-orange" id="kpiResidentReportsCard"
+      onclick="openDashboardResidentReports()"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDashboardResidentReports();}"
+      type="button">
+      <div class="tenant-kpi-icon">✉</div><div class="tenant-kpi-arrow">›</div>
+      <div class="tenant-kpi-label">Meldungen</div><div class="tenant-kpi-value" id="kpiResidentReports">0</div><div class="tenant-kpi-sub">offen / ungeprüft</div>
+    </button>
   </div>
 
   <div class="tenant-panel" id="dashboardCareRequestsWrap" style="display:none">
@@ -1333,8 +1340,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.37</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.37 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.38</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.38 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -2988,7 +2995,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.37'; // Bewohnermeldungen: Vorfilterung beim Eigentümermandanten, manuelle Weiterleitung an ausgewählte aktive Objektpartner.
+const APP_VERSION='2.19.38'; // Dashboard erweitert: KPI 'Meldungen' für offene/ungeprüfte Bewohnermeldungen.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -4211,7 +4218,7 @@ async function copyTenantPublicCode(){
 function applyRoleUI(){
   const role=effectiveUserRole();
 
-  // v2.19.37: Im operativen Mandantenkontext zeigt der Header immer
+  // v2.19.38: Im operativen Mandantenkontext zeigt der Header immer
   // den aktuell ausgewählten Mandanten statt der Plattformmarke.
   // Im reinen Plattformmodus bleibt "Duschl Service" als Plattformbetreiber sichtbar.
   const appBrandName=document.getElementById('appBrandName');
@@ -4999,7 +5006,7 @@ async function cloudReloadFindings(){
   const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
   let rows=(rowsRaw||[]).filter(f=>accessibleObjectIds.has(f.object_id));
 
-  // v2.19.37: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
+  // v2.19.38: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
   // Sicht des simulierten Mandanten sehen. Seine globale Admin-RLS darf daher
   // nicht dazu führen, dass parallele Dienstleister gegenseitig ihre Findings sehen.
   if(isPlatformTenantMode()){
@@ -5131,7 +5138,7 @@ async function cloudDeleteFinding(id){
 }
 
 async function cloudLoadResidentReports(){
-  // v2.19.37: Bewohnermeldungen werden nicht mehr über den direkten Tabellenzugriff
+  // v2.19.38: Bewohnermeldungen werden nicht mehr über den direkten Tabellenzugriff
   // geladen. Der Server entscheidet anhand Eigentümermandant + manueller Weiterleitung,
   // welcher Mandant eine Meldung sehen darf.
   if(isCustomerRole()){
@@ -5155,6 +5162,7 @@ async function cloudLoadResidentReports(){
     body:JSON.stringify({p_organization_id:orgId})
   });
   cloudResidentReports=Array.isArray(rows)?rows:[];
+  try{renderDashboard();}catch(e){}
 
   try{
     await cloudLoadResidentReportMedia();
@@ -5274,7 +5282,7 @@ async function cloudLoadSharedObjects(){
   try{
     let rows=[];
     if(isPlatformTenantMode()){
-      // v2.19.37: autoritative Support-RPC mit explizitem Mandantenkontext.
+      // v2.19.38: autoritative Support-RPC mit explizitem Mandantenkontext.
       rows=await cloudRequest('rpc/platform_support_get_shared_objects',{
         method:'POST',
         body:JSON.stringify({p_organization_id:currentOrganizationId()})
@@ -5486,7 +5494,7 @@ async function openRouteFindingModal(findingId){
   if(!canRouteFindingUI(f))return alert('Nur der berechtigte Entscheider des führenden Mandanten kann diesen Vorgang an ein anderes Unternehmen routen.');
   const o=(db.objects||[]).find(x=>x.id===f.objectId);if(!o)return alert('Objekt nicht gefunden.');
 
-  // v2.19.37: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
+  // v2.19.38: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
   // Dadurch muss die öffentliche Mandanten-ID im Regelprozess nicht mehr manuell eingegeben werden.
   try{await cloudLoadObjectCollaborations(false);}catch(_e){}
   const currentOrgId=currentOrganizationId();
@@ -6630,7 +6638,7 @@ async function cloudReloadObjects(){
       const objectPath=`objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(platformTenantModeOrgId)}&order=name.asc`;
       rows=await cloudRequest(objectPath);
     }else{
-      // v2.19.37: Mandantenobjekte nicht mehr von einer möglicherweise zu restriktiven
+      // v2.19.38: Mandantenobjekte nicht mehr von einer möglicherweise zu restriktiven
       // generischen objects-RLS abhängig machen. Die RPC entscheidet serverseitig:
       // Tenant-Admin/Admin-Vertretung = alle Objekte des Mandanten;
       // Objektbetreuer = ausschließlich aktive Zuweisungen;
@@ -6649,7 +6657,7 @@ async function cloudReloadObjects(){
           });
         }
 
-        // v2.19.37: Sicherheitsnetz für Mandanten-Admins.
+        // v2.19.38: Sicherheitsnetz für Mandanten-Admins.
         // Bei Rollenmodell global=object_manager + tenant_membership=tenant_admin
         // darf ein leerer RPC-Return nicht dazu führen, dass der Admin "keine Objekte" sieht.
         if((!rows||rows.length===0) && typeof currentOrganizationId==='function'){
@@ -6685,7 +6693,7 @@ async function cloudReloadObjects(){
     const ownIds=new Set(ownObjects.map(o=>o.id));
     db.objects=ownObjects.concat(cloudSharedObjects.filter(o=>!ownIds.has(o.id)));
 
-    // v2.19.37: Objekte sind ein eigenständiger Kernbestand.
+    // v2.19.38: Objekte sind ein eigenständiger Kernbestand.
     // Sobald sie geladen sind, werden sie sofort sichtbar gemacht.
     // Ein Fehler in nachgelagerten Modulen darf die Objektansicht nicht mehr leer lassen.
     try{
@@ -8318,6 +8326,13 @@ function messageBelongsToCurrentTenant(message){
   return belongs(message?.created_by) || belongs(message?.recipient_id);
 }
 
+
+function openDashboardResidentReports(){
+  if(isCustomerRole())return;
+  showSection('residentReports');
+  try{renderResidentReports();}catch(e){console.error('Meldungen konnten nicht dargestellt werden',e);}
+}
+
 function renderDashboard(){
   renderDashboardMessages();
   renderDashboardCareRequests();
@@ -8328,6 +8343,21 @@ function renderDashboard(){
   document.getElementById('kpiCritical').textContent=criticalCount;
   const criticalCard=document.getElementById('kpiCriticalCard');
   if(criticalCard){criticalCard.classList.toggle('is-disabled',criticalCount===0);criticalCard.setAttribute('aria-disabled',criticalCount===0?'true':'false');}
+
+  const visibleReports=Array.isArray(cloudResidentReports)?cloudResidentReports:[];
+  const residentReportCount=visibleReports.filter(r=>{
+    const status=String(r.status||'').toLowerCase();
+    return !['closed','completed','rejected'].includes(status);
+  }).length;
+  const reportKpi=document.getElementById('kpiResidentReports');
+  if(reportKpi)reportKpi.textContent=residentReportCount;
+  const reportCard=document.getElementById('kpiResidentReportsCard');
+  if(reportCard){
+    reportCard.classList.toggle('is-disabled',residentReportCount===0);
+    reportCard.setAttribute('aria-disabled',residentReportCount===0?'true':'false');
+    reportCard.style.display=isCustomerRole()?'none':'';
+  }
+
   const kpiInspections=document.getElementById('kpiInspections'); if(kpiInspections)kpiInspections.textContent=db.inspections.length;
   const box=document.getElementById('dashboardFindings');
   const rows=open.sort((a,b)=>a.priority.localeCompare(b.priority)||b.createdAt-a.createdAt).slice(0,8);
@@ -8350,7 +8380,7 @@ function renderObjectsDirect(){
   const status=document.getElementById('objectListStatus');
   if(!el)return;
   const objects=Array.isArray(db?.objects)?db.objects:[];
-  if(status)status.textContent=`Objektmodul v2.19.37 · ${objects.length} Objekt${objects.length===1?'':'e'} geladen`;
+  if(status)status.textContent=`Objektmodul v2.19.38 · ${objects.length} Objekt${objects.length===1?'':'e'} geladen`;
   if(!objects.length){
     el.innerHTML='<div class="empty">Keine Objekte im aktuellen Mandantenkontext.</div>';
     return;
@@ -9245,7 +9275,7 @@ function printObjectQrCode(objectId,areaId=''){
   const w=window.open('','_blank','noopener,noreferrer');
   if(!w){alert('Druckansicht konnte nicht geöffnet werden. Bitte Pop-ups für diese Seite zulassen.');return;}
   w.document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>QR-Code ${esc(o.name||'Objekt')}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;text-align:center;padding:32px;color:#111}img{width:320px;max-width:90%;height:auto}h1{font-size:24px;margin-bottom:4px}.muted{color:#555;margin-bottom:8px}.area{font-size:20px;font-weight:700;margin:10px 0 18px}.hint{margin:20px auto 0;max-width:520px;font-size:16px;line-height:1.45}.url{font-size:10px;color:#777;word-break:break-all;margin-top:20px}@media print{button{display:none}}
-/* ===== v2.19.37 – Einheitliche Dialogpositionierung Plattform + Mandanten ===== */
+/* ===== v2.19.38 – Einheitliche Dialogpositionierung Plattform + Mandanten ===== */
 #modalRoot:empty{display:none!important}
 #modalRoot:not(:empty){
   position:fixed;
@@ -9324,6 +9354,9 @@ function printObjectQrCode(objectId,areaId=''){
     align-items:flex-start!important;
   }
 }
+
+.tenant-kpi-orange{border-color:rgba(255,170,70,.28)}
+.tenant-kpi-orange .tenant-kpi-icon{color:#ffb15c}
 </style></head><body><h1>Duschl Service OS</h1><div class="muted">${esc(o.name||'Objekt')}${o.address?' · '+esc(o.address):''}</div>${area?`<div class="area">Bereich: ${esc(area.name)}</div>`:''}<img src="${img}" alt="QR-Code Bewohnermeldung"><div class="hint"><strong>Anliegen oder Schaden melden</strong><br>QR-Code mit dem Smartphone scannen und Meldung direkt an Duschl Service senden.</div><div class="url">${esc(url)}</div><script>window.onload=()=>setTimeout(()=>window.print(),150);<\/script></body></html>`);
   w.document.close();
 }
