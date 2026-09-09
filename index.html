@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.07</title>
+<title>Duschl Service – Objektplattform v2.19.08</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1127,7 +1127,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service Objektplattform</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.07</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.08</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1169,7 +1169,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service Objektplattform.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.07</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.08</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -2954,7 +2954,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.07'; // Mandanten-Speicherbereinigung: Tenant-Admin kann eigene Mitteilungen, Objekte, Meldungen, Dokumentationen und zugehörige Bilder kontrolliert löschen.
+const APP_VERSION='2.19.08'; // Testrollen/Testobjekt-UI entfernt; Legacy-Datenkompatibilität bleibt intern erhalten.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -4164,7 +4164,7 @@ async function copyTenantPublicCode(){
 function applyRoleUI(){
   const role=effectiveUserRole();
 
-  // v2.19.07: Im operativen Mandantenkontext zeigt der Header immer
+  // v2.19.08: Im operativen Mandantenkontext zeigt der Header immer
   // den aktuell ausgewählten Mandanten statt der Plattformmarke.
   // Im reinen Plattformmodus bleibt "Duschl Service" als Plattformbetreiber sichtbar.
   const appBrandName=document.getElementById('appBrandName');
@@ -4949,7 +4949,7 @@ async function cloudReloadFindings(){
   const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
   let rows=(rowsRaw||[]).filter(f=>accessibleObjectIds.has(f.object_id));
 
-  // v2.19.07: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
+  // v2.19.08: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
   // Sicht des simulierten Mandanten sehen. Seine globale Admin-RLS darf daher
   // nicht dazu führen, dass parallele Dienstleister gegenseitig ihre Findings sehen.
   if(isPlatformTenantMode()){
@@ -5217,7 +5217,7 @@ async function cloudLoadSharedObjects(){
   try{
     let rows=[];
     if(isPlatformTenantMode()){
-      // v2.19.07: autoritative Support-RPC mit explizitem Mandantenkontext.
+      // v2.19.08: autoritative Support-RPC mit explizitem Mandantenkontext.
       rows=await cloudRequest('rpc/platform_support_get_shared_objects',{
         method:'POST',
         body:JSON.stringify({p_organization_id:currentOrganizationId()})
@@ -5400,7 +5400,7 @@ async function openRouteFindingModal(findingId){
   if(!canRouteFindingUI(f))return alert('Nur der berechtigte Entscheider des führenden Mandanten kann diesen Vorgang an ein anderes Unternehmen routen.');
   const o=(db.objects||[]).find(x=>x.id===f.objectId);if(!o)return alert('Objekt nicht gefunden.');
 
-  // v2.19.07: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
+  // v2.19.08: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
   // Dadurch muss die öffentliche Mandanten-ID im Regelprozess nicht mehr manuell eingegeben werden.
   try{await cloudLoadObjectCollaborations(false);}catch(_e){}
   const currentOrgId=currentOrganizationId();
@@ -8853,7 +8853,7 @@ function openObjectModal(id=''){
   <label>Adresse</label><input id="oAddress" value="${esc(o.address)}" placeholder="Straße, PLZ Ort">
   <label>Notizen</label><textarea id="oNotes">${esc(o.notes)}</textarea>
   ${!id?`<div class="card" style="margin-top:14px;padding:12px"><strong>Standardbereiche</strong><div class="muted" style="margin-top:5px">Beim Anlegen werden automatisch folgende Bereiche erzeugt: ${DEFAULT_OBJECT_AREAS.map(esc).join(', ')}. Sie können anschließend objektbezogen umbenannt, deaktiviert oder ergänzt werden.</div></div>`:''}
-  <label class="row" style="gap:10px;align-items:center;margin-top:14px"><input id="oIsTest" type="checkbox" ${o.isTest?'checked':''}><span><strong>Testobjekt</strong><br><span class="muted">Nur für Testbenutzer freigegebene, nicht produktive Daten.</span></span></label>
+  <label class="row" style="gap:10px;align-items:center;margin-top:14px"><input id="oIsTest" type="checkbox" ${o.isTest?'checked':''}><span><strong>Testobjekt</strong><br><span class="muted"></span></span></label>
   ${id&&hasOperationalAdminAccess()?`<div class="card" style="margin-top:14px;padding:12px"><div class="row space"><div><strong>Betreuung / Dienstleister</strong><div class="muted" style="margin-top:4px">Dieses Objekt einem Partnerunternehmen zur dauerhaften Betreuung freigeben.</div></div><button type="button" onclick="openObjectCollaborationModal('${id}')">Betreuung freigeben</button></div></div>`:''}
   <div class="row" style="margin-top:14px"><button class="primary" onclick="saveObject('${id}')">Speichern</button>${id?`<button class="danger" onclick="deleteObject('${id}')">Löschen</button>`:''}</div>`);
 }
@@ -9727,17 +9727,7 @@ function dsRefreshContextUI(){
 }
 document.addEventListener('DOMContentLoaded',()=>setTimeout(dsRefreshContextUI,20));
 
-function dsApplyPlatformOnlyFields(){
-  const isPlatform=(typeof isPlatformAdmin==='function'&&isPlatformAdmin()) ||
-                   (typeof isPlatformOperator==='function'&&isPlatformOperator());
-  [...document.querySelectorAll('label,.label,strong,span')].forEach(n=>{
-    if(String(n.textContent||'').includes('Testobjekt (nur Platform-Administration)')){
-      const box=n.closest('.field,.form-group,.form-row,.row,label')||n.parentElement;
-      if(box) box.hidden=!isPlatform;
-    }
-  });
-}
-document.addEventListener('DOMContentLoaded',()=>setTimeout(dsApplyPlatformOnlyFields,30));
+
 
 const PLATFORM_RESOURCE_LIMITS={
   storage_bytes: 1*1024*1024*1024,
@@ -9916,6 +9906,31 @@ function dsInjectTenantCleanup(){
   dsTenantCleanupPreview();
 }
 document.addEventListener('DOMContentLoaded',()=>setTimeout(dsInjectTenantCleanup,180));
+
+function dsRemoveLegacyTestObjectUI(){
+  [...document.querySelectorAll('label,.label,strong,span,div')].forEach(n=>{
+    const txt=String(n.textContent||'').trim();
+    if(
+      txt==='Testobjekt' ||
+      txt.includes('Nur für Testbenutzer freigegebene') ||
+      txt.includes('Testobjekt')
+    ){
+      const box=n.closest('.field,.form-group,.form-row,.row,.card,label')||n.parentElement;
+      if(box) box.style.display='none';
+    }
+  });
+
+  // Fallback: hide checkbox by semantic name/id if present.
+  [...document.querySelectorAll('input[type="checkbox"]')].forEach(el=>{
+    const k=(String(el.id||'')+' '+String(el.name||'')).toLowerCase();
+    if(k.includes('testobject')||k.includes('test_object')||k.includes('istest')||k.includes('is_test')){
+      const box=el.closest('.field,.form-group,.form-row,.row,label')||el.parentElement;
+      if(box) box.style.display='none';
+      el.checked=false;
+    }
+  });
+}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(dsRemoveLegacyTestObjectUI,40));
 </script>
 <div id="platformBottomNav" class="pa-bottom-nav hidden">
   <button type="button" data-pa-nav="dashboard" onclick="showSection('dashboard')"><span>⌂</span><small>Dashboard</small></button>
