@@ -1136,7 +1136,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.51</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.52</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1179,7 +1179,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.51</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.52</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -3004,7 +3004,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.51'; // Auftragszuweisung folgt zentraler Objektverantwortung; Direktzuweisung am Auftrag entfernt und zur Objektzugriffsverwaltung verlinkt.
+const APP_VERSION='2.19.52'; // Benutzerverwaltung: Objektzugriffe umfassen eigene und extern betreute Objekte; Zuweisung zentral je Mitarbeiter.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -8283,6 +8283,12 @@ async function loadUserAdminData(){
     userAdminProfiles=(userAdminProfiles||[]).filter(p=>!p.deleted_at);
     userAdminMemberships=await cloudRequest('organization_memberships?select=id,organization_id,user_id,role')||[];
     userAdminAssignments=await cloudRequest('object_user_assignments?select=id,object_id,user_id,active')||[];
+    try{
+      await cloudLoadSharedObjects();
+      await cloudLoadObjectCollaborations(false);
+    }catch(_e){
+      console.warn('Extern betreute Objekte konnten für die Benutzerverwaltung nicht vollständig geladen werden.',_e);
+    }
     if(!isAdminRole()||isPlatformTenantMode()){
       const orgId=currentOrganizationId();
       const allowedIds=new Set(userAdminMemberships.filter(m=>m.organization_id===orgId).map(m=>m.user_id));
@@ -8309,7 +8315,64 @@ function loadUserAdminEditor(){
   const roles=[['tenant_admin','Mandanten-Admin'],['admin_delegate','Admin-Vertretung'],['object_manager','Objektbetreuer'],['external_contractor','Externer Auftragnehmer'],['customer','Auftraggeber']];
   const allowedRoles=isAdminDelegate()?roles.filter(([v])=>!['tenant_admin','admin_delegate'].includes(v)):roles;
   const roleOptions=allowedRoles.map(([v,l])=>`<option value="${v}" ${membership?.role===v?'selected':''}>${l}</option>`).join('');
-  const objectRows=(db.objects||[]).filter(o=>!orgId||o.organizationId===orgId).map(o=>`<label class="row" style="gap:10px;align-items:center;margin:8px 0"><input type="checkbox" class="userObjectAssignment" value="${esc(o.id)}" ${assigned.has(o.id)?'checked':''} ${membership?.role==='test_user'&&!o.isTest?'disabled':''}><span><strong>${esc(o.name||'Objekt')}</strong>${o.isTest?' <span class="badge">TEST</span>':''}${o.address?`<br><span class="muted">${esc(o.address)}</span>`:''}</span></label>`).join('')||'<p class="muted">Keine Objekte vorhanden.</p>';
+  const ownObjects=(db.objects||[]).filter(o=>!o.externalManaged&&(!orgId||o.organizationId===orgId));
+  const sharedRows=(cloudObjectCollaborations||[])
+    .filter(c=>
+      String(c.service_organization_id||'')===String(orgId||'') &&
+      String(c.status||'')==='active' &&
+      c.active!==false
+    );
+  const sharedByObject=new Map(sharedRows.map(c=>[String(c.object_id||''),c]));
+  const accessibleObjects=[
+    ...ownObjects.map(o=>({
+      kind:'own',
+      id:o.id,
+      name:o.name||'Objekt',
+      address:o.address||'',
+      isTest:!!o.isTest,
+      collaborationId:''
+    })),
+    ...(cloudSharedObjects||[])
+      .filter(o=>sharedByObject.has(String(o.id||'')))
+      .map(o=>{
+        const c=sharedByObject.get(String(o.id||''));
+        return {
+          kind:'shared',
+          id:o.id,
+          name:o.name||c?.object_name||'Objekt',
+          address:o.address||c?.object_address||'',
+          isTest:false,
+          collaborationId:c?.collaboration_id||c?.id||'',
+          serviceScope:c?.service_scope||o.serviceScope||''
+        };
+      })
+  ];
+  const seenObjectKeys=new Set();
+  const objectRows=accessibleObjects.filter(o=>{
+    const key=`${o.kind}:${o.id}:${o.collaborationId||''}`;
+    if(seenObjectKeys.has(key))return false;
+    seenObjectKeys.add(key);
+    return true;
+  }).map(o=>{
+    const isShared=o.kind==='shared';
+    const collab=isShared?sharedRows.find(c=>String(c.object_id||'')===String(o.id||'')&&String(c.collaboration_id||c.id||'')===String(o.collaborationId||'')):null;
+    const sharedAssignedToUser=!!collab && String(collab.assigned_user_id||collab.assignee_user_id||'')===String(uid);
+    const checked=isShared?sharedAssignedToUser:assigned.has(o.id);
+    const typeBadge=isShared?'<span class="badge">EXTERN BETREUT</span>':'<span class="badge">EIGENES OBJEKT</span>';
+    return `<label class="row" style="gap:10px;align-items:flex-start;margin:10px 0;padding:10px;border:1px solid var(--line);border-radius:12px">
+      <input type="checkbox"
+        class="${isShared?'userSharedObjectAssignment':'userObjectAssignment'}"
+        value="${esc(o.id)}"
+        data-collaboration-id="${esc(o.collaborationId||'')}"
+        data-current-assignee="${esc(collab?.assigned_user_id||collab?.assignee_user_id||'')}"
+        ${checked?'checked':''}>
+      <span>
+        <strong>${esc(o.name)}</strong> ${typeBadge}
+        ${o.address?`<br><span class="muted">${esc(o.address)}</span>`:''}
+        ${isShared&&o.serviceScope?`<br><span class="muted">Leistungsumfang: ${esc(o.serviceScope)}</span>`:''}
+      </span>
+    </label>`;
+  }).join('')||'<p class="muted">Keine eigenen oder extern betreuten Objekte vorhanden.</p>';
   const orgName=organizationName(orgId)||currentOrganization?.name||'—';
   ed.innerHTML=`<div class="card"><h3>${esc(p.email||p.full_name||'Benutzer')}</h3><div class="muted" style="margin-bottom:12px">Unternehmen: <strong>${esc(orgName)}</strong></div><div class="grid2"><label>Anzeigename<input id="userAdminFullName" value="${esc(p.full_name||'')}" placeholder="z. B. Hans Müller"></label><label>Mandantenrolle<select id="userAdminRole">${roleOptions}</select></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminActive" type="checkbox" ${p.active!==false?'checked':''}><span>Benutzer aktiv</span></label></div><p class="muted">Berechtigungen gelten ausschließlich innerhalb des zugeordneten Unternehmens. Plattformadministrator-Rechte können hier nicht vergeben werden.</p><h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px">
   <button onclick="saveUserAdminPermissions()">Speichern</button>
@@ -8520,22 +8583,60 @@ async function saveUserAdminPermissions(){
   if(!isAdminRole()&&orgId!==currentOrganizationId())return alert('Benutzer eines anderen Mandanten dürfen nicht bearbeitet werden.');
   if(uid===currentUserProfile?.id&&!active)return alert('Der aktuell angemeldete Benutzer kann sich nicht selbst deaktivieren.');
   const checked=[...document.querySelectorAll('.userObjectAssignment:checked')].map(x=>x.value);
-  if(organizationRole==='test_user'){
-    const invalid=checked.filter(id=>!(db.objects||[]).find(o=>o.id===id&&o.isTest===true&&o.organizationId===orgId));
-    if(invalid.length)return alert('Testbenutzer dürfen ausschließlich Testobjekten ihres Mandanten zugeordnet werden.');
-  }
   const globalRole=organizationRole==='customer'?'customer':'object_manager';
   try{
     await cloudRequest('profiles?id=eq.'+encodeURIComponent(uid),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({full_name:fullName,role:globalRole,active})});
     await cloudRequest(`organization_memberships?organization_id=eq.${encodeURIComponent(orgId)}&user_id=eq.${encodeURIComponent(uid)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({role:organizationRole})});
-    const existing=userAdminAssignments.filter(a=>a.user_id===uid && (db.objects||[]).some(o=>o.id===a.object_id&&o.organizationId===orgId));
-    for(const a of existing){
-      const should=checked.includes(a.object_id);
-      if(a.active!==should)await cloudRequest('object_user_assignments?id=eq.'+encodeURIComponent(a.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({active:should,updated_at:new Date().toISOString()})});
+    const existing=userAdminAssignments.filter(a=>a.user_id===uid && (db.objects||[]).some(o=>o.id===a.object_id&&!o.externalManaged&&o.organizationId===orgId));
+    if(isAdminRole()&&isPlatformTenantMode()){
+      // Interne Objektzuweisungen werden objektweise gespeichert, damit andere Mitarbeiterzuweisungen unangetastet bleiben.
+      const allOwnObjects=(db.objects||[]).filter(o=>!o.externalManaged&&o.organizationId===orgId);
+      for(const o of allOwnObjects){
+        const currentUsers=userAdminAssignments
+          .filter(a=>a.object_id===o.id&&a.active!==false&&a.user_id!==uid)
+          .map(a=>a.user_id);
+        if(checked.includes(o.id))currentUsers.push(uid);
+        await cloudRequest('rpc/platform_support_set_object_assignments',{
+          method:'POST',
+          body:JSON.stringify({
+            p_organization_id:orgId,
+            p_object_id:o.id,
+            p_user_ids:[...new Set(currentUsers)]
+          })
+        });
+      }
+    }else{
+      for(const a of existing){
+        const should=checked.includes(a.object_id);
+        if(a.active!==should)await cloudRequest('object_user_assignments?id=eq.'+encodeURIComponent(a.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({active:should,updated_at:new Date().toISOString()})});
+      }
+      const existingIds=new Set(existing.map(a=>a.object_id));
+      for(const object_id of checked)if(!existingIds.has(object_id))await cloudRequest('object_user_assignments',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({object_id,user_id:uid,active:true,assigned_by:currentUserProfile?.id})});
     }
-    const existingIds=new Set(existing.map(a=>a.object_id));
-    for(const object_id of checked)if(!existingIds.has(object_id))await cloudRequest('object_user_assignments',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({object_id,user_id:uid,active:true,assigned_by:currentUserProfile?.id})});
-    alert('Berechtigungen gespeichert.');
+
+    // Extern betreute Objekte: Zuweisung erfolgt über die jeweilige Betreuungsbeziehung.
+    const sharedChecks=[...document.querySelectorAll('.userSharedObjectAssignment')];
+    for(const el of sharedChecks){
+      const collaborationId=el.dataset.collaborationId||'';
+      if(!collaborationId)continue;
+      const currentAssignee=el.dataset.currentAssignee||'';
+      const shouldAssign=!!el.checked;
+      // Nur ändern, wenn diese Benutzerzuordnung tatsächlich wechselt.
+      if(shouldAssign && String(currentAssignee)!==String(uid)){
+        const rpc=(isAdminRole()&&isPlatformTenantMode())?'rpc/platform_support_assign_shared_object':'rpc/assign_shared_object';
+        const body=(isAdminRole()&&isPlatformTenantMode())
+          ?{p_organization_id:orgId,p_collaboration_id:collaborationId,p_user_id:uid}
+          :{p_collaboration_id:collaborationId,p_user_id:uid};
+        await cloudRequest(rpc,{method:'POST',body:JSON.stringify(body)});
+      }else if(!shouldAssign && String(currentAssignee)===String(uid)){
+        const rpc=(isAdminRole()&&isPlatformTenantMode())?'rpc/platform_support_assign_shared_object':'rpc/assign_shared_object';
+        const body=(isAdminRole()&&isPlatformTenantMode())
+          ?{p_organization_id:orgId,p_collaboration_id:collaborationId,p_user_id:null}
+          :{p_collaboration_id:collaborationId,p_user_id:null};
+        await cloudRequest(rpc,{method:'POST',body:JSON.stringify(body)});
+      }
+    }
+    alert('Berechtigungen und Objektzugriffe gespeichert.');
     await loadUserAdminData();
   }catch(e){alert('Speichern fehlgeschlagen: '+e.message)}
 }
