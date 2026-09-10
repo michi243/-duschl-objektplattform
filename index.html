@@ -1136,7 +1136,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.55</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.56</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1179,7 +1179,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.55</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.56</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1433,7 +1433,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div class="row space">
 <div>
 <h2>Arbeitsvorrat</h2>
-<div class="muted">Alle offenen Arbeiten, für die bereits entschieden wurde, dass sie bearbeitet werden sollen. Vorgänge mit ausstehender Entscheidung bleiben unter „Offene Punkte“.</div>
+<div class="muted">Alle offenen Arbeiten mit positiver Bearbeitungsentscheidung sowie offene konkrete Aufträge. Vorgänge mit ausstehender oder negativer Entscheidung bleiben außerhalb des Arbeitsvorrats.</div>
 </div>
 </div>
 <div id="workQueue"></div>
@@ -3004,7 +3004,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.55'; // Arbeitsvorrat: positiv entschiedene Durchführung erzeugt Arbeit; Routing bestimmt den Ausführer, nicht die Entstehung der Arbeit.
+const APP_VERSION='2.19.56'; // Arbeitsvorrat-Deduplizierung korrigiert: Feststellung wird nur unterdrückt, wenn der korrespondierende externe Auftrag für den aktuellen Benutzer tatsächlich sichtbar ist.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -7941,7 +7941,7 @@ function internalFindingIsConcreteWork(f,task){
   // Fachliche Entscheidung ist der Trigger für Arbeitsvorrat:
   // "Durchführen / freigegeben" = offene Arbeit. Routing legt anschließend fest,
   // welches Unternehmen bzw. welcher Partner die Arbeit ausführt.
-  if(decisionStatus==='approved' && implementation!=='third_party')return true;
+  if(decisionStatus==='approved')return true;
 
   // Interne Arbeit ohne erforderliche Auftraggeberentscheidung.
   if(decisionStatus==='not_required' && f.workRequired===true)return true;
@@ -8029,14 +8029,12 @@ function incomingExternalWorkOrders(){
 }
 
 function externallyRoutedFindingIdsForCurrentTenant(){
-  const orgId=String(currentOrganizationId()||'');
+  // Nur die externen Aufträge berücksichtigen, die im aktuellen Arbeitsvorrat
+  // tatsächlich sichtbar sind. Sonst würde eine Feststellung verschwinden,
+  // obwohl ihr Ersatz-Auftrag dem aktuellen Objektbetreuer gar nicht angezeigt wird.
   return new Set(
-    (cloudExternalOrders||[])
-      .filter(x=>
-        String(x.order_kind||'')==='finding_route' &&
-        String(x.executor_organization_id||'')===orgId &&
-        externalOrderIsOpen(x.status)
-      )
+    incomingExternalWorkOrders()
+      .filter(x=>String(x.order_kind||'')==='finding_route')
       .map(x=>String(x.source_finding_id||''))
       .filter(Boolean)
   );
@@ -8222,7 +8220,7 @@ function renderWorkQueue(){
         const canPlan=!t.hasTask
           && t.findingStatus!=='Erledigt'
           && (
-            (t.decisionStatus==='approved' && t.implementationResponsibility!=='third_party')
+            (t.decisionStatus==='approved')
             || (t.workRequired===true && t.decisionStatus==='not_required')
           );
 
