@@ -1136,7 +1136,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.45</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.46</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1179,7 +1179,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.45</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.46</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -3004,7 +3004,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.45'; // Arbeitsvorrat dedupliziert: geroutete Fremd-Feststellungen werden beim ausführenden Mandanten nicht doppelt angezeigt.
+const APP_VERSION='2.19.46'; // Arbeitsvorrat: geroutete Fremd-Feststellungen werden anhand source_finding_id und Empfänger-Mandant eindeutig dedupliziert.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -7743,9 +7743,15 @@ function incomingExternalWorkOrders(){
 }
 
 function externallyRoutedFindingIdsForCurrentTenant(){
+  const orgId=String(currentOrganizationId()||'');
   return new Set(
-    incomingExternalWorkOrders()
-      .map(x=>String(x.source_finding_id||x.sourceFindingId||x.source_snapshot?.finding_id||x.source_snapshot?.findingId||''))
+    (cloudExternalOrders||[])
+      .filter(x=>
+        String(x.order_kind||'')==='finding_route' &&
+        String(x.executor_organization_id||'')===orgId &&
+        externalOrderIsOpen(x.status)
+      )
+      .map(x=>String(x.source_finding_id||''))
       .filter(Boolean)
   );
 }
@@ -7779,6 +7785,7 @@ function externalWorkQueueItemHtml(x){
   </div>`;
 }
 function renderWorkQueue(){
+  const externalFindingIds=externallyRoutedFindingIdsForCurrentTenant();
   if(!canUseWorkQueueUI()){
     const host=document.getElementById('workqueueList')||document.getElementById('gfWorkQueue');
     if(host)host.innerHTML='<div class="empty">Für diese Rolle nicht freigegeben.</div>';
@@ -7792,7 +7799,7 @@ function renderWorkQueue(){
   const tasks=(db.tasks||[]).map(t=>({...t}));
   const taskByFinding=new Map(tasks.filter(t=>t.findingId).map(t=>[t.findingId,t]));
 
-  const items=(db.findings||[])
+  const items=(db.findings||[]).filter(f=>!externalFindingIds.has(String(f.id||'')))
     .filter(f=>(f.type||'Feststellung')==='Feststellung')
     .map(f=>{
       const task=taskByFinding.get(f.id);
