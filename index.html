@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.63</title>
+<title>Duschl Service – Objektplattform v2.19.64</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1137,7 +1137,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.63</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.64</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1180,7 +1180,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.63</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.64</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1350,8 +1350,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.63</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.63 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.64</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.64 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3005,7 +3005,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.63'; // Objektbetreuer erhalten operative Schreibrechte auf zugewiesene interne/externe Objekte und eingehende Aufträge; administrative Rechte bleiben getrennt.
+const APP_VERSION='2.19.64'; // Mandantentrennung: ausführender Dienstleister sieht geroutete Fremd-Feststellungen nur als externen Auftrag, nicht als Originaldokumentation.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -4031,6 +4031,7 @@ function isAccessibleObjectUI(objectId){
 }
 function canEditFindingUI(f){
   if(!f)return canCreateDocumentationUI();
+  if(!findingVisibleInCurrentTenantUI(f))return false;
   return hasOperationalAdminAccess()
     || isTestUserRole()
     || ((isObjectManagerRole()||isExternalContractorRole())&&isAccessibleObjectUI(f.objectId))
@@ -7794,7 +7795,7 @@ function renderDecisions(){
 
   // Objektfilter aus Objektstamm + tatsächlich referenzierten Objekt-IDs aufbauen.
   const objectMap=new Map((db.objects||[]).map(o=>[o.id,o.name||o.id]));
-  (db.findings||[]).forEach(f=>{
+  (db.findings||[]).filter(f=>findingVisibleInCurrentTenantUI(f)).forEach(f=>{
     if(f.objectId && !objectMap.has(f.objectId)) objectMap.set(f.objectId,`Nicht zugeordnet (${f.objectId})`);
   });
   const objectOptions=[...objectMap.entries()].sort((a,b)=>String(a[1]).localeCompare(String(b[1]),'de'));
@@ -8204,6 +8205,40 @@ function incomingExternalWorkOrders(){
   });
 }
 
+
+function incomingRoutedFindingIdsForCurrentTenant(){
+  const orgId=String(currentOrganizationId()||'');
+  return new Set(
+    (cloudExternalOrders||[])
+      .filter(x=>
+        String(x.executor_organization_id||'')===orgId &&
+        String(x.order_kind||'')==='finding_route'
+      )
+      .map(x=>String(x.source_finding_id||''))
+      .filter(Boolean)
+  );
+}
+
+function findingVisibleInCurrentTenantUI(f){
+  if(!f)return false;
+  const orgId=String(currentOrganizationId()||'');
+  const object=(db.objects||[]).find(o=>String(o.id||'')===String(f.objectId||''));
+
+  // Eigentümermandant sieht seine Originaldokumentation.
+  if(object && String(object.organizationId||'')===orgId)return true;
+
+  // Eigene Feststellungen des aktuellen Mandanten bleiben sichtbar.
+  const creatorOrg=String(f.creatorOrganizationIdSnapshot||f.creator_organization_id_snapshot||'');
+  if(creatorOrg && creatorOrg===orgId)return true;
+
+  // Wird eine fremde Feststellung an den aktuellen Mandanten geroutet,
+  // sieht der ausführende Mandant nur den daraus erzeugten externen Auftrag.
+  if(incomingRoutedFindingIdsForCurrentTenant().has(String(f.id||'')))return false;
+
+  // Sonstige durch Backend/RLS bereits freigegebene Feststellungen unverändert.
+  return true;
+}
+
 function externallyRoutedFindingIdsForCurrentTenant(){
   // Nur die externen Aufträge berücksichtigen, die im aktuellen Arbeitsvorrat
   // tatsächlich sichtbar sind. Sonst würde eine Feststellung verschwinden,
@@ -8232,7 +8267,7 @@ function externalWorkQueueItemHtml(x){
       </div>
       <div class="gf-statusstack">
         <span class="gf-status">${esc(externalOrderStatusLabel(x.status))}</span>
-        <span class="gf-status gf-status-decision">Externer Auftrag</span>
+        <span class="gf-status gf-status-decision">Gerouteter Arbeitsauftrag</span>
       </div>
     </div>
     <div class="gf-meta">
@@ -8265,7 +8300,7 @@ function renderWorkQueue(){
   const tasks=(db.tasks||[]).map(t=>({...t}));
   const taskByFinding=new Map(tasks.filter(t=>t.findingId).map(t=>[t.findingId,t]));
 
-  const items=(db.findings||[]).filter(f=>!externalFindingIds.has(String(f.id||'')))
+  const items=(db.findings||[]).filter(f=>findingVisibleInCurrentTenantUI(f)).filter(f=>!externalFindingIds.has(String(f.id||'')))
     .filter(f=>(f.type||'Feststellung')==='Feststellung')
     .filter(f=>hasOperationalAdminAccess()||currentUserOwnsOperationalObject(f.objectId))
     .map(f=>{
@@ -9099,7 +9134,7 @@ function renderObjects(){
 
   const cards=objects.map(o=>{
     try{
-      const fs=(Array.isArray(db.findings)?db.findings:[]).filter(f=>f.objectId===o.id);
+      const fs=(Array.isArray(db.findings)?db.findings:[]).filter(f=>findingVisibleInCurrentTenantUI(f)&&f.objectId===o.id);
       const open=fs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt').length;
       const documentationCount=fs.length;
       const documentationBadge=documentationCount
