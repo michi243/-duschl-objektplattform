@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.41</title>
+<title>Duschl Service – Objektplattform v2.19.42</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1136,7 +1136,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.41</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.49</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1149,7 +1149,6 @@ body.public-report-mode>#photoViewer{display:none!important}
 <button id="navResidentReports" onclick="showSection('residentReports')"><span class="nav-icon">◯</span><span>Meldungen</span><span class="badge nav-count" id="residentReportNavCount">0</span></button>
 <button id="navDecisions" onclick="showSection('decisions')"><span class="nav-icon">✓</span><span>Entscheidungen</span><span class="badge nav-count" id="decisionNavCount">0</span></button>
 <button id="navWorkqueue" onclick="showSection('workqueue')"><span class="nav-icon">⌁</span><span>Arbeitsvorrat</span><span class="badge nav-count" id="workqueueNavCount">0</span></button>
-<button id="navExternalOrders" onclick="showSection('externalOrders')"><span class="nav-icon">⇄</span><span>Externe Aufträge</span><span class="badge nav-count" id="externalOrdersNavCount">0</span></button>
 <button id="navReports" onclick="showSection('reports')"><span class="nav-icon">▥</span><span>Berichte</span></button>
 <button id="navOrganizations" onclick="showSection('organizations')"><span class="nav-icon">▣</span><span>Unternehmen / Mandanten</span></button>
 <button id="navUsers" onclick="showSection('users')"><span class="nav-icon">♙</span><span>Benutzer &amp; Berechtigungen</span></button>
@@ -1180,7 +1179,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.41</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.49</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1287,11 +1286,7 @@ body.public-report-mode>#photoViewer{display:none!important}
     </button>
     <button class="tenant-kpi-card tenant-kpi-green" type="button" onclick="showSection('findings')">
       <div class="tenant-kpi-icon">▤</div><div class="tenant-kpi-arrow">›</div>
-      <div class="tenant-kpi-label">Offene Punkte</div><div class="tenant-kpi-value" id="kpiOpen">0</div><div class="tenant-kpi-sub">Feststellungen offen</div>
-    </button>
-    <button aria-label="Sofort oder dringend offene Feststellungen anzeigen" class="tenant-kpi-card tenant-kpi-purple" id="kpiCriticalCard" onclick="openCriticalFindings()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openCriticalFindings();}" type="button">
-      <div class="tenant-kpi-icon">!</div><div class="tenant-kpi-arrow">›</div>
-      <div class="tenant-kpi-label">Dringend</div><div class="tenant-kpi-value" id="kpiCritical">0</div><div class="tenant-kpi-sub">P1 / P2 offen</div>
+      <div class="tenant-kpi-label">Offene Punkte</div><div class="tenant-kpi-value" id="kpiOpen">0</div><div class="tenant-kpi-sub">Feststellungen offen · <span id="kpiCritical">0</span> dringend</div>
     </button>
     <button aria-label="Offene Bewohnermeldungen anzeigen" class="tenant-kpi-card tenant-kpi-orange" id="kpiResidentReportsCard"
       onclick="openDashboardResidentReports()"
@@ -1354,8 +1349,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.41</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.41 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.42</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.42 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -1654,7 +1649,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 </section>
 
 
-<section class="section" id="externalOrders">
+<section class="section" id="externalOrders"><span id="externalOrdersNavCount" class="hidden">0</span>
   <div class="row space"><div><h2>Externe Aufträge</h2><div class="muted">Mandantenübergreifende Beauftragungen – ohne den eigenen Mandanten zu verlassen.</div></div><button id="createExternalOrderBtn" class="primary" type="button" onclick="openExternalOrderModal()">Extern beauftragen</button></div>
   <div class="grid3" style="margin-top:14px">
     <div class="card"><div class="muted">Eingehend offen</div><div class="big" id="externalIncomingCount">0</div></div>
@@ -3009,7 +3004,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.41'; // Entscheidung: ausführender Mandant wird ausschließlich im nachgelagerten Routing festgelegt.
+const APP_VERSION='2.19.49'; // Objektverantwortung: interne und extern betreute Objekte weisen zuständige Objektbetreuer zu; Vorgänge folgen standardmäßig dieser Zuständigkeit.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -3944,6 +3939,20 @@ function canUseSettingsUI(){return isAdminRole()||hasOperationalAdminAccess()}
 function canSeeInternalPersonnelUI(){return hasOperationalAdminAccess()||(!isCustomerRole()&&!isTestUserRole())}
 function customerSafeText(v){return isCustomerRole()?'':(v||'')}
 function currentUserId(){return currentUserProfile?.id||cloudSession?.user?.id||''}
+
+function assignedObjectIdsForCurrentUser(){
+  return new Set(
+    (db.objectAssignments||[])
+      .filter(a=>a.active!==false && String(a.userId||a.user_id||'')===String(currentUserId()||''))
+      .map(a=>String(a.objectId||a.object_id||''))
+  );
+}
+function userIsAssignedToObject(objectId){
+  if(hasOperationalAdminAccess())return true;
+  const ids=assignedObjectIdsForCurrentUser();
+  return ids.has(String(objectId||''));
+}
+
 function isAccessibleObjectUI(objectId){
   if(!objectId)return false;
   return (db.objects||[]).some(o=>o.id===objectId);
@@ -4232,7 +4241,7 @@ async function copyTenantPublicCode(){
 function applyRoleUI(){
   const role=effectiveUserRole();
 
-  // v2.19.41: Im operativen Mandantenkontext zeigt der Header immer
+  // v2.19.42: Im operativen Mandantenkontext zeigt der Header immer
   // den aktuell ausgewählten Mandanten statt der Plattformmarke.
   // Im reinen Plattformmodus bleibt "Duschl Service" als Plattformbetreiber sichtbar.
   const appBrandName=document.getElementById('appBrandName');
@@ -5020,7 +5029,7 @@ async function cloudReloadFindings(){
   const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
   let rows=(rowsRaw||[]).filter(f=>accessibleObjectIds.has(f.object_id));
 
-  // v2.19.41: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
+  // v2.19.42: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
   // Sicht des simulierten Mandanten sehen. Seine globale Admin-RLS darf daher
   // nicht dazu führen, dass parallele Dienstleister gegenseitig ihre Findings sehen.
   if(isPlatformTenantMode()){
@@ -5152,7 +5161,7 @@ async function cloudDeleteFinding(id){
 }
 
 async function cloudLoadResidentReports(){
-  // v2.19.41: Bewohnermeldungen werden nicht mehr über den direkten Tabellenzugriff
+  // v2.19.42: Bewohnermeldungen werden nicht mehr über den direkten Tabellenzugriff
   // geladen. Der Server entscheidet anhand Eigentümermandant + manueller Weiterleitung,
   // welcher Mandant eine Meldung sehen darf.
   if(isCustomerRole()){
@@ -5256,6 +5265,7 @@ async function loadUserActivity(){
 }
 
 async function refreshAllCloudData(){
+  try{await cloudLoadObjectAssignments();}catch(_e){}
   if(!cloudSession?.access_token){
     alert('Bitte zuerst anmelden.');
     return;
@@ -5296,7 +5306,7 @@ async function cloudLoadSharedObjects(){
   try{
     let rows=[];
     if(isPlatformTenantMode()){
-      // v2.19.41: autoritative Support-RPC mit explizitem Mandantenkontext.
+      // v2.19.42: autoritative Support-RPC mit explizitem Mandantenkontext.
       rows=await cloudRequest('rpc/platform_support_get_shared_objects',{
         method:'POST',
         body:JSON.stringify({p_organization_id:currentOrganizationId()})
@@ -5314,7 +5324,16 @@ async function cloudLoadObjectCollaborations(render=true){
   if(!cloudSession?.access_token||isPlatformOperatorRole()&&!isPlatformTenantMode())return;
   try{
     const rows=await cloudRequest('rpc/get_object_collaborations',{method:'POST',body:JSON.stringify({})});
-    cloudObjectCollaborations=Array.isArray(rows)?rows:[];
+    cloudObjectCollaborations=(Array.isArray(rows)?rows:[]).filter(c=>{
+    const orgId=currentOrganizationId();
+    if(!orgId)return false;
+
+    // Platform Admin im Mandantenmodus sieht exakt die Perspektive des ausgewählten Mandanten.
+    // Eigentümer sieht seine eigenen Servicebeziehungen.
+    // Dienstleister sieht ausschließlich Beziehungen, an denen er selbst beteiligt ist.
+    return String(c.owner_organization_id||'')===String(orgId)
+        || String(c.service_organization_id||'')===String(orgId);
+  });
     if(hasOperationalAdminAccess()){
       try{const a=await cloudRequest('rpc/get_external_order_assignees',{method:'POST',body:JSON.stringify({})});cloudSharedObjectAssignees=Array.isArray(a)?a:[];}catch(_e){cloudSharedObjectAssignees=[];}
     }
@@ -5327,7 +5346,7 @@ function renderObjectCollaborations(){
   const ownOrg=cloudOrganizations.find(o=>o.id===orgId);const codeBox=document.getElementById('myTenantPublicCode');
   if(codeBox)codeBox.innerHTML=ownOrg?.public_code?`Eigene Mandanten-ID: <strong style="letter-spacing:.06em">${esc(ownOrg.public_code)}</strong> <button type="button" style="padding:4px 8px;margin-left:6px" onclick="copyTenantPublicCode()">Kopieren</button>`:'Mandanten-ID wird nach Datenbank-Update angezeigt.';
   const btn=document.getElementById('shareObjectCareBtn');if(btn)btn.style.display=hasOperationalAdminAccess()?'':'none';
-  const statusLabel=v=>v==='pending'?'Offen':v==='active'?'Angenommen':v==='rejected'?'Abgelehnt':v==='cancelled'?'Beendet':v||'—';
+  const statusLabel=v=>v==='pending'?'Offen':v==='active'?'Aktive Betreuung':v==='rejected'?'Abgelehnt':v==='cancelled'?'Beendet':v||'—';
   const rows=cloudObjectCollaborations||[];
   if(box){
     if(!rows.length)box.innerHTML='<div class="empty">Keine dauerhaften Objektbetreuungen vorhanden.</div>';
@@ -5338,7 +5357,7 @@ function renderObjectCollaborations(){
       const assignee=c.assigned_user_name||'';const status=c.status||'active';
       const requested=c.requested_at?new Date(c.requested_at).toLocaleString('de-DE'):'—';
       const actions=hasOperationalAdminAccess()?(incoming?(status==='pending'?`<div class="row" style="margin-top:10px"><button class="primary" onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',true)">Annehmen</button><button onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',false)">Ablehnen</button></div>`:(status==='active'?`<div class="row" style="margin-top:10px"><button onclick="openSharedObjectAssignmentModal('${esc(c.collaboration_id)}')">${assignee?'Zuweisung ändern':'Objektbetreuer zuweisen'}</button></div>`:'')):(status==='pending'?`<div class="row" style="margin-top:10px"><button class="danger" onclick="cancelObjectCollaboration('${esc(c.collaboration_id)}','pending')">Anfrage zurückziehen</button></div>`:(status==='active'?`<div class="row" style="margin-top:10px"><button class="danger" onclick="cancelObjectCollaboration('${esc(c.collaboration_id)}','active')">Zugriff beenden</button></div>`:''))):'';
-      return `<div class="card" style="margin:8px 0"><div class="row space"><div><span class="badge">${incoming?'Eingehend':'Ausgehend'}</span> <strong>${esc(c.object_name||'Objekt')}</strong></div><span class="badge">${esc(statusLabel(status))}</span></div><div class="muted" style="margin-top:7px">${esc(partner)}${partnerCode?` · Mandanten-ID <strong>${esc(partnerCode)}</strong>`:''}${c.object_address?' · '+esc(c.object_address):''}</div><div class="muted" style="margin-top:5px">Angefragt: ${esc(requested)}</div>${c.service_scope?`<div style="margin-top:7px"><strong>Leistungsumfang:</strong> ${esc(c.service_scope)}</div>`:''}${assignee?`<div class="muted" style="margin-top:6px">Verantwortlich: <strong>${esc(assignee)}</strong></div>`:''}${actions}</div>`;
+      return `<div class="card" style="margin:8px 0"><div class="row space"><div><span class="badge">${incoming?'Wir betreuen':'Betreuung vergeben an'}</span> <strong>${esc(c.object_name||'Objekt')}</strong></div><span class="badge">${esc(statusLabel(status))}</span></div><div class="muted" style="margin-top:7px">${esc(partner)}${partnerCode?` · Mandanten-ID <strong>${esc(partnerCode)}</strong>`:''}${c.object_address?' · '+esc(c.object_address):''}</div><div class="muted" style="margin-top:5px">Angefragt: ${esc(requested)}</div>${c.service_scope?`<div style="margin-top:7px"><strong>Leistungsumfang:</strong> ${esc(c.service_scope)}</div>`:''}${assignee?`<div class="muted" style="margin-top:6px">Verantwortlich: <strong>${esc(assignee)}</strong></div>`:''}${actions}</div>`;
     }).join('');
   }
   renderDashboardCareRequests();
@@ -5442,11 +5461,94 @@ async function cancelObjectCollaboration(collaborationId,currentStatus='active')
   }
 }
 
+
+async function loadAssignableUsersForCurrentTenant(){
+  const orgId=String(currentOrganizationId()||'');
+  if(!orgId)return [];
+  try{
+    const rows=await cloudRequest(
+      `organization_memberships?select=user_id,role,organization_id&organization_id=eq.${encodeURIComponent(orgId)}`
+    )||[];
+    const memberships=rows.filter(m=>String(m.organization_id||'')===orgId);
+    const ids=[...new Set(memberships.map(m=>m.user_id).filter(Boolean))];
+    if(!ids.length)return [];
+    const profiles=await cloudRequest(
+      `profiles?select=id,full_name,email,role,active&id=in.(${ids.join(',')})&active=eq.true`
+    )||[];
+    const roleByUser=new Map(memberships.map(m=>[m.user_id,String(m.role||'').toLowerCase()]));
+    const allowedOrgRoles=new Set(['tenant_admin','admin_delegate','object_manager','external_contractor']);
+    return profiles
+      .filter(p=>allowedOrgRoles.has(roleByUser.get(p.id)||String(p.role||'').toLowerCase()))
+      .map(p=>({
+        user_id:p.id,
+        display_name:p.full_name||p.email||'Benutzer',
+        email:p.email||'',
+        organization_role:roleByUser.get(p.id)||''
+      }))
+      .sort((a,b)=>String(a.display_name).localeCompare(String(b.display_name),'de'));
+  }catch(e){
+    console.warn('Zuweisbare Benutzer konnten nicht geladen werden',e);
+    return [];
+  }
+}
+
 async function openSharedObjectAssignmentModal(collaborationId){
   if(!hasOperationalAdminAccess())return;
   const c=cloudObjectCollaborations.find(x=>x.collaboration_id===collaborationId);if(!c)return;
-  const options=cloudSharedObjectAssignees.map(a=>`<option value="${esc(a.user_id)}" ${a.user_id===c.assigned_user_id?'selected':''}>${esc(a.display_name||a.email||'Objektbetreuer')}</option>`).join('');
+  const assignableUsers=await loadAssignableUsersForCurrentTenant();
+  cloudSharedObjectAssignees=assignableUsers;
+  const options=assignableUsers.map(a=>`<option value="${esc(a.user_id)}" ${a.user_id===c.assigned_user_id?'selected':''}>${esc(a.display_name||a.email||'Objektbetreuer')}</option>`).join('');
   document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Betreutes Objekt zuweisen</h2><p class="muted">Nur der zugewiesene Objektbetreuer erhält das extern betreute Objekt in seinem Objektbestand.</p><label>Objektbetreuer</label><select id="socAssignee"><option value="">Nicht zugewiesen</option>${options}</select><div class="modal-actions"><button class="primary" onclick="saveSharedObjectAssignment('${esc(collaborationId)}')">Speichern</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
+}
+
+async function openInternalObjectAssignmentModal(objectId){
+  if(!hasOperationalAdminAccess())return alert('Nur Mandanten-Admin oder Admin-Vertretung können Objektbetreuer zuweisen.');
+  const obj=(db.objects||[]).find(o=>String(o.id||'')===String(objectId||''));
+  if(!obj)return alert('Objekt nicht gefunden.');
+  const users=await loadAssignableUsersForCurrentTenant();
+  const currentRows=await cloudRequest(`object_user_assignments?select=user_id&object_id=eq.${encodeURIComponent(objectId)}&active=eq.true`)||[];
+  const currentIds=new Set(currentRows.map(r=>r.user_id));
+  const options=users.map(u=>`<label class="user-message-recipient-row">
+    <input type="checkbox" class="internal-object-assignee" value="${esc(u.user_id)}" ${currentIds.has(u.user_id)?'checked':''}>
+    <span class="user-message-recipient-main"><span class="user-message-recipient-name">${esc(u.display_name)}</span><span class="user-message-recipient-role">${esc(u.organization_role||'Objektbetreuer')}</span></span>
+  </label>`).join('');
+  const root=document.getElementById('modalRoot');
+  root.innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark">
+    <h2>Objektbetreuer zuweisen</h2>
+    <p class="muted">Die ausgewählten Mitarbeiter sind für dieses Objekt zuständig. Objektbezogene Dokumentationen, Meldungen und Arbeitsvorgänge werden ihnen innerhalb des Mandanten standardmäßig zugeordnet.</p>
+    <div class="user-message-recipient-box">${options||'<div class="muted">Keine aktiven zuweisbaren Benutzer vorhanden.</div>'}</div>
+    <div class="modal-actions"><button class="primary" onclick="saveInternalObjectAssignments('${esc(objectId)}')">Speichern</button><button onclick="closeModal()">Abbrechen</button></div>
+  </div></div>`;
+}
+async function saveInternalObjectAssignments(objectId){
+  const selected=[...document.querySelectorAll('.internal-object-assignee:checked')].map(x=>x.value);
+  try{
+    const existing=await cloudRequest(`object_user_assignments?select=id,user_id,active&object_id=eq.${encodeURIComponent(objectId)}`)||[];
+    const selectedSet=new Set(selected);
+    for(const row of existing){
+      const shouldBeActive=selectedSet.has(row.user_id);
+      if(Boolean(row.active)!==shouldBeActive){
+        await cloudRequest(`object_user_assignments?id=eq.${encodeURIComponent(row.id)}`,{
+          method:'PATCH',
+          headers:{'Prefer':'return=minimal'},
+          body:JSON.stringify({active:shouldBeActive})
+        });
+      }
+      selectedSet.delete(row.user_id);
+    }
+    for(const uid of selectedSet){
+      await cloudRequest('object_user_assignments',{
+        method:'POST',
+        headers:{'Prefer':'return=minimal'},
+        body:JSON.stringify({object_id:objectId,user_id:uid,active:true})
+      });
+    }
+    closeModal();
+    await cloudReloadObjects();
+    alert('Objektbetreuer-Zuweisung gespeichert.');
+  }catch(e){
+    alert('Objektbetreuer konnten nicht gespeichert werden: '+(e.message||e));
+  }
 }
 async function saveSharedObjectAssignment(collaborationId){
   const uid=document.getElementById('socAssignee')?.value||null;
@@ -5500,7 +5602,10 @@ function renderExternalOrders(){
     const routeBadge=x.order_kind==='finding_route'?` <span class="badge">Gerouteter Vorgang</span>`:'';
     const snapshot=x.source_snapshot||{};
     const routeContext=x.order_kind==='finding_route'&&snapshot.area?`<div class="muted" style="margin-top:6px">Bereich: ${esc(snapshot.area)}${snapshot.area_detail?` · ${esc(snapshot.area_detail)}`:''}</div>`:'';
-    return `<div class="card" style="margin:10px 0"><div class="row space"><div><span class="badge">${direction}</span>${routeBadge} ${badgeP(x.priority||'P3')}</div><span class="badge">${esc(externalOrderStatusLabel(x.status))}</span></div><h3 style="margin:10px 0 4px">${esc(x.title||'Externer Auftrag')}</h3><div class="muted">${esc(other)} · ${esc(x.source_object_name||'Objekt')}${x.source_object_address?` · ${esc(x.source_object_address)}`:''}</div>${routeContext}${x.description?`<div style="margin-top:9px">${esc(x.description)}</div>`:''}${externalOrderRouteMediaHtml(x.id)}${assignedName?`<div class="muted" style="margin-top:8px">Verantwortlich: <strong>${esc(assignedName)}</strong></div>`:''}<div class="muted" style="margin-top:8px">Erstellt: ${esc(fmt(x.created_at))}</div>${actions}</div>`;
+    const hierarchyBadge=x.parent_work_order_id?` <span class="badge">Unterauftrag</span>`:'';
+    const childOrders=(cloudExternalOrders||[]).filter(c=>String(c.parent_work_order_id||'')===String(x.id||''));
+    const childContext=childOrders.length?`<div class="muted" style="margin-top:8px"><strong>Weitervergeben:</strong> ${childOrders.map(c=>`${esc(partnerName(c.executor_organization_id))} · ${esc(externalOrderStatusLabel(c.status))}`).join(' · ')}</div>`:'';
+    return `<div class="card" style="margin:10px 0"><div class="row space"><div><span class="badge">${direction}</span>${routeBadge}${hierarchyBadge} ${badgeP(x.priority||'P3')}</div><span class="badge">${esc(externalOrderStatusLabel(x.status))}</span></div><h3 style="margin:10px 0 4px">${esc(x.title||'Externer Auftrag')}</h3><div class="muted">${esc(other)} · ${esc(x.source_object_name||'Objekt')}${x.source_object_address?` · ${esc(x.source_object_address)}`:''}</div>${routeContext}${x.description?`<div style="margin-top:9px">${esc(x.description)}</div>`:''}${externalOrderRouteMediaHtml(x.id)}${assignedName?`<div class="muted" style="margin-top:8px">Verantwortlich: <strong>${esc(assignedName)}</strong></div>`:''}${childContext}<div class="muted" style="margin-top:8px">Erstellt: ${esc(fmt(x.created_at))}</div>${actions}</div>`;
   }).join('');
 }
 async function openRouteFindingModal(findingId){
@@ -5508,7 +5613,7 @@ async function openRouteFindingModal(findingId){
   if(!canRouteFindingUI(f))return alert('Nur der berechtigte Entscheider des führenden Mandanten kann diesen Vorgang an ein anderes Unternehmen routen.');
   const o=(db.objects||[]).find(x=>x.id===f.objectId);if(!o)return alert('Objekt nicht gefunden.');
 
-  // v2.19.41: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
+  // v2.19.42: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
   // Dadurch muss die öffentliche Mandanten-ID im Regelprozess nicht mehr manuell eingegeben werden.
   try{await cloudLoadObjectCollaborations(false);}catch(_e){}
   const currentOrgId=currentOrganizationId();
@@ -5590,7 +5695,9 @@ async function createSubcontractOrder(parentId){
 async function openExternalOrderAssignmentModal(id){
   if(!hasOperationalAdminAccess())return;
   const order=cloudExternalOrders.find(x=>x.id===id);if(!order)return;
-  const options=cloudExternalOrderAssignees.map(a=>`<option value="${esc(a.user_id)}" ${a.user_id===order.assigned_user_id?'selected':''}>${esc(a.display_name||a.email||'Objektbetreuer')}</option>`).join('');
+  const assignableUsers=await loadAssignableUsersForCurrentTenant();
+  cloudExternalOrderAssignees=assignableUsers;
+  const options=assignableUsers.map(a=>`<option value="${esc(a.user_id)}" ${a.user_id===order.assigned_user_id?'selected':''}>${esc(a.display_name||a.email||'Objektbetreuer')}</option>`).join('');
   const root=document.getElementById('modalRoot');root.innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Objektbetreuer zuweisen</h2><p class="muted">Der Mitarbeiter sieht den externen Auftrag erst nach dieser Zuweisung.</p><label>Verantwortlich</label><select id="ewoAssignee"><option value="">Nicht zugewiesen</option>${options}</select><div class="modal-actions"><button class="primary" onclick="saveExternalOrderAssignment('${esc(id)}')">Speichern</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
 }
 async function saveExternalOrderAssignment(id){
@@ -6652,7 +6759,7 @@ async function cloudReloadObjects(){
       const objectPath=`objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(platformTenantModeOrgId)}&order=name.asc`;
       rows=await cloudRequest(objectPath);
     }else{
-      // v2.19.41: Mandantenobjekte nicht mehr von einer möglicherweise zu restriktiven
+      // v2.19.42: Mandantenobjekte nicht mehr von einer möglicherweise zu restriktiven
       // generischen objects-RLS abhängig machen. Die RPC entscheidet serverseitig:
       // Tenant-Admin/Admin-Vertretung = alle Objekte des Mandanten;
       // Objektbetreuer = ausschließlich aktive Zuweisungen;
@@ -6671,7 +6778,7 @@ async function cloudReloadObjects(){
           });
         }
 
-        // v2.19.41: Sicherheitsnetz für Mandanten-Admins.
+        // v2.19.42: Sicherheitsnetz für Mandanten-Admins.
         // Bei Rollenmodell global=object_manager + tenant_membership=tenant_admin
         // darf ein leerer RPC-Return nicht dazu führen, dass der Admin "keine Objekte" sieht.
         if((!rows||rows.length===0) && typeof currentOrganizationId==='function'){
@@ -6707,7 +6814,7 @@ async function cloudReloadObjects(){
     const ownIds=new Set(ownObjects.map(o=>o.id));
     db.objects=ownObjects.concat(cloudSharedObjects.filter(o=>!ownIds.has(o.id)));
 
-    // v2.19.41: Objekte sind ein eigenständiger Kernbestand.
+    // v2.19.42: Objekte sind ein eigenständiger Kernbestand.
     // Sobald sie geladen sind, werden sie sofort sichtbar gemacht.
     // Ein Fehler in nachgelagerten Modulen darf die Objektansicht nicht mehr leer lassen.
     try{
@@ -7407,7 +7514,8 @@ function renderDecisions(){
   obj.innerHTML='<option value="">Alle Objekte</option>'+objectOptions.map(([id,name])=>`<option value="${esc(id)}">${esc(name)}</option>`).join('');
   if(objectMap.has(selectedObject))obj.value=selectedObject; else obj.value='';
 
-  const findings=(db.findings||[]).filter(f=>String(f.type||'Feststellung').trim()==='Feststellung' && f.decisionRequired!==false);
+    const externalFindingIds=externallyRoutedFindingIdsForCurrentTenant();
+const findings=(db.findings||[]).filter(f=>!externalFindingIds.has(String(f.id||'')) && String(f.type||'Feststellung').trim()==='Feststellung' && f.decisionRequired!==false);
   const pending=findings.filter(f=>String(f.decisionStatus||'pending').trim()==='pending');
 
   // Kennzahlen beziehen sich auf aktuell gewähltes Objekt, nicht auf Status-/Prioritätsfilter.
@@ -7728,7 +7836,65 @@ function resetGFWorkFilters(){
   renderWorkQueue();
 }
 
+
+function incomingExternalWorkOrders(){
+  const orgId=String(currentOrganizationId()||'');
+  return (cloudExternalOrders||[]).filter(x=>
+    String(x.executor_organization_id||'')===orgId &&
+    externalOrderIsOpen(x.status)
+  );
+}
+
+function externallyRoutedFindingIdsForCurrentTenant(){
+  const orgId=String(currentOrganizationId()||'');
+  return new Set(
+    (cloudExternalOrders||[])
+      .filter(x=>
+        String(x.order_kind||'')==='finding_route' &&
+        String(x.executor_organization_id||'')===orgId &&
+        externalOrderIsOpen(x.status)
+      )
+      .map(x=>String(x.source_finding_id||''))
+      .filter(Boolean)
+  );
+}
+
+function externalWorkQueueItemHtml(x){
+  const source=partnerName(x.source_organization_id);
+  const assignedName=cloudExternalOrderAssignees.find(a=>a.user_id===x.assigned_user_id)?.display_name||'';
+  const snapshot=x.source_snapshot||{};
+  const subOrders=(cloudExternalOrders||[]).filter(c=>String(c.parent_work_order_id||'')===String(x.id||'')&&externalOrderIsOpen(c.status));
+  const subcontractInfo=subOrders.length
+    ? `<div><b>Untervergabe:</b> ${subOrders.map(c=>`${esc(partnerName(c.executor_organization_id))} · ${esc(externalOrderStatusLabel(c.status))}`).join(' · ')}</div>`
+    : '';
+  return `<div class="gf-workitem">
+    <div class="gf-workhead">
+      <div>
+        <strong>${esc(x.title||'Externer Auftrag')}</strong>
+        <div class="muted">${esc(x.source_object_name||'Objekt')} · Extern von ${esc(source)}</div>
+      </div>
+      <div class="gf-statusstack">
+        <span class="gf-status">${esc(externalOrderStatusLabel(x.status))}</span>
+        <span class="gf-status gf-status-decision">Externer Auftrag</span>
+      </div>
+    </div>
+    <div class="gf-meta">
+      ${x.source_object_address?`<div><b>Adresse:</b> ${esc(x.source_object_address)}</div>`:''}
+      ${snapshot.area?`<div><b>Bereich:</b> ${esc(snapshot.area)}${snapshot.area_detail?` · ${esc(snapshot.area_detail)}`:''}</div>`:''}
+      ${x.description?`<div><b>Auftrag:</b> ${esc(x.description)}</div>`:''}
+      ${assignedName?`<div><b>Verantwortlich:</b> ${esc(assignedName)}</div>`:''}
+      ${subcontractInfo}
+      <div><b>Priorität:</b> ${esc(priorityLabel(x.priority||'P3'))}</div>
+    </div>
+    ${externalOrderRouteMediaHtml(x.id)}
+    <div class="row" style="margin-top:10px">
+      <button type="button" class="primary" onclick="showSection('externalOrders')">Auftrag bearbeiten</button>
+      ${x.subcontracting_allowed!==false&&['accepted','in_progress'].includes(String(x.status||''))?`<button type="button" onclick="openSubcontractOrderModal('${esc(x.id)}')">Weitervergeben</button>`:''}
+    </div>
+  </div>`;
+}
 function renderWorkQueue(){
+  const externalFindingIds=externallyRoutedFindingIdsForCurrentTenant();
   if(!canUseWorkQueueUI()){
     const host=document.getElementById('workqueueList')||document.getElementById('gfWorkQueue');
     if(host)host.innerHTML='<div class="empty">Für diese Rolle nicht freigegeben.</div>';
@@ -7742,8 +7908,9 @@ function renderWorkQueue(){
   const tasks=(db.tasks||[]).map(t=>({...t}));
   const taskByFinding=new Map(tasks.filter(t=>t.findingId).map(t=>[t.findingId,t]));
 
-  const items=(db.findings||[])
+  const items=(db.findings||[]).filter(f=>!externalFindingIds.has(String(f.id||'')))
     .filter(f=>(f.type||'Feststellung')==='Feststellung')
+    .filter(f=>hasOperationalAdminAccess()||userIsAssignedToObject(f.objectId))
     .map(f=>{
       const task=taskByFinding.get(f.id);
       return {
@@ -7768,8 +7935,10 @@ function renderWorkQueue(){
     });
 
   const k=gfTaskKpis(items);
+  const incomingExternal=incomingExternalWorkOrders();
+  const consolidatedOpenCount=k.open+incomingExternal.length;
   const workNavCount=document.getElementById('workqueueNavCount');
-  if(workNavCount)workNavCount.textContent=k.open;
+  if(workNavCount)workNavCount.textContent=consolidatedOpenCount;
   const objects=(db.objects||[]).slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'','de'));
 
   const openDecisionStates=new Set(['pending','quote_requested','quote_sent','approved','deferred','question']);
@@ -7814,7 +7983,7 @@ function renderWorkQueue(){
 
   root.innerHTML=`
     <div class="gf-kpis">
-      <div class="gf-kpi ${k.open?'is-action':'is-disabled'}" role="button" tabindex="${k.open?'0':'-1'}" onclick="applyGFWorkKpiFilter('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();applyGFWorkKpiFilter('open');}"><span class="kpi-chevron">›</span><span>Offene Vorgänge</span><strong>${k.open}</strong></div>
+      <div class="gf-kpi ${k.open?'is-action':'is-disabled'}" role="button" tabindex="${k.open?'0':'-1'}" onclick="applyGFWorkKpiFilter('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();applyGFWorkKpiFilter('open');}"><span class="kpi-chevron">›</span><span>Offene Vorgänge</span><strong>${consolidatedOpenCount}</strong></div>
       <div class="gf-kpi ${k.overdue?'is-action':'is-disabled'}" role="button" tabindex="${k.overdue?'0':'-1'}" onclick="applyGFWorkKpiFilter('overdue')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();applyGFWorkKpiFilter('overdue');}"><span class="kpi-chevron">›</span><span>Überfällig</span><strong>${k.overdue}</strong></div>
       <div class="gf-kpi ${k.week?'is-action':'is-disabled'}" role="button" tabindex="${k.week?'0':'-1'}" onclick="applyGFWorkKpiFilter('week')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();applyGFWorkKpiFilter('week');}"><span class="kpi-chevron">›</span><span>Diese Woche</span><strong>${k.week}</strong></div>
     </div>
@@ -7856,6 +8025,7 @@ function renderWorkQueue(){
     </div>
 
     <div class="gf-worklist">
+      ${incomingExternal.map(externalWorkQueueItemHtml).join('')}
       ${filtered.length ? filtered.map(t=>{
         const f=(db.findings||[]).find(x=>x.id===t.findingId)||{};
         const o=(db.objects||[]).find(x=>x.id===t.objectId)||{};
@@ -7897,7 +8067,7 @@ function renderWorkQueue(){
               <button type="button" onclick="openFindingModal('${f.objectId||''}','${f.inspectionId||''}','${f.id}')">Dokumentation öffnen</button>
             </div>
           </div>`;
-      }).join('') : `<div class="empty-state">Keine Vorgänge für die gewählten Filter.</div>`}
+      }).join('') : (incomingExternal.length?'':`<div class="empty-state">Keine Vorgänge für die gewählten Filter.</div>`)}
     </div>`;
 }
 async function cloudLoadExecutionUsers(objectId){
@@ -8332,10 +8502,11 @@ function openDashboardDecisions(){
   try{renderDecisions();}catch(e){console.error('Entscheidungen konnten nicht dargestellt werden',e);}
 }
 
-function openDashboardWorkQueue(){
+async function openDashboardWorkQueue(){
   if(!canUseWorkQueueUI())return;
+  try{await cloudLoadExternalOrders(false);}catch(e){console.warn('Externe Aufträge konnten für den Arbeitsvorrat nicht aktualisiert werden',e);}
   showSection('workqueue');
-  try{renderWorkQueue();}catch(e){console.error('Arbeitsvorrat konnte nicht dargestellt werden',e);}
+  try{renderWorkQueue();renderDashboard();}catch(e){console.error('Arbeitsvorrat konnte nicht dargestellt werden',e);}
 }
 
 function openDashboardResidentReports(){
@@ -8384,12 +8555,24 @@ function renderDashboard(){
     decisionCard.setAttribute('aria-disabled',openDecisionCount===0?'true':'false');
   }
 
-  // Arbeitsvorrat: sichtbare offene Aufgaben/Vorgänge ohne erledigten Status.
-  const workItems=Array.isArray(db.tasks)?db.tasks:[];
-  const openWorkCount=workItems.filter(t=>{
-    const st=String(t.status||'').toLowerCase();
-    return !['done','completed','closed','cancelled','rejected','erledigt'].includes(st);
-  }).length;
+  // Arbeitsvorrat: interne offene Vorgänge plus eingehende externe Aufträge.
+  // Dieselbe fachliche Logik wie in renderWorkQueue(), damit Dashboard und Arbeitsvorrat konsistent bleiben.
+  const tasksForKpi=(db.tasks||[]).map(t=>({...t}));
+  const taskByFindingForKpi=new Map(tasksForKpi.filter(t=>t.findingId).map(t=>[t.findingId,t]));
+  const openDecisionStatesForKpi=new Set(['pending','quote_requested','quote_sent','approved','deferred','question']);
+  const externalFindingIdsForKpi=externallyRoutedFindingIdsForCurrentTenant();
+  const internalOpenWorkCount=(db.findings||[])
+    .filter(f=>!externalFindingIdsForKpi.has(String(f.id||'')))
+    .filter(f=>(f.type||'Feststellung')==='Feststellung' && f.status!=='Erledigt')
+    .filter(f=>{
+      const t=taskByFindingForKpi.get(f.id);
+      const activeTask=!!t && !['completed','cancelled'].includes(String(t.status||''));
+      const ds=f.decisionStatus||(f.decisionRequired===false?'not_required':'pending');
+      const openDecision=f.decisionImplementation!=='third_party' && openDecisionStatesForKpi.has(ds);
+      const internalWork=f.workRequired===true && !t;
+      return activeTask||openDecision||internalWork;
+    }).length;
+  const openWorkCount=internalOpenWorkCount+incomingExternalWorkOrders().length;
   const workKpi=document.getElementById('kpiWorkQueue');
   if(workKpi)workKpi.textContent=openWorkCount;
   const workCard=document.getElementById('kpiWorkQueueCard');
@@ -8421,7 +8604,7 @@ function renderObjectsDirect(){
   const status=document.getElementById('objectListStatus');
   if(!el)return;
   const objects=Array.isArray(db?.objects)?db.objects:[];
-  if(status)status.textContent=`Objektmodul v2.19.41 · ${objects.length} Objekt${objects.length===1?'':'e'} geladen`;
+  if(status)status.textContent=`Objektmodul v2.19.42 · ${objects.length} Objekt${objects.length===1?'':'e'} geladen`;
   if(!objects.length){
     el.innerHTML='<div class="empty">Keine Objekte im aktuellen Mandantenkontext.</div>';
     return;
@@ -9291,7 +9474,7 @@ function printObjectQrCode(objectId,areaId=''){
   const w=window.open('','_blank','noopener,noreferrer');
   if(!w){alert('Druckansicht konnte nicht geöffnet werden. Bitte Pop-ups für diese Seite zulassen.');return;}
   w.document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>QR-Code ${esc(o.name||'Objekt')}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;text-align:center;padding:32px;color:#111}img{width:320px;max-width:90%;height:auto}h1{font-size:24px;margin-bottom:4px}.muted{color:#555;margin-bottom:8px}.area{font-size:20px;font-weight:700;margin:10px 0 18px}.hint{margin:20px auto 0;max-width:520px;font-size:16px;line-height:1.45}.url{font-size:10px;color:#777;word-break:break-all;margin-top:20px}@media print{button{display:none}}
-/* ===== v2.19.41 – Einheitliche Dialogpositionierung Plattform + Mandanten ===== */
+/* ===== v2.19.42 – Einheitliche Dialogpositionierung Plattform + Mandanten ===== */
 #modalRoot:empty{display:none!important}
 #modalRoot:not(:empty){
   position:fixed;
