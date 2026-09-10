@@ -1136,7 +1136,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.46</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.47</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1179,7 +1179,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.46</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.47</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -3004,7 +3004,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.46'; // Arbeitsvorrat: geroutete Fremd-Feststellungen werden anhand source_finding_id und Empfänger-Mandant eindeutig dedupliziert.
+const APP_VERSION='2.19.47'; // Begriffsschärfung: aktive Objektbetreuung klar von konkreten Auftragsstatus getrennt.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -5331,7 +5331,7 @@ function renderObjectCollaborations(){
   const ownOrg=cloudOrganizations.find(o=>o.id===orgId);const codeBox=document.getElementById('myTenantPublicCode');
   if(codeBox)codeBox.innerHTML=ownOrg?.public_code?`Eigene Mandanten-ID: <strong style="letter-spacing:.06em">${esc(ownOrg.public_code)}</strong> <button type="button" style="padding:4px 8px;margin-left:6px" onclick="copyTenantPublicCode()">Kopieren</button>`:'Mandanten-ID wird nach Datenbank-Update angezeigt.';
   const btn=document.getElementById('shareObjectCareBtn');if(btn)btn.style.display=hasOperationalAdminAccess()?'':'none';
-  const statusLabel=v=>v==='pending'?'Offen':v==='active'?'Angenommen':v==='rejected'?'Abgelehnt':v==='cancelled'?'Beendet':v||'—';
+  const statusLabel=v=>v==='pending'?'Offen':v==='active'?'Aktive Betreuung':v==='rejected'?'Abgelehnt':v==='cancelled'?'Beendet':v||'—';
   const rows=cloudObjectCollaborations||[];
   if(box){
     if(!rows.length)box.innerHTML='<div class="empty">Keine dauerhaften Objektbetreuungen vorhanden.</div>';
@@ -5342,7 +5342,7 @@ function renderObjectCollaborations(){
       const assignee=c.assigned_user_name||'';const status=c.status||'active';
       const requested=c.requested_at?new Date(c.requested_at).toLocaleString('de-DE'):'—';
       const actions=hasOperationalAdminAccess()?(incoming?(status==='pending'?`<div class="row" style="margin-top:10px"><button class="primary" onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',true)">Annehmen</button><button onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',false)">Ablehnen</button></div>`:(status==='active'?`<div class="row" style="margin-top:10px"><button onclick="openSharedObjectAssignmentModal('${esc(c.collaboration_id)}')">${assignee?'Zuweisung ändern':'Objektbetreuer zuweisen'}</button></div>`:'')):(status==='pending'?`<div class="row" style="margin-top:10px"><button class="danger" onclick="cancelObjectCollaboration('${esc(c.collaboration_id)}','pending')">Anfrage zurückziehen</button></div>`:(status==='active'?`<div class="row" style="margin-top:10px"><button class="danger" onclick="cancelObjectCollaboration('${esc(c.collaboration_id)}','active')">Zugriff beenden</button></div>`:''))):'';
-      return `<div class="card" style="margin:8px 0"><div class="row space"><div><span class="badge">${incoming?'Eingehend':'Ausgehend'}</span> <strong>${esc(c.object_name||'Objekt')}</strong></div><span class="badge">${esc(statusLabel(status))}</span></div><div class="muted" style="margin-top:7px">${esc(partner)}${partnerCode?` · Mandanten-ID <strong>${esc(partnerCode)}</strong>`:''}${c.object_address?' · '+esc(c.object_address):''}</div><div class="muted" style="margin-top:5px">Angefragt: ${esc(requested)}</div>${c.service_scope?`<div style="margin-top:7px"><strong>Leistungsumfang:</strong> ${esc(c.service_scope)}</div>`:''}${assignee?`<div class="muted" style="margin-top:6px">Verantwortlich: <strong>${esc(assignee)}</strong></div>`:''}${actions}</div>`;
+      return `<div class="card" style="margin:8px 0"><div class="row space"><div><span class="badge">${incoming?'Wir betreuen':'Betreuung vergeben an'}</span> <strong>${esc(c.object_name||'Objekt')}</strong></div><span class="badge">${esc(statusLabel(status))}</span></div><div class="muted" style="margin-top:7px">${esc(partner)}${partnerCode?` · Mandanten-ID <strong>${esc(partnerCode)}</strong>`:''}${c.object_address?' · '+esc(c.object_address):''}</div><div class="muted" style="margin-top:5px">Angefragt: ${esc(requested)}</div>${c.service_scope?`<div style="margin-top:7px"><strong>Leistungsumfang:</strong> ${esc(c.service_scope)}</div>`:''}${assignee?`<div class="muted" style="margin-top:6px">Verantwortlich: <strong>${esc(assignee)}</strong></div>`:''}${actions}</div>`;
     }).join('');
   }
   renderDashboardCareRequests();
