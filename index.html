@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.64</title>
+<title>Duschl Service – Objektplattform v2.19.65</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1137,7 +1137,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.64</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.65</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1180,7 +1180,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.64</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.65</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1350,8 +1350,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.64</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.64 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.65</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.65 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3005,7 +3005,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.64'; // Mandantentrennung: ausführender Dienstleister sieht geroutete Fremd-Feststellungen nur als externen Auftrag, nicht als Originaldokumentation.
+const APP_VERSION='2.19.65'; // Mandantensicht zentralisiert: geroutete Fremd-Feststellungen werden beim Executor bereits vor Rendering aus der Finding-Sicht entfernt.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -5158,7 +5158,7 @@ async function cloudReloadFindings(){
     x.beforePhotos=p.before.slice(0,5); x.afterPhotos=p.after.slice(0,5);
     x.beforePhoto=x.beforePhotos[0]||''; x.afterPhoto=x.afterPhotos[0]||'';
     return x;
-  });
+  }).filter(f=>findingVisibleInCurrentTenantUI(f));
 
   // Cloud is authoritative for cloud findings; keep only purely local legacy/test rows
   // that have no cloud UUID counterpart. New saves are replaced with the returned cloud UUID.
@@ -7133,6 +7133,18 @@ async function cloudReloadObjects(){
       db.inspections=[];
     }
 
+    // Externe Aufträge vor den Findings laden. Nur so ist beim Laden bereits klar,
+    // welche fremden Original-Feststellungen im aktuellen Executor-Mandanten durch
+    // einen gerouteten Arbeitsauftrag ersetzt werden.
+    if(hasOperationalAdminAccess()||isObjectManagerRole()||isExternalContractorRole()){
+      try{await cloudLoadExternalOrders(false);}catch(e){
+        console.warn('Externe Aufträge konnten vor der Dokumentationssicht nicht geladen werden',e);
+        cloudExternalOrders=[];
+      }
+    }else{
+      cloudExternalOrders=[];
+    }
+
     try{await cloudReloadFindings();}catch(e){
       console.warn('Dokumentationen/Feststellungen konnten nicht geladen werden',e);
       db.findings=[];
@@ -7149,12 +7161,6 @@ async function cloudReloadObjects(){
 
     try{await loadUserMessages();}catch(e){
       console.warn('Mitteilungen konnten nicht geladen werden',e);
-    }
-
-    if(hasOperationalAdminAccess()||isObjectManagerRole()){
-      try{await cloudLoadExternalOrders(false);}catch(e){
-        console.warn('Externe Aufträge konnten nicht geladen werden',e);
-      }
     }
 
     renderAll();
@@ -8223,21 +8229,37 @@ function findingVisibleInCurrentTenantUI(f){
   if(!f)return false;
   const orgId=String(currentOrganizationId()||'');
   const object=(db.objects||[]).find(o=>String(o.id||'')===String(f.objectId||''));
-
-  // Eigentümermandant sieht seine Originaldokumentation.
-  if(object && String(object.organizationId||'')===orgId)return true;
-
-  // Eigene Feststellungen des aktuellen Mandanten bleiben sichtbar.
+  const ownerOrg=String(object?.organizationId||'');
   const creatorOrg=String(f.creatorOrganizationIdSnapshot||f.creator_organization_id_snapshot||'');
+
+  // Eigentümermandant und Ersteller-Mandant behalten die Originaldokumentation.
+  if(ownerOrg && ownerOrg===orgId)return true;
   if(creatorOrg && creatorOrg===orgId)return true;
 
-  // Wird eine fremde Feststellung an den aktuellen Mandanten geroutet,
-  // sieht der ausführende Mandant nur den daraus erzeugten externen Auftrag.
+  // Der ausführende Mandant erhält bei einem finding_route ausschließlich
+  // den Arbeitsauftrag. Die fremde Original-Feststellung gehört nicht in
+  // Dokumentation, Offene Punkte, Arbeitsvorrat oder Objektzähler.
   if(incomingRoutedFindingIdsForCurrentTenant().has(String(f.id||'')))return false;
 
-  // Sonstige durch Backend/RLS bereits freigegebene Feststellungen unverändert.
+  // Nicht geroutete, vom Backend legitim freigegebene Inhalte bleiben sichtbar.
   return true;
 }
+function tenantFindingVisibilityDiagnostics(){
+  const incoming=incomingRoutedFindingIdsForCurrentTenant();
+  return (db.findings||[]).map(f=>{
+    const o=(db.objects||[]).find(x=>String(x.id||'')===String(f.objectId||''));
+    return {
+      id:f.id,
+      title:f.title||'',
+      ownerOrganizationId:o?.organizationId||'',
+      creatorOrganizationId:f.creatorOrganizationIdSnapshot||'',
+      currentOrganizationId:currentOrganizationId()||'',
+      incomingRouted:incoming.has(String(f.id||'')),
+      visible:findingVisibleInCurrentTenantUI(f)
+    };
+  });
+}
+
 
 function externallyRoutedFindingIdsForCurrentTenant(){
   // Nur die externen Aufträge berücksichtigen, die im aktuellen Arbeitsvorrat
@@ -9013,7 +9035,7 @@ function renderDashboard(){
   renderDashboardMessages();
   renderDashboardCareRequests();
   document.getElementById('kpiObjects').textContent=db.objects.length;
-  const open=db.findings.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt');
+  const open=db.findings.filter(f=>findingVisibleInCurrentTenantUI(f)).filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt');
   document.getElementById('kpiOpen').textContent=open.length;
   const criticalCount=open.filter(f=>['P1','P2'].includes(f.priority)).length;
   document.getElementById('kpiCritical').textContent=criticalCount;
@@ -9035,7 +9057,7 @@ function renderDashboard(){
   }
 
   // Offene Entscheidungen: alle sichtbaren Feststellungen, bei denen noch keine finale Entscheidung vorliegt.
-  const openDecisionCount=(db.findings||[]).filter(f=>{
+  const openDecisionCount=(db.findings||[]).filter(f=>findingVisibleInCurrentTenantUI(f)).filter(f=>{
     if(String(f.type||'Feststellung')!=='Feststellung')return false;
     const ds=String(f.decisionStatus||f.decision_status||'').toLowerCase();
     return !['approved','rejected','not_required','completed','closed','done'].includes(ds);
@@ -9208,7 +9230,7 @@ function renderObjectFiles(){
       .filter(i=>i.objectId===o.id && (!cutoff || Number(i.startedAt||i.createdAt||i.date||0)>=cutoff))
       .sort((a,b)=>Number(b.startedAt||b.createdAt||b.date||0)-Number(a.startedAt||a.createdAt||a.date||0));
 
-    let docs=db.findings.filter(f=>f.objectId===o.id && (!cutoff || (f.createdAt||0)>=cutoff));
+    let docs=db.findings.filter(f=>findingVisibleInCurrentTenantUI(f)&&f.objectId===o.id && (!cutoff || (f.createdAt||0)>=cutoff));
     if(type)docs=docs.filter(f=>(f.type||'Feststellung')===type);
     if(status==='active')docs=docs.filter(f=>f.status!=='Erledigt');else if(status)docs=docs.filter(f=>f.status===status);if(hdf)docs=docs.filter(f=>(f.type||'Feststellung')!=='Feststellung'||(f.decisionStatus||'pending')===hdf);
 
@@ -9220,7 +9242,7 @@ function renderObjectFiles(){
     const older=inspections.slice(5);
 
     const renderInspection=(i)=>{
-      const f=db.findings.filter(x=>x.inspectionId===i.id)
+      const f=db.findings.filter(x=>findingVisibleInCurrentTenantUI(x)&&x.inspectionId===i.id)
         .filter(x=>!type||(x.type||'Feststellung')===type)
         .filter(x=>!status||(status==='active'?x.status!=='Erledigt':x.status===status));
       if((type||status) && !f.length)return '';
@@ -9343,7 +9365,7 @@ function renderFindings(){
   renderCustomerObjectContext();
   const df=document.getElementById('filterDecision')?.value||'';
   const of=document.getElementById('filterObject')?.value||'', sf=document.getElementById('filterStatus')?.value||'', pf=document.getElementById('filterPriority')?.value||'', tf=document.getElementById('filterType')?.value||'';
-  let arr=[...db.findings].sort((a,b)=>b.createdAt-a.createdAt);
+  let arr=[...db.findings].filter(f=>findingVisibleInCurrentTenantUI(f)).sort((a,b)=>b.createdAt-a.createdAt);
   if(of)arr=arr.filter(x=>x.objectId===of);if(sf==='active')arr=arr.filter(x=>x.status!=='Erledigt');else if(sf)arr=arr.filter(x=>x.status===sf);if(df)arr=arr.filter(x=>(x.decisionStatus||'pending')===df);if(pf==='critical')arr=arr.filter(x=>['P1','P2'].includes(x.priority));else if(pf)arr=arr.filter(x=>x.priority===pf);if(tf)arr=arr.filter(x=>(x.type||'Feststellung')===tf);
   const el=document.getElementById('findingList'); if(el)el.innerHTML=arr.length?arr.map(f=>findingCard(f)).join(''):`<div class="empty">Keine Dokumentationen im gewählten Filter.</div>`;
 }
