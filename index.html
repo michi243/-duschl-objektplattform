@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.58</title>
+<title>Duschl Service – Objektplattform v2.19.59</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1136,7 +1136,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.58</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.59</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1179,7 +1179,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.58</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.59</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1349,8 +1349,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.58</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.58 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.59</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.59 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3004,7 +3004,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.58'; // Objektbetreuer: Arbeitsvorrat nutzt dieselbe autoritative Objekt-Sicht wie Dokumentation und Objektliste.
+const APP_VERSION='2.19.59'; // Aufgaben-Zugriff vereinheitlicht: sichtbare Vorgänge liefern dieselbe zentrale Task für Platform Admin und Objektbetreuer.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -4968,7 +4968,16 @@ function cloudTaskToLocal(t){
   };
 }
 async function cloudLoadTasks(){
-  const rows=await cloudRequest('tasks?select=id,object_id,finding_id,title,task_type,status,owner_id,owner_name,due_date,work_note,completed_by,completed_by_name,completed_at,created_at,updated_at&order=due_date.asc.nullslast,created_at.desc');
+  let rows=[];
+  try{
+    rows=await cloudRequest('rpc/get_visible_tasks',{
+      method:'POST',
+      body:JSON.stringify({p_organization_id:currentOrganizationId()||null})
+    });
+  }catch(rpcError){
+    console.warn('get_visible_tasks nicht verfügbar, Fallback auf direkte tasks-RLS',rpcError);
+    rows=await cloudRequest('tasks?select=id,object_id,finding_id,title,task_type,status,owner_id,owner_name,due_date,work_note,completed_by,completed_by_name,completed_at,created_at,updated_at&order=due_date.asc.nullslast,created_at.desc');
+  }
   const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
   const tasks=(rows||[]).filter(t=>accessibleObjectIds.has(t.object_id)).map(cloudTaskToLocal);
   db.tasks=tasks;
@@ -5023,16 +5032,33 @@ async function cloudSaveTaskForFinding(f,data){
     updated_at:new Date().toISOString()
   };
   let row;
-  if(f.taskId){
-    const rows=await cloudRequest(`tasks?id=eq.${encodeURIComponent(f.taskId)}`,{
-      method:'PATCH',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)
+  try{
+    const rows=await cloudRequest('rpc/save_visible_task',{
+      method:'POST',
+      body:JSON.stringify({
+        p_organization_id:currentOrganizationId()||null,
+        p_finding_id:f.id,
+        p_status:payload.status,
+        p_due_date:payload.due_date,
+        p_work_note:payload.work_note,
+        p_completed_by:payload.completed_by,
+        p_completed_by_name:payload.completed_by_name
+      })
     });
-    row=rows?.[0];
-  }else{
-    const rows=await cloudRequest('tasks',{
-      method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)
-    });
-    row=rows?.[0];
+    row=Array.isArray(rows)?rows[0]:rows;
+  }catch(rpcError){
+    console.warn('save_visible_task nicht verfügbar, Fallback auf direkte tasks-RLS',rpcError);
+    if(f.taskId){
+      const rows=await cloudRequest(`tasks?id=eq.${encodeURIComponent(f.taskId)}`,{
+        method:'PATCH',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)
+      });
+      row=rows?.[0];
+    }else{
+      const rows=await cloudRequest('tasks',{
+        method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)
+      });
+      row=rows?.[0];
+    }
   }
   if(!row)throw new Error('Aufgabe wurde von Supabase nicht zurückgegeben.');
   const local=cloudTaskToLocal(row);
@@ -5044,7 +5070,15 @@ async function cloudSaveTaskForFinding(f,data){
 }
 async function cloudDeleteTaskForFinding(findingId){
   const tasks=(db.tasks||[]).filter(t=>t.findingId===findingId);
-  for(const t of tasks)await cloudRequest(`tasks?id=eq.${encodeURIComponent(t.id)}`,{method:'DELETE'});
+  try{
+    await cloudRequest('rpc/delete_visible_task',{
+      method:'POST',
+      body:JSON.stringify({p_organization_id:currentOrganizationId()||null,p_finding_id:findingId})
+    });
+  }catch(rpcError){
+    console.warn('delete_visible_task nicht verfügbar, Fallback auf direkte tasks-RLS',rpcError);
+    for(const t of tasks)await cloudRequest(`tasks?id=eq.${encodeURIComponent(t.id)}`,{method:'DELETE'});
+  }
   db.tasks=(db.tasks||[]).filter(t=>t.findingId!==findingId);
 }
 
