@@ -1136,7 +1136,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.50</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.51</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1179,7 +1179,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.50</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.51</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -3004,7 +3004,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.50'; // Platform-Admin: Zuweisungen im Mandantenmodus nutzen autorisierte Support-RPCs statt tenantgebundener RLS-Schreibpfade.
+const APP_VERSION='2.19.51'; // Auftragszuweisung folgt zentraler Objektverantwortung; Direktzuweisung am Auftrag entfernt und zur Objektzugriffsverwaltung verlinkt.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -3952,6 +3952,77 @@ function userIsAssignedToObject(objectId){
   const ids=assignedObjectIdsForCurrentUser();
   return ids.has(String(objectId||''));
 }
+function profileDisplayName(uid){
+  if(!uid)return '';
+  const pools=[
+    ...(platformOrganizationProfiles||[]),
+    ...(userAdminMemberships||[]),
+    ...(cloudExternalOrderAssignees||[]),
+    ...(cloudSharedObjectAssignees||[])
+  ];
+  const row=pools.find(x=>String(x.id||x.user_id||'')===String(uid));
+  return row?.full_name||row?.display_name||row?.email||'';
+}
+
+function objectResponsibilityForWorkOrder(order){
+  if(!order)return null;
+  const objectId=String(order.source_object_id||order.object_id||'');
+
+  // Single source of truth: object assignment. A legacy direct order assignment
+  // is only shown as fallback until old data has been migrated.
+  const internal=(db.objectAssignments||[]).find(a=>
+    a.active!==false &&
+    String(a.objectId||a.object_id||'')===objectId
+  );
+  if(internal){
+    const uid=internal.userId||internal.user_id;
+    return {id:uid,name:profileDisplayName(uid)||'Objektbetreuer',source:'object'};
+  }
+
+  const collab=(cloudObjectCollaborations||[]).find(c=>
+    String(c.object_id||'')===objectId &&
+    String(c.service_organization_id||'')===String(currentOrganizationId()||'') &&
+    c.active!==false &&
+    String(c.status||'active')==='active'
+  );
+  if(collab){
+    const shared=(cloudSharedObjectAssignees||[]).find(a=>
+      String(a.collaboration_id||'')===String(collab.id||'') &&
+      a.active!==false
+    );
+    if(shared){
+      const uid=shared.user_id||shared.id;
+      return {
+        id:uid,
+        name:shared.display_name||shared.full_name||shared.email||profileDisplayName(uid)||'Objektbetreuer',
+        source:'object'
+      };
+    }
+  }
+
+  if(order.assigned_user_id){
+    return {
+      id:order.assigned_user_id,
+      name:profileDisplayName(order.assigned_user_id)||'Objektbetreuer',
+      source:'legacy_order'
+    };
+  }
+  return null;
+}
+
+function openObjectResponsibilityFromOrder(orderId){
+  const order=(cloudExternalOrders||[]).find(x=>String(x.id||'')===String(orderId||''));
+  if(!order)return alert('Auftrag nicht gefunden.');
+  showSection('users');
+  setTimeout(()=>{
+    try{
+      loadUserAdminData();
+      const target=document.getElementById('userList')||document.getElementById('users');
+      target?.scrollIntoView({behavior:'smooth',block:'start'});
+    }catch(_e){}
+  },80);
+}
+
 
 function isAccessibleObjectUI(objectId){
   if(!objectId)return false;
@@ -5576,6 +5647,18 @@ async function saveSharedObjectAssignment(collaborationId){
     await cloudReloadObjects();
   }catch(e){alert('Zuweisung konnte nicht gespeichert werden: '+(e.message||e));}
 }
+
+function externalOrderResponsibilityHtml(order){
+  const responsibility=objectResponsibilityForWorkOrder(order);
+  const label=responsibility
+    ? `<strong>Verantwortlich:</strong> ${esc(responsibility.name)}${responsibility.source==='object'?' · aus Objektzuordnung':responsibility.source==='legacy_order'?' · bestehende Einzelzuweisung':''}`
+    : `<strong>Noch kein Objektbetreuer zugewiesen</strong>`;
+  const action=hasOperationalAdminAccess()
+    ? `<button type="button" onclick="openObjectResponsibilityFromOrder('${esc(order.id)}')">${responsibility?'Objektzuordnung ändern':'Jetzt zuweisen'}</button>`
+    : '';
+  return `<div class="muted" style="margin-top:10px">${label}</div>${action?`<div style="margin-top:8px">${action}</div>`:''}`;
+}
+
 function externalOrderStatusLabel(v){return ({requested:'Übermittelt',accepted:'Angenommen',in_progress:'In Bearbeitung',completed:'Erledigt',rejected:'Abgelehnt',cancelled:'Storniert'})[v]||v||'—';}
 function externalOrderIsOpen(v){return !['completed','rejected','cancelled'].includes(String(v||''));}
 async function cloudLoadExternalOrders(render=true){
@@ -5714,6 +5797,7 @@ async function createSubcontractOrder(parentId){
   }catch(e){alert('Weitervergabe konnte nicht erstellt werden: '+(e.message||e));}
 }
 
+// Legacy compatibility only: UI assignment now comes from central object responsibility.
 async function openExternalOrderAssignmentModal(id){
   if(!hasOperationalAdminAccess())return;
   const order=cloudExternalOrders.find(x=>x.id===id);if(!order)return;
