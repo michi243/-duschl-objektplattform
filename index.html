@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.60</title>
+<title>Duschl Service – Objektplattform v2.19.62</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -666,6 +666,7 @@ body.platform-menu-mode #organizationList{
 .delete-preview-item{padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,.02)}
 @media(max-width:700px){.delete-preview-grid{grid-template-columns:1fr}}
 
+.focus-ring{outline:2px solid currentColor;outline-offset:4px;border-radius:14px}
 </style>
 <style>
 .object-file{border:1px solid #dfe5e8;border-radius:14px;background:#fff;margin-bottom:14px;overflow:hidden}
@@ -1136,7 +1137,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.60</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.62</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1179,7 +1180,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.60</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.62</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1349,8 +1350,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.60</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.60 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.62</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.62 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3004,7 +3005,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.60'; // Task-Zugriff nutzt direkte Objekt-/Collaboration-Zuweisung statt can_access_finding als zweite Schranke.
+const APP_VERSION='2.19.62'; // E2E-Status: Abschluss einer Feststellung synchronisiert geroutete Aufträge serverseitig; konkrete Aufträge direkt fokussierbar.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -5694,6 +5695,71 @@ function externalOrderResponsibilityHtml(order){
 }
 
 function externalOrderStatusLabel(v){return ({requested:'Übermittelt',accepted:'Angenommen',in_progress:'In Bearbeitung',completed:'Erledigt',rejected:'Abgelehnt',cancelled:'Storniert'})[v]||v||'—';}
+
+async function syncRoutedWorkOrdersForFinding(findingId,completed){
+  if(!findingId||!cloudSession?.access_token)return;
+  try{
+    await cloudRequest('rpc/sync_finding_route_orders',{
+      method:'POST',
+      body:JSON.stringify({
+        p_organization_id:currentOrganizationId()||null,
+        p_finding_id:findingId,
+        p_completed:!!completed
+      })
+    });
+    await cloudLoadExternalOrders(false);
+    return;
+  }catch(rpcError){
+    console.warn('sync_finding_route_orders nicht verfügbar, Fallback auf direkten Statusabgleich',rpcError);
+  }
+
+  const rows=(cloudExternalOrders||[]).filter(x=>
+    String(x.source_finding_id||'')===String(findingId) &&
+    String(x.order_kind||'')==='finding_route'
+  );
+  for(const x of rows){
+    const current=String(x.status||'');
+    if(completed && externalOrderIsOpen(current)){
+      await cloudRequest(`shared_work_orders?id=eq.${encodeURIComponent(x.id)}`,{
+        method:'PATCH',
+        headers:{'Prefer':'return=minimal'},
+        body:JSON.stringify({
+          status:'completed',
+          completed_at:new Date().toISOString(),
+          updated_at:new Date().toISOString()
+        })
+      });
+      x.status='completed';
+      x.completed_at=new Date().toISOString();
+    }else if(!completed && current==='completed'){
+      await cloudRequest(`shared_work_orders?id=eq.${encodeURIComponent(x.id)}`,{
+        method:'PATCH',
+        headers:{'Prefer':'return=minimal'},
+        body:JSON.stringify({
+          status:'in_progress',
+          completed_at:null,
+          updated_at:new Date().toISOString()
+        })
+      });
+      x.status='in_progress';
+      x.completed_at=null;
+    }
+  }
+}
+
+function openExternalOrderById(id){
+  showSection('externalOrders');
+  setTimeout(()=>{
+    const sel=`[data-external-order-id="${String(id).replace(/"/g,'\\"')}"]`;
+    const el=document.querySelector(sel);
+    if(el){
+      el.scrollIntoView({behavior:'smooth',block:'center'});
+      el.classList.add('focus-ring');
+      setTimeout(()=>el.classList.remove('focus-ring'),1800);
+    }
+  },120);
+}
+
 function externalOrderIsOpen(v){return !['completed','rejected','cancelled'].includes(String(v||''));}
 async function cloudLoadExternalOrders(render=true){
   if(!cloudSession?.access_token||isPlatformOperatorRole()&&!isPlatformTenantMode())return;
@@ -5744,7 +5810,7 @@ function renderExternalOrders(){
     const hierarchyBadge=x.parent_work_order_id?` <span class="badge">Unterauftrag</span>`:'';
     const childOrders=(cloudExternalOrders||[]).filter(c=>String(c.parent_work_order_id||'')===String(x.id||''));
     const childContext=childOrders.length?`<div class="muted" style="margin-top:8px"><strong>Weitervergeben:</strong> ${childOrders.map(c=>`${esc(partnerName(c.executor_organization_id))} · ${esc(externalOrderStatusLabel(c.status))}`).join(' · ')}</div>`:'';
-    return `<div class="card" style="margin:10px 0"><div class="row space"><div><span class="badge">${direction}</span>${routeBadge}${hierarchyBadge} ${badgeP(x.priority||'P3')}</div><span class="badge">${esc(externalOrderStatusLabel(x.status))}</span></div><h3 style="margin:10px 0 4px">${esc(x.title||'Externer Auftrag')}</h3><div class="muted">${esc(other)} · ${esc(x.source_object_name||'Objekt')}${x.source_object_address?` · ${esc(x.source_object_address)}`:''}</div>${routeContext}${x.description?`<div style="margin-top:9px">${esc(x.description)}</div>`:''}${externalOrderRouteMediaHtml(x.id)}${assignedName?`<div class="muted" style="margin-top:8px">Verantwortlich: <strong>${esc(assignedName)}</strong></div>`:''}${childContext}<div class="muted" style="margin-top:8px">Erstellt: ${esc(fmt(x.created_at))}</div>${actions}</div>`;
+    return `<div class="card" data-external-order-id="${esc(x.id)}" style="margin:10px 0"><div class="row space"><div><span class="badge">${direction}</span>${routeBadge}${hierarchyBadge} ${badgeP(x.priority||'P3')}</div><span class="badge">${esc(externalOrderStatusLabel(x.status))}</span></div><h3 style="margin:10px 0 4px">${esc(x.title||'Externer Auftrag')}</h3><div class="muted">${esc(other)} · ${esc(x.source_object_name||'Objekt')}${x.source_object_address?` · ${esc(x.source_object_address)}`:''}</div>${routeContext}${x.description?`<div style="margin-top:9px">${esc(x.description)}</div>`:''}${externalOrderRouteMediaHtml(x.id)}${assignedName?`<div class="muted" style="margin-top:8px">Verantwortlich: <strong>${esc(assignedName)}</strong></div>`:''}${childContext}<div class="muted" style="margin-top:8px">Erstellt: ${esc(fmt(x.created_at))}</div>${actions}</div>`;
   }).join('');
 }
 async function openRouteFindingModal(findingId){
@@ -8096,7 +8162,7 @@ function externalWorkQueueItemHtml(x){
   const subcontractInfo=subOrders.length
     ? `<div><b>Untervergabe:</b> ${subOrders.map(c=>`${esc(partnerName(c.executor_organization_id))} · ${esc(externalOrderStatusLabel(c.status))}`).join(' · ')}</div>`
     : '';
-  return `<div class="gf-workitem">
+  return `<div class="gf-workitem" data-external-order-id="${esc(x.id)}">
     <div class="gf-workhead">
       <div>
         <strong>${esc(x.title||'Externer Auftrag')}</strong>
@@ -8117,7 +8183,7 @@ function externalWorkQueueItemHtml(x){
     </div>
     ${externalOrderRouteMediaHtml(x.id)}
     <div class="row" style="margin-top:10px">
-      <button type="button" class="primary" onclick="showSection('externalOrders')">Auftrag bearbeiten</button>
+      <button type="button" class="primary" onclick="openExternalOrderById('${esc(x.id)}')">Auftrag bearbeiten</button>
       ${x.subcontracting_allowed!==false&&['accepted','in_progress'].includes(String(x.status||''))?`<button type="button" onclick="openSubcontractOrderModal('${esc(x.id)}')">Weitervergeben</button>`:''}
     </div>
   </div>`;
@@ -10685,6 +10751,11 @@ async function saveFinding(id){
     const savedAfter=(row.__afterPhotos||[]).slice(0,5);
     cloudLocal.beforePhotos=savedBefore; cloudLocal.afterPhotos=savedAfter;
     cloudLocal.beforePhoto=savedBefore[0]||''; cloudLocal.afterPhoto=savedAfter[0]||'';
+    try{
+      await syncRoutedWorkOrdersForFinding(row.id, data.status==='Erledigt');
+      await cloudLoadExternalOrders(false);
+    }catch(_e){}
+
     // Existing local draft/test record is replaced by the authoritative cloud record.
     if(id){
       const idx=db.findings.findIndex(x=>x.id===id);
