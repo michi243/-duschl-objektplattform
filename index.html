@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.62</title>
+<title>Duschl Service – Objektplattform v2.19.63</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1137,7 +1137,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.62</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.63</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1180,7 +1180,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.62</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.63</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1350,8 +1350,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.62</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.62 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.63</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.63 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3005,7 +3005,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.62'; // E2E-Status: Abschluss einer Feststellung synchronisiert geroutete Aufträge serverseitig; konkrete Aufträge direkt fokussierbar.
+const APP_VERSION='2.19.63'; // Objektbetreuer erhalten operative Schreibrechte auf zugewiesene interne/externe Objekte und eingehende Aufträge; administrative Rechte bleiben getrennt.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -5200,10 +5200,28 @@ async function cloudSaveFinding(id,data){
     payload.creator_organization_name_snapshot=(currentOrganization?.name||organizationName(currentOrganizationId())||'').trim()||null;
   }
   if(isCloudId){
-    const rows=await cloudRequest(`findings?id=eq.${encodeURIComponent(id)}`,{
-      method:'PATCH',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)
-    });
-    row=rows?.[0];
+    if((isObjectManagerRole()||isExternalContractorRole()) && !hasOperationalAdminAccess()){
+      const rows=await cloudRequest('rpc/update_operational_finding',{
+        method:'POST',
+        body:JSON.stringify({
+          p_organization_id:currentOrganizationId()||null,
+          p_finding_id:id,
+          p_status:payload.status,
+          p_completion_type:payload.completion_type,
+          p_completion_note:payload.completion_note,
+          p_activity:payload.activity,
+          p_description:payload.description,
+          p_recommended_action:payload.recommended_action,
+          p_work_required:payload.work_required
+        })
+      });
+      row=Array.isArray(rows)?rows[0]:rows;
+    }else{
+      const rows=await cloudRequest(`findings?id=eq.${encodeURIComponent(id)}`,{
+        method:'PATCH',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)
+      });
+      row=rows?.[0];
+    }
   }else{
     const rows=await cloudRequest('findings',{
       method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)
@@ -5760,6 +5778,20 @@ function openExternalOrderById(id){
   },120);
 }
 
+
+function canOperateExternalOrder(order){
+  if(!order)return false;
+  if(hasOperationalAdminAccess())return true;
+  if(!(isObjectManagerRole()||isExternalContractorRole()))return false;
+  if(String(order.executor_organization_id||'')!==String(currentOrganizationId()||''))return false;
+
+  const objectId=String(order.source_object_id||order.object_id||'');
+  if(objectId && currentUserOwnsOperationalObject(objectId))return true;
+
+  // Legacy-Fallback für ältere Einzelzuweisungen.
+  return !!order.assigned_user_id && String(order.assigned_user_id)===String(currentUserId()||'');
+}
+
 function externalOrderIsOpen(v){return !['completed','rejected','cancelled'].includes(String(v||''));}
 async function cloudLoadExternalOrders(render=true){
   if(!cloudSession?.access_token||isPlatformOperatorRole()&&!isPlatformTenantMode())return;
@@ -5803,7 +5835,9 @@ function renderExternalOrders(){
     const other=isIn?partnerName(x.source_organization_id):partnerName(x.executor_organization_id);
     const direction=isIn?'Eingehend':'Ausgehend';
     const assignedName=cloudExternalOrderAssignees.find(a=>a.user_id===x.assigned_user_id)?.display_name||'';
-    const actions=isIn&&hasOperationalAdminAccess()?`<div class="row" style="margin-top:10px;gap:8px">${x.status==='requested'?`<button class="primary" onclick="updateExternalOrderStatus('${esc(x.id)}','accepted')">Annehmen</button><button onclick="updateExternalOrderStatus('${esc(x.id)}','rejected')">Ablehnen</button>`:''}${['accepted','in_progress'].includes(x.status)?`<button class="primary" onclick="updateExternalOrderStatus('${esc(x.id)}','in_progress')">In Bearbeitung</button><button onclick="updateExternalOrderStatus('${esc(x.id)}','completed')">Erledigt</button>`:''}${['accepted','in_progress'].includes(x.status)&&x.subcontracting_allowed!==false?`<button onclick="openSubcontractOrderModal('${esc(x.id)}')">Weitervergeben</button>`:''}<button onclick="openExternalOrderAssignmentModal('${esc(x.id)}')">${x.assigned_user_id?'Zuweisung ändern':'Objektbetreuer zuweisen'}</button></div>`:'';
+    const adminActions=isIn&&hasOperationalAdminAccess()?`<div class="row" style="margin-top:10px;gap:8px">${x.status==='requested'?`<button class="primary" onclick="updateExternalOrderStatus('${esc(x.id)}','accepted')">Annehmen</button><button onclick="updateExternalOrderStatus('${esc(x.id)}','rejected')">Ablehnen</button>`:''}${['accepted','in_progress'].includes(x.status)?`<button class="primary" onclick="updateExternalOrderStatus('${esc(x.id)}','in_progress')">In Bearbeitung</button><button onclick="updateExternalOrderStatus('${esc(x.id)}','completed')">Erledigt</button>`:''}${['accepted','in_progress'].includes(x.status)&&x.subcontracting_allowed!==false?`<button onclick="openSubcontractOrderModal('${esc(x.id)}')">Weitervergeben</button>`:''}<button onclick="openExternalOrderAssignmentModal('${esc(x.id)}')">${x.assigned_user_id?'Zuweisung ändern':'Objektbetreuer zuweisen'}</button></div>`:'';
+    const operationalActions=isIn&&!hasOperationalAdminAccess()&&canOperateExternalOrder(x)&&['accepted','in_progress'].includes(String(x.status||''))?`<div class="row" style="margin-top:10px;gap:8px"><button class="primary" onclick="updateExternalOrderStatus('${esc(x.id)}','in_progress')">In Bearbeitung</button><button onclick="updateExternalOrderStatus('${esc(x.id)}','completed')">Erledigt</button></div>`:'';
+    const actions=adminActions||operationalActions;
     const routeBadge=x.order_kind==='finding_route'?` <span class="badge">Gerouteter Vorgang</span>`:'';
     const snapshot=x.source_snapshot||{};
     const routeContext=x.order_kind==='finding_route'&&snapshot.area?`<div class="muted" style="margin-top:6px">Bereich: ${esc(snapshot.area)}${snapshot.area_detail?` · ${esc(snapshot.area_detail)}`:''}</div>`:'';
@@ -5930,7 +5964,35 @@ async function saveExternalOrderAssignment(id){
   }catch(e){alert('Zuweisung konnte nicht gespeichert werden: '+(e.message||e));}
 }
 async function updateExternalOrderStatus(id,status){
-  try{await cloudRequest(`shared_work_orders?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({status,updated_at:new Date().toISOString(),...(status==='accepted'?{accepted_at:new Date().toISOString()}:{}) ,...(status==='completed'?{completed_at:new Date().toISOString()}:{})})});await cloudLoadExternalOrders();}catch(e){alert('Status konnte nicht geändert werden: '+(e.message||e));}
+  const order=(cloudExternalOrders||[]).find(x=>String(x.id||'')===String(id||''));
+  if(!order)return alert('Auftrag nicht gefunden.');
+  try{
+    if((isObjectManagerRole()||isExternalContractorRole())&&!hasOperationalAdminAccess()){
+      if(!canOperateExternalOrder(order))return alert('Dieser Auftrag ist deinem Verantwortungsbereich nicht zugeordnet.');
+      if(!['in_progress','completed'].includes(String(status||'')))return alert('Objektbetreuer dürfen den operativen Status auf „In Bearbeitung“ oder „Erledigt“ setzen.');
+      await cloudRequest('rpc/update_visible_external_order_status',{
+        method:'POST',
+        body:JSON.stringify({
+          p_organization_id:currentOrganizationId()||null,
+          p_work_order_id:id,
+          p_status:status
+        })
+      });
+    }else{
+      await cloudRequest(`shared_work_orders?id=eq.${encodeURIComponent(id)}`,{
+        method:'PATCH',
+        headers:{'Prefer':'return=minimal'},
+        body:JSON.stringify({
+          status,
+          updated_at:new Date().toISOString(),
+          ...(status==='accepted'?{accepted_at:new Date().toISOString()}:{}) ,
+          ...(status==='completed'?{completed_at:new Date().toISOString()}:{})
+        })
+      });
+    }
+    await cloudLoadExternalOrders();
+    renderWorkQueue();
+  }catch(e){alert('Status konnte nicht geändert werden: '+(e.message||e));}
 }
 
 let cloudObjectAreas=[];
@@ -8183,7 +8245,7 @@ function externalWorkQueueItemHtml(x){
     </div>
     ${externalOrderRouteMediaHtml(x.id)}
     <div class="row" style="margin-top:10px">
-      <button type="button" class="primary" onclick="openExternalOrderById('${esc(x.id)}')">Auftrag bearbeiten</button>
+      ${canOperateExternalOrder(x)&&['accepted','in_progress'].includes(String(x.status||''))?`<button type="button" class="primary" onclick="updateExternalOrderStatus('${esc(x.id)}','in_progress')">In Bearbeitung</button><button type="button" onclick="updateExternalOrderStatus('${esc(x.id)}','completed')">Erledigt</button>`:`<button type="button" class="primary" onclick="openExternalOrderById('${esc(x.id)}')">Auftrag ansehen</button>`}
       ${x.subcontracting_allowed!==false&&['accepted','in_progress'].includes(String(x.status||''))?`<button type="button" onclick="openSubcontractOrderModal('${esc(x.id)}')">Weitervergeben</button>`:''}
     </div>
   </div>`;
