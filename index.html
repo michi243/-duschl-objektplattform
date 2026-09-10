@@ -1136,7 +1136,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.49</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.50</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1179,7 +1179,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.49</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.50</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -3004,7 +3004,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.49'; // Objektverantwortung: interne und extern betreute Objekte weisen zuständige Objektbetreuer zu; Vorgänge folgen standardmäßig dieser Zuständigkeit.
+const APP_VERSION='2.19.50'; // Platform-Admin: Zuweisungen im Mandantenmodus nutzen autorisierte Support-RPCs statt tenantgebundener RLS-Schreibpfade.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -5502,7 +5502,7 @@ async function openSharedObjectAssignmentModal(collaborationId){
 }
 
 async function openInternalObjectAssignmentModal(objectId){
-  if(!hasOperationalAdminAccess())return alert('Nur Mandanten-Admin oder Admin-Vertretung können Objektbetreuer zuweisen.');
+  if(!hasOperationalAdminAccess())return alert('Nur Mandanten-Administration oder Platform-Admin im Mandantenmodus können Objektbetreuer zuweisen.');
   const obj=(db.objects||[]).find(o=>String(o.id||'')===String(objectId||''));
   if(!obj)return alert('Objekt nicht gefunden.');
   const users=await loadAssignableUsersForCurrentTenant();
@@ -5523,25 +5523,36 @@ async function openInternalObjectAssignmentModal(objectId){
 async function saveInternalObjectAssignments(objectId){
   const selected=[...document.querySelectorAll('.internal-object-assignee:checked')].map(x=>x.value);
   try{
-    const existing=await cloudRequest(`object_user_assignments?select=id,user_id,active&object_id=eq.${encodeURIComponent(objectId)}`)||[];
-    const selectedSet=new Set(selected);
-    for(const row of existing){
-      const shouldBeActive=selectedSet.has(row.user_id);
-      if(Boolean(row.active)!==shouldBeActive){
-        await cloudRequest(`object_user_assignments?id=eq.${encodeURIComponent(row.id)}`,{
-          method:'PATCH',
+    if(isAdminRole()&&isPlatformTenantMode()){
+      await cloudRequest('rpc/platform_support_set_object_assignments',{
+        method:'POST',
+        body:JSON.stringify({
+          p_organization_id:currentOrganizationId(),
+          p_object_id:objectId,
+          p_user_ids:selected
+        })
+      });
+    }else{
+      const existing=await cloudRequest(`object_user_assignments?select=id,user_id,active&object_id=eq.${encodeURIComponent(objectId)}`)||[];
+      const selectedSet=new Set(selected);
+      for(const row of existing){
+        const shouldBeActive=selectedSet.has(row.user_id);
+        if(Boolean(row.active)!==shouldBeActive){
+          await cloudRequest(`object_user_assignments?id=eq.${encodeURIComponent(row.id)}`,{
+            method:'PATCH',
+            headers:{'Prefer':'return=minimal'},
+            body:JSON.stringify({active:shouldBeActive})
+          });
+        }
+        selectedSet.delete(row.user_id);
+      }
+      for(const uid of selectedSet){
+        await cloudRequest('object_user_assignments',{
+          method:'POST',
           headers:{'Prefer':'return=minimal'},
-          body:JSON.stringify({active:shouldBeActive})
+          body:JSON.stringify({object_id:objectId,user_id:uid,active:true,assigned_by:currentUserId()})
         });
       }
-      selectedSet.delete(row.user_id);
-    }
-    for(const uid of selectedSet){
-      await cloudRequest('object_user_assignments',{
-        method:'POST',
-        headers:{'Prefer':'return=minimal'},
-        body:JSON.stringify({object_id:objectId,user_id:uid,active:true})
-      });
     }
     closeModal();
     await cloudReloadObjects();
@@ -5552,7 +5563,18 @@ async function saveInternalObjectAssignments(objectId){
 }
 async function saveSharedObjectAssignment(collaborationId){
   const uid=document.getElementById('socAssignee')?.value||null;
-  try{await cloudRequest('rpc/assign_shared_object',{method:'POST',body:JSON.stringify({p_collaboration_id:collaborationId,p_user_id:uid})});closeModal();await cloudLoadObjectCollaborations(false);await cloudReloadObjects();}catch(e){alert('Zuweisung konnte nicht gespeichert werden: '+(e.message||e));}
+  try{
+    const rpc=(isAdminRole()&&isPlatformTenantMode())
+      ?'rpc/platform_support_assign_shared_object'
+      :'rpc/assign_shared_object';
+    const body=(isAdminRole()&&isPlatformTenantMode())
+      ?{p_organization_id:currentOrganizationId(),p_collaboration_id:collaborationId,p_user_id:uid}
+      :{p_collaboration_id:collaborationId,p_user_id:uid};
+    await cloudRequest(rpc,{method:'POST',body:JSON.stringify(body)});
+    closeModal();
+    await cloudLoadObjectCollaborations(false);
+    await cloudReloadObjects();
+  }catch(e){alert('Zuweisung konnte nicht gespeichert werden: '+(e.message||e));}
 }
 function externalOrderStatusLabel(v){return ({requested:'Übermittelt',accepted:'Angenommen',in_progress:'In Bearbeitung',completed:'Erledigt',rejected:'Abgelehnt',cancelled:'Storniert'})[v]||v||'—';}
 function externalOrderIsOpen(v){return !['completed','rejected','cancelled'].includes(String(v||''));}
@@ -5702,7 +5724,26 @@ async function openExternalOrderAssignmentModal(id){
 }
 async function saveExternalOrderAssignment(id){
   const userId=document.getElementById('ewoAssignee')?.value||null;
-  try{await cloudRequest(`shared_work_orders?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({assigned_user_id:userId,updated_at:new Date().toISOString()})});closeModal();await cloudLoadExternalOrders();}catch(e){alert('Zuweisung konnte nicht gespeichert werden: '+(e.message||e));}
+  try{
+    if(isAdminRole()&&isPlatformTenantMode()){
+      await cloudRequest('rpc/platform_support_assign_external_work_order',{
+        method:'POST',
+        body:JSON.stringify({
+          p_organization_id:currentOrganizationId(),
+          p_work_order_id:id,
+          p_user_id:userId
+        })
+      });
+    }else{
+      await cloudRequest(`shared_work_orders?id=eq.${encodeURIComponent(id)}`,{
+        method:'PATCH',
+        headers:{'Prefer':'return=minimal'},
+        body:JSON.stringify({assigned_user_id:userId,updated_at:new Date().toISOString()})
+      });
+    }
+    closeModal();
+    await cloudLoadExternalOrders();
+  }catch(e){alert('Zuweisung konnte nicht gespeichert werden: '+(e.message||e));}
 }
 async function updateExternalOrderStatus(id,status){
   try{await cloudRequest(`shared_work_orders?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({status,updated_at:new Date().toISOString(),...(status==='accepted'?{accepted_at:new Date().toISOString()}:{}) ,...(status==='completed'?{completed_at:new Date().toISOString()}:{})})});await cloudLoadExternalOrders();}catch(e){alert('Status konnte nicht geändert werden: '+(e.message||e));}
