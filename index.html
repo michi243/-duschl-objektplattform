@@ -1136,7 +1136,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.54</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.55</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1179,7 +1179,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.54</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.55</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1433,7 +1433,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div class="row space">
 <div>
 <h2>Arbeitsvorrat</h2>
-<div class="muted">Konkrete zu erledigende Arbeiten aus Aufgaben und Beauftragungen. Offene Feststellungen ohne Beauftragung bleiben unter „Offene Punkte“.</div>
+<div class="muted">Alle offenen Arbeiten, für die bereits entschieden wurde, dass sie bearbeitet werden sollen. Vorgänge mit ausstehender Entscheidung bleiben unter „Offene Punkte“.</div>
 </div>
 </div>
 <div id="workQueue"></div>
@@ -3004,7 +3004,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.54'; // Arbeitsvorrat strikt von offenen Punkten getrennt: nur konkrete Arbeit bzw. explizite externe Beauftragung.
+const APP_VERSION='2.19.55'; // Arbeitsvorrat: positiv entschiedene Durchführung erzeugt Arbeit; Routing bestimmt den Ausführer, nicht die Entstehung der Arbeit.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -7935,21 +7935,15 @@ function internalFindingIsConcreteWork(f,task){
   const activeTask=!!task && !['completed','cancelled'].includes(String(task.status||''));
   if(activeTask)return true;
 
-  const obj=(db.objects||[]).find(o=>String(o.id||'')===String(f.objectId||''));
-  const isExternallyManaged=!!obj?.externalManaged;
-
-  // Bei extern betreuten Objekten erzeugt eine Auftraggeberentscheidung allein
-  // keinen Arbeitsauftrag beim Dienstleister. Erst Routing/Beauftragung oder eine
-  // bewusst angelegte interne Aufgabe erzeugt Arbeitsvorrat.
-  if(isExternallyManaged)return false;
-
   const decisionStatus=String(f.decisionStatus||(f.decisionRequired===false?'not_required':'pending'));
   const implementation=String(f.decisionImplementation||'');
 
-  // Eigenes Objekt: freigegebene interne Maßnahme ist konkrete Arbeit.
+  // Fachliche Entscheidung ist der Trigger für Arbeitsvorrat:
+  // "Durchführen / freigegeben" = offene Arbeit. Routing legt anschließend fest,
+  // welches Unternehmen bzw. welcher Partner die Arbeit ausführt.
   if(decisionStatus==='approved' && implementation!=='third_party')return true;
 
-  // Interne Arbeit ohne Auftraggeberentscheidung.
+  // Interne Arbeit ohne erforderliche Auftraggeberentscheidung.
   if(decisionStatus==='not_required' && f.workRequired===true)return true;
 
   return false;
@@ -8225,10 +8219,8 @@ function renderWorkQueue(){
           : (t.findingStatus==='Erledigt'?'Dokumentation erledigt':'Noch keine Aufgabe');
         const decisionStatus=decisionLabel(t.decisionStatus||'pending');
         const overdue=t.hasTask && gfTaskDerivedBucket(t)==='overdue';
-        const workObject=(db.objects||[]).find(obj=>String(obj.id||'')===String(t.objectId||''));
         const canPlan=!t.hasTask
           && t.findingStatus!=='Erledigt'
-          && !workObject?.externalManaged
           && (
             (t.decisionStatus==='approved' && t.implementationResponsibility!=='third_party')
             || (t.workRequired===true && t.decisionStatus==='not_required')
