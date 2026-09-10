@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.68</title>
+<title>Duschl Service – Objektplattform v2.19.69</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1137,7 +1137,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.68</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.69</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1180,7 +1180,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.68</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.69</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1350,8 +1350,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.68</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.68 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.69</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.69 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3005,7 +3005,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.68'; // E2E-Statuskette: Abschlussbestätigung schließt den Ursprungs-Vorgang mandantenübergreifend; Historie bleibt erhalten.
+const APP_VERSION='2.19.69'; // Dokumentationsstatus wird aus dem Vorgangsabschluss abgeleitet; bestätigte E2E-Abschlüsse erscheinen als abgeschlossen.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -7836,6 +7836,21 @@ function decisionMetaHtml(f){
 }
 function inspectionClosed(i){return !!(i && i.endedAt)}
 
+function documentationStatusForFinding(f){
+  if(!f)return 'Offen';
+  // Einzelne Dokumentation ohne Begehung: Status folgt dem Vorgang.
+  if(!f.inspectionId)return f.status==='Erledigt'?'Abgeschlossen':'Offen';
+
+  // Bei gebündelten Dokumentationen bleibt die Dokumentation offen, solange
+  // mindestens eine sichtbare Feststellung derselben Begehung noch offen ist.
+  const related=(db.findings||[]).filter(x=>
+    String(x.inspectionId||'')===String(f.inspectionId||'') &&
+    findingVisibleInCurrentTenantUI(x)
+  );
+  if(!related.length)return f.status==='Erledigt'?'Abgeschlossen':'Offen';
+  return related.some(x=>String(x.status||'')!=='Erledigt')?'Offen':'Abgeschlossen';
+}
+
 function badgeP(p){return `<span class="badge p ${p}">${esc(priorityLabel(p))}</span>`}
 function statusBadge(s){return `<span class="badge">${esc(s)}</span>`}
 
@@ -8522,7 +8537,7 @@ function renderWorkQueue(){
               </div>
             </div>
             <div class="gf-meta">
-              <div><b>Dokumentation:</b> ${esc(f.status||'Offen')}</div>
+              <div><b>Dokumentation:</b> ${esc(documentationStatusForFinding(f))}</div>
               ${t.hasTask&&t.status==='completed'?`<div><b>Ausführung bestätigt durch:</b> ${esc(t.completedByName||'Nicht dokumentiert')}</div>`:''}
               ${t.hasTask&&t.status==='completed'&&t.completedAt?`<div><b>Erledigt am:</b> ${esc(new Date(t.completedAt).toLocaleString('de-DE'))}</div>`:''}
               ${t.hasTask?`<div><b>Fällig:</b> ${esc(due)}</div>`:''}
