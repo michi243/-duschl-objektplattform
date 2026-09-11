@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.81</title>
+<title>Duschl Service – Objektplattform v2.19.83</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1195,7 +1195,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.81</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.83</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1238,7 +1238,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.81</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.83</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1408,8 +1408,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.81</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.81 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.83</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.83 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3063,7 +3063,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.81'; // Governance: erledigte Dokumentationen sind schreibgeschützt; Bearbeitung erst nach dokumentierter Wiedereröffnung durch Auftraggeber/Admin.
+const APP_VERSION='2.19.83'; // Governance: erledigte Dokumentationen sind schreibgeschützt; Bearbeitung erst nach dokumentierter Wiedereröffnung durch Auftraggeber/Admin.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -8848,6 +8848,12 @@ function externalWorkQueueItemHtml(x){
   const subcontractInfo=subOrders.length
     ? `<div><b>Untervergabe:</b> ${subOrders.map(c=>`${esc(partnerName(c.executor_organization_id))} · ${esc(externalOrderStatusLabel(c.status))}`).join(' · ')}</div>`
     : '';
+  const executionFinding=x.execution_finding_id
+    ? (db.findings||[]).find(f=>String(f.id||'')===String(x.execution_finding_id||''))
+    : null;
+  const executionSummary=isAutoResidentRoute&&executionFinding
+    ? `${executionFinding.activity?`<div><b>Durchgeführte Tätigkeit:</b> ${esc(executionFinding.activity).replace(/\n/g,' · ')}</div>`:''}${executionFinding.completionNote?`<div><b>Durchgeführte Maßnahme:</b> ${esc(executionFinding.completionNote)}</div>`:''}${String(x.status||'')==='completed'?`<div><b>Abschluss:</b> Erledigt</div>`:''}`
+    : '';
   const originText=isAutoResidentRoute
     ? 'Bewohnermeldung · automatisch zugeordnet'
     : `Extern von ${esc(source)}`;
@@ -8879,6 +8885,7 @@ function externalWorkQueueItemHtml(x){
       ${x.description?`<div><b>Auftrag:</b> ${esc(x.description)}</div>`:''}
       ${assignedName?`<div><b>Verantwortlich:</b> ${esc(assignedName)}</div>`:''}
       ${subcontractInfo}
+      ${executionSummary}
       <div><b>Priorität:</b> ${esc(priorityLabel(x.priority||'P3'))}</div>
     </div>
     ${isAutoResidentRoute?externalOrderResidentMediaHtml(x):externalOrderRouteMediaHtml(x.id)}
@@ -11188,6 +11195,13 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   if(editId && f.type==='Feststellung' && typeof f.decisionRequired==='undefined')f.decisionRequired=true;
   const objOpts=db.objects.map(o=>`<option value="${o.id}" ${o.id===f.objectId?'selected':''}>${esc(o.name)}</option>`).join('');
   const inspOpts=db.inspections.filter(i=>!f.objectId||i.objectId===f.objectId).map(i=>`<option value="${i.id}" ${i.id===f.inspectionId?'selected':''}>${esc(inspectionName(i.id))}</option>`).join('');
+  const residentRouteOrder=externalOrderDocumentationContext?.orderId
+    ? (cloudExternalOrders||[]).find(x=>String(x.id||'')===String(externalOrderDocumentationContext.orderId||''))
+    : null;
+  const isResidentRouteDocumentation=!!residentRouteOrder&&!!residentRouteOrder.source_resident_report_id&&String((residentRouteOrder.source_snapshot||{}).route_type||'')==='resident_report_auto';
+  const activityPresets=isResidentRouteDocumentation
+    ? residentRouteActivityPresets()
+    : ['Kontrollgang / Begehung','Rasen gemäht','Rasenkanten geschnitten','Hecke / Sträucher geschnitten','Laub entfernt','Unkraut entfernt','Bewässerung durchgeführt','Schnee geräumt','Gestreut','Geräumt und gestreut','Mülltonnen bereitgestellt','Reinigung durchgeführt'];
   modal(`<div class="row space"><h2>${editId?'Dokumentation bearbeiten':'Dokumentation erfassen'}</h2><button onclick="closeModal()">✕</button></div>
   ${editId?findingCreatorMetaHtml(f):''}
   <label>Objekt *</label><select id="fObject" onchange="refreshInspectionOptions();refreshFindingAreaOptions();refreshFindingDecisionAccess()">${objOpts}</select>
@@ -11270,13 +11284,14 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
     <label>Durchgeführte Tätigkeiten *</label>
     <select id="fActivityPreset" onchange="applyActivityPreset()">
       <option value="">Tätigkeit hinzufügen …</option>
-      ${['Kontrollgang / Begehung','Rasen gemäht','Rasenkanten geschnitten','Hecke / Sträucher geschnitten','Laub entfernt','Unkraut entfernt','Bewässerung durchgeführt','Schnee geräumt','Gestreut','Geräumt und gestreut','Mülltonnen bereitgestellt','Reinigung durchgeführt','Sonstiges'].map(x=>`<option>${x}</option>`).join('')}
+      ${[...activityPresets,'Sonstiges'].map(x=>`<option>${x}</option>`).join('')}
     </select>
     <div class="row" style="margin-top:8px">
       <input id="fActivityCustom" placeholder="Eigene Tätigkeit ergänzen" style="flex:1">
       <button type="button" onclick="addCustomActivity()">Hinzufügen</button>
     </div>
     <textarea id="fActivity" placeholder="Alle ausgewählten und ergänzten Tätigkeiten werden hier übernommen und können weiter bearbeitet werden.">${esc(f.activity)}</textarea>
+    ${isResidentRouteDocumentation?`<label>Durchgeführte Maßnahme *</label><textarea id="fExecutedMeasure" placeholder="Konkret beschreiben, was durchgeführt wurde, z. B. Treppenstufen feucht gereinigt und Verschmutzung vollständig entfernt.">${esc(f.completionNote||'')}</textarea><div class="muted" style="margin-top:5px">Die Maßnahme wird beim Abschluss des Arbeitsauftrags als Leistungsnachweis angezeigt.</div>`:''}
     <label>Bemerkung / Zustand</label><textarea id="fServiceNote">${esc(f.description)}</textarea>
   </div>
 
@@ -11288,11 +11303,9 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   </div>
   <label>Status</label><select id="fStatus" onchange="toggleCompletion()">${['Offen','In Bearbeitung','Erledigt'].map(x=>`<option ${x===(forceClose?'Erledigt':f.status)?'selected':''}>${x}</option>`).join('')}</select>
   <div id="completionFields" class="card" style="margin-top:12px;background:#f7f9fa">
-    <label>Abschlussart *</label><select id="fCompletionType">
-      <option value="">Bitte wählen</option>
-      ${['Maßnahme durchgeführt','Leistung durchgeführt','Nicht gewünscht','Keine Maßnahme erforderlich','An Dritten übergeben','Sonstiger Abschluss'].map(x=>`<option ${x===f.completionType?'selected':''}>${x}</option>`).join('')}
-    </select>
-    <label>Getroffene Maßnahme / Abschlussnotiz</label><textarea id="fCompletionNote" placeholder="z. B. Türschließer nachgestellt / Kunde wünscht keine Umsetzung">${esc(f.completionNote)}</textarea>
+    ${isResidentRouteDocumentation
+      ? `<strong>Abschluss: Erledigt</strong><div class="muted" style="margin-top:6px">Die oben dokumentierte Tätigkeit und die durchgeführte Maßnahme werden als Abschlussnachweis am Arbeitsauftrag gespeichert.</div><input type="hidden" id="fCompletionType" value="Leistung durchgeführt">`
+      : `<label>Abschlussart *</label><select id="fCompletionType"><option value="">Bitte wählen</option>${['Maßnahme durchgeführt','Leistung durchgeführt','Nicht gewünscht','Keine Maßnahme erforderlich','An Dritten übergeben','Sonstiger Abschluss'].map(x=>`<option ${x===f.completionType?'selected':''}>${x}</option>`).join('')}</select><label>Getroffene Maßnahme / Abschlussnotiz</label><textarea id="fCompletionNote" placeholder="z. B. Türschließer nachgestellt / Kunde wünscht keine Umsetzung">${esc(f.completionNote)}</textarea>`}
   </div>
   <div class="row" style="margin-top:14px"><button class="primary" onclick="saveFinding('${editId}')">Speichern</button>${editId&&hasOperationalAdminAccess()?`<button class="danger" onclick="deleteFinding('${editId}')">Löschen</button>`:''}</div>`);
   initPhotoDraft(f);
@@ -11321,6 +11334,29 @@ function selectedFindingArea(){
   const value=sel?.value||'';
   if(value&&value!=='__custom__'){const a=objectAreaById(value);return {areaId:a?.id||'',area:(a?.name||'').trim()};}
   return {areaId:'',area:(document.getElementById('fAreaCustom')?.value||'').trim()};
+}
+
+function residentRouteActivityPresets(){
+  const orderId=externalOrderDocumentationContext?.orderId||'';
+  const order=(cloudExternalOrders||[]).find(x=>String(x.id||'')===String(orderId||''));
+  const snapshot=order?.source_snapshot||{};
+  const scope=String(snapshot.service_scope_code||'').toUpperCase();
+  const byScope={
+    REINIGUNG:['Reinigung durchgeführt','Verschmutzung entfernt','Boden gereinigt','Treppenhaus gereinigt','Oberflächen gereinigt','Müll / Fremdkörper entfernt','Sonderreinigung durchgeführt'],
+    GRUENPFLEGE:['Rasen gemäht','Rasenkanten geschnitten','Hecke / Sträucher geschnitten','Laub entfernt','Unkraut entfernt','Bewässerung durchgeführt','Grünfläche gereinigt'],
+    WINTERDIENST:['Schnee geräumt','Gestreut','Geräumt und gestreut','Kontrollgang Winterdienst durchgeführt'],
+    ELEKTRO:['Beleuchtung geprüft','Leuchtmittel ersetzt','Elektrische Funktion geprüft','Störung behoben'],
+    TUER_TOR:['Tür / Tor geprüft','Beschlag nachgestellt','Schließfunktion hergestellt','Mechanik gereinigt / geschmiert','Störung behoben'],
+    SCHLIESSANLAGE:['Schließfunktion geprüft','Schloss / Zylinder geprüft','Schließkomponente nachgestellt','Störung behoben'],
+    SANITAER:['Sanitäranlage geprüft','Undichtigkeit geprüft','Undichtigkeit beseitigt','Ablauf gereinigt','Armatur instandgesetzt'],
+    HEIZUNG:['Heizungsfunktion geprüft','Heizkörper geprüft','Störung geprüft','Störung behoben'],
+    AUFZUG:['Aufzug geprüft','Störung aufgenommen','Funktionsprüfung durchgeführt','Störung behoben'],
+    DACH_FASSADE:['Schaden geprüft','Bereich gesichert','Kleinreparatur durchgeführt','Schaden behoben'],
+    SCHAEDLING:['Befall geprüft','Befallsstelle behandelt','Schädlingsbekämpfung durchgeführt','Kontrolle durchgeführt'],
+    ABFALL:['Mülltonnen bereitgestellt','Müllplatz gereinigt','Abfall entfernt'],
+    OBJEKTBETREUUNG:['Kontrollgang / Begehung','Kleinreparatur durchgeführt','Bereich gereinigt','Störung geprüft','Störung behoben']
+  };
+  return byScope[scope]||['Kontrollgang / Begehung','Reinigung durchgeführt','Kleinreparatur durchgeführt','Störung geprüft','Störung behoben'];
 }
 
 function toggleDocType(){
@@ -11435,6 +11471,27 @@ async function handlePhotoSelection(w,input){
  input.value='';renderPhotoDraft(w);hydrateMediaImages();
 }
 async function saveFinding(id){
+  // v2.19.83: Bei einem automatisch gerouteten Bewohnerauftrag immer die bereits
+  // verknüpfte operative Dokumentation weiterverwenden. Dadurch erzeugt ein
+  // erneuter Speicherversuch nach einem Teilfehler keine zweite Dokumentation.
+  if(!id && externalOrderDocumentationContext?.orderId){
+    try{
+      await cloudLoadExternalOrders(false);
+      const linkedOrder=(cloudExternalOrders||[]).find(x=>String(x.id||'')===String(externalOrderDocumentationContext.orderId||''));
+      const linkedFindingId=String(linkedOrder?.execution_finding_id||'');
+      if(linkedFindingId){
+        try{await cloudReloadFindings();}catch(_e){}
+        const linkedFinding=(db.findings||[]).find(x=>String(x.id||'')===linkedFindingId);
+        if(!linkedFinding)throw new Error('Die bereits verknüpfte Dokumentation konnte nicht geladen werden.');
+        id=linkedFindingId;
+        externalOrderDocumentationContext={orderId:externalOrderDocumentationContext.orderId,findingId:linkedFindingId};
+      }
+    }catch(e){
+      console.error('Verknüpfte Auftragsdokumentation konnte nicht geprüft werden',e);
+      alert('Die Auftragsdokumentation konnte nicht eindeutig geladen werden: '+(e.message||e));
+      return;
+    }
+  }
   const existingForPermission=id?db.findings.find(x=>x.id===id):null;
   if(id&&!canEditFindingUI(existingForPermission)){alert('Diese Dokumentation darf nur durch den Ersteller oder Admin/GF geändert werden.');return;}
   if(!id&&!canCreateDocumentationUI()){alert('Dokumentation ist für diese Rolle nicht freigegeben.');return;}
@@ -11471,8 +11528,18 @@ async function saveFinding(id){
   const activity=document.getElementById('fActivity')?.value.trim()||'';
   let workRequired=type==='Feststellung' && (document.getElementById('fWorkRequired')?.value==='yes');
   if(type!=='Feststellung' || status==='Erledigt')workRequired=false;
-  const completionType=document.getElementById('fCompletionType')?.value||'';
+  const residentRouteOrderForSave=externalOrderDocumentationContext?.orderId
+    ? (cloudExternalOrders||[]).find(x=>String(x.id||'')===String(externalOrderDocumentationContext.orderId||''))
+    : null;
+  const isResidentRouteDocumentation=!!residentRouteOrderForSave&&!!residentRouteOrderForSave.source_resident_report_id&&String((residentRouteOrderForSave.source_snapshot||{}).route_type||'')==='resident_report_auto';
+  const executedMeasure=isResidentRouteDocumentation
+    ? (document.getElementById('fExecutedMeasure')?.value.trim()||'')
+    : (document.getElementById('fCompletionNote')?.value.trim()||'');
+  const completionType=isResidentRouteDocumentation&&status==='Erledigt'
+    ? 'Leistung durchgeführt'
+    : (document.getElementById('fCompletionType')?.value||'');
   if(type==='Leistung'&&!activity)return alert('Bitte die durchgeführte Tätigkeit dokumentieren.');
+  if(isResidentRouteDocumentation&&status==='Erledigt'&&!executedMeasure)return alert('Bitte die durchgeführte Maßnahme dokumentieren.');
   if(status==='Erledigt'&&!completionType)return alert('Bitte eine Abschlussart wählen.');
   const old=db.findings.find(x=>x.id===id);
   const beforePhotos=[...(photoDraft.before||[])].slice(0,5), afterPhotos=[...(photoDraft.after||[])].slice(0,5);
@@ -11485,7 +11552,7 @@ async function saveFinding(id){
     category:type==='Feststellung'?(document.getElementById('fCategory')?.value||''):'Leistung',
     priority:type==='Feststellung'?(document.getElementById('fPriority')?.value||'P4'):'P4',
     description,action:type==='Feststellung'?(document.getElementById('fAction')?.value.trim()||''):'',
-    activity,status,completionType,completionNote:document.getElementById('fCompletionNote')?.value.trim()||'',
+    activity,status,completionType,completionNote:executedMeasure,
     decisionRequired,decisionStatus,decisionBy,decisionDate,decisionImplementation,decisionComment,decisionAmount,
     workRequired,
     beforePhoto:before,afterPhoto:after,beforePhotos,afterPhotos
