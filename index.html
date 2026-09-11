@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.04</title>
+<title>Duschl Service – Objektplattform v2.20.05</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3100,7 +3100,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.04'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.05'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -3688,19 +3688,45 @@ function removePublicReportPhoto(index){
   const input=document.getElementById('prPhotos'); if(input)input.value='';
 }
 
-function handlePublicReportPhotos(input){
+async function clonePublicReportFile(file,index){
+  // iOS/Safari kann Mediathek-Dateireferenzen verlieren, sobald der File-Input
+  // zurückgesetzt wird. Deshalb wird die Auswahl sofort in einen unabhängigen
+  // File/Blob kopiert. Kameraaufnahmen und Mediathek verhalten sich dadurch gleich.
+  const buffer=await file.arrayBuffer();
+  const fallbackType=String(file.type||'').trim()||'application/octet-stream';
+  const fallbackName=String(file.name||'').trim()||`foto_${index+1}.jpg`;
+  try{
+    return new File([buffer],fallbackName,{type:fallbackType,lastModified:file.lastModified||Date.now()});
+  }catch(_e){
+    const blob=new Blob([buffer],{type:fallbackType});
+    blob.name=fallbackName;
+    blob.lastModified=file.lastModified||Date.now();
+    return blob;
+  }
+}
+
+async function handlePublicReportPhotos(input){
   const selected=[...(input?.files||[])];
   if(!selected.length)return;
   const maxSize=10*1024*1024;
   let added=0;
-  for(const file of selected){
-    if(publicReportFiles.length>=3){publicReportMessage('Es können maximal 3 Fotos hinzugefügt werden.');break;}
-    if(!publicReportFileLooksLikeImage(file)){publicReportMessage(`„${file.name||'Datei'}“ wird nicht als Bild erkannt.`);continue;}
-    if(file.size>maxSize){publicReportMessage(`„${file.name||'Foto'}“ ist größer als 10 MB.`);continue;}
-    publicReportFiles.push(file);
-    added++;
+  try{
+    for(let idx=0;idx<selected.length;idx++){
+      const file=selected[idx];
+      if(publicReportFiles.length>=3){publicReportMessage('Es können maximal 3 Fotos hinzugefügt werden.');break;}
+      if(!publicReportFileLooksLikeImage(file)){publicReportMessage(`„${file.name||'Datei'}“ wird nicht als Bild erkannt.`);continue;}
+      if(file.size>maxSize){publicReportMessage(`„${file.name||'Foto'}“ ist größer als 10 MB.`);continue;}
+      const stableFile=await clonePublicReportFile(file,publicReportFiles.length);
+      publicReportFiles.push(stableFile);
+      added++;
+    }
+  }catch(e){
+    console.error('Bewohnerfoto aus Mediathek übernehmen fehlgeschlagen',e);
+    publicReportMessage('Das ausgewählte Foto konnte nicht übernommen werden. Bitte wählen Sie es erneut aus.');
+  }finally{
+    // Erst nach vollständiger Kopie zurücksetzen. Das war unter iOS der kritische Punkt.
+    if(input)input.value='';
   }
-  input.value='';
   renderPublicReportPhotoPreview();
   if(added){
     const n=publicReportFiles.length;
