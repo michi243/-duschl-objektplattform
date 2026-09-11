@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.73</title>
+<title>Duschl Service – Objektplattform v2.19.74</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1055,7 +1055,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 }
 </style>
 <style id="service-scope-ui-v21973">
-/* v2.19.73 – kompakter, eindeutiger Leistungsumfang-Katalog */
+/* v2.19.74 – kompakter, eindeutiger Leistungsumfang-Katalog */
 .soc-selected-summary{margin:8px 0 10px;padding:10px 12px;border:1px solid #31536d;border-radius:11px;background:#0b2333}
 .soc-selected-summary-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .soc-selected-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
@@ -1155,7 +1155,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.73</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.74</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1198,7 +1198,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.73</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.74</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1368,8 +1368,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.73</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.73 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.74</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.74 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3023,7 +3023,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.73'; // Governance: erledigte Dokumentationen sind schreibgeschützt; Bearbeitung erst nach dokumentierter Wiedereröffnung durch Auftraggeber/Admin.
+const APP_VERSION='2.19.74'; // Governance: erledigte Dokumentationen sind schreibgeschützt; Bearbeitung erst nach dokumentierter Wiedereröffnung durch Auftraggeber/Admin.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -5720,7 +5720,7 @@ async function openObjectCollaborationModal(preselectedObjectId=''){
   await Promise.all([cloudLoadObjectCollaborations(false),cloudLoadServiceScopeCatalog()]);
   const objs=(db.objects||[]).filter(o=>!o.externalManaged&&o.organizationId===currentOrganizationId());
   if(!objs.length)return alert('Kein eigenes Objekt für die Vergabe vorhanden.');
-  if(!cloudServiceScopeCatalog.length)return alert('Der Leistungsumfang-Katalog ist noch nicht in Supabase eingerichtet. Bitte zuerst das SQL-Update für v2.19.73 ausführen.');
+  if(!cloudServiceScopeCatalog.length)return alert('Der Leistungsumfang-Katalog ist noch nicht in Supabase eingerichtet. Bitte zuerst das SQL-Update für v2.19.74 ausführen.');
   const selected=objs.some(o=>o.id===preselectedObjectId)?preselectedObjectId:objs[0].id;
   const existing=cloudObjectCollaborations.filter(c=>c.object_id===selected&&c.owner_organization_id===currentOrganizationId()&&!['rejected','cancelled'].includes(c.status));
   const categoryOrder=['Objektservice','Außenanlagen','Gebäude','Technik','Sicherheit','Sonderleistungen','Weitere Leistungen'];
@@ -5747,41 +5747,68 @@ async function createObjectCollaboration(){
   const scopeCodes=selectedCollaborationScopeCodes();
   if(!objectId||!code)return alert('Objekt und Mandanten-ID sind Pflichtfelder.');
   if(!scopeCodes.length)return alert('Bitte mindestens einen Leistungsumfang auswählen.');
-  try{
-    let collaboration=(cloudObjectCollaborations||[]).find(c=>
-      String(c.object_id||'')===String(objectId) &&
-      String(c.owner_organization_id||'')===String(currentOrganizationId()) &&
-      String(c.service_public_code||'').toUpperCase()===code &&
-      !['rejected','cancelled'].includes(String(c.status||''))
-    );
 
-    let created=false;
-    if(!collaboration){
-      const supportAction=isAdminRole()&&isPlatformTenantMode();
+  const saveBtn=document.querySelector('#modalRoot .modal-actions .primary');
+  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Wird gespeichert …';}
+
+  try{
+    const supportAction=isAdminRole()&&isPlatformTenantMode();
+    const scopeText=scopeCodes.map(scopeCode=>cloudServiceScopeCatalog.find(x=>x.code===scopeCode)?.name||scopeCode).join(', ');
+
+    // v2.19.74: Zuerst nach einer bereits vorhandenen Objekt-/Dienstleister-Beziehung suchen.
+    // Auch abgelehnte oder beendete Beziehungen bleiben wegen des DB-Unique-Constraints bestehen
+    // und werden kontrolliert reaktiviert statt erneut angelegt.
+    const reactivateEndpoint=supportAction
+      ? 'rpc/platform_support_reactivate_object_collaboration_by_code'
+      : 'rpc/reactivate_object_collaboration_by_code';
+    const reactivateBody=supportAction
+      ? {p_organization_id:platformTenantModeOrgId,p_object_id:objectId,p_partner_code:code,p_service_scope:scopeText}
+      : {p_object_id:objectId,p_partner_code:code,p_service_scope:scopeText};
+
+    let collaborationId='';
+    let reusedExisting=false;
+    try{
+      const existingId=await cloudRequest(reactivateEndpoint,{method:'POST',body:JSON.stringify(reactivateBody)});
+      collaborationId=String(Array.isArray(existingId)?(existingId[0]||''):(existingId||''));
+      reusedExisting=!!collaborationId;
+    }catch(reactivateError){
+      const msg=String(reactivateError?.message||reactivateError||'');
+      // Sauberer Hinweis, falls das zugehörige v2.19.74-SQL noch nicht installiert wurde.
+      if(/reactivate_object_collaboration_by_code|schema cache|function/i.test(msg)){
+        throw new Error('Datenbank-Update v2.19.74 fehlt. Bitte zuerst das zugehörige Supabase-SQL ausführen.');
+      }
+      throw reactivateError;
+    }
+
+    if(!collaborationId){
       const endpoint=supportAction?'rpc/platform_support_request_object_collaboration_by_code':'rpc/request_object_collaboration_by_code';
-      const scopeText=scopeCodes.map(code=>cloudServiceScopeCatalog.find(x=>x.code===code)?.name||code).join(', ');
       const body=supportAction
         ? {p_organization_id:platformTenantModeOrgId,p_object_id:objectId,p_partner_code:code,p_service_scope:scopeText}
         : {p_object_id:objectId,p_partner_code:code,p_service_scope:scopeText};
       await cloudRequest(endpoint,{method:'POST',body:JSON.stringify(body)});
-      created=true;
-      await cloudLoadObjectCollaborations(false);
-      collaboration=(cloudObjectCollaborations||[]).find(c=>
-        String(c.object_id||'')===String(objectId) &&
-        String(c.owner_organization_id||'')===String(currentOrganizationId()) &&
-        String(c.service_public_code||'').toUpperCase()===code &&
-        !['rejected','cancelled'].includes(String(c.status||''))
-      );
     }
-    const collaborationId=collaboration?.collaboration_id||collaboration?.id||'';
-    if(!collaborationId)throw new Error('Betreuungsbeziehung wurde angelegt, konnte aber nicht eindeutig geladen werden.');
+
+    await cloudLoadObjectCollaborations(false);
+    const collaboration=(cloudObjectCollaborations||[]).find(c=>
+      String(c.object_id||'')===String(objectId) &&
+      String(c.owner_organization_id||'')===String(currentOrganizationId()) &&
+      String(c.service_public_code||'').toUpperCase()===code
+    );
+    collaborationId=collaborationId||collaboration?.collaboration_id||collaboration?.id||'';
+    if(!collaborationId)throw new Error('Betreuungsbeziehung konnte nach dem Speichern nicht eindeutig geladen werden.');
+
     await saveCollaborationScopes(collaborationId,scopeCodes);
     closeModal();
     await cloudLoadObjectCollaborations();
-    alert(created
-      ? `Betreuungsanfrage an ${collaboration?.service_organization_name||'den Dienstleister'} gespeichert. Sie wird erst nach Bestätigung aktiv.`
-      : `Die Leistungsumfänge für ${collaboration?.service_organization_name||'den Dienstleister'} wurden aktualisiert. Es wurde keine zweite Partnerschaft angelegt.`);
-  }catch(e){alert('Betreuung konnte nicht gespeichert werden: '+(e.message||e));}
+
+    const partnerName=collaboration?.service_organization_name||'den Dienstleister';
+    alert(reusedExisting
+      ? `Die bestehende Betreuung für ${partnerName} wurde erneut angefragt und die Leistungsumfänge wurden aktualisiert.`
+      : `Betreuungsanfrage an ${partnerName} gespeichert. Sie wird erst nach Bestätigung aktiv.`);
+  }catch(e){
+    if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Betreuung speichern';}
+    alert('Betreuung konnte nicht gespeichert werden: '+(e.message||e));
+  }
 }
 async function respondObjectCollaboration(collaborationId,accept){
   if(!hasOperationalAdminAccess())return;
