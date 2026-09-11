@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.75</title>
+<title>Duschl Service – Objektplattform v2.19.77</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1069,11 +1069,15 @@ body.public-report-mode>#photoViewer{display:none!important}
 .soc-scope-option{display:flex!important;align-items:flex-start;gap:8px;margin:0!important;padding:8px 9px;border:1px solid var(--line);border-radius:9px;cursor:pointer;background:#0d1f2b}
 .soc-scope-option input{width:auto!important;margin:2px 0 0!important;flex:0 0 auto}
 .soc-scope-count{font-size:11px;color:var(--muted);font-weight:700}
+.soc-scope-option.is-conflict{opacity:.62;cursor:not-allowed;background:#211a13;border-color:#6f5628}
+.soc-scope-option.is-conflict input{cursor:not-allowed}
+.soc-scope-option-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
+.soc-scope-conflict{font-size:11px;color:#f0c36b;line-height:1.3}
 @media(max-width:520px){.soc-scope-grid{grid-template-columns:1fr}.soc-selected-summary-head{align-items:flex-start;flex-direction:column}}
 </style>
 
 <style id="global-modal-close-v21975">
-/* ===== v2.19.75 – globaler Schließen-Standard für Modalfenster ===== */
+/* ===== v2.19.77 – globaler Schließen-Standard für Modalfenster ===== */
 .ds-modal-dialog,.modal-dialog-dark{position:relative;}
 .ds-global-modal-close{
   position:sticky!important;
@@ -1187,7 +1191,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.75</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.77</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1230,7 +1234,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.75</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.77</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1400,8 +1404,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.75</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.75 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.77</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.77 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3055,7 +3059,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.75'; // Governance: erledigte Dokumentationen sind schreibgeschützt; Bearbeitung erst nach dokumentierter Wiedereröffnung durch Auftraggeber/Admin.
+const APP_VERSION='2.19.77'; // Governance: erledigte Dokumentationen sind schreibgeschützt; Bearbeitung erst nach dokumentierter Wiedereröffnung durch Auftraggeber/Admin.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -5665,12 +5669,57 @@ function clearCollaborationScopeSelection(){
 function collaborationByObjectAndPartnerCode(objectId,partnerCode){
   const code=String(partnerCode||'').trim().toUpperCase();
   if(!objectId||!code)return null;
+  // v2.19.77: Auch beendete/abgelehnte Beziehungen bewusst finden.
+  // Der DB-Unique-Constraint erlaubt je Objekt + Dienstleister nur eine Beziehung;
+  // diese muss daher reaktiviert statt neu angelegt werden.
   return (cloudObjectCollaborations||[]).find(c=>
     String(c.object_id||'')===String(objectId) &&
     String(c.owner_organization_id||'')===String(currentOrganizationId()) &&
-    String(c.service_public_code||'').trim().toUpperCase()===code &&
-    !['rejected','cancelled'].includes(String(c.status||''))
+    String(c.service_public_code||'').trim().toUpperCase()===code
   )||null;
+}
+function collaborationHasScopeCode(c,scopeCode){
+  const target=canonicalServiceScopeCode(scopeCode);
+  const id=c?.collaboration_id||c?.id||'';
+  const rows=collaborationScopeRows(id);
+  if(rows.some(x=>canonicalServiceScopeCode(x.scope_code||x.code)===target && x.active!==false))return true;
+  const targetRow=cloudServiceScopeCatalog.find(x=>canonicalServiceScopeCode(x.code)===target);
+  const names=collaborationScopeNames(c).map(x=>String(x||'').trim().toLowerCase());
+  return !!targetRow && names.includes(String(targetRow.name||'').trim().toLowerCase());
+}
+function scopeResponsibilityConflict(objectId,partnerCode,scopeCode){
+  const code=String(partnerCode||'').trim().toUpperCase();
+  if(!objectId||!scopeCode)return null;
+  return (cloudObjectCollaborations||[]).find(c=>{
+    const status=String(c.status||'').toLowerCase();
+    if(!['pending','active'].includes(status))return false;
+    if(c.active===false)return false;
+    if(String(c.object_id||'')!==String(objectId))return false;
+    if(String(c.owner_organization_id||'')!==String(currentOrganizationId()))return false;
+    if(code && String(c.service_public_code||'').trim().toUpperCase()===code)return false;
+    return collaborationHasScopeCode(c,scopeCode);
+  })||null;
+}
+function refreshCollaborationScopeAvailability(){
+  const objectId=document.getElementById('socObject')?.value||'';
+  const partnerCode=document.getElementById('socPartnerCode')?.value||'';
+  document.querySelectorAll('.soc-scope-option').forEach(label=>{
+    const scopeCode=label.dataset.scopeCode||'';
+    const check=label.querySelector('.soc-scope-check');
+    const note=label.querySelector('.soc-scope-conflict');
+    if(!check)return;
+    const conflict=scopeResponsibilityConflict(objectId,partnerCode,scopeCode);
+    check.disabled=!!conflict;
+    label.classList.toggle('is-conflict',!!conflict);
+    if(conflict){
+      check.checked=false;
+      const partner=conflict.service_organization_name||conflict.service_public_code||'anderer Dienstleister';
+      if(note){note.textContent=`Bereits verantwortlich: ${partner}`;note.style.display='block';}
+    }else if(note){
+      note.textContent='';note.style.display='none';
+    }
+  });
+  updateCollaborationScopeSummary();
 }
 function refreshObjectCollaborationScopeSelection(){
   const objectId=document.getElementById('socObject')?.value||'';
@@ -5682,11 +5731,17 @@ function refreshObjectCollaborationScopeSelection(){
   document.querySelectorAll('.soc-scope-check').forEach(el=>{el.checked=currentCodes.has(canonicalServiceScopeCode(el.value));});
   const state=document.getElementById('socRelationState');
   if(state){
-    state.innerHTML=collaboration
-      ? `<strong>Bestehende Betreuung gefunden.</strong> Aktuelle Leistungsumfänge wurden geladen und werden beim Speichern aktualisiert.`
-      : 'Neue Betreuung: Bitte die gewünschten Leistungsumfänge auswählen.';
+    const status=String(collaboration?.status||'').toLowerCase();
+    if(collaboration && ['cancelled','rejected'].includes(status)){
+      const label=status==='cancelled'?'Beendete Betreuung gefunden.':'Abgelehnte Betreuung gefunden.';
+      state.innerHTML=`<strong>${label}</strong> Die bisherigen Leistungsumfänge wurden geladen. Beim Speichern wird dieselbe Beziehung erneut angefragt und aktualisiert.`;
+    }else if(collaboration){
+      state.innerHTML=`<strong>Bestehende Betreuung gefunden.</strong> Aktuelle Leistungsumfänge wurden geladen und werden beim Speichern aktualisiert.`;
+    }else{
+      state.innerHTML='Neue Betreuung: Bitte die gewünschten Leistungsumfänge auswählen.';
+    }
   }
-  updateCollaborationScopeSummary();
+  refreshCollaborationScopeAvailability();
 }
 async function saveCollaborationScopes(collaborationId,codes){
   const payload={p_collaboration_id:collaborationId,p_scope_codes:codes};
@@ -5754,7 +5809,7 @@ async function openObjectCollaborationModal(preselectedObjectId=''){
   if(!objs.length)return alert('Kein eigenes Objekt für die Vergabe vorhanden.');
   if(!cloudServiceScopeCatalog.length)return alert('Der Leistungsumfang-Katalog ist noch nicht in Supabase eingerichtet. Bitte zuerst das SQL-Update für v2.19.74 ausführen.');
   const selected=objs.some(o=>o.id===preselectedObjectId)?preselectedObjectId:objs[0].id;
-  const existing=cloudObjectCollaborations.filter(c=>c.object_id===selected&&c.owner_organization_id===currentOrganizationId()&&!['rejected','cancelled'].includes(c.status));
+  const existing=cloudObjectCollaborations.filter(c=>c.object_id===selected&&c.owner_organization_id===currentOrganizationId());
   const categoryOrder=['Objektservice','Außenanlagen','Gebäude','Technik','Sicherheit','Sonderleistungen','Weitere Leistungen'];
   const groups=[...new Set(cloudServiceScopeCatalog.map(x=>normalizeServiceScopeCategory(x.category)))].sort((a,b)=>{
     const ai=categoryOrder.indexOf(a),bi=categoryOrder.indexOf(b);
@@ -5762,16 +5817,16 @@ async function openObjectCollaborationModal(preselectedObjectId=''){
   });
   const scopeHtml=`<div class="soc-selected-summary"><div class="soc-selected-summary-head"><strong>Ausgewählte Leistungen</strong><div class="row" style="gap:6px"><span class="soc-scope-count" id="socSelectedScopeCount">0 ausgewählt</span><button type="button" style="padding:5px 8px;font-size:11px" onclick="clearCollaborationScopeSelection()">Auswahl löschen</button></div></div><div class="soc-selected-chips" id="socSelectedScopes"><span class="muted">Noch kein Leistungsumfang ausgewählt.</span></div></div><div class="soc-scope-groups">${groups.map((group,idx)=>{
     const rows=cloudServiceScopeCatalog.filter(x=>normalizeServiceScopeCategory(x.category)===group);
-    return `<details class="soc-scope-group" ${idx===0?'open':''}><summary><span>${esc(group)}</span><span class="soc-scope-count">${rows.length} Leistungen</span></summary><div class="soc-scope-grid">${rows.map(x=>`<label class="soc-scope-option"><input class="soc-scope-check" type="checkbox" value="${esc(x.code)}" onchange="updateCollaborationScopeSummary()"><span>${esc(x.name)}</span></label>`).join('')}</div></details>`;
+    return `<details class="soc-scope-group" ${idx===0?'open':''}><summary><span>${esc(group)}</span><span class="soc-scope-count">${rows.length} Leistungen</span></summary><div class="soc-scope-grid">${rows.map(x=>`<label class="soc-scope-option" data-scope-code="${esc(x.code)}"><input class="soc-scope-check" type="checkbox" value="${esc(x.code)}" onchange="updateCollaborationScopeSummary()"><span class="soc-scope-option-copy"><span>${esc(x.name)}</span><span class="soc-scope-conflict" style="display:none"></span></span></label>`).join('')}</div></details>`;
   }).join('')}</div>`;
-  document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Betreuung vergeben</h2><p class="muted">Ein Partner wird je Objekt nur einmal angebunden. Unter dieser Beziehung können mehrere Leistungsumfänge gleichzeitig hinterlegt werden.</p><label>Objekt *</label><select id="socObject" onchange="refreshObjectCollaborationHint();refreshObjectCollaborationScopeSelection()">${objs.map(o=>`<option value="${esc(o.id)}" ${o.id===selected?'selected':''}>${esc(o.name)}</option>`).join('')}</select><div id="socExistingHint" class="muted" style="margin-top:6px">${existing.length?`Bestehende Betreuung: ${existing.map(c=>`${esc(c.service_organization_name||'Partnerunternehmen')}${c.service_public_code?' · '+esc(c.service_public_code):''} · ${esc(c.status==='pending'?'Offen':c.status==='active'?'Aktiv':c.status||'—')}`).join('<br>')}`:'Noch keine Betreuung für dieses Objekt.'}</div><label>Mandanten-ID des Dienstleisters *</label><input id="socPartnerCode" autocomplete="off" autocapitalize="characters" placeholder="z. B. DS-7K4P9X" style="text-transform:uppercase" oninput="refreshObjectCollaborationScopeSelection()"><div id="socRelationState" class="muted" style="margin-top:5px">Besteht für Objekt und Dienstleister bereits eine Beziehung, werden deren aktuelle Leistungsumfänge automatisch geladen und aktualisiert statt eine zweite Partnerschaft anzulegen.</div><label>Leistungsumfänge *</label>${scopeHtml}<div class="modal-actions"><button class="primary" onclick="createObjectCollaboration()">Betreuung speichern</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
-  updateCollaborationScopeSummary();
+  document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Betreuung vergeben</h2><p class="muted">Ein Partner wird je Objekt nur einmal angebunden. Unter dieser Beziehung können mehrere Leistungsumfänge gleichzeitig hinterlegt werden.</p><label>Objekt *</label><select id="socObject" onchange="refreshObjectCollaborationHint();refreshObjectCollaborationScopeSelection()">${objs.map(o=>`<option value="${esc(o.id)}" ${o.id===selected?'selected':''}>${esc(o.name)}</option>`).join('')}</select><div id="socExistingHint" class="muted" style="margin-top:6px">${existing.length?`Bestehende Betreuung: ${existing.map(c=>`${esc(c.service_organization_name||'Partnerunternehmen')}${c.service_public_code?' · '+esc(c.service_public_code):''} · ${esc(c.status==='pending'?'Offen':c.status==='active'?'Aktiv':c.status==='cancelled'?'Beendet':c.status==='rejected'?'Abgelehnt':c.status||'—')}`).join('<br>')}`:'Noch keine Betreuung für dieses Objekt.'}</div><label>Mandanten-ID des Dienstleisters *</label><input id="socPartnerCode" autocomplete="off" autocapitalize="characters" placeholder="z. B. DS-7K4P9X" style="text-transform:uppercase" oninput="refreshObjectCollaborationScopeSelection()"><div id="socRelationState" class="muted" style="margin-top:5px">Besteht für Objekt und Dienstleister bereits eine Beziehung, werden deren aktuelle Leistungsumfänge automatisch geladen und aktualisiert statt eine zweite Partnerschaft anzulegen.</div><label>Leistungsumfänge *</label>${scopeHtml}<div class="modal-actions"><button class="primary" onclick="createObjectCollaboration()">Betreuung speichern</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
+  refreshObjectCollaborationScopeSelection();
 }
 
 function refreshObjectCollaborationHint(){
   const objectId=document.getElementById('socObject')?.value||'';const box=document.getElementById('socExistingHint');if(!box)return;
-  const existing=cloudObjectCollaborations.filter(c=>c.object_id===objectId&&c.owner_organization_id===currentOrganizationId()&&!['rejected','cancelled'].includes(c.status));
-  box.innerHTML=existing.length?`Bestehende Anfragen/Betreuungen: ${existing.map(c=>`${esc(c.service_organization_name||'Partnerunternehmen')}${c.service_public_code?' · '+esc(c.service_public_code):''} · ${esc(c.status==='pending'?'Offen':c.status==='active'?'Angenommen':c.status==='rejected'?'Abgelehnt':c.status||'—')}`).join('<br>')}`:'Noch keine Betreuung für dieses Objekt.';
+  const existing=cloudObjectCollaborations.filter(c=>c.object_id===objectId&&c.owner_organization_id===currentOrganizationId());
+  box.innerHTML=existing.length?`Bestehende Anfragen/Betreuungen: ${existing.map(c=>`${esc(c.service_organization_name||'Partnerunternehmen')}${c.service_public_code?' · '+esc(c.service_public_code):''} · ${esc(c.status==='pending'?'Offen':c.status==='active'?'Angenommen':c.status==='rejected'?'Abgelehnt':c.status==='cancelled'?'Beendet':c.status||'—')}`).join('<br>')}`:'Noch keine Betreuung für dieses Objekt.';
 }
 async function createObjectCollaboration(){
   const objectId=document.getElementById('socObject')?.value||'';
@@ -5780,66 +5835,45 @@ async function createObjectCollaboration(){
   if(!objectId||!code)return alert('Objekt und Mandanten-ID sind Pflichtfelder.');
   if(!scopeCodes.length)return alert('Bitte mindestens einen Leistungsumfang auswählen.');
 
+  const conflicts=scopeCodes.map(scopeCode=>({scopeCode,conflict:scopeResponsibilityConflict(objectId,code,scopeCode)})).filter(x=>x.conflict);
+  if(conflicts.length){
+    const details=conflicts.map(x=>{
+      const scope=cloudServiceScopeCatalog.find(s=>canonicalServiceScopeCode(s.code)===canonicalServiceScopeCode(x.scopeCode));
+      const partner=x.conflict.service_organization_name||x.conflict.service_public_code||'anderer Dienstleister';
+      return `${scope?.name||x.scopeCode}: ${partner}`;
+    }).join('\n');
+    return alert('Diese Leistungsumfänge sind bereits eindeutig einem anderen Dienstleister zugeordnet:\n\n'+details+'\n\nBeende zuerst die bestehende Verantwortung oder ändere deren Leistungsumfang.');
+  }
+
   const saveBtn=document.querySelector('#modalRoot .modal-actions .primary');
   if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Wird gespeichert …';}
 
   try{
     const supportAction=isAdminRole()&&isPlatformTenantMode();
-    const scopeText=scopeCodes.map(scopeCode=>cloudServiceScopeCatalog.find(x=>x.code===scopeCode)?.name||scopeCode).join(', ');
+    const endpoint=supportAction
+      ? 'rpc/platform_support_save_object_collaboration_by_code'
+      : 'rpc/save_object_collaboration_by_code';
+    const body=supportAction
+      ? {p_organization_id:platformTenantModeOrgId,p_object_id:objectId,p_partner_code:code,p_scope_codes:scopeCodes}
+      : {p_object_id:objectId,p_partner_code:code,p_scope_codes:scopeCodes};
 
-    // v2.19.74: Zuerst nach einer bereits vorhandenen Objekt-/Dienstleister-Beziehung suchen.
-    // Auch abgelehnte oder beendete Beziehungen bleiben wegen des DB-Unique-Constraints bestehen
-    // und werden kontrolliert reaktiviert statt erneut angelegt.
-    const reactivateEndpoint=supportAction
-      ? 'rpc/platform_support_reactivate_object_collaboration_by_code'
-      : 'rpc/reactivate_object_collaboration_by_code';
-    const reactivateBody=supportAction
-      ? {p_organization_id:platformTenantModeOrgId,p_object_id:objectId,p_partner_code:code,p_service_scope:scopeText}
-      : {p_object_id:objectId,p_partner_code:code,p_service_scope:scopeText};
+    const result=await cloudRequest(endpoint,{method:'POST',body:JSON.stringify(body)});
+    const collaborationId=String(Array.isArray(result)?(result[0]||''):(result||''));
+    if(!collaborationId)throw new Error('Betreuungsbeziehung konnte nicht eindeutig gespeichert werden.');
 
-    let collaborationId='';
-    let reusedExisting=false;
-    try{
-      const existingId=await cloudRequest(reactivateEndpoint,{method:'POST',body:JSON.stringify(reactivateBody)});
-      collaborationId=String(Array.isArray(existingId)?(existingId[0]||''):(existingId||''));
-      reusedExisting=!!collaborationId;
-    }catch(reactivateError){
-      const msg=String(reactivateError?.message||reactivateError||'');
-      // Sauberer Hinweis, falls das zugehörige v2.19.74-SQL noch nicht installiert wurde.
-      if(/reactivate_object_collaboration_by_code|schema cache|function/i.test(msg)){
-        throw new Error('Datenbank-Update v2.19.74 fehlt. Bitte zuerst das zugehörige Supabase-SQL ausführen.');
-      }
-      throw reactivateError;
-    }
-
-    if(!collaborationId){
-      const endpoint=supportAction?'rpc/platform_support_request_object_collaboration_by_code':'rpc/request_object_collaboration_by_code';
-      const body=supportAction
-        ? {p_organization_id:platformTenantModeOrgId,p_object_id:objectId,p_partner_code:code,p_service_scope:scopeText}
-        : {p_object_id:objectId,p_partner_code:code,p_service_scope:scopeText};
-      await cloudRequest(endpoint,{method:'POST',body:JSON.stringify(body)});
-    }
-
-    await cloudLoadObjectCollaborations(false);
-    const collaboration=(cloudObjectCollaborations||[]).find(c=>
-      String(c.object_id||'')===String(objectId) &&
-      String(c.owner_organization_id||'')===String(currentOrganizationId()) &&
-      String(c.service_public_code||'').toUpperCase()===code
-    );
-    collaborationId=collaborationId||collaboration?.collaboration_id||collaboration?.id||'';
-    if(!collaborationId)throw new Error('Betreuungsbeziehung konnte nach dem Speichern nicht eindeutig geladen werden.');
-
-    await saveCollaborationScopes(collaborationId,scopeCodes);
     closeModal();
     await cloudLoadObjectCollaborations();
-
-    const partnerName=collaboration?.service_organization_name||'den Dienstleister';
-    alert(reusedExisting
-      ? `Die bestehende Betreuung für ${partnerName} wurde erneut angefragt und die Leistungsumfänge wurden aktualisiert.`
-      : `Betreuungsanfrage an ${partnerName} gespeichert. Sie wird erst nach Bestätigung aktiv.`);
+    const collaboration=(cloudObjectCollaborations||[]).find(c=>String(c.collaboration_id||c.id||'')===collaborationId);
+    const partnerName=collaboration?.service_organization_name||code;
+    alert(`Betreuung für ${partnerName} gespeichert. Leistungsumfang und Verantwortlichkeit sind eindeutig hinterlegt.`);
   }catch(e){
     if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Betreuung speichern';}
-    alert('Betreuung konnte nicht gespeichert werden: '+(e.message||e));
+    const msg=String(e?.message||e||'');
+    if(/save_object_collaboration_by_code|PGRST202|schema cache/i.test(msg)){
+      alert('Betreuung konnte nicht gespeichert werden: Datenbank-Update v2.19.77 fehlt. Bitte zuerst das zugehörige Supabase-SQL ausführen.');
+    }else{
+      alert('Betreuung konnte nicht gespeichert werden: '+msg);
+    }
   }
 }
 async function respondObjectCollaboration(collaborationId,accept){
