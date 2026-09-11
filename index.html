@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.97</title>
+<title>Duschl Service – Objektplattform v2.19.98</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1195,7 +1195,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.97</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.98</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1238,7 +1238,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.97</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.98</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1408,8 +1408,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.97</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.97 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.98</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.98 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -1715,7 +1715,19 @@ body.public-report-mode>#photoViewer{display:none!important}
   <div class="grid3" style="margin-top:14px">
     <div class="card"><div class="muted">Eingehend offen</div><div class="big" id="externalIncomingCount">0</div></div>
     <div class="card"><div class="muted">Ausgehend offen</div><div class="big" id="externalOutgoingCount">0</div></div>
-    <div class="card"><div class="muted">Gesamt</div><div class="big" id="externalTotalCount">0</div></div>
+    <div class="card"><div class="muted">Entscheidung erforderlich</div><div class="big" id="externalDecisionCount">0</div></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="grid3" style="gap:12px">
+      <div><label>Arbeitsstatus</label><select id="externalWorkFilter" onchange="renderExternalOrders()"><option value="open" selected>Alle offenen</option><option value="new">Neu eingegangen</option><option value="decision">Entscheidung erforderlich</option><option value="in_progress">In Bearbeitung</option><option value="completed_pending">Erledigt gemeldet</option><option value="rework">Nacharbeit erforderlich</option><option value="closed">Abgeschlossen</option><option value="all">Alle</option></select></div>
+      <div><label>Richtung</label><select id="externalDirectionFilter" onchange="renderExternalOrders()"><option value="all">Alle</option><option value="incoming">Eingehend</option><option value="outgoing">Ausgehend</option></select></div>
+      <div><label>Priorität</label><select id="externalPriorityFilter" onchange="renderExternalOrders()"><option value="all">Alle</option><option value="P1">P1</option><option value="P2">P2</option><option value="P3">P3</option><option value="P4">P4</option></select></div>
+    </div>
+    <div class="grid3" style="gap:12px;margin-top:12px">
+      <div><label>Objekt</label><select id="externalObjectFilter" onchange="renderExternalOrders()"><option value="all">Alle Objekte</option></select></div>
+      <div><label>Partner</label><select id="externalPartnerFilter" onchange="renderExternalOrders()"><option value="all">Alle Partner</option></select></div>
+      <div style="display:flex;align-items:end"><button type="button" style="width:100%" onclick="resetExternalOrderFilters()">Filter zurücksetzen</button></div>
+    </div>
   </div>
   <div class="card" style="margin-top:14px"><div class="row space"><div><strong>Dauerhafte Objektbetreuung</strong><div class="muted" style="margin-top:4px">Dienstleister je Objekt anbinden und mehrere Leistungsumfänge pro Beziehung definieren.</div><div id="myTenantPublicCode" class="muted" style="margin-top:7px"></div></div><button id="shareObjectCareBtn" type="button" onclick="openObjectCollaborationModal()">Betreuung vergeben</button></div><div id="objectCollaborationsList" style="margin-top:12px"><span class="muted">Noch keine Betreuungsbeziehungen geladen.</span></div></div>
   <div class="card" style="margin-top:14px"><div class="row space"><strong>Aufträge</strong><button type="button" onclick="cloudLoadExternalOrders()">↻ Aktualisieren</button></div><div id="externalOrdersList" style="margin-top:12px"><span class="muted">Noch keine Daten geladen.</span></div></div>
@@ -3065,7 +3077,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.97'; // Bewohnerbilder: Signed-URL-Pfade aus Supabase Storage werden korrekt gegen /storage/v1 aufgelöst.
+const APP_VERSION='2.19.98'; // Externe Aufträge: operative Filter nach Handlungsbedarf, Richtung, Objekt, Partner und Priorität.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -6483,18 +6495,77 @@ function residentRouteTimelineHtml(order){
   return `<details class="card" style="margin-top:12px;padding:10px 12px"><summary style="cursor:pointer;font-weight:700">Protokoll / Chronik</summary>${summary}<div style="margin-top:8px">${events.map(e=>`<div style="padding:7px 0;border-top:1px solid rgba(148,163,184,.18)"><strong>${esc(e.label)}</strong>${e.when?` · <span class="muted">${esc(fmt(e.when))}</span>`:''}${e.note?`<div class="muted" style="margin-top:3px">${esc(e.note)}</div>`:''}</div>`).join('')}</div></details>`;
 }
 
+function externalOrderWorkFilterKey(order,orgId){
+  const status=String(order?.status||'').toLowerCase();
+  const review=String(order?.review_status||'').toLowerCase();
+  const triage=String(order?.triage_status||'').toLowerCase();
+  const isIn=String(order?.executor_organization_id||'')===String(orgId||'');
+  if(review==='verified')return 'closed';
+  if(review==='rework_required')return 'rework';
+  if(status==='completed')return 'completed_pending';
+  if(order?.decision_required===true || triage==='outside_scope')return 'decision';
+  if(['accepted','in_progress'].includes(status))return 'in_progress';
+  if(status==='requested')return 'new';
+  if(['rejected','cancelled'].includes(status))return 'closed';
+  return externalOrderIsOpen(status)?'in_progress':'closed';
+}
+function resetExternalOrderFilters(){
+  const defaults={externalWorkFilter:'open',externalDirectionFilter:'all',externalPriorityFilter:'all',externalObjectFilter:'all',externalPartnerFilter:'all'};
+  Object.entries(defaults).forEach(([id,val])=>{const el=document.getElementById(id);if(el)el.value=val;});
+  renderExternalOrders();
+}
+function populateExternalOrderFilters(orgId){
+  const objectSel=document.getElementById('externalObjectFilter');
+  const partnerSel=document.getElementById('externalPartnerFilter');
+  if(objectSel){
+    const keep=objectSel.value||'all';
+    const rows=[...new Map((cloudExternalOrders||[]).filter(x=>x.source_object_id).map(x=>[String(x.source_object_id),String(x.source_object_name||'Objekt')])).entries()].sort((a,b)=>a[1].localeCompare(b[1],'de'));
+    objectSel.innerHTML='<option value="all">Alle Objekte</option>'+rows.map(([id,name])=>`<option value="${esc(id)}">${esc(name)}</option>`).join('');
+    objectSel.value=[...objectSel.options].some(o=>o.value===keep)?keep:'all';
+  }
+  if(partnerSel){
+    const keep=partnerSel.value||'all';
+    const ids=[...new Set((cloudExternalOrders||[]).map(x=>String(x.executor_organization_id===orgId?x.source_organization_id:x.executor_organization_id||'')).filter(Boolean))];
+    const rows=ids.map(id=>[id,partnerName(id)]).sort((a,b)=>a[1].localeCompare(b[1],'de'));
+    partnerSel.innerHTML='<option value="all">Alle Partner</option>'+rows.map(([id,name])=>`<option value="${esc(id)}">${esc(name)}</option>`).join('');
+    partnerSel.value=[...partnerSel.options].some(o=>o.value===keep)?keep:'all';
+  }
+}
 function renderExternalOrders(){
   const orgId=currentOrganizationId();
   const list=document.getElementById('externalOrdersList'); if(!list)return;
   const incoming=cloudExternalOrders.filter(x=>x.executor_organization_id===orgId);
   const outgoing=cloudExternalOrders.filter(x=>x.source_organization_id===orgId);
+  const decisionCount=(cloudExternalOrders||[]).filter(x=>externalOrderWorkFilterKey(x,orgId)==='decision').length;
   document.getElementById('externalIncomingCount').textContent=String(incoming.filter(x=>externalOrderIsOpen(x.status)).length);
   document.getElementById('externalOutgoingCount').textContent=String(outgoing.filter(x=>externalOrderIsOpen(x.status)).length);
-  document.getElementById('externalTotalCount').textContent=String(cloudExternalOrders.length);
+  const dc=document.getElementById('externalDecisionCount');if(dc)dc.textContent=String(decisionCount);
   const nav=document.getElementById('externalOrdersNavCount');if(nav)nav.textContent=String(incoming.filter(x=>externalOrderIsOpen(x.status)).length);
   const create=document.getElementById('createExternalOrderBtn');if(create)create.style.display=hasOperationalAdminAccess()?'':'none';
+  populateExternalOrderFilters(orgId);
+  const workFilter=document.getElementById('externalWorkFilter')?.value||'open';
+  const directionFilter=document.getElementById('externalDirectionFilter')?.value||'all';
+  const priorityFilter=document.getElementById('externalPriorityFilter')?.value||'all';
+  const objectFilter=document.getElementById('externalObjectFilter')?.value||'all';
+  const partnerFilter=document.getElementById('externalPartnerFilter')?.value||'all';
+  const rows=(cloudExternalOrders||[]).filter(x=>{
+    const isIn=String(x.executor_organization_id||'')===String(orgId||'');
+    const isOut=String(x.source_organization_id||'')===String(orgId||'');
+    if(directionFilter==='incoming'&&!isIn)return false;
+    if(directionFilter==='outgoing'&&!isOut)return false;
+    if(directionFilter==='all'&&!isIn&&!isOut)return false;
+    const key=externalOrderWorkFilterKey(x,orgId);
+    if(workFilter==='open'&&key==='closed')return false;
+    if(!['open','all'].includes(workFilter)&&key!==workFilter)return false;
+    if(priorityFilter!=='all'&&String(x.priority||'')!==priorityFilter)return false;
+    if(objectFilter!=='all'&&String(x.source_object_id||'')!==objectFilter)return false;
+    const partnerId=String(isIn?x.source_organization_id:x.executor_organization_id||'');
+    if(partnerFilter!=='all'&&partnerId!==partnerFilter)return false;
+    return true;
+  });
   if(!cloudExternalOrders.length){list.innerHTML='<div class="empty">Keine mandantenübergreifenden Aufträge vorhanden.</div>';return;}
-  list.innerHTML=cloudExternalOrders.map(x=>{
+  if(!rows.length){list.innerHTML='<div class="empty">Keine Aufträge entsprechen dem gewählten Filter.</div>';return;}
+  list.innerHTML=rows.map(x=>{
     const isIn=x.executor_organization_id===orgId;
     const other=isIn?partnerName(x.source_organization_id):partnerName(x.executor_organization_id);
     const direction=isIn?'Eingehend':'Ausgehend';
@@ -6512,10 +6583,13 @@ function renderExternalOrders(){
     const hierarchyBadge=x.parent_work_order_id?` <span class="badge">Unterauftrag</span>`:'';
     const childOrders=(cloudExternalOrders||[]).filter(c=>String(c.parent_work_order_id||'')===String(x.id||''));
     const childContext=childOrders.length?`<div class="muted" style="margin-top:8px"><strong>Weitervergeben:</strong> ${childOrders.map(c=>`${esc(partnerName(c.executor_organization_id))} · ${esc(externalOrderStatusLabel(c.status))}`).join(' · ')}</div>`:'';
-    return `<div class="card" data-external-order-id="${esc(x.id)}" style="margin:10px 0"><div class="row space"><div><span class="badge">${direction}</span>${routeBadge}${hierarchyBadge} ${badgeP(x.priority||'P3')}</div><span class="badge">${esc(externalOrderLifecycleLabel(x))}</span></div><h3 style="margin:10px 0 4px">${esc(x.title||'Externer Auftrag')}</h3><div class="muted">${esc(other)} · ${esc(x.source_object_name||'Objekt')}${x.source_object_address?` · ${esc(x.source_object_address)}`:''}</div>${routeContext}${x.description?`<div style="margin-top:9px">${esc(x.description)}</div>`:''}${externalOrderResidentMediaHtml(x)}${externalOrderRouteMediaHtml(x.id)}${assignedName?`<div class="muted" style="margin-top:8px">Verantwortlich: <strong>${esc(assignedName)}</strong></div>`:''}${childContext}<div class="muted" style="margin-top:8px">Erstellt: ${esc(fmt(x.created_at))}</div>${ticketTimelineForExternalOrder(x)}${actions}</div>`;
+    const needKey=externalOrderWorkFilterKey(x,orgId);
+    const needLabel={new:'Neu eingegangen',decision:'Entscheidung erforderlich',in_progress:'In Bearbeitung',completed_pending:'Erledigt gemeldet',rework:'Nacharbeit erforderlich',closed:'Abgeschlossen'}[needKey]||externalOrderLifecycleLabel(x);
+    return `<div class="card" data-external-order-id="${esc(x.id)}" style="margin:10px 0"><div class="row space"><div><span class="badge">${direction}</span>${routeBadge}${hierarchyBadge} ${badgeP(x.priority||'P3')}</div><span class="badge">${esc(needLabel)}</span></div><h3 style="margin:10px 0 4px">${esc(x.title||'Externer Auftrag')}</h3><div class="muted">${esc(other)} · ${esc(x.source_object_name||'Objekt')}${x.source_object_address?` · ${esc(x.source_object_address)}`:''}</div>${routeContext}${x.description?`<div style="margin-top:9px">${esc(x.description)}</div>`:''}${externalOrderResidentMediaHtml(x)}${externalOrderRouteMediaHtml(x.id)}${assignedName?`<div class="muted" style="margin-top:8px">Verantwortlich: <strong>${esc(assignedName)}</strong></div>`:''}${childContext}<div class="muted" style="margin-top:8px">Erstellt: ${esc(fmt(x.created_at))}</div>${ticketTimelineForExternalOrder(x)}${actions}</div>`;
   }).join('');
   hydrateResidentReportImages(list).catch(e=>console.warn('Meldungsfotos im Dienstleisterauftrag konnten nicht geladen werden',e));
 }
+
 function routeFindingScopeSelection(){
   return [...new Set([...document.querySelectorAll('.route-scope-check:checked')].map(x=>canonicalServiceScopeCode(x.value)).filter(Boolean))];
 }
@@ -6547,7 +6621,7 @@ async function openRouteFindingModal(findingId){
   if(!canRouteFindingUI(f))return alert('Nur der berechtigte Entscheider des führenden Mandanten kann diesen Vorgang an ein anderes Unternehmen routen.');
   const o=(db.objects||[]).find(x=>x.id===f.objectId);if(!o)return alert('Objekt nicht gefunden.');
 
-  // v2.19.97: Beim manuellen Routing wird nur der Empfänger gewählt.
+  // v2.19.98: Beim manuellen Routing wird nur der Empfänger gewählt.
   // Die am Objekt beauftragten Leistungsumfänge werden als Orientierung angezeigt,
   // aber nicht erneut ausgewählt. Die fachliche Triage erfolgt beim Dienstleister.
   try{await cloudLoadObjectCollaborations(false);}catch(_e){}
@@ -10704,7 +10778,7 @@ async function convertResidentReportToFinding(id){
       });
     }
 
-    // v2.19.97: Bewohnerbilder gehören fachlich zur ursprünglichen Meldung und
+    // v2.19.98: Bewohnerbilder gehören fachlich zur ursprünglichen Meldung und
     // werden in der Dokumentation über source_resident_report_id referenziert.
     // Sie sind ausdrücklich KEINE Vorher-Fotos des Dienstleisters. Deshalb darf
     // ein Fehler beim privaten Medienabruf die Übernahme der Meldung nicht mehr
@@ -11891,7 +11965,7 @@ async function saveFinding(id){
   const activity=document.getElementById('fActivity')?.value.trim()||'';
   let workRequired=type==='Feststellung' && (document.getElementById('fWorkRequired')?.value==='yes');
   if(type!=='Feststellung' || status==='Erledigt')workRequired=false;
-  // v2.19.97: Den zugehörigen Bewohner-Arbeitsauftrag robust ermitteln.
+  // v2.19.98: Den zugehörigen Bewohner-Arbeitsauftrag robust ermitteln.
   // Die Dokumentation kann sowohl aus dem Arbeitsvorrat als auch direkt aus der
   // Dokumentations-/Objekthistorie geöffnet werden. Außerdem darf der globale
   // UI-Kontext während eines await nicht mehr die Synchronisierung zerstören.
@@ -11936,7 +12010,7 @@ async function saveFinding(id){
     cloudSetStatus('Dokumentation und Fotos werden gespeichert …','wait');
     const row=await cloudSaveFinding(id,data);
 
-    // v2.19.97: orderId vor asynchronen Operationen stabil halten. Falls die
+    // v2.19.98: orderId vor asynchronen Operationen stabil halten. Falls die
     // Dokumentation direkt aus der Dokumentationsliste geöffnet wurde, wird der
     // verknüpfte Bewohnerauftrag über execution_finding_id wiedergefunden.
     let residentRouteOrderIdAfterSave=residentRouteOrderIdForSave;
