@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.88</title>
+<title>Duschl Service – Objektplattform v2.19.89</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1195,7 +1195,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.88</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.89</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1238,7 +1238,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.88</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.89</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1408,8 +1408,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.88</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.88 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.89</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.89 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3063,7 +3063,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.88'; // Übernommene Bewohnermeldungen werden automatisch als Objektdokumentation angelegt und erscheinen damit im Objektauszug.
+const APP_VERSION='2.19.89'; // Bewohnerbilder getrennt von Dienstleister-Aufnahmen; kontrollierte manuelle Dienstleistervergabe mit mehreren Leistungsumfängen.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -4015,6 +4015,7 @@ function findingRouteMetaHtml(f){
       ${actor?`<div><strong>Geroutet von:</strong> ${esc(actor)}</div>`:''}
       <div><strong>Geroutet an:</strong> ${esc(partnerName(x.executor_organization_id))}${when?` · ${esc(when)}`:''}</div>
       <div><strong>Status Routing:</strong> ${esc(statusLabel)}</div>
+      ${routedScopeSummaryFromDescription(x.description)?`<div><strong>Leistungsumfang:</strong> ${esc(routedScopeSummaryFromDescription(x.description))}</div>`:''}
       ${String(x.review_status||'')==='verified'?`<div><strong>Vorgang:</strong> Mandantenübergreifend abgeschlossen</div>`:''}
       ${canReviewExternalOrder(x)?`<div class="row" style="margin-top:10px">
         <button class="primary" type="button" onclick="reviewExternalOrder('${esc(x.id)}','verified')">Abschluss bestätigen</button>
@@ -6261,13 +6262,13 @@ async function cloudLoadExternalOrders(render=true){
     const rows=await cloudRequest('shared_work_orders?select=id,parent_work_order_id,root_work_order_id,source_organization_id,executor_organization_id,source_object_id,source_object_name,source_object_address,title,description,priority,status,review_status,reviewed_at,reviewed_by,assigned_user_id,created_by,created_at,accepted_at,completed_at,updated_at,subcontracting_allowed,visibility_scope,source_finding_id,source_resident_report_id,execution_finding_id,order_kind,source_snapshot,triage_status,triage_note,triaged_at,triaged_by,decision_required&order=created_at.desc');
     cloudExternalOrders=Array.isArray(rows)?rows:[];
     try{
-      const residentIds=[...new Set(cloudExternalOrders.map(x=>x.source_resident_report_id).filter(Boolean))];
+      const residentIds=[...new Set([...(cloudExternalOrders||[]).map(x=>x.source_resident_report_id),...(db.findings||[]).map(f=>f.sourceResidentReportId||f.source_resident_report_id)].filter(Boolean))];
       cloudExternalOrderResidentMedia=residentIds.length
         ? await cloudRequest(`resident_report_media?select=id,resident_report_id,storage_path,file_name,mime_type,file_size,created_at&resident_report_id=in.(${residentIds.join(',')})&order=created_at.asc`)
         : [];
     }catch(_e){cloudExternalOrderResidentMedia=[];}
     try{
-      const residentIds=[...new Set(cloudExternalOrders.map(x=>x.source_resident_report_id).filter(Boolean))];
+      const residentIds=[...new Set([...(cloudExternalOrders||[]).map(x=>x.source_resident_report_id),...(db.findings||[]).map(f=>f.sourceResidentReportId||f.source_resident_report_id)].filter(Boolean))];
       cloudExternalOrderResidentEvents=residentIds.length
         ? await cloudRequest(`resident_report_events?select=id,resident_report_id,event_type,status,internal_note,created_by,created_at&resident_report_id=in.(${residentIds.join(',')})&order=created_at.asc`)
         : [];
@@ -6297,7 +6298,18 @@ function externalOrderResidentMediaHtml(order){
   if(!order?.source_resident_report_id)return '';
   const rows=(cloudExternalOrderResidentMedia||[]).filter(m=>String(m.resident_report_id||'')===String(order.source_resident_report_id||''));
   if(!rows.length)return '';
-  return `<div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">${rows.map((m,i)=>`<div><small class="muted">Meldungsfoto</small><br>${residentReportMediaImg(m,m.file_name||`Foto ${i+1}`,'thumb')}</div>`).join('')}</div>`;
+  return `<div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">${rows.map((m,i)=>`<div><small class="muted">Bewohnerbild</small><br>${residentReportMediaImg(m,m.file_name||`Foto ${i+1}`,'thumb')}</div>`).join('')}</div>`;
+}
+
+function residentReportIdForFinding(f){
+  if(!f)return '';
+  return String(f.sourceResidentReportId||f.source_resident_report_id||residentRouteOrderForFinding(f.id)?.source_resident_report_id||'');
+}
+function residentReportMediaHtmlById(reportId,label='Bewohnerbild'){
+  if(!reportId)return '';
+  const rows=(cloudExternalOrderResidentMedia||[]).filter(m=>String(m.resident_report_id||'')===String(reportId||''));
+  if(!rows.length)return '';
+  return `<div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">${rows.map((m,i)=>`<div><small class="muted">${esc(label)} ${i+1}</small><br>${residentReportMediaImg(m,m.file_name||`Foto ${i+1}`,'thumb')}</div>`).join('')}</div>`;
 }
 
 function residentRouteOrderForFinding(findingId){
@@ -6309,8 +6321,12 @@ function residentRouteOrderForFinding(findingId){
 }
 function residentRouteOriginHtmlForFinding(f,includePhoto=true){
   const order=residentRouteOrderForFinding(f?.id||'');
-  if(!order)return '';
-  return `<div class="card" style="margin-top:10px;padding:10px 12px"><strong>Ursprung: Bewohnermeldung</strong><div class="muted" style="margin-top:3px">Automatisch übernommen und als Objektdokumentation fortgeführt.</div>${includePhoto?externalOrderResidentMediaHtml(order):''}</div>`;
+  const reportId=residentReportIdForFinding(f);
+  if(!order&&!reportId)return '';
+  const text=order
+    ? 'Automatisch übernommen und als Objektdokumentation fortgeführt.'
+    : 'Aus einer Bewohnermeldung in die Objektdokumentation übernommen.';
+  return `<div class="card" style="margin-top:10px;padding:10px 12px"><strong>Ursprung: Bewohnermeldung</strong><div class="muted" style="margin-top:3px">${esc(text)}</div>${includePhoto?residentReportMediaHtmlById(reportId,'Bewohnerbild'):''}</div>`;
 }
 
 function residentRouteEventLabel(type){
@@ -6382,6 +6398,32 @@ function renderExternalOrders(){
   }).join('');
   hydrateResidentReportImages(list).catch(e=>console.warn('Meldungsfotos im Dienstleisterauftrag konnten nicht geladen werden',e));
 }
+function routeFindingScopeSelection(){
+  return [...new Set([...document.querySelectorAll('.route-scope-check:checked')].map(x=>canonicalServiceScopeCode(x.value)).filter(Boolean))];
+}
+function refreshRouteFindingScopeChoices(){
+  const box=document.getElementById('routeScopeChoices');if(!box)return;
+  const selected=document.querySelector('input[name=routePartnerChoice]:checked');
+  const collaborationId=selected?.dataset?.collaborationId||'';
+  let codes=[];
+  if(collaborationId){
+    codes=collaborationScopeRows(collaborationId).map(r=>canonicalServiceScopeCode(r.scope_code||r.code||'')).filter(Boolean);
+  }
+  if(!codes.length){
+    codes=(cloudServiceScopeCatalog||[]).filter(r=>r.active!==false).map(r=>canonicalServiceScopeCode(r.code)).filter(Boolean);
+  }
+  codes=[...new Set(codes)];
+  box.innerHTML=codes.length?codes.map(code=>{
+    const row=(cloudServiceScopeCatalog||[]).find(r=>canonicalServiceScopeCode(r.code)===code);
+    return `<label class="row card" style="gap:8px;align-items:center;padding:9px 10px"><input class="route-scope-check" type="checkbox" value="${esc(code)}"><span>${esc(row?.name||code)}</span></label>`;
+  }).join(''):'<span class="muted">Keine Leistungsumfänge verfügbar.</span>';
+}
+function routedScopeSummaryFromDescription(description){
+  const text=String(description||'');
+  const m=text.match(/^Leistungsumfänge:\s*([^\n]+)/i);
+  return m?m[1].trim():'';
+}
+
 async function openRouteFindingModal(findingId){
   const f=(db.findings||[]).find(x=>x.id===findingId);if(!f)return alert('Vorgang nicht gefunden.');
   if(!canRouteFindingUI(f))return alert('Nur der berechtigte Entscheider des führenden Mandanten kann diesen Vorgang an ein anderes Unternehmen routen.');
@@ -6390,6 +6432,8 @@ async function openRouteFindingModal(findingId){
   // v2.19.42: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
   // Dadurch muss die öffentliche Mandanten-ID im Regelprozess nicht mehr manuell eingegeben werden.
   try{await cloudLoadObjectCollaborations(false);}catch(_e){}
+  try{await cloudLoadObjectCollaborationScopes();}catch(_e){}
+  try{await cloudLoadServiceScopeCatalog();}catch(_e){}
   const currentOrgId=currentOrganizationId();
   const candidates=(cloudObjectCollaborations||[])
     .filter(c=>c.object_id===f.objectId && c.status==='active' && c.active!==false)
@@ -6398,29 +6442,34 @@ async function openRouteFindingModal(findingId){
       const id=currentIsOwner?c.service_organization_id:c.owner_organization_id;
       const name=currentIsOwner?(c.service_organization_name||'Partnerunternehmen'):(c.owner_organization_name||'Auftraggeber');
       const code=currentIsOwner?(c.service_public_code||''):(c.owner_public_code||'');
-      return {id,name,code,scope:c.service_scope||''};
+      return {id,name,code,scope:c.service_scope||'',collaborationId:c.id||c.collaboration_id||''};
     })
     .filter(x=>x.id && x.id!==currentOrgId && x.code)
     .filter((x,i,a)=>a.findIndex(y=>y.id===x.id)===i)
     .sort((a,b)=>(a.name||'').localeCompare(b.name||'','de'));
 
   const candidateHtml=candidates.length
-    ? `<label>Empfängerfirma *</label><div id="routePartnerChoices" style="display:grid;gap:8px;margin-top:6px">${candidates.map((p,i)=>`<label class="card row" style="gap:10px;align-items:flex-start;padding:12px;cursor:pointer"><input type="radio" name="routePartnerChoice" value="${esc(p.code)}" ${i===0?'checked':''} style="margin-top:4px"><span><strong>${esc(p.name)}</strong><br><span class="muted">${esc(p.code)}${p.scope?' · '+esc(p.scope):''}</span></span></label>`).join('')}</div><details style="margin-top:12px"><summary class="muted" style="cursor:pointer">Andere Firma per Mandanten-ID</summary><label style="margin-top:10px">Mandanten-ID</label><input id="routePartnerCodeManual" autocomplete="off" autocapitalize="characters" placeholder="z. B. ORG-808D0B87" style="text-transform:uppercase" oninput="if(this.value.trim())document.querySelectorAll('input[name=routePartnerChoice]').forEach(x=>x.checked=false)"></details>`
+    ? `<label>Empfängerfirma *</label><div id="routePartnerChoices" style="display:grid;gap:8px;margin-top:6px">${candidates.map((p,i)=>`<label class="card row" style="gap:10px;align-items:flex-start;padding:12px;cursor:pointer"><input type="radio" name="routePartnerChoice" value="${esc(p.code)}" data-collaboration-id="${esc(p.collaborationId||'')}" ${i===0?'checked':''} onchange="refreshRouteFindingScopeChoices()" style="margin-top:4px"><span><strong>${esc(p.name)}</strong><br><span class="muted">${esc(p.code)}${p.scope?' · '+esc(p.scope):''}</span></span></label>`).join('')}</div><details style="margin-top:12px"><summary class="muted" style="cursor:pointer">Andere Firma per Mandanten-ID</summary><label style="margin-top:10px">Mandanten-ID</label><input id="routePartnerCodeManual" autocomplete="off" autocapitalize="characters" placeholder="z. B. ORG-808D0B87" style="text-transform:uppercase" oninput="if(this.value.trim())document.querySelectorAll('input[name=routePartnerChoice]').forEach(x=>x.checked=false);refreshRouteFindingScopeChoices()"></details>`
     : `<label>Mandanten-ID der Empfängerfirma *</label><input id="routePartnerCodeManual" autocomplete="off" autocapitalize="characters" placeholder="z. B. ORG-808D0B87" style="text-transform:uppercase"><div class="muted" style="margin-top:5px">Für dieses Objekt ist aktuell keine weitere aktive Firma hinterlegt.</div>`;
 
   const root=document.getElementById('modalRoot');
-  root.innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Vorgang an Firma routen</h2><p class="muted">Die Verantwortung für diesen Vorgang wird an die Empfängerfirma übergeben. Ein bisheriger aktiver Empfänger wird aus dem aktiven Arbeitsvorrat genommen; die Übergabe bleibt in der Historie sichtbar. Andere Dokumentationen des Objekts bleiben unsichtbar.</p><div class="card" style="margin:10px 0"><strong>${esc(f.title||'Feststellung')}</strong><div class="muted">${esc(o.name||'Objekt')}${f.area?' · '+esc(f.area):''}</div></div>${candidateHtml}<label>Hinweis / Auftrag an die Firma</label><textarea id="routeInstruction" rows="4" placeholder="Was soll die Firma prüfen oder ausführen?"></textarea><label class="row" style="gap:8px;align-items:center;margin-top:12px"><input id="routeIncludePhotos" type="checkbox" checked> Fotos dieses Vorgangs mitfreigeben</label><label class="row" style="gap:8px;align-items:center;margin-top:8px"><input id="routeSubcontracting" type="checkbox"> Weitervergabe durch Empfänger erlauben</label><div class="modal-actions"><button class="primary" onclick="routeFindingToOrganization('${esc(findingId)}')">Vorgang senden</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
+  root.innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Vorgang an Firma routen</h2><p class="muted">Die Verantwortung für diesen Vorgang wird an die Empfängerfirma übergeben. Ein bisheriger aktiver Empfänger wird aus dem aktiven Arbeitsvorrat genommen; die Übergabe bleibt in der Historie sichtbar. Andere Dokumentationen des Objekts bleiben unsichtbar.</p><div class="card" style="margin:10px 0"><strong>${esc(f.title||'Feststellung')}</strong><div class="muted">${esc(o.name||'Objekt')}${f.area?' · '+esc(f.area):''}</div></div>${candidateHtml}<label>Leistungsumfänge *</label><div id="routeScopeChoices" style="display:grid;gap:6px;margin-top:6px"></div><div class="muted" style="margin-top:5px">Mehrere konkrete Umfänge können gleichzeitig vergeben werden.</div><label>Hinweis / Auftrag an die Firma</label><textarea id="routeInstruction" rows="4" placeholder="Was soll die Firma prüfen oder ausführen?"></textarea><label class="row" style="gap:8px;align-items:center;margin-top:12px"><input id="routeIncludePhotos" type="checkbox" checked> Fotos dieses Vorgangs mitfreigeben</label><label class="row" style="gap:8px;align-items:center;margin-top:8px"><input id="routeSubcontracting" type="checkbox"> Weitervergabe durch Empfänger erlauben</label><div class="modal-actions"><button class="primary" onclick="routeFindingToOrganization('${esc(findingId)}')">Vorgang senden</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
+  refreshRouteFindingScopeChoices();
 }
 async function routeFindingToOrganization(findingId){
   const selected=document.querySelector('input[name=routePartnerChoice]:checked')?.value||'';
   const manual=(document.getElementById('routePartnerCodeManual')?.value||'').trim().toUpperCase();
   const code=(manual||selected).trim().toUpperCase();
   const instruction=(document.getElementById('routeInstruction')?.value||'').trim();
+  const scopeCodes=routeFindingScopeSelection();
+  const scopeNames=scopeCodes.map(code=>(cloudServiceScopeCatalog||[]).find(r=>canonicalServiceScopeCode(r.code)===code)?.name||code);
   const includePhotos=document.getElementById('routeIncludePhotos')?.checked!==false;
   const subcontractingAllowed=document.getElementById('routeSubcontracting')?.checked===true;
   if(!code)return alert('Bitte eine Empfängerfirma auswählen oder eine Mandanten-ID eingeben.');
+  if(!scopeCodes.length)return alert('Bitte mindestens einen Leistungsumfang auswählen.');
+  const routedInstruction=`Leistungsumfänge: ${scopeNames.join(', ')}${instruction?'\n\n'+instruction:''}`;
   try{
-    await cloudRequest('rpc/route_finding_to_organization_by_code',{method:'POST',body:JSON.stringify({p_finding_id:findingId,p_partner_code:code,p_instruction:instruction||null,p_include_photos:includePhotos,p_subcontracting_allowed:subcontractingAllowed})});
+    await cloudRequest('rpc/route_finding_to_organization_by_code',{method:'POST',body:JSON.stringify({p_finding_id:findingId,p_partner_code:code,p_instruction:routedInstruction,p_include_photos:includePhotos,p_subcontracting_allowed:subcontractingAllowed})});
     closeModal();
     await cloudLoadExternalOrders(false);
     renderFindings();
@@ -8564,9 +8613,7 @@ async function openFindingReadOnly(id){
       );
     }catch(_e){}
   }
-  const residentOriginHtml=residentRouteOrder
-    ? `<div class="card" style="margin-top:12px;background:#101f2a"><strong>Ursprung: Bewohnermeldung</strong><div class="muted" style="margin-top:5px">Automatisch an den zuständigen Dienstleister weitergeleitet und als operative Dokumentation abgeschlossen.</div></div>`
-    : '';
+  const residentOriginHtml=residentRouteOriginHtmlForFinding(f,true);
   const residentTimelineHtml=residentRouteOrder?residentRouteTimelineHtml(residentRouteOrder):'';
 
   modal(`<div class="row space">
@@ -8586,11 +8633,11 @@ async function openFindingReadOnly(id){
       ${decisionMetaHtml(f)}
       ${f.activity?`<p><strong>Durchgeführte Tätigkeit</strong><br>${esc(f.activity)}</p>`:''}
       ${f.status==='Erledigt'&&f.completionType?`<p><strong>Abschluss</strong><br>${esc(f.completionType)}${f.completionNote?' – '+esc(f.completionNote):''}</p>`:''}
-      ${photos.length?`<div class="photo-grid" style="margin-top:10px">${photos.map(p=>mediaImg(p,'Dokumentationsfoto','thumb')).join('')}</div>`:''}
+      ${before.length?`<div style="margin-top:12px"><strong>${residentReportIdForFinding(f)?'Dienstleister · Zustand bei Arbeitsbeginn':'Vorher / Zustand'}</strong><div class="photo-grid" style="margin-top:8px">${before.map((p,i)=>mediaImg(p,`Ausgangszustand ${i+1}`,'thumb')).join('')}</div></div>`:''}${after.length?`<div style="margin-top:12px"><strong>${residentReportIdForFinding(f)?'Dienstleister · nach Ausführung':'Nachher / Abschluss'}</strong><div class="photo-grid" style="margin-top:8px">${after.map((p,i)=>mediaImg(p,`Nachher ${i+1}`,'thumb')).join('')}</div></div>`:''}
     </div>
     ${residentTimelineHtml}
     <div class="row" style="margin-top:14px">
-      ${f.status!=='Erledigt'&&canUseDecisionsUI()?`<button class="primary" onclick="closeModal();setTimeout(()=>openDecisionModal('${f.id}'),50)">Entscheidung treffen</button>`:''}${canReopenCompletedFindingUI(f)?`<button class="primary" onclick="closeModal();setTimeout(()=>openReopenFindingModal('${f.id}'),50)">Wieder öffnen</button>`:''}
+      ${f.status!=='Erledigt'&&canUseDecisionsUI()?`<button class="primary" onclick="closeModal();setTimeout(()=>openDecisionModal('${f.id}'),50)">Entscheidung treffen</button>`:''}${f.status!=='Erledigt'&&canRouteFindingUI(f)?`<button onclick="closeModal();setTimeout(()=>openRouteFindingModal('${f.id}'),50)">An Dienstleister vergeben</button>`:''}${canReopenCompletedFindingUI(f)?`<button class="primary" onclick="closeModal();setTimeout(()=>openReopenFindingModal('${f.id}'),50)">Wieder öffnen</button>`:''}
       <button onclick="closeModal()">Schließen</button>
     </div>`);
   hydrateMediaImages();
@@ -10028,7 +10075,7 @@ function findingCard(f){
     <div class="muted">${esc(objectName(f.objectId))}${f.area?' · '+esc(f.area):''}${f.areaDetail?' · '+esc(f.areaDetail):''}</div>
     ${findingCreatorMetaHtml(f)}
     ${type==='Feststellung'?`<div class="muted">Entscheidung: ${esc(decisionLabel(f.decisionStatus||'pending'))}</div>${decisionMetaHtml(f)}${findingRouteMetaHtml(f)}`:''}
-    ${(before||after)?`<div class="row" style="margin-top:10px">${before?`<div><small class="muted">Vorher</small><br>${mediaImg(before,'Vorher','thumb')}</div>`:''}${after?`<div><small class="muted">Nachher</small><br>${mediaImg(after,'Nachher','thumb')}</div>`:''}</div>`:''}
+    ${(before||after)?`<div class="row" style="margin-top:10px">${before?`<div><small class="muted">${residentReportIdForFinding(f)?'Dienstleister · Arbeitsbeginn':'Vorher'}</small><br>${mediaImg(before,'Ausgangszustand','thumb')}</div>`:''}${after?`<div><small class="muted">${residentReportIdForFinding(f)?'Dienstleister · nach Ausführung':'Nachher'}</small><br>${mediaImg(after,'Nachher','thumb')}</div>`:''}</div>`:''}
     ${f.description?`<p>${esc(f.description)}</p>`:''}
     ${type==='Leistung'&&f.activity?`<p><b>Durchgeführt:</b> ${esc(f.activity)}</p>`:''}
     ${type==='Feststellung'&&f.action?`<p><b>Empfehlung:</b> ${esc(f.action)}</p>`:''}
@@ -10105,7 +10152,8 @@ function customerPhotoHtml(f){
   const after=(Array.isArray(f.afterPhotos)&&f.afterPhotos.length?f.afterPhotos:(f.afterPhoto?[f.afterPhoto]:[]));
   if(!before.length&&!after.length)return '';
   const one=(arr,label)=>arr.length?`<div class="customer-photo-block"><div class="customer-photo-label">${label}</div>${arr.map((p,i)=>mediaImg(p,`${label} ${i+1}`,'', 'margin-bottom:8px')).join('')}</div>`:'';
-  return `<div class="customer-photo-grid">${one(before,'Vorher / Zustand')}${one(after,'Nachher / Abschluss')}</div>`;
+  const resident=!!residentReportIdForFinding(f);
+  return `<div class="customer-photo-grid">${one(before,resident?'Dienstleister · Zustand bei Arbeitsbeginn':'Vorher / Zustand')}${one(after,resident?'Dienstleister · nach Ausführung':'Nachher / Abschluss')}</div>`;
 }
 function customerDocCard(f){
   const type=f.type||'Feststellung';
@@ -11322,12 +11370,16 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   const inspOpts=db.inspections.filter(i=>!f.objectId||i.objectId===f.objectId).map(i=>`<option value="${i.id}" ${i.id===f.inspectionId?'selected':''}>${esc(inspectionName(i.id))}</option>`).join('');
   const residentRouteOrder=externalOrderDocumentationContext?.orderId
     ? (cloudExternalOrders||[]).find(x=>String(x.id||'')===String(externalOrderDocumentationContext.orderId||''))
-    : null;
-  const isResidentRouteDocumentation=!!residentRouteOrder&&!!residentRouteOrder.source_resident_report_id&&String((residentRouteOrder.source_snapshot||{}).route_type||'')==='resident_report_auto';
+    : (editId?residentRouteOrderForFinding(editId):null);
+  const residentReportId=String(residentRouteOrder?.source_resident_report_id||f.sourceResidentReportId||f.source_resident_report_id||'');
+  const isResidentRouteDocumentation=!!residentReportId;
+  const residentOriginalPhotosHtml=isResidentRouteDocumentation
+    ? `<div class="card" style="margin-top:12px;background:#101f2a"><strong>Bewohnerbilder aus der Meldung</strong><div class="muted" style="margin-top:5px">Originalbilder des Bewohners. Diese Bilder dokumentieren den gemeldeten Zustand und gelten nicht als Vorher-Fotos des Dienstleisters.</div>${residentReportMediaHtmlById(residentReportId,'Bewohnerbild')||'<div class="muted" style="margin-top:8px">Keine Bewohnerbilder vorhanden.</div>'}</div>`
+    : '';
   const activityPresets=isResidentRouteDocumentation
     ? residentRouteActivityPresets()
     : ['Kontrollgang / Begehung','Rasen gemäht','Rasenkanten geschnitten','Hecke / Sträucher geschnitten','Laub entfernt','Unkraut entfernt','Bewässerung durchgeführt','Schnee geräumt','Gestreut','Geräumt und gestreut','Mülltonnen bereitgestellt','Reinigung durchgeführt'];
-  modal(`<div class="row space"><h2>${editId?'Dokumentation bearbeiten':'Dokumentation erfassen'}</h2><button onclick="closeModal()">✕</button></div>
+  modal(`<div><h2>${editId?'Dokumentation bearbeiten':'Dokumentation erfassen'}</h2></div>
   ${editId?findingCreatorMetaHtml(f):''}
   <label>Objekt *</label><select id="fObject" onchange="refreshInspectionOptions();refreshFindingAreaOptions();refreshFindingDecisionAccess()">${objOpts}</select>
   <input type="hidden" id="fInspection" value="${f.inspectionId||''}">
@@ -11344,9 +11396,10 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
     <label>Beschreibung / Feststellung</label><textarea id="fDescription">${esc(f.description)}</textarea>
   </div>
 
+  ${residentOriginalPhotosHtml}
   <div id="currentPhotoBlock" class="card" style="margin-top:12px">
-    <label>Foto vorher</label>
-    <div class="muted" style="margin-bottom:8px">Ausgangszustand dokumentieren · Kamera oder Fotomediathek auswählen.</div>
+    <label>${isResidentRouteDocumentation?'Foto bei Arbeitsbeginn / Ausgangszustand':'Foto vorher'}</label>
+    <div class="muted" style="margin-bottom:8px">${isResidentRouteDocumentation?'Vom Dienstleister bei Eintreffen vor Ort aufnehmen. Dieser Zustand ist der belastbare Ausgangspunkt für den Leistungsnachweis.':'Ausgangszustand dokumentieren · Kamera oder Fotomediathek auswählen.'}</div>
     <input type="file" id="fBeforePhoto" accept="image/*" multiple onchange="handlePhotoSelection('before',this)"><div class="muted" id="beforePhotoCount">Max. 5 Bilder</div><div class="muted">Über „In Fotos sichern“ an die Fotomediathek übergeben.</div><div id="beforePhotoPreview" class="photo-grid"></div>
     ${(f.beforePhoto||f.photo)?`${mediaImg(f.beforePhoto||f.photo,'Foto vorher','thumb','margin-top:8px')}`:''}
   </div>
@@ -11385,6 +11438,8 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
         <input id="fDecisionAmount" type="number" min="0" step="0.01" inputmode="decimal" value="${f.decisionAmount!==''&&f.decisionAmount!=null?esc(f.decisionAmount):''}" placeholder="optional">
       </div>
     </div>
+
+    ${editId&&canRouteFindingUI(f)?`<div class="card" style="margin-top:12px;background:#101f2a"><strong>Externe Vergabe</strong><div class="muted" style="margin-top:5px">Diese bestehende Dokumentation bleibt führend. Für den Dienstleister wird nur ein verknüpfter Arbeitsauftrag erzeugt.</div><button type="button" class="primary" style="margin-top:10px" onclick="closeModal();setTimeout(()=>openRouteFindingModal('${esc(editId)}'),50)">An Dienstleister vergeben</button></div>`:''}
 
     <div id="sharedObjectDecisionHint" class="card ${canUseDecisionsForObject(f.objectId)?'hidden':''}" style="margin-top:12px;background:#101f2a">
       <strong>Entscheidung beim Eigentümermandanten</strong>
