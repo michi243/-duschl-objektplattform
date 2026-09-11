@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.03</title>
+<title>Duschl Service – Objektplattform v2.20.04</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1011,6 +1011,10 @@ body.public-report-mode>#modalRoot,
 body.public-report-mode>#photoViewer{display:none!important}
 .public-report-photo-box{margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#0a1722}
 .public-report-photo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.public-report-photo-selected{display:none;min-height:112px;padding:12px;border:1px dashed var(--border);border-radius:10px;align-items:center;justify-content:center;text-align:center;color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+.public-report-photo-item.preview-fallback .public-report-photo-selected{display:flex}
+.public-report-photo-item.preview-ok .public-report-photo-selected{display:none}
+
 .public-report-photo-item{position:relative;aspect-ratio:1/1;border:1px solid #334a5b;border-radius:10px;overflow:hidden;background:#07131d}
 .public-report-photo-item img{width:100%;height:100%;object-fit:cover;display:block}
 .public-report-photo-remove{position:absolute;top:5px;right:5px;width:30px;height:30px;padding:0!important;border-radius:50%!important;background:rgba(7,19,29,.92)!important;color:#fff!important;border:1px solid #60788a!important}
@@ -3096,7 +3100,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.03'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.04'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -3651,13 +3655,31 @@ function clearPublicReportPreviewUrls(){
   publicReportPreviewUrls=[];
 }
 
+function publicReportFileLooksLikeImage(file){
+  if(!file)return false;
+  const mime=String(file.type||'').toLowerCase();
+  if(mime.startsWith('image/'))return true;
+  const name=String(file.name||'').toLowerCase();
+  return /\.(jpe?g|png|webp|heic|heif)$/i.test(name);
+}
+
 function renderPublicReportPhotoPreview(){
   const grid=document.getElementById('prPhotoGrid'); if(!grid)return;
   clearPublicReportPreviewUrls();
   grid.innerHTML=publicReportFiles.map((file,i)=>{
     const url=URL.createObjectURL(file); publicReportPreviewUrls.push(url);
-    return `<div class="public-report-photo-item"><img src="${url}" alt="Foto ${i+1}"><button class="public-report-photo-remove" type="button" aria-label="Foto entfernen" onclick="removePublicReportPhoto(${i})">×</button></div>`;
+    const label=esc(file.name||`Foto ${i+1}`);
+    return `<div class="public-report-photo-item" data-public-photo-index="${i}">
+      <img src="${url}" alt="Foto ${i+1}" onload="this.parentElement.classList.add('preview-ok')" onerror="this.style.display='none';this.parentElement.classList.add('preview-fallback')">
+      <div class="public-report-photo-selected" aria-hidden="true">Foto ausgewählt<br><small>${label}</small></div>
+      <button class="public-report-photo-remove" type="button" aria-label="Foto entfernen" onclick="removePublicReportPhoto(${i})">×</button>
+    </div>`;
   }).join('');
+  const help=document.querySelector('.public-report-photo-help');
+  if(help){
+    const n=publicReportFiles.length;
+    help.textContent=n?`${n} ${n===1?'Bild':'Bilder'} ausgewählt · maximal 3 Bilder · maximal 10 MB je Bild.`:'Optional · maximal 3 Bilder · maximal 10 MB je Bild. Kamera oder Fotomediathek möglich.';
+  }
 }
 
 function removePublicReportPhoto(index){
@@ -3670,17 +3692,20 @@ function handlePublicReportPhotos(input){
   const selected=[...(input?.files||[])];
   if(!selected.length)return;
   const maxSize=10*1024*1024;
-  const allowed=new Set(['image/jpeg','image/png','image/webp','image/heic','image/heif']);
+  let added=0;
   for(const file of selected){
     if(publicReportFiles.length>=3){publicReportMessage('Es können maximal 3 Fotos hinzugefügt werden.');break;}
-    const mime=(file.type||'').toLowerCase();
-    if(!allowed.has(mime)){publicReportMessage(`„${file.name}“ hat ein nicht unterstütztes Bildformat.`);continue;}
-    if(file.size>maxSize){publicReportMessage(`„${file.name}“ ist größer als 10 MB.`);continue;}
+    if(!publicReportFileLooksLikeImage(file)){publicReportMessage(`„${file.name||'Datei'}“ wird nicht als Bild erkannt.`);continue;}
+    if(file.size>maxSize){publicReportMessage(`„${file.name||'Foto'}“ ist größer als 10 MB.`);continue;}
     publicReportFiles.push(file);
+    added++;
   }
   input.value='';
   renderPublicReportPhotoPreview();
-  if(publicReportFiles.length)publicReportMessage('', 'bad');
+  if(added){
+    const n=publicReportFiles.length;
+    publicReportMessage(`${n} ${n===1?'Foto wurde':'Fotos wurden'} zur Meldung hinzugefügt.`, 'good');
+  }
 }
 
 async function uploadPublicResidentReportPhotos(reportId,publicStatusToken){
