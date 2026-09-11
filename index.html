@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.74</title>
+<title>Duschl Service – Objektplattform v2.19.75</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1071,6 +1071,38 @@ body.public-report-mode>#photoViewer{display:none!important}
 .soc-scope-count{font-size:11px;color:var(--muted);font-weight:700}
 @media(max-width:520px){.soc-scope-grid{grid-template-columns:1fr}.soc-selected-summary-head{align-items:flex-start;flex-direction:column}}
 </style>
+
+<style id="global-modal-close-v21975">
+/* ===== v2.19.75 – globaler Schließen-Standard für Modalfenster ===== */
+.ds-modal-dialog,.modal-dialog-dark{position:relative;}
+.ds-global-modal-close{
+  position:sticky!important;
+  top:0!important;
+  z-index:100!important;
+  float:right;
+  width:44px!important;
+  height:44px!important;
+  min-width:44px!important;
+  padding:0!important;
+  margin:-5px -5px 8px 12px!important;
+  border-radius:50%!important;
+  display:grid!important;
+  place-items:center!important;
+  background:#102b3d!important;
+  color:#f5f9fc!important;
+  border:1px solid #45657b!important;
+  box-shadow:0 5px 16px rgba(0,0,0,.28)!important;
+  font-size:28px!important;
+  font-weight:400!important;
+  line-height:1!important;
+}
+.ds-global-modal-close:hover{background:#17384d!important;}
+.ds-global-modal-close:focus-visible{outline:2px solid var(--accent)!important;outline-offset:2px!important;}
+@media(max-width:520px){
+  .ds-global-modal-close{width:46px!important;height:46px!important;min-width:46px!important;margin:-4px -4px 8px 10px!important;}
+}
+@media print{.ds-global-modal-close{display:none!important;}}
+</style>
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -1155,7 +1187,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.74</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.75</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1198,7 +1230,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.74</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.75</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1368,8 +1400,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.74</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.74 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.75</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.75 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3023,7 +3055,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.74'; // Governance: erledigte Dokumentationen sind schreibgeschützt; Bearbeitung erst nach dokumentierter Wiedereröffnung durch Auftraggeber/Admin.
+const APP_VERSION='2.19.75'; // Governance: erledigte Dokumentationen sind schreibgeschützt; Bearbeitung erst nach dokumentierter Wiedereröffnung durch Auftraggeber/Admin.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -10296,11 +10328,63 @@ function showObjectReport(id){
   },0);
 }
 
-function modal(html){document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop ds-modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal-dialog-dark ds-modal-dialog">${html}</div></div>`}
+function dsModalHasOwnTopClose(dialog){
+  if(!dialog)return false;
+  return [...dialog.querySelectorAll('button')].some(btn=>{
+    const action=String(btn.getAttribute('onclick')||'');
+    const label=String(btn.textContent||'').trim();
+    return /closeModal\s*\(/.test(action) && /^[×✕✖xX]$/.test(label);
+  });
+}
+
+function dsModalIsClosable(root,dialog){
+  if(!root||!dialog)return false;
+  // Sicherheitskritische Zwangsdialoge dürfen nicht umgangen werden.
+  if(dialog.querySelector('#firstLoginPasswordBtn'))return false;
+  const html=root.innerHTML||'';
+  const backdrop=root.querySelector('.modal-backdrop');
+  const backdropAction=String(backdrop?.getAttribute('onclick')||'');
+  return /closeModal\s*\(/.test(html) || /closeModal\s*\(/.test(backdropAction);
+}
+
+function dsEnsureGlobalModalClose(){
+  const root=document.getElementById('modalRoot');
+  if(!root)return;
+  const dialog=root.querySelector('.modal-dialog-dark,.ds-modal-dialog');
+  if(!dialog || !dsModalIsClosable(root,dialog) || dsModalHasOwnTopClose(dialog) || dialog.querySelector('.ds-global-modal-close'))return;
+  const btn=document.createElement('button');
+  btn.type='button';
+  btn.className='ds-global-modal-close';
+  btn.setAttribute('aria-label','Fenster schließen');
+  btn.setAttribute('title','Schließen');
+  btn.textContent='×';
+  btn.addEventListener('click',closeModal);
+  dialog.insertBefore(btn,dialog.firstChild);
+}
+
+function modal(html){
+  const root=document.getElementById('modalRoot');
+  if(!root)return;
+  root.innerHTML=`<div class="modal-backdrop ds-modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal-dialog-dark ds-modal-dialog">${html}</div></div>`;
+  dsEnsureGlobalModalClose();
+}
 function closeModal(){
   const root=document.getElementById('modalRoot');
   if(root)root.innerHTML='';
 }
+
+// Erfasst auch ältere Dialoge, die modalRoot direkt befüllen und nicht modal() nutzen.
+(function installGlobalModalCloseObserver(){
+  const install=()=>{
+    const root=document.getElementById('modalRoot');
+    if(!root || root.dataset.globalCloseObserver==='1')return;
+    root.dataset.globalCloseObserver='1';
+    new MutationObserver(()=>dsEnsureGlobalModalClose()).observe(root,{childList:true,subtree:true});
+    dsEnsureGlobalModalClose();
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});
+  else install();
+})();
 
 
 
