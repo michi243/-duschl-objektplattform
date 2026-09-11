@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.01</title>
+<title>Duschl Service – Objektplattform v2.20.02</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3077,7 +3077,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.01'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.02'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -11659,7 +11659,15 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
     : '';
   const activityPresets=isResidentRouteDocumentation
     ? residentRouteActivityPresets()
-    : ['Kontrollgang / Begehung','Rasen gemäht','Rasenkanten geschnitten','Hecke / Sträucher geschnitten','Laub entfernt','Unkraut entfernt','Bewässerung durchgeführt','Schnee geräumt','Gestreut','Geräumt und gestreut','Mülltonnen bereitgestellt','Reinigung durchgeführt'];
+    : [
+      'Kontrollgang / Begehung','Funktionsprüfung durchgeführt','Kleinreparatur durchgeführt','Beschilderung angebracht / ersetzt',
+      'Reinigung durchgeführt','Verschmutzung entfernt','Treppenhaus gereinigt','Glas- / Fensterflächen gereinigt','Müll / Fremdkörper entfernt',
+      'Rasen gemäht','Rasenkanten geschnitten','Hecke / Sträucher geschnitten','Laub entfernt','Unkraut entfernt','Bewässerung durchgeführt',
+      'Schnee geräumt','Gestreut','Geräumt und gestreut','Kontrollgang Winterdienst durchgeführt',
+      'Leuchtmittel ersetzt','Elektrische Funktion geprüft','Sanitäranlage geprüft','Heizungsfunktion geprüft','Tür / Tor geprüft','Schließfunktion geprüft',
+      'Mülltonnen bereitgestellt','Mülltonnen zurückgestellt','Sperrmüll / Abfall beseitigt',
+      'Schaden gesichert','Bereich abgesperrt','Dienstleister vor Ort eingewiesen','Keine Maßnahme erforderlich'
+    ];
   modal(`<div><h2>${editId?'Dokumentation bearbeiten':'Dokumentation erfassen'}</h2></div>
   ${editId?findingCreatorMetaHtml(f):''}
   <label>Objekt *</label><select id="fObject" onchange="refreshInspectionOptions();refreshFindingAreaOptions();refreshFindingDecisionAccess()">${objOpts}</select>
@@ -11814,8 +11822,8 @@ function residentRouteActivityPresets(){
     AUFZUG:['Aufzug geprüft','Störung aufgenommen','Funktionsprüfung durchgeführt','Störung behoben'],
     DACH_FASSADE:['Schaden geprüft','Bereich gesichert','Kleinreparatur durchgeführt','Schaden behoben'],
     SCHAEDLING:['Befall geprüft','Befallsstelle behandelt','Schädlingsbekämpfung durchgeführt','Kontrolle durchgeführt'],
-    ABFALL:['Mülltonnen bereitgestellt','Müllplatz gereinigt','Abfall entfernt'],
-    OBJEKTBETREUUNG:['Kontrollgang / Begehung','Kleinreparatur durchgeführt','Bereich gereinigt','Störung geprüft','Störung behoben']
+    ABFALL:['Mülltonnen bereitgestellt','Mülltonnen zurückgestellt','Müllplatz gereinigt','Sperrmüll / Abfall beseitigt','Abfall entfernt'],
+    OBJEKTBETREUUNG:['Kontrollgang / Begehung','Funktionsprüfung durchgeführt','Kleinreparatur durchgeführt','Beschilderung angebracht / ersetzt','Bereich gereinigt','Störung geprüft','Störung behoben','Schaden gesichert','Bereich abgesperrt','Dienstleister vor Ort eingewiesen','Keine Maßnahme erforderlich']
   };
   return byScope[scope]||['Kontrollgang / Begehung','Reinigung durchgeführt','Kleinreparatur durchgeführt','Störung geprüft','Störung behoben'];
 }
