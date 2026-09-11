@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.08</title>
+<title>Duschl Service – Objektplattform v2.20.09</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1169,9 +1169,14 @@ body.public-report-mode>#photoViewer{display:none!important}
 <label for="prDescription">Beschreibung *</label>
 <textarea id="prDescription" maxlength="2000" placeholder="Was ist aufgefallen? Wo genau befindet sich das Problem?"></textarea>
 <div class="public-report-photo-box">
-<label for="prPhotos" style="margin-top:0">Fotos</label>
-<input accept="image/jpeg,image/png,image/webp,.heic,.heif" id="prPhotos" multiple="" onchange="handlePublicReportPhotos(this)" type="file"/>
-<div class="public-report-photo-help">Optional · maximal 3 Bilder · maximal 10 MB je Bild. Kamera oder Fotomediathek möglich.</div>
+<label style="margin-top:0">Fotos</label>
+<div class="row" style="gap:8px;flex-wrap:wrap">
+  <button type="button" onclick="document.getElementById('prCamera').click()">Foto aufnehmen</button>
+  <button type="button" onclick="document.getElementById('prPhotos').click()">Foto auswählen</button>
+</div>
+<input accept="image/*" capture="environment" id="prCamera" style="display:none" onclick="this.value=''" onchange="handlePublicReportPhotos(this)" type="file"/>
+<input accept="image/*" id="prPhotos" multiple style="display:none" onclick="this.value=''" onchange="handlePublicReportPhotos(this)" type="file"/>
+<div class="public-report-photo-help">Optional · maximal 3 Bilder · maximal 10 MB je Bild. Kamera und Fotomediathek werden getrennt verarbeitet.</div>
 <div class="public-report-photo-grid" id="prPhotoGrid"></div>
 </div>
 <div class="public-report-consent">
@@ -3100,7 +3105,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.08'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.09'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -3698,54 +3703,37 @@ function publicReportLoadImageFromFile(file){
   });
 }
 
-async function normalizePublicReportImage(file,index){
-  // iOS-Fotomediathek: HEIC/HEIF-Dateien lassen sich in Safari nicht zuverlässig
-  // über <img> + Canvas decodieren. Genau dadurch wurden ausgewählte Mediathek-
-  // Fotos bisher verworfen. Wir erzeugen deshalb zuerst eine echte, stabile
-  // Byte-Kopie der vom Picker gelieferten Datei und machen die Aufnahme NICHT
-  // von einer erfolgreichen Browser-Vorschau abhängig.
-  const bytes=await file.arrayBuffer();
-  if(!bytes || !bytes.byteLength)throw new Error('Die ausgewählte Bilddatei ist leer.');
-
-  const originalName=String(file.name||`foto_${index+1}`).trim();
-  const extMatch=originalName.match(/\.([a-zA-Z0-9]+)$/);
-  const ext=(extMatch?.[1]||'').toLowerCase();
-  let mime=String(file.type||'').toLowerCase();
-  if(!mime){
-    mime=ext==='jpg'||ext==='jpeg'?'image/jpeg':
-         ext==='png'?'image/png':
-         ext==='webp'?'image/webp':
-         ext==='heic'?'image/heic':
-         ext==='heif'?'image/heif':'application/octet-stream';
+function stablePublicReportFile(file,index){
+  // Safari/iOS: Die vom Picker gelieferte File-Referenz direkt übernehmen.
+  // Der Input wird bereits VOR dem Öffnen des Pickers geleert, damit auch
+  // dasselbe Foto erneut gewählt werden kann. Eine nachträgliche HEIC-/Canvas-
+  // Konvertierung findet bewusst nicht statt.
+  if(!file)return null;
+  const name=String(file.name||`foto_${index+1}`).trim()||`foto_${index+1}`;
+  try{
+    return new File([file],name,{type:file.type||'',lastModified:file.lastModified||Date.now()});
+  }catch(_e){
+    return file;
   }
-  const safeBase=originalName.replace(/\.[^.]+$/,'').replace(/[^a-zA-Z0-9_-]+/g,'_').slice(0,80)||`foto_${index+1}`;
-  const safeExt=ext||(
-    mime==='image/jpeg'?'jpg':mime==='image/png'?'png':mime==='image/webp'?'webp':mime==='image/heic'?'heic':mime==='image/heif'?'heif':'jpg'
-  );
-  return new File([bytes],`${safeBase}.${safeExt}`,{type:mime,lastModified:Date.now()});
 }
 
 async function handlePublicReportPhotos(input){
-  const selected=[...(input?.files||[])];
-  if(!selected.length)return;
+  const selected=Array.from(input?.files||[]);
+  if(!selected.length){
+    publicReportMessage('Es wurde kein Foto ausgewählt.');
+    return;
+  }
   const maxSize=10*1024*1024;
   let added=0;
-  for(let idx=0;idx<selected.length;idx++){
-    const file=selected[idx];
+  for(const file of selected){
     if(publicReportFiles.length>=3){publicReportMessage('Es können maximal 3 Fotos hinzugefügt werden.');break;}
     if(!publicReportFileLooksLikeImage(file)){publicReportMessage(`„${file.name||'Datei'}“ wird nicht als Bild erkannt.`);continue;}
     if(file.size>maxSize){publicReportMessage(`„${file.name||'Foto'}“ ist größer als 10 MB.`);continue;}
-    try{
-      const stableFile=await normalizePublicReportImage(file,publicReportFiles.length);
-      publicReportFiles.push(stableFile);
-      added++;
-    }catch(e){
-      console.error('Bewohnerfoto aus Mediathek übernehmen fehlgeschlagen',e,file);
-      publicReportMessage(`„${file.name||'Foto'}“ konnte nicht übernommen werden. Bitte versuchen Sie die Auswahl erneut oder verwenden Sie ein anderes Foto.`);
-    }
+    const stableFile=stablePublicReportFile(file,publicReportFiles.length);
+    if(!stableFile){publicReportMessage(`„${file.name||'Foto'}“ konnte nicht übernommen werden.`);continue;}
+    publicReportFiles.push(stableFile);
+    added++;
   }
-  // Input nicht sofort leeren: iOS/Safari darf die Mediathek-Dateireferenz bis
-  // zum Ende der Verarbeitung behalten. Beim nächsten Picker-Aufruf wird sie ersetzt.
   renderPublicReportPhotoPreview();
   if(added){
     const n=publicReportFiles.length;
