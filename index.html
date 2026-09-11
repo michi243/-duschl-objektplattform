@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.71</title>
+<title>Duschl Service – Objektplattform v2.19.72</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1137,7 +1137,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.71</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.72</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1180,7 +1180,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.71</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.72</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1350,8 +1350,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.71</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.71 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.72</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.72 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -1657,7 +1657,7 @@ body.public-report-mode>#photoViewer{display:none!important}
     <div class="card"><div class="muted">Ausgehend offen</div><div class="big" id="externalOutgoingCount">0</div></div>
     <div class="card"><div class="muted">Gesamt</div><div class="big" id="externalTotalCount">0</div></div>
   </div>
-  <div class="card" style="margin-top:14px"><div class="row space"><div><strong>Dauerhafte Objektbetreuung</strong><div class="muted" style="margin-top:4px">Objekte per öffentlicher Mandanten-ID für Partner freigeben. Mehrere Partner je Objekt sind möglich.</div><div id="myTenantPublicCode" class="muted" style="margin-top:7px"></div></div><button id="shareObjectCareBtn" type="button" onclick="openObjectCollaborationModal()">Objektbetreuung anfragen</button></div><div id="objectCollaborationsList" style="margin-top:12px"><span class="muted">Noch keine Betreuungsbeziehungen geladen.</span></div></div>
+  <div class="card" style="margin-top:14px"><div class="row space"><div><strong>Dauerhafte Objektbetreuung</strong><div class="muted" style="margin-top:4px">Dienstleister je Objekt anbinden und mehrere Leistungsumfänge pro Beziehung definieren.</div><div id="myTenantPublicCode" class="muted" style="margin-top:7px"></div></div><button id="shareObjectCareBtn" type="button" onclick="openObjectCollaborationModal()">Betreuung vergeben</button></div><div id="objectCollaborationsList" style="margin-top:12px"><span class="muted">Noch keine Betreuungsbeziehungen geladen.</span></div></div>
   <div class="card" style="margin-top:14px"><div class="row space"><strong>Aufträge</strong><button type="button" onclick="cloudLoadExternalOrders()">↻ Aktualisieren</button></div><div id="externalOrdersList" style="margin-top:12px"><span class="muted">Noch keine Daten geladen.</span></div></div>
 </section>
 </main>
@@ -3005,7 +3005,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.71'; // Governance: erledigte Dokumentationen sind schreibgeschützt; Bearbeitung erst nach dokumentierter Wiedereröffnung durch Auftraggeber/Admin.
+const APP_VERSION='2.19.72'; // Governance: erledigte Dokumentationen sind schreibgeschützt; Bearbeitung erst nach dokumentierter Wiedereröffnung durch Auftraggeber/Admin.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -3812,6 +3812,8 @@ let cloudCollaborationPartners=[];
 let cloudExternalOrderAssignees=[];
 let cloudSharedObjects=[];
 let cloudObjectCollaborations=[];
+let cloudObjectCollaborationScopes=[];
+let cloudServiceScopeCatalog=[];
 let cloudSharedObjectAssignees=[];
 let platformOrganizationMemberships=[];
 let platformOrganizationProfiles=[];
@@ -5500,6 +5502,58 @@ async function cloudLoadSharedObjects(){
     }));
   }catch(e){console.warn('Extern betreute Objekte konnten nicht geladen werden',e);cloudSharedObjects=[];}
 }
+async function cloudLoadServiceScopeCatalog(){
+  if(!cloudSession?.access_token){cloudServiceScopeCatalog=[];return [];}
+  try{
+    const rows=await cloudRequest('rpc/get_service_scope_catalog',{method:'POST',body:JSON.stringify({})});
+    cloudServiceScopeCatalog=Array.isArray(rows)?rows:[];
+  }catch(e){
+    cloudServiceScopeCatalog=[];
+    console.warn('Leistungsumfang-Katalog konnte nicht geladen werden',e);
+  }
+  return cloudServiceScopeCatalog;
+}
+async function cloudLoadObjectCollaborationScopes(){
+  if(!cloudSession?.access_token||isPlatformOperatorRole()&&!isPlatformTenantMode()){
+    cloudObjectCollaborationScopes=[];return [];
+  }
+  try{
+    const body=isPlatformTenantMode()?{p_organization_id:currentOrganizationId()}:{};
+    const rpc=isPlatformTenantMode()?'rpc/platform_support_get_object_collaboration_scopes':'rpc/get_object_collaboration_scopes';
+    const rows=await cloudRequest(rpc,{method:'POST',body:JSON.stringify(body)});
+    cloudObjectCollaborationScopes=Array.isArray(rows)?rows:[];
+  }catch(e){
+    cloudObjectCollaborationScopes=[];
+    console.warn('Leistungsumfänge der Betreuungen konnten nicht geladen werden',e);
+  }
+  return cloudObjectCollaborationScopes;
+}
+function collaborationScopeRows(collaborationId){
+  return (cloudObjectCollaborationScopes||[]).filter(x=>String(x.collaboration_id||'')===String(collaborationId||''));
+}
+function collaborationScopeNames(c){
+  const id=c?.collaboration_id||c?.id||'';
+  const rows=collaborationScopeRows(id);
+  if(rows.length)return rows.map(x=>x.scope_name||x.name||x.scope_code).filter(Boolean);
+  const legacy=String(c?.service_scope||'').trim();
+  if(!legacy)return [];
+  return legacy.split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean);
+}
+function collaborationScopesHtml(c){
+  const names=collaborationScopeNames(c);
+  if(!names.length)return '<span class="muted">Kein Leistungsumfang hinterlegt</span>';
+  return names.map(n=>`<span class="badge" style="margin:2px 5px 2px 0">${esc(n)}</span>`).join('');
+}
+function selectedCollaborationScopeCodes(){
+  return [...document.querySelectorAll('.soc-scope-check:checked')].map(el=>el.value).filter(Boolean);
+}
+async function saveCollaborationScopes(collaborationId,codes){
+  const payload={p_collaboration_id:collaborationId,p_scope_codes:codes};
+  if(isPlatformTenantMode())payload.p_organization_id=currentOrganizationId();
+  const rpc=isPlatformTenantMode()?'rpc/platform_support_set_object_collaboration_scopes':'rpc/set_object_collaboration_scopes';
+  await cloudRequest(rpc,{method:'POST',body:JSON.stringify(payload)});
+  await cloudLoadObjectCollaborationScopes();
+}
 async function cloudLoadObjectCollaborations(render=true){
   if(!cloudSession?.access_token||isPlatformOperatorRole()&&!isPlatformTenantMode())return;
   try{
@@ -5514,6 +5568,7 @@ async function cloudLoadObjectCollaborations(render=true){
     return String(c.owner_organization_id||'')===String(orgId)
         || String(c.service_organization_id||'')===String(orgId);
   });
+    await cloudLoadObjectCollaborationScopes();
     if(hasOperationalAdminAccess()){
       try{const a=await cloudRequest('rpc/get_external_order_assignees',{method:'POST',body:JSON.stringify({})});cloudSharedObjectAssignees=Array.isArray(a)?a:[];}catch(_e){cloudSharedObjectAssignees=[];}
     }
@@ -5537,7 +5592,7 @@ function renderObjectCollaborations(){
       const assignee=c.assigned_user_name||'';const status=c.status||'active';
       const requested=c.requested_at?new Date(c.requested_at).toLocaleString('de-DE'):'—';
       const actions=hasOperationalAdminAccess()?(incoming?(status==='pending'?`<div class="row" style="margin-top:10px"><button class="primary" onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',true)">Annehmen</button><button onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',false)">Ablehnen</button></div>`:(status==='active'?`<div class="row" style="margin-top:10px"><button onclick="openSharedObjectAssignmentModal('${esc(c.collaboration_id)}')">${assignee?'Zuweisung ändern':'Objektbetreuer zuweisen'}</button></div>`:'')):(status==='pending'?`<div class="row" style="margin-top:10px"><button class="danger" onclick="cancelObjectCollaboration('${esc(c.collaboration_id)}','pending')">Anfrage zurückziehen</button></div>`:(status==='active'?`<div class="row" style="margin-top:10px"><button class="danger" onclick="cancelObjectCollaboration('${esc(c.collaboration_id)}','active')">Zugriff beenden</button></div>`:''))):'';
-      return `<div class="card" style="margin:8px 0"><div class="row space"><div><span class="badge">${incoming?'Wir betreuen':'Betreuung vergeben an'}</span> <strong>${esc(c.object_name||'Objekt')}</strong></div><span class="badge">${esc(statusLabel(status))}</span></div><div class="muted" style="margin-top:7px">${esc(partner)}${partnerCode?` · Mandanten-ID <strong>${esc(partnerCode)}</strong>`:''}${c.object_address?' · '+esc(c.object_address):''}</div><div class="muted" style="margin-top:5px">Angefragt: ${esc(requested)}</div>${c.service_scope?`<div style="margin-top:7px"><strong>Leistungsumfang:</strong> ${esc(c.service_scope)}</div>`:''}${assignee?`<div class="muted" style="margin-top:6px">Verantwortlich: <strong>${esc(assignee)}</strong></div>`:''}${actions}</div>`;
+      return `<div class="card" style="margin:8px 0"><div class="row space"><div><span class="badge">${incoming?'Wir betreuen':'Betreuung vergeben an'}</span> <strong>${esc(c.object_name||'Objekt')}</strong></div><span class="badge">${esc(statusLabel(status))}</span></div><div class="muted" style="margin-top:7px">${esc(partner)}${partnerCode?` · Mandanten-ID <strong>${esc(partnerCode)}</strong>`:''}${c.object_address?' · '+esc(c.object_address):''}</div><div class="muted" style="margin-top:5px">Angefragt: ${esc(requested)}</div><div style="margin-top:7px"><strong>Leistungsumfänge:</strong><div style="margin-top:5px">${collaborationScopesHtml(c)}</div></div>${assignee?`<div class="muted" style="margin-top:6px">Verantwortlich: <strong>${esc(assignee)}</strong></div>`:''}${actions}</div>`;
     }).join('');
   }
   renderDashboardCareRequests();
@@ -5549,15 +5604,22 @@ function renderDashboardCareRequests(){
   const pending=(cloudObjectCollaborations||[]).filter(c=>c.service_organization_id===orgId&&c.status==='pending');
   wrap.style.display=pending.length&&hasOperationalAdminAccess()?'':'none';
   if(count)count.textContent=`${pending.length} offen`;
-  box.innerHTML=pending.map(c=>`<div class="dashboard-message-card unread"><div class="dashboard-message-title">Betreuungsanfrage: ${esc(c.object_name||'Objekt')}</div><div class="dashboard-message-meta"><strong>Von: ${esc(c.owner_organization_name||'Mandant')}</strong>${c.owner_public_code?` · ${esc(c.owner_public_code)}`:''}<br>${c.requested_at?esc(new Date(c.requested_at).toLocaleString('de-DE')):''}</div>${c.service_scope?`<div class="dashboard-message-text">${esc(c.service_scope)}</div>`:''}<div class="dashboard-message-actions"><button class="primary" onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',true)">Annehmen</button><button onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',false)">Ablehnen</button></div></div>`).join('');
+  box.innerHTML=pending.map(c=>`<div class="dashboard-message-card unread"><div class="dashboard-message-title">Betreuungsanfrage: ${esc(c.object_name||'Objekt')}</div><div class="dashboard-message-meta"><strong>Von: ${esc(c.owner_organization_name||'Mandant')}</strong>${c.owner_public_code?` · ${esc(c.owner_public_code)}`:''}<br>${c.requested_at?esc(new Date(c.requested_at).toLocaleString('de-DE')):''}</div><div class="dashboard-message-text"><strong>Leistungsumfänge:</strong><div style="margin-top:5px">${collaborationScopesHtml(c)}</div></div><div class="dashboard-message-actions"><button class="primary" onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',true)">Annehmen</button><button onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',false)">Ablehnen</button></div></div>`).join('');
 }
 async function openObjectCollaborationModal(preselectedObjectId=''){
-  if(!hasOperationalAdminAccess())return alert('Nur Mandanten-Admin oder Admin-Vertretung können Objektbetreuungen freigeben.');
-  await cloudLoadObjectCollaborations(false);
-  const objs=(db.objects||[]).filter(o=>!o.externalManaged&&o.organizationId===currentOrganizationId());if(!objs.length)return alert('Kein eigenes Objekt für die Freigabe vorhanden.');
+  if(!hasOperationalAdminAccess())return alert('Nur Mandanten-Admin oder Admin-Vertretung können Objektbetreuungen vergeben.');
+  await Promise.all([cloudLoadObjectCollaborations(false),cloudLoadServiceScopeCatalog()]);
+  const objs=(db.objects||[]).filter(o=>!o.externalManaged&&o.organizationId===currentOrganizationId());
+  if(!objs.length)return alert('Kein eigenes Objekt für die Vergabe vorhanden.');
+  if(!cloudServiceScopeCatalog.length)return alert('Der Leistungsumfang-Katalog ist noch nicht in Supabase eingerichtet. Bitte zuerst das SQL-Update für v2.19.72 ausführen.');
   const selected=objs.some(o=>o.id===preselectedObjectId)?preselectedObjectId:objs[0].id;
   const existing=cloudObjectCollaborations.filter(c=>c.object_id===selected&&c.owner_organization_id===currentOrganizationId()&&!['rejected','cancelled'].includes(c.status));
-  document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Objektbetreuung anfragen</h2><p class="muted">Gib die öffentliche Mandanten-ID des Partnerunternehmens ein. Der Partner muss die Betreuung anschließend bestätigen. Mehrere Partner pro Objekt sind möglich.</p><label>Objekt *</label><select id="socObject" onchange="refreshObjectCollaborationHint()">${objs.map(o=>`<option value="${esc(o.id)}" ${o.id===selected?'selected':''}>${esc(o.name)}</option>`).join('')}</select><div id="socExistingHint" class="muted" style="margin-top:6px">${existing.length?`Bestehende Anfragen/Betreuungen: ${existing.map(c=>`${esc(c.service_organization_name||'Partnerunternehmen')}${c.service_public_code?' · '+esc(c.service_public_code):''} · ${esc(c.status==='pending'?'Offen':c.status==='active'?'Angenommen':c.status==='rejected'?'Abgelehnt':c.status||'—')}`).join('<br>')}`:'Noch keine Betreuung für dieses Objekt.'}</div><label>Mandanten-ID des Partners *</label><input id="socPartnerCode" autocomplete="off" autocapitalize="characters" placeholder="z. B. DS-7K4P9X" style="text-transform:uppercase"><div id="socPartnerLookup" class="muted" style="margin-top:5px">Die interne Mandanten-UUID wird nicht benötigt.</div><label>Leistungsumfang</label><textarea id="socScope" rows="4" placeholder="z. B. Objektbetreuung, Winterdienst, Kleinreparaturen"></textarea><div class="modal-actions"><button class="primary" onclick="createObjectCollaboration()">Betreuung anfragen</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
+  const groups=[...new Set(cloudServiceScopeCatalog.map(x=>x.category||'Weitere Leistungen'))];
+  const scopeHtml=groups.map(group=>{
+    const rows=cloudServiceScopeCatalog.filter(x=>(x.category||'Weitere Leistungen')===group);
+    return `<div class="card" style="padding:10px;margin-top:8px"><strong>${esc(group)}</strong><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:7px;margin-top:8px">${rows.map(x=>`<label style="display:flex;align-items:flex-start;gap:8px;margin:0;padding:7px;border:1px solid var(--line);border-radius:9px;cursor:pointer"><input class="soc-scope-check" type="checkbox" value="${esc(x.code)}" style="width:auto;margin:2px 0 0"><span>${esc(x.name)}</span></label>`).join('')}</div></div>`;
+  }).join('');
+  document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Betreuung vergeben</h2><p class="muted">Ein Partner wird je Objekt nur einmal angebunden. Unter dieser Beziehung können mehrere Leistungsumfänge gleichzeitig hinterlegt werden.</p><label>Objekt *</label><select id="socObject" onchange="refreshObjectCollaborationHint()">${objs.map(o=>`<option value="${esc(o.id)}" ${o.id===selected?'selected':''}>${esc(o.name)}</option>`).join('')}</select><div id="socExistingHint" class="muted" style="margin-top:6px">${existing.length?`Bestehende Betreuung: ${existing.map(c=>`${esc(c.service_organization_name||'Partnerunternehmen')}${c.service_public_code?' · '+esc(c.service_public_code):''} · ${esc(c.status==='pending'?'Offen':c.status==='active'?'Aktiv':c.status||'—')}`).join('<br>')}`:'Noch keine Betreuung für dieses Objekt.'}</div><label>Mandanten-ID des Dienstleisters *</label><input id="socPartnerCode" autocomplete="off" autocapitalize="characters" placeholder="z. B. DS-7K4P9X" style="text-transform:uppercase"><div class="muted" style="margin-top:5px">Besteht für Objekt und Dienstleister bereits eine Beziehung, werden deren Leistungsumfänge aktualisiert statt eine zweite Partnerschaft anzulegen.</div><label>Leistungsumfänge *</label>${scopeHtml}<div class="modal-actions"><button class="primary" onclick="createObjectCollaboration()">Betreuung speichern</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
 }
 function refreshObjectCollaborationHint(){
   const objectId=document.getElementById('socObject')?.value||'';const box=document.getElementById('socExistingHint');if(!box)return;
@@ -5567,19 +5629,44 @@ function refreshObjectCollaborationHint(){
 async function createObjectCollaboration(){
   const objectId=document.getElementById('socObject')?.value||'';
   const code=(document.getElementById('socPartnerCode')?.value||'').trim().toUpperCase();
-  const scope=(document.getElementById('socScope')?.value||'').trim();
+  const scopeCodes=selectedCollaborationScopeCodes();
   if(!objectId||!code)return alert('Objekt und Mandanten-ID sind Pflichtfelder.');
+  if(!scopeCodes.length)return alert('Bitte mindestens einen Leistungsumfang auswählen.');
   try{
-    const supportAction=isAdminRole()&&isPlatformTenantMode();
-    const endpoint=supportAction?'rpc/platform_support_request_object_collaboration_by_code':'rpc/request_object_collaboration_by_code';
-    const body=supportAction
-      ? {p_organization_id:platformTenantModeOrgId,p_object_id:objectId,p_partner_code:code,p_service_scope:scope||null}
-      : {p_object_id:objectId,p_partner_code:code,p_service_scope:scope||null};
-    const r=await cloudRequest(endpoint,{method:'POST',body:JSON.stringify(body)});
+    let collaboration=(cloudObjectCollaborations||[]).find(c=>
+      String(c.object_id||'')===String(objectId) &&
+      String(c.owner_organization_id||'')===String(currentOrganizationId()) &&
+      String(c.service_public_code||'').toUpperCase()===code &&
+      !['rejected','cancelled'].includes(String(c.status||''))
+    );
+
+    let created=false;
+    if(!collaboration){
+      const supportAction=isAdminRole()&&isPlatformTenantMode();
+      const endpoint=supportAction?'rpc/platform_support_request_object_collaboration_by_code':'rpc/request_object_collaboration_by_code';
+      const scopeText=scopeCodes.map(code=>cloudServiceScopeCatalog.find(x=>x.code===code)?.name||code).join(', ');
+      const body=supportAction
+        ? {p_organization_id:platformTenantModeOrgId,p_object_id:objectId,p_partner_code:code,p_service_scope:scopeText}
+        : {p_object_id:objectId,p_partner_code:code,p_service_scope:scopeText};
+      await cloudRequest(endpoint,{method:'POST',body:JSON.stringify(body)});
+      created=true;
+      await cloudLoadObjectCollaborations(false);
+      collaboration=(cloudObjectCollaborations||[]).find(c=>
+        String(c.object_id||'')===String(objectId) &&
+        String(c.owner_organization_id||'')===String(currentOrganizationId()) &&
+        String(c.service_public_code||'').toUpperCase()===code &&
+        !['rejected','cancelled'].includes(String(c.status||''))
+      );
+    }
+    const collaborationId=collaboration?.collaboration_id||collaboration?.id||'';
+    if(!collaborationId)throw new Error('Betreuungsbeziehung wurde angelegt, konnte aber nicht eindeutig geladen werden.');
+    await saveCollaborationScopes(collaborationId,scopeCodes);
     closeModal();
     await cloudLoadObjectCollaborations();
-    alert(`Betreuungsanfrage an ${r?.organization_name||'den Partner'} gesendet. Sie wird erst nach Bestätigung aktiv.`);
-  }catch(e){alert('Betreuungsanfrage konnte nicht erstellt werden: '+(e.message||e));}
+    alert(created
+      ? `Betreuungsanfrage an ${collaboration?.service_organization_name||'den Dienstleister'} gespeichert. Sie wird erst nach Bestätigung aktiv.`
+      : `Die Leistungsumfänge für ${collaboration?.service_organization_name||'den Dienstleister'} wurden aktualisiert. Es wurde keine zweite Partnerschaft angelegt.`);
+  }catch(e){alert('Betreuung konnte nicht gespeichert werden: '+(e.message||e));}
 }
 async function respondObjectCollaboration(collaborationId,accept){
   if(!hasOperationalAdminAccess())return;
@@ -9263,7 +9350,7 @@ function objectCollaborationAccessHtml(objectId){
   );
   if(!rows.length)return `<div class="muted" style="margin-top:7px"><strong>Betreuung / Zugriff:</strong> nur eigener Mandant</div>`;
   const label=v=>v==='pending'?'Offen – noch kein Zugriff':v==='active'?'Aktiv – Objektinhalte freigegeben':v==='rejected'?'Abgelehnt':v==='cancelled'?'Beendet – kein Zugriff':v||'—';
-  return `<div class="card" style="margin-top:10px;padding:10px"><div style="font-weight:800;margin-bottom:6px">Betreuung / Zugriff</div>${rows.map(c=>`<div style="padding:8px 0;border-top:1px solid rgba(255,255,255,.08)"><strong>${esc(c.service_organization_name||'Partnerunternehmen')}</strong>${c.service_public_code?` · <span class="muted">${esc(c.service_public_code)}</span>`:''}<br><span class="muted">${esc(label(c.status))}${c.service_scope?` · ${esc(c.service_scope)}`:''}</span>${hasOperationalAdminAccess()&&c.status==='pending'?`<div class="row" style="margin-top:7px"><button class="danger" onclick="cancelObjectCollaboration('${esc(c.collaboration_id)}','pending')">Anfrage zurückziehen</button></div>`:''}${hasOperationalAdminAccess()&&c.status==='active'?`<div class="row" style="margin-top:7px"><button class="danger" onclick="cancelObjectCollaboration('${esc(c.collaboration_id)}','active')">Zugriff beenden</button></div>`:''}</div>`).join('')}</div>`;
+  return `<div class="card" style="margin-top:10px;padding:10px"><div style="font-weight:800;margin-bottom:6px">Betreuung / Zugriff</div>${rows.map(c=>`<div style="padding:8px 0;border-top:1px solid rgba(255,255,255,.08)"><strong>${esc(c.service_organization_name||'Partnerunternehmen')}</strong>${c.service_public_code?` · <span class="muted">${esc(c.service_public_code)}</span>`:''}<br><span class="muted">${esc(label(c.status))} · ${collaborationScopeNames(c).length?esc(collaborationScopeNames(c).join(', ')):'kein Leistungsumfang'}</span>${hasOperationalAdminAccess()&&c.status==='pending'?`<div class="row" style="margin-top:7px"><button class="danger" onclick="cancelObjectCollaboration('${esc(c.collaboration_id)}','pending')">Anfrage zurückziehen</button></div>`:''}${hasOperationalAdminAccess()&&c.status==='active'?`<div class="row" style="margin-top:7px"><button class="danger" onclick="cancelObjectCollaboration('${esc(c.collaboration_id)}','active')">Zugriff beenden</button></div>`:''}</div>`).join('')}</div>`;
 }
 
 
@@ -9272,7 +9359,7 @@ function renderObjectsDirect(){
   const status=document.getElementById('objectListStatus');
   if(!el)return;
   const objects=Array.isArray(db?.objects)?db.objects:[];
-  if(status)status.textContent=`Objektmodul v2.19.42 · ${objects.length} Objekt${objects.length===1?'':'e'} geladen`;
+  if(status)status.textContent=`Objektmodul v${APP_VERSION} · ${objects.length} Objekt${objects.length===1?'':'e'} geladen`;
   if(!objects.length){
     el.innerHTML='<div class="empty">Keine Objekte im aktuellen Mandantenkontext.</div>';
     return;
@@ -10483,7 +10570,7 @@ function openObjectModal(id=''){
   <label>Notizen</label><textarea id="oNotes">${esc(o.notes)}</textarea>
   ${!id?`<div class="card" style="margin-top:14px;padding:12px"><strong>Standardbereiche</strong><div class="muted" style="margin-top:5px">Beim Anlegen werden automatisch folgende Bereiche erzeugt: ${DEFAULT_OBJECT_AREAS.map(esc).join(', ')}. Sie können anschließend objektbezogen umbenannt, deaktiviert oder ergänzt werden.</div></div>`:''}
   <label class="row" style="gap:10px;align-items:center;margin-top:14px"><input id="oIsTest" type="checkbox" ${o.isTest?'checked':''}><span><strong>Testobjekt</strong><br><span class="muted"></span></span></label>
-  ${id&&hasOperationalAdminAccess()?`<div class="card" style="margin-top:14px;padding:12px"><div class="row space"><div><strong>Betreuung / Dienstleister</strong><div class="muted" style="margin-top:4px">Dieses Objekt einem Partnerunternehmen zur dauerhaften Betreuung freigeben.</div></div><button type="button" onclick="openObjectCollaborationModal('${id}')">Betreuung freigeben</button></div></div>`:''}
+  ${id&&hasOperationalAdminAccess()?`<div class="card" style="margin-top:14px;padding:12px"><div class="row space"><div><strong>Betreuung / Dienstleister</strong><div class="muted" style="margin-top:4px">Dieses Objekt einem Dienstleister zur dauerhaften Betreuung mit mehreren Leistungsumfängen zuordnen.</div></div><button type="button" onclick="openObjectCollaborationModal('${id}')">Betreuung vergeben</button></div></div>`:''}
   <div class="row" style="margin-top:14px"><button class="primary" onclick="saveObject('${id}')">Speichern</button>${id?`<button class="danger" onclick="deleteObject('${id}')">Löschen</button>`:''}</div>`);
 }
 async function saveObject(id){
