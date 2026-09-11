@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.96</title>
+<title>Duschl Service – Objektplattform v2.19.97</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1195,7 +1195,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.96</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.97</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1238,7 +1238,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.96</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.97</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1408,8 +1408,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.96</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.96 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.97</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.97 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3065,7 +3065,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.96'; // Bewohnerbilder: Signed-URL-Pfade aus Supabase Storage werden korrekt gegen /storage/v1 aufgelöst.
+const APP_VERSION='2.19.97'; // Bewohnerbilder: Signed-URL-Pfade aus Supabase Storage werden korrekt gegen /storage/v1 aufgelöst.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -6547,11 +6547,11 @@ async function openRouteFindingModal(findingId){
   if(!canRouteFindingUI(f))return alert('Nur der berechtigte Entscheider des führenden Mandanten kann diesen Vorgang an ein anderes Unternehmen routen.');
   const o=(db.objects||[]).find(x=>x.id===f.objectId);if(!o)return alert('Objekt nicht gefunden.');
 
-  // v2.19.42: Am Objekt bereits aktiv beteiligte Firmen werden direkt angeboten.
-  // Dadurch muss die öffentliche Mandanten-ID im Regelprozess nicht mehr manuell eingegeben werden.
+  // v2.19.97: Beim manuellen Routing wird nur der Empfänger gewählt.
+  // Die am Objekt beauftragten Leistungsumfänge werden als Orientierung angezeigt,
+  // aber nicht erneut ausgewählt. Die fachliche Triage erfolgt beim Dienstleister.
   try{await cloudLoadObjectCollaborations(false);}catch(_e){}
   try{await cloudLoadObjectCollaborationScopes();}catch(_e){}
-  try{await cloudLoadServiceScopeCatalog();}catch(_e){}
   const currentOrgId=currentOrganizationId();
   const candidates=(cloudObjectCollaborations||[])
     .filter(c=>c.object_id===f.objectId && c.status==='active' && c.active!==false)
@@ -6560,34 +6560,31 @@ async function openRouteFindingModal(findingId){
       const id=currentIsOwner?c.service_organization_id:c.owner_organization_id;
       const name=currentIsOwner?(c.service_organization_name||'Partnerunternehmen'):(c.owner_organization_name||'Auftraggeber');
       const code=currentIsOwner?(c.service_public_code||''):(c.owner_public_code||'');
-      return {id,name,code,scope:c.service_scope||'',collaborationId:c.id||c.collaboration_id||''};
+      const collaborationId=c.id||c.collaboration_id||'';
+      const scopeNames=collaborationScopeNames(c);
+      return {id,name,code,collaborationId,scopeNames};
     })
     .filter(x=>x.id && x.id!==currentOrgId && x.code)
     .filter((x,i,a)=>a.findIndex(y=>y.id===x.id)===i)
     .sort((a,b)=>(a.name||'').localeCompare(b.name||'','de'));
 
   const candidateHtml=candidates.length
-    ? `<label>Empfängerfirma *</label><div id="routePartnerChoices" style="display:grid;gap:8px;margin-top:6px">${candidates.map((p,i)=>`<label class="card row" style="gap:10px;align-items:flex-start;padding:12px;cursor:pointer"><input type="radio" name="routePartnerChoice" value="${esc(p.code)}" data-collaboration-id="${esc(p.collaborationId||'')}" ${i===0?'checked':''} onchange="refreshRouteFindingScopeChoices()" style="margin-top:4px"><span><strong>${esc(p.name)}</strong><br><span class="muted">${esc(p.code)}${p.scope?' · '+esc(p.scope):''}</span></span></label>`).join('')}</div><details style="margin-top:12px"><summary class="muted" style="cursor:pointer">Andere Firma per Mandanten-ID</summary><label style="margin-top:10px">Mandanten-ID</label><input id="routePartnerCodeManual" autocomplete="off" autocapitalize="characters" placeholder="z. B. ORG-808D0B87" style="text-transform:uppercase" oninput="if(this.value.trim())document.querySelectorAll('input[name=routePartnerChoice]').forEach(x=>x.checked=false);refreshRouteFindingScopeChoices()"></details>`
-    : `<label>Mandanten-ID der Empfängerfirma *</label><input id="routePartnerCodeManual" autocomplete="off" autocapitalize="characters" placeholder="z. B. ORG-808D0B87" style="text-transform:uppercase"><div class="muted" style="margin-top:5px">Für dieses Objekt ist aktuell keine weitere aktive Firma hinterlegt.</div>`;
+    ? `<label>Empfängerfirma *</label><div id="routePartnerChoices" style="display:grid;gap:8px;margin-top:6px">${candidates.map((p,i)=>`<label class="card row" style="gap:10px;align-items:flex-start;padding:12px;cursor:pointer"><input type="radio" name="routePartnerChoice" value="${esc(p.code)}" ${i===0?'checked':''} style="margin-top:4px"><span><strong>${esc(p.name)}</strong>${p.scopeNames.length?`<br><span class="muted">Beauftragt: ${p.scopeNames.map(esc).join(' · ')}</span>`:''}</span></label>`).join('')}</div>${isPlatformOperatorRole()?`<details style="margin-top:12px"><summary class="muted" style="cursor:pointer">Admin-Sonderfall: andere Firma per Mandanten-ID</summary><label style="margin-top:10px">Mandanten-ID</label><input id="routePartnerCodeManual" autocomplete="off" autocapitalize="characters" placeholder="z. B. ORG-808D0B87" style="text-transform:uppercase" oninput="if(this.value.trim())document.querySelectorAll('input[name=routePartnerChoice]').forEach(x=>x.checked=false)"></details>`:''}`
+    : `<div class="card"><strong>Kein aktiver Dienstleister am Objekt hinterlegt.</strong><div class="muted" style="margin-top:5px">Bitte zuerst eine Betreuungsbeziehung für dieses Objekt anlegen.</div></div>${isPlatformOperatorRole()?`<details style="margin-top:12px"><summary class="muted" style="cursor:pointer">Admin-Sonderfall: andere Firma per Mandanten-ID</summary><label style="margin-top:10px">Mandanten-ID</label><input id="routePartnerCodeManual" autocomplete="off" autocapitalize="characters" placeholder="z. B. ORG-808D0B87" style="text-transform:uppercase"></details>`:''}`;
 
   const root=document.getElementById('modalRoot');
-  root.innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Vorgang an Firma routen</h2><p class="muted">Die Verantwortung für diesen Vorgang wird an die Empfängerfirma übergeben. Ein bisheriger aktiver Empfänger wird aus dem aktiven Arbeitsvorrat genommen; die Übergabe bleibt in der Historie sichtbar. Andere Dokumentationen des Objekts bleiben unsichtbar.</p><div class="card" style="margin:10px 0"><strong>${esc(f.title||'Feststellung')}</strong><div class="muted">${esc(o.name||'Objekt')}${f.area?' · '+esc(f.area):''}</div></div>${candidateHtml}<label>Leistungsumfänge *</label><div id="routeScopeChoices" style="display:grid;gap:6px;margin-top:6px"></div><div class="muted" style="margin-top:5px">Mehrere konkrete Umfänge können gleichzeitig vergeben werden.</div><label>Hinweis / Auftrag an die Firma</label><textarea id="routeInstruction" rows="4" placeholder="Was soll die Firma prüfen oder ausführen?"></textarea><label class="row" style="gap:8px;align-items:center;margin-top:12px"><input id="routeIncludePhotos" type="checkbox" checked> Fotos dieses Vorgangs mitfreigeben</label><label class="row" style="gap:8px;align-items:center;margin-top:8px"><input id="routeSubcontracting" type="checkbox"> Weitervergabe durch Empfänger erlauben</label><div class="modal-actions"><button class="primary" onclick="routeFindingToOrganization('${esc(findingId)}')">Vorgang senden</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
-  refreshRouteFindingScopeChoices();
+  root.innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Vorgang an Firma routen</h2><p class="muted">Empfänger auswählen. Die angezeigten Leistungsumfänge dienen nur zur Orientierung; der Dienstleister prüft anschließend, ob der Vorgang in seinem Leistungsumfang liegt.</p><div class="card" style="margin:10px 0"><strong>${esc(f.title||'Feststellung')}</strong><div class="muted">${esc(o.name||'Objekt')}${f.area?' · '+esc(f.area):''}</div></div>${candidateHtml}<label>Hinweis / Auftrag an die Firma</label><textarea id="routeInstruction" rows="4" placeholder="Was soll die Firma prüfen oder ausführen?"></textarea><label class="row" style="gap:8px;align-items:center;margin-top:12px"><input id="routeIncludePhotos" type="checkbox" checked> Fotos dieses Vorgangs mitfreigeben</label><label class="row" style="gap:8px;align-items:center;margin-top:8px"><input id="routeSubcontracting" type="checkbox"> Weitervergabe durch Empfänger erlauben</label><div class="modal-actions"><button class="primary" onclick="routeFindingToOrganization('${esc(findingId)}')">Vorgang senden</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
 }
 async function routeFindingToOrganization(findingId){
   const selected=document.querySelector('input[name=routePartnerChoice]:checked')?.value||'';
   const manual=(document.getElementById('routePartnerCodeManual')?.value||'').trim().toUpperCase();
   const code=(manual||selected).trim().toUpperCase();
   const instruction=(document.getElementById('routeInstruction')?.value||'').trim();
-  const scopeCodes=routeFindingScopeSelection();
-  const scopeNames=scopeCodes.map(code=>(cloudServiceScopeCatalog||[]).find(r=>canonicalServiceScopeCode(r.code)===code)?.name||code);
   const includePhotos=document.getElementById('routeIncludePhotos')?.checked!==false;
   const subcontractingAllowed=document.getElementById('routeSubcontracting')?.checked===true;
-  if(!code)return alert('Bitte eine Empfängerfirma auswählen oder eine Mandanten-ID eingeben.');
-  if(!scopeCodes.length)return alert('Bitte mindestens einen Leistungsumfang auswählen.');
-  const routedInstruction=`Leistungsumfänge: ${scopeNames.join(', ')}${instruction?'\n\n'+instruction:''}`;
+  if(!code)return alert('Bitte eine Empfängerfirma auswählen.');
   try{
-    await cloudRequest('rpc/route_finding_to_organization_by_code',{method:'POST',body:JSON.stringify({p_finding_id:findingId,p_partner_code:code,p_instruction:routedInstruction,p_include_photos:includePhotos,p_subcontracting_allowed:subcontractingAllowed})});
+    await cloudRequest('rpc/route_finding_to_organization_by_code',{method:'POST',body:JSON.stringify({p_finding_id:findingId,p_partner_code:code,p_instruction:instruction,p_include_photos:includePhotos,p_subcontracting_allowed:subcontractingAllowed})});
     closeModal();
     await cloudLoadExternalOrders(false);
     renderFindings();
@@ -10707,7 +10704,7 @@ async function convertResidentReportToFinding(id){
       });
     }
 
-    // v2.19.96: Bewohnerbilder gehören fachlich zur ursprünglichen Meldung und
+    // v2.19.97: Bewohnerbilder gehören fachlich zur ursprünglichen Meldung und
     // werden in der Dokumentation über source_resident_report_id referenziert.
     // Sie sind ausdrücklich KEINE Vorher-Fotos des Dienstleisters. Deshalb darf
     // ein Fehler beim privaten Medienabruf die Übernahme der Meldung nicht mehr
@@ -11894,7 +11891,7 @@ async function saveFinding(id){
   const activity=document.getElementById('fActivity')?.value.trim()||'';
   let workRequired=type==='Feststellung' && (document.getElementById('fWorkRequired')?.value==='yes');
   if(type!=='Feststellung' || status==='Erledigt')workRequired=false;
-  // v2.19.96: Den zugehörigen Bewohner-Arbeitsauftrag robust ermitteln.
+  // v2.19.97: Den zugehörigen Bewohner-Arbeitsauftrag robust ermitteln.
   // Die Dokumentation kann sowohl aus dem Arbeitsvorrat als auch direkt aus der
   // Dokumentations-/Objekthistorie geöffnet werden. Außerdem darf der globale
   // UI-Kontext während eines await nicht mehr die Synchronisierung zerstören.
@@ -11939,7 +11936,7 @@ async function saveFinding(id){
     cloudSetStatus('Dokumentation und Fotos werden gespeichert …','wait');
     const row=await cloudSaveFinding(id,data);
 
-    // v2.19.96: orderId vor asynchronen Operationen stabil halten. Falls die
+    // v2.19.97: orderId vor asynchronen Operationen stabil halten. Falls die
     // Dokumentation direkt aus der Dokumentationsliste geöffnet wurde, wird der
     // verknüpfte Bewohnerauftrag über execution_finding_id wiedergefunden.
     let residentRouteOrderIdAfterSave=residentRouteOrderIdForSave;
