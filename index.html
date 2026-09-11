@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.09</title>
+<title>Duschl Service – Objektplattform v2.20.10</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1019,6 +1019,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 .public-report-photo-item img{width:100%;height:100%;object-fit:cover;display:block}
 .public-report-photo-remove{position:absolute;top:5px;right:5px;width:30px;height:30px;padding:0!important;border-radius:50%!important;background:rgba(7,19,29,.92)!important;color:#fff!important;border:1px solid #60788a!important}
 .public-report-photo-help{font-size:12px;color:var(--muted);margin-top:7px;line-height:1.4}
+.public-report-file-trigger{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:#142333;color:var(--text);font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none}
+.public-report-native-file{position:absolute!important;width:1px!important;height:1px!important;opacity:.001!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;white-space:nowrap!important}
 @media(max-width:520px){
   #publicReportPage{padding:14px 10px 30px}.public-report-card{padding:16px;border-radius:15px}
   .public-report-photo-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -1171,11 +1173,11 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div class="public-report-photo-box">
 <label style="margin-top:0">Fotos</label>
 <div class="row" style="gap:8px;flex-wrap:wrap">
-  <button type="button" onclick="document.getElementById('prCamera').click()">Foto aufnehmen</button>
-  <button type="button" onclick="document.getElementById('prPhotos').click()">Foto auswählen</button>
+  <label class="public-report-file-trigger" for="prCamera">Foto aufnehmen</label>
+  <label class="public-report-file-trigger" for="prPhotos">Foto auswählen</label>
 </div>
-<input accept="image/*" capture="environment" id="prCamera" style="display:none" onclick="this.value=''" onchange="handlePublicReportPhotos(this)" type="file"/>
-<input accept="image/*" id="prPhotos" multiple style="display:none" onclick="this.value=''" onchange="handlePublicReportPhotos(this)" type="file"/>
+<input accept="image/*" capture="environment" class="public-report-native-file" id="prCamera" type="file"/>
+<input accept="image/*" class="public-report-native-file" id="prPhotos" type="file"/>
 <div class="public-report-photo-help">Optional · maximal 3 Bilder · maximal 10 MB je Bild. Kamera und Fotomediathek werden getrennt verarbeitet.</div>
 <div class="public-report-photo-grid" id="prPhotoGrid"></div>
 </div>
@@ -3105,7 +3107,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.09'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.10'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -3634,6 +3636,7 @@ function bootPublicResidentReport(){
   publicResidentAreaId=publicReportAreaFromUrl();
   document.body.classList.add('public-report-mode');
   document.getElementById('publicReportPage')?.classList.add('active');
+  setTimeout(bindPublicReportPhotoInputs,0);
   if(!publicResidentObjectId){
     const wrap=document.getElementById('publicReportFormWrap');
     if(wrap)wrap.innerHTML='<div class="public-report-success"><strong>QR-Code ungültig</strong><div class="muted">Dieser Meldelink kann nicht verwendet werden. Bitte scannen Sie den QR-Code am Objekt erneut.</div></div>';
@@ -3717,6 +3720,10 @@ function stablePublicReportFile(file,index){
   }
 }
 
+function publicReportFileSignature(file){
+  return [String(file?.name||''),Number(file?.size||0),Number(file?.lastModified||0)].join('|');
+}
+
 async function handlePublicReportPhotos(input){
   const selected=Array.from(input?.files||[]);
   if(!selected.length){
@@ -3724,21 +3731,51 @@ async function handlePublicReportPhotos(input){
     return;
   }
   const maxSize=10*1024*1024;
+  const existing=new Set(publicReportFiles.map(publicReportFileSignature));
   let added=0;
+  let rejected=0;
   for(const file of selected){
     if(publicReportFiles.length>=3){publicReportMessage('Es können maximal 3 Fotos hinzugefügt werden.');break;}
-    if(!publicReportFileLooksLikeImage(file)){publicReportMessage(`„${file.name||'Datei'}“ wird nicht als Bild erkannt.`);continue;}
-    if(file.size>maxSize){publicReportMessage(`„${file.name||'Foto'}“ ist größer als 10 MB.`);continue;}
-    const stableFile=stablePublicReportFile(file,publicReportFiles.length);
-    if(!stableFile){publicReportMessage(`„${file.name||'Foto'}“ konnte nicht übernommen werden.`);continue;}
-    publicReportFiles.push(stableFile);
+    if(!publicReportFileLooksLikeImage(file)){rejected++;publicReportMessage(`„${file.name||'Datei'}“ wird nicht als Bild erkannt.`);continue;}
+    if(file.size>maxSize){rejected++;publicReportMessage(`„${file.name||'Foto'}“ ist größer als 10 MB.`);continue;}
+    const sig=publicReportFileSignature(file);
+    if(existing.has(sig))continue;
+    // iOS/Safari: Das originale File-Objekt bleibt erhalten. Kein File-Klon,
+    // keine Canvas-/HEIC-Konvertierung und kein Zurücksetzen vor Verarbeitung.
+    publicReportFiles.push(file);
+    existing.add(sig);
     added++;
   }
   renderPublicReportPhotoPreview();
+  // Erst NACH dem Kopieren in den App-State zurücksetzen. So kann dasselbe
+  // Foto später erneut ausgewählt werden, ohne den Picker-Change zu verlieren.
+  try{ if(input) input.value=''; }catch(_e){}
   if(added){
     const n=publicReportFiles.length;
     publicReportMessage(`${n} ${n===1?'Foto wurde':'Fotos wurden'} zur Meldung hinzugefügt.`, 'good');
+  }else if(!rejected){
+    publicReportMessage('Das ausgewählte Foto ist bereits hinzugefügt.','good');
   }
+}
+
+function bindPublicReportPhotoInputs(){
+  const bind=(id)=>{
+    const el=document.getElementById(id);
+    if(!el || el.dataset.boundResidentPicker==='1')return;
+    el.dataset.boundResidentPicker='1';
+    let running=false;
+    const onPick=async()=>{
+      if(running)return;
+      running=true;
+      try{await handlePublicReportPhotos(el)}finally{setTimeout(()=>{running=false},0)}
+    };
+    // iOS Safari kann je nach Picker/PWA entweder input oder change zuverlässig
+    // feuern. Beide werden unterstützt; running verhindert Doppelübernahme.
+    el.addEventListener('input',onPick);
+    el.addEventListener('change',onPick);
+  };
+  bind('prCamera');
+  bind('prPhotos');
 }
 
 async function uploadPublicResidentReportPhotos(reportId,publicStatusToken){
