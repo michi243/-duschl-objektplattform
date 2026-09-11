@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.78</title>
+<title>Duschl Service – Objektplattform v2.19.79</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1077,7 +1077,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 </style>
 
 <style id="global-modal-close-v21975">
-/* ===== v2.19.78 – globaler Schließen-Standard für Modalfenster ===== */
+/* ===== v2.19.79 – globaler Schließen-Standard für Modalfenster ===== */
 .ds-modal-dialog,.modal-dialog-dark{position:relative;}
 .ds-global-modal-close{
   position:sticky!important;
@@ -1195,7 +1195,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.78</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.79</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1238,7 +1238,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.78</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.79</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1408,8 +1408,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.78</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.78 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.79</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.79 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3063,7 +3063,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.77'; // Governance: erledigte Dokumentationen sind schreibgeschützt; Bearbeitung erst nach dokumentierter Wiedereröffnung durch Auftraggeber/Admin.
+const APP_VERSION='2.19.79'; // Governance: erledigte Dokumentationen sind schreibgeschützt; Bearbeitung erst nach dokumentierter Wiedereröffnung durch Auftraggeber/Admin.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -5674,7 +5674,7 @@ function clearCollaborationScopeSelection(){
 function collaborationByObjectAndPartnerCode(objectId,partnerCode){
   const code=String(partnerCode||'').trim().toUpperCase();
   if(!objectId||!code)return null;
-  // v2.19.78: Auch beendete/abgelehnte Beziehungen bewusst finden.
+  // v2.19.79: Auch beendete/abgelehnte Beziehungen bewusst finden.
   // Der DB-Unique-Constraint erlaubt je Objekt + Dienstleister nur eine Beziehung;
   // diese muss daher reaktiviert statt neu angelegt werden.
   return (cloudObjectCollaborations||[]).find(c=>
@@ -5875,7 +5875,7 @@ async function createObjectCollaboration(){
     if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='Betreuung speichern';}
     const msg=String(e?.message||e||'');
     if(/save_object_collaboration_by_code|PGRST202|schema cache/i.test(msg)){
-      alert('Betreuung konnte nicht gespeichert werden: Datenbank-Update v2.19.78 fehlt. Bitte zuerst das zugehörige Supabase-SQL ausführen.');
+      alert('Betreuung konnte nicht gespeichert werden: Datenbank-Update v2.19.79 fehlt. Bitte zuerst das zugehörige Supabase-SQL ausführen.');
     }else{
       alert('Betreuung konnte nicht gespeichert werden: '+msg);
     }
@@ -6266,7 +6266,8 @@ function renderExternalOrders(){
     const actions=adminActions||operationalActions||reviewActions;
     const routeBadge=x.order_kind==='finding_route'?` <span class="badge">Gerouteter Vorgang</span>`:!!x.source_resident_report_id?` <span class="badge">Bewohnermeldung · automatisch</span>`:'';
     const snapshot=x.source_snapshot||{};
-    const routeContext=['finding_route','resident_report_route'].includes(String(x.order_kind||''))&&snapshot.area?`<div class="muted" style="margin-top:6px">Bereich: ${esc(snapshot.area)}${snapshot.area_detail?` · ${esc(snapshot.area_detail)}`:''}</div>`:'';
+    const isAutoResidentRoute=!!x.source_resident_report_id&&String(snapshot.route_type||'')==='resident_report_auto';
+    const routeContext=(String(x.order_kind||'')==='finding_route'||isAutoResidentRoute)&&snapshot.area?`<div class="muted" style="margin-top:6px">Bereich: ${esc(snapshot.area)}${snapshot.area_detail?` · ${esc(snapshot.area_detail)}`:''}</div>`:'';
     const hierarchyBadge=x.parent_work_order_id?` <span class="badge">Unterauftrag</span>`:'';
     const childOrders=(cloudExternalOrders||[]).filter(c=>String(c.parent_work_order_id||'')===String(x.id||''));
     const childContext=childOrders.length?`<div class="muted" style="margin-top:8px"><strong>Weitervergeben:</strong> ${childOrders.map(c=>`${esc(partnerName(c.executor_organization_id))} · ${esc(externalOrderStatusLabel(c.status))}`).join(' · ')}</div>`:'';
@@ -8762,19 +8763,32 @@ function externalWorkQueueItemHtml(x){
   const source=partnerName(x.source_organization_id);
   const assignedName=cloudExternalOrderAssignees.find(a=>a.user_id===x.assigned_user_id)?.display_name||'';
   const snapshot=x.source_snapshot||{};
+  const isAutoResidentRoute=!!x.source_resident_report_id&&String(snapshot.route_type||'')==='resident_report_auto';
   const subOrders=(cloudExternalOrders||[]).filter(c=>String(c.parent_work_order_id||'')===String(x.id||'')&&externalOrderIsOpen(c.status));
   const subcontractInfo=subOrders.length
     ? `<div><b>Untervergabe:</b> ${subOrders.map(c=>`${esc(partnerName(c.executor_organization_id))} · ${esc(externalOrderStatusLabel(c.status))}`).join(' · ')}</div>`
     : '';
+  const originText=isAutoResidentRoute
+    ? 'Bewohnermeldung · automatisch zugeordnet'
+    : `Extern von ${esc(source)}`;
+  const routingBadge=isAutoResidentRoute
+    ? 'Automatisch zugeordnet'
+    : 'Gerouteter Arbeitsauftrag';
+  const triageActions=isAutoResidentRoute&&String(x.status||'')==='requested'&&hasOperationalAdminAccess()
+    ? `<button type="button" class="primary" onclick="triageResidentReportOrder('${esc(x.id)}','within_scope')">Im Leistungsumfang</button><button type="button" onclick="triageResidentReportOrder('${esc(x.id)}','outside_scope')">Nicht im Leistungsumfang</button>`
+    : '';
+  const normalActions=canOperateExternalOrder(x)&&['accepted','in_progress'].includes(String(x.status||''))
+    ? `<button type="button" class="primary" onclick="updateExternalOrderStatus('${esc(x.id)}','in_progress')">In Bearbeitung</button><button type="button" onclick="updateExternalOrderStatus('${esc(x.id)}','completed')">Erledigt</button>`
+    : `<button type="button" class="primary" onclick="openExternalOrderById('${esc(x.id)}')">Auftrag ansehen</button>`;
   return `<div class="gf-workitem" data-external-order-id="${esc(x.id)}">
     <div class="gf-workhead">
       <div>
         <strong>${esc(x.title||'Externer Auftrag')}</strong>
-        <div class="muted">${esc(x.source_object_name||'Objekt')} · Extern von ${esc(source)}</div>
+        <div class="muted">${esc(x.source_object_name||'Objekt')} · ${originText}</div>
       </div>
       <div class="gf-statusstack">
         <span class="gf-status">${esc(externalOrderLifecycleLabel(x))}</span>
-        <span class="gf-status gf-status-decision">Gerouteter Arbeitsauftrag</span>
+        <span class="gf-status gf-status-decision">${routingBadge}</span>
       </div>
     </div>
     <div class="gf-meta">
@@ -8785,9 +8799,9 @@ function externalWorkQueueItemHtml(x){
       ${subcontractInfo}
       <div><b>Priorität:</b> ${esc(priorityLabel(x.priority||'P3'))}</div>
     </div>
-    ${externalOrderRouteMediaHtml(x.id)}
+    ${isAutoResidentRoute?externalOrderResidentMediaHtml(x):externalOrderRouteMediaHtml(x.id)}
     <div class="row" style="margin-top:10px">
-      ${canOperateExternalOrder(x)&&['accepted','in_progress'].includes(String(x.status||''))?`<button type="button" class="primary" onclick="updateExternalOrderStatus('${esc(x.id)}','in_progress')">In Bearbeitung</button><button type="button" onclick="updateExternalOrderStatus('${esc(x.id)}','completed')">Erledigt</button>`:`<button type="button" class="primary" onclick="openExternalOrderById('${esc(x.id)}')">Auftrag ansehen</button>`}
+      ${triageActions||normalActions}
       ${x.subcontracting_allowed!==false&&['accepted','in_progress'].includes(String(x.status||''))?`<button type="button" onclick="openSubcontractOrderModal('${esc(x.id)}')">Weitervergeben</button>`:''}
     </div>
   </div>`;
