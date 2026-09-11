@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.92</title>
+<title>Duschl Service – Objektplattform v2.19.93</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1195,7 +1195,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.92</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.93</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1238,7 +1238,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.92</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.93</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1408,8 +1408,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.92</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.92 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.93</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.93 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3063,7 +3063,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.92'; // Einheitliche Protokoll-/Chronikdarstellung auf Meldungen, Dokumentationen und Arbeitsvorrat.
+const APP_VERSION='2.19.93'; // Bewohnerbilder werden aus dem privaten Storage über kurzlebige Signed URLs geladen.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -3794,17 +3794,60 @@ function residentReportMediaFor(reportId){
   return (cloudResidentReportMedia||[]).filter(x=>x.resident_report_id===reportId);
 }
 
-async function cloudResidentReportMediaGet(path){
+const residentReportSignedUrlCache=new Map();
+
+async function cloudResidentReportMediaSignedUrl(path){
   if(!cloudSession?.access_token)throw new Error('Nicht angemeldet.');
+  const cleanPath=String(path||'').replace(/^\/+/, '');
+  if(!cleanPath)throw new Error('Ungültiger Bildpfad.');
+
+  const cached=residentReportSignedUrlCache.get(cleanPath);
+  if(cached && cached.expiresAt>Date.now()+15000)return cached.url;
+
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),8000);
   try{
-    const url=`${SUPABASE_URL}/storage/v1/object/authenticated/${RESIDENT_REPORT_PHOTO_BUCKET}/${path}`;
-    let r=await fetch(url,{method:'GET',signal:controller.signal,headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Authorization':'Bearer '+cloudSession.access_token}});
+    const endpoint=`${SUPABASE_URL}/storage/v1/object/sign/${RESIDENT_REPORT_PHOTO_BUCKET}/${cleanPath}`;
+    const request=()=>fetch(endpoint,{
+      method:'POST',
+      signal:controller.signal,
+      headers:{
+        'apikey':SUPABASE_PUBLISHABLE_KEY,
+        'Authorization':'Bearer '+cloudSession.access_token,
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify({expiresIn:300})
+    });
+
+    let r=await request();
     if(r.status===401){
       const ok=await cloudRefreshSession();
-      if(ok)r=await fetch(url,{method:'GET',signal:controller.signal,headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Authorization':'Bearer '+cloudSession.access_token}});
+      if(ok)r=await request();
     }
+
+    const raw=await r.text();
+    if(!r.ok)throw new Error(raw||`Signed URL HTTP ${r.status}`);
+
+    let payload={};
+    try{payload=raw?JSON.parse(raw):{};}catch(e){throw new Error('Ungültige Antwort beim Erzeugen der Bildfreigabe.');}
+    let signed=payload.signedURL||payload.signedUrl||payload.signed_url||'';
+    if(!signed)throw new Error('Keine signierte Bild-URL erhalten.');
+    if(signed.startsWith('/'))signed=SUPABASE_URL+signed;
+
+    residentReportSignedUrlCache.set(cleanPath,{url:signed,expiresAt:Date.now()+285000});
+    return signed;
+  }catch(e){
+    if(e?.name==='AbortError')throw new Error('Zeitüberschreitung beim Laden des Meldungsfotos');
+    throw e;
+  }finally{clearTimeout(timer);}
+}
+
+async function cloudResidentReportMediaGet(path){
+  const signedUrl=await cloudResidentReportMediaSignedUrl(path);
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),8000);
+  try{
+    const r=await fetch(signedUrl,{method:'GET',signal:controller.signal});
     if(!r.ok)throw new Error((await r.text())||`Storage HTTP ${r.status}`);
     return await r.blob();
   }catch(e){
@@ -11778,7 +11821,7 @@ async function saveFinding(id){
   const activity=document.getElementById('fActivity')?.value.trim()||'';
   let workRequired=type==='Feststellung' && (document.getElementById('fWorkRequired')?.value==='yes');
   if(type!=='Feststellung' || status==='Erledigt')workRequired=false;
-  // v2.19.92: Den zugehörigen Bewohner-Arbeitsauftrag robust ermitteln.
+  // v2.19.93: Den zugehörigen Bewohner-Arbeitsauftrag robust ermitteln.
   // Die Dokumentation kann sowohl aus dem Arbeitsvorrat als auch direkt aus der
   // Dokumentations-/Objekthistorie geöffnet werden. Außerdem darf der globale
   // UI-Kontext während eines await nicht mehr die Synchronisierung zerstören.
@@ -11823,7 +11866,7 @@ async function saveFinding(id){
     cloudSetStatus('Dokumentation und Fotos werden gespeichert …','wait');
     const row=await cloudSaveFinding(id,data);
 
-    // v2.19.92: orderId vor asynchronen Operationen stabil halten. Falls die
+    // v2.19.93: orderId vor asynchronen Operationen stabil halten. Falls die
     // Dokumentation direkt aus der Dokumentationsliste geöffnet wurde, wird der
     // verknüpfte Bewohnerauftrag über execution_finding_id wiedergefunden.
     let residentRouteOrderIdAfterSave=residentRouteOrderIdForSave;
