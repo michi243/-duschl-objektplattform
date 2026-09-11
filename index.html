@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.86</title>
+<title>Duschl Service – Objektplattform v2.19.87</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3063,7 +3063,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.86'; // Abgeschlossene Dokumentationen zeigen die vollständige Historie automatisch gerouteter Bewohnermeldungen.
+const APP_VERSION='2.19.87'; // Übernommene Bewohnermeldungen werden automatisch als Objektdokumentation angelegt und erscheinen damit im Objektauszug.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -6293,6 +6293,19 @@ function externalOrderResidentMediaHtml(order){
   return `<div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">${rows.map((m,i)=>`<div><small class="muted">Meldungsfoto</small><br>${residentReportMediaImg(m,m.file_name||`Foto ${i+1}`,'thumb')}</div>`).join('')}</div>`;
 }
 
+function residentRouteOrderForFinding(findingId){
+  return (cloudExternalOrders||[]).find(o=>
+    String(o.execution_finding_id||'')===String(findingId||'') &&
+    !!o.source_resident_report_id &&
+    String((o.source_snapshot||{}).route_type||'')==='resident_report_auto'
+  )||null;
+}
+function residentRouteOriginHtmlForFinding(f,includePhoto=true){
+  const order=residentRouteOrderForFinding(f?.id||'');
+  if(!order)return '';
+  return `<div class="card" style="margin-top:10px;padding:10px 12px"><strong>Ursprung: Bewohnermeldung</strong><div class="muted" style="margin-top:3px">Automatisch übernommen und als Objektdokumentation fortgeführt.</div>${includePhoto?externalOrderResidentMediaHtml(order):''}</div>`;
+}
+
 function residentRouteEventLabel(type){
   const map={
     auto_routed:'Automatisch zugeordnet',
@@ -6493,6 +6506,9 @@ async function triageResidentReportOrder(id,decision){
       method:'POST',
       body:JSON.stringify({p_organization_id:currentOrganizationId()||null,p_work_order_id:id,p_decision:decision,p_note:note||null})
     });
+    if(decision==='within_scope'){
+      try{await cloudReloadFindings();}catch(_e){}
+    }
     await cloudLoadExternalOrders();
     renderWorkQueue();
   }catch(e){
@@ -10010,6 +10026,7 @@ function findingCard(f){
     ${type==='Leistung'&&f.activity?`<p><b>Durchgeführt:</b> ${esc(f.activity)}</p>`:''}
     ${type==='Feststellung'&&f.action?`<p><b>Empfehlung:</b> ${esc(f.action)}</p>`:''}
     ${f.status==='Erledigt'&&f.completionType?`<p><b>Abschluss:</b> ${esc(f.completionType)}${f.completionNote?' – '+esc(f.completionNote):''}</p>`:''}
+    ${residentRouteOriginHtmlForFinding(f,true)}
     <div class="row">${f.status==='Erledigt'?`<button onclick="openFindingReadOnly('${f.id}')">Anzeigen</button>${canReopenCompletedFindingUI(f)?`<button onclick="openReopenFindingModal('${f.id}')">Wieder öffnen</button>`:''}`:(canEditFindingUI(f)?`<button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}')">Bearbeiten</button>${!findingHasVerifiedRoute(f.id)?`<button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}',true)">Abschließen</button>`:''}`:`<span class="muted">Nur durch Ersteller, zugewiesenen Objektbetreuer oder Admin/GF änderbar.</span>`)}${f.status!=='Erledigt'&&canRouteFindingUI(f)?`<button onclick="openRouteFindingModal('${f.id}')">Weiterleiten / routen</button>`:''}</div>
   </div>`;
 }
@@ -10100,6 +10117,7 @@ function customerDocCard(f){
     ${type==='Feststellung'&&f.action?`<p><b><span data-process-field="recommended">Empfohlene Maßnahme / nächster Schritt</span>:</b> ${esc(f.action)}</p>`:''}
     ${type==='Feststellung'?`<p><b>Entscheidung:</b> ${esc(decisionLabel(decision))}</p>`:''}
     ${completed}
+    ${residentRouteOriginHtmlForFinding(f,true)}
     ${customerPhotoHtml(f)}
   </div>`;
 }
