@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.69</title>
+<title>Duschl Service – Objektplattform v2.19.70</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1137,7 +1137,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.69</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.70</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1180,7 +1180,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.69</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.70</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1350,8 +1350,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.69</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.69 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.70</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.70 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -1434,7 +1434,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div class="row space">
 <div>
 <h2>Arbeitsvorrat</h2>
-<div class="muted">Alle offenen Arbeiten mit positiver Bearbeitungsentscheidung sowie offene konkrete Aufträge. Vorgänge mit ausstehender oder negativer Entscheidung bleiben außerhalb des Arbeitsvorrats.</div>
+<div class="muted">Alle offenen operativen Arbeiten und konkreten Aufträge. Erledigt gemeldete Fremdleistungen zur Bestätigung liegen unter „Entscheidungen“.</div>
 </div>
 </div>
 <div id="workQueue"></div>
@@ -3005,7 +3005,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.69'; // Dokumentationsstatus wird aus dem Vorgangsabschluss abgeleitet; bestätigte E2E-Abschlüsse erscheinen als abgeschlossen.
+const APP_VERSION='2.19.70'; // Leistungsbestätigung ist eine Auftraggeberentscheidung: completed/review-pending unter Entscheidungen, nicht im Arbeitsvorrat.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -5814,6 +5814,20 @@ function externalOrderLifecycleLabel(order){
   return externalOrderStatusLabel(status);
 }
 
+function externalOrderNeedsReview(order){
+  if(!order)return false;
+  return String(order.source_organization_id||'')===String(currentOrganizationId()||'')
+    && String(order.status||'')==='completed'
+    && String(order.review_status||'pending')!=='verified';
+}
+function pendingExternalReviewOrders(){
+  return (cloudExternalOrders||[]).filter(externalOrderNeedsReview);
+}
+function pendingExternalReviewFindingIds(){
+  return new Set(pendingExternalReviewOrders().map(x=>String(x.source_finding_id||'')).filter(Boolean));
+}
+
+
 function canReviewExternalOrder(order){
   if(!order||!hasOperationalAdminAccess())return false;
   return String(order.source_organization_id||'')===String(currentOrganizationId()||'')
@@ -7866,59 +7880,80 @@ function renderDecisions(){
   const selectedStatus=st.value;
   const selectedPriority=pr.value||'';
 
-  // Objektfilter aus Objektstamm + tatsächlich referenzierten Objekt-IDs aufbauen.
+  const reviews=pendingExternalReviewOrders();
+
   const objectMap=new Map((db.objects||[]).map(o=>[o.id,o.name||o.id]));
   (db.findings||[]).filter(f=>findingVisibleInCurrentTenantUI(f)).forEach(f=>{
-    if(f.objectId && !objectMap.has(f.objectId)) objectMap.set(f.objectId,`Nicht zugeordnet (${f.objectId})`);
+    if(f.objectId&&!objectMap.has(f.objectId))objectMap.set(f.objectId,`Nicht zugeordnet (${f.objectId})`);
+  });
+  reviews.forEach(x=>{
+    if(x.source_object_id&&!objectMap.has(x.source_object_id))objectMap.set(x.source_object_id,x.source_object_name||x.source_object_id);
   });
   const objectOptions=[...objectMap.entries()].sort((a,b)=>String(a[1]).localeCompare(String(b[1]),'de'));
   obj.innerHTML='<option value="">Alle Objekte</option>'+objectOptions.map(([id,name])=>`<option value="${esc(id)}">${esc(name)}</option>`).join('');
   if(objectMap.has(selectedObject))obj.value=selectedObject; else obj.value='';
 
-    const externalFindingIds=externallyRoutedFindingIdsForCurrentTenant();
-const findings=(db.findings||[]).filter(f=>!externalFindingIds.has(String(f.id||'')) && String(f.type||'Feststellung').trim()==='Feststellung' && f.decisionRequired!==false);
+  const externalFindingIds=externallyRoutedFindingIdsForCurrentTenant();
+  const findings=(db.findings||[])
+    .filter(f=>findingVisibleInCurrentTenantUI(f))
+    .filter(f=>!externalFindingIds.has(String(f.id||'')) && String(f.type||'Feststellung').trim()==='Feststellung' && f.decisionRequired!==false);
   const pending=findings.filter(f=>String(f.decisionStatus||'pending').trim()==='pending');
 
-  // Kennzahlen beziehen sich auf aktuell gewähltes Objekt, nicht auf Status-/Prioritätsfilter.
-  const scope=obj.value?pending.filter(f=>f.objectId===obj.value):pending;
+  const reviewScope=obj.value?reviews.filter(x=>String(x.source_object_id||'')===String(obj.value)):reviews;
+  const findingScope=obj.value?pending.filter(f=>f.objectId===obj.value):pending;
   const openEl=document.getElementById('decisionOpenCount');
   const immediateEl=document.getElementById('decisionImmediateCount');
   const urgentEl=document.getElementById('decisionUrgentCount');
-  if(openEl)openEl.textContent=scope.length;
-  if(immediateEl)immediateEl.textContent=scope.filter(f=>f.priority==='P1').length;
-  if(urgentEl)urgentEl.textContent=scope.filter(f=>f.priority==='P2').length;
+  if(openEl)openEl.textContent=findingScope.length+reviewScope.length;
+  if(immediateEl)immediateEl.textContent=findingScope.filter(f=>f.priority==='P1').length+reviewScope.filter(x=>x.priority==='P1').length;
+  if(urgentEl)urgentEl.textContent=findingScope.filter(f=>f.priority==='P2').length+reviewScope.filter(x=>x.priority==='P2').length;
   const navCount=document.getElementById('decisionNavCount');
-  if(navCount)navCount.textContent=pending.length;
+  if(navCount)navCount.textContent=pending.length+reviews.length;
 
   let items=findings.slice();
   if(obj.value)items=items.filter(f=>f.objectId===obj.value);
   if(selectedStatus)items=items.filter(f=>String(f.decisionStatus||'pending').trim()===selectedStatus);
   if(selectedPriority)items=items.filter(f=>f.priority===selectedPriority);
 
+  let reviewItems=reviews.slice();
+  if(obj.value)reviewItems=reviewItems.filter(x=>String(x.source_object_id||'')===String(obj.value));
+  if(selectedStatus && selectedStatus!=='pending')reviewItems=[];
+  if(selectedPriority)reviewItems=reviewItems.filter(x=>String(x.priority||'P3')===selectedPriority);
+
   const rank={P1:1,P2:2,P3:3,P4:4};
   items.sort((a,b)=>(rank[a.priority]||9)-(rank[b.priority]||9)||(b.createdAt||b.updatedAt||0)-(a.createdAt||a.updatedAt||0));
+  reviewItems.sort((a,b)=>(rank[a.priority]||9)-(rank[b.priority]||9)||new Date(b.completed_at||0)-new Date(a.completed_at||0));
 
   const count=document.getElementById('decisionResultCount');
-  if(count)count.textContent=items.length;
+  if(count)count.textContent=items.length+reviewItems.length;
 
-  if(!items.length){
-    list.innerHTML=`<div class="card">
-      <strong>Keine Vorgänge für diese Filterkombination.</strong>
-      <div class="muted" style="margin-top:6px">Offene Entscheidungen insgesamt: ${pending.length}. Objekt: ${obj.options[obj.selectedIndex]?.text||'Alle Objekte'}.</div>
+  const reviewHtml=reviewItems.map(x=>{
+    const snap=x.source_snapshot||{};
+    return `<div class="card" style="margin-bottom:12px">
+      <div class="row space">
+        <div><span class="badge">Leistungsbestätigung</span> ${badgeP(x.priority||'P3')}</div>
+        <small class="muted">${x.completed_at?fmt(x.completed_at):''}</small>
+      </div>
+      <h3 style="margin:10px 0 6px">${esc(x.title||'Externer Auftrag')}</h3>
+      <div class="muted">${esc(x.source_object_name||'Objekt')} · ausgeführt durch ${esc(partnerName(x.executor_organization_id))}</div>
+      ${snap.area?`<div class="muted" style="margin-top:5px">${esc(snap.area)}${snap.area_detail?' · '+esc(snap.area_detail):''}</div>`:''}
+      ${x.description?`<div style="margin-top:8px"><strong>Auftrag:</strong> ${esc(x.description)}</div>`:''}
+      <div style="margin-top:8px"><strong>Status:</strong> Erledigt gemeldet – Bestätigung ausstehend</div>
+      ${externalOrderRouteMediaHtml(x.id)}
+      <div class="row" style="margin-top:12px">
+        <button class="primary" onclick="reviewExternalOrder('${esc(x.id)}','verified')">Abschluss bestätigen</button>
+        <button onclick="reviewExternalOrder('${esc(x.id)}','rework_required')">Nacharbeit erforderlich</button>
+      </div>
     </div>`;
-    return;
-  }
+  }).join('');
 
-  list.innerHTML=items.map(f=>{
+  const findingHtml=items.map(f=>{
     const objectName=objectMap.get(f.objectId)||'Objekt nicht zugeordnet';
     const photo=f.beforePhoto||f.afterPhoto||'';
     const title=f.title||f.description||f.category||'Feststellung';
     return `<div class="card" style="margin-bottom:12px">
       <div class="row space">
-        <div style="min-width:0">
-          <div class="muted">${esc(objectName)} · ${fmt(f.createdAt||f.updatedAt)}</div>
-          <h3 style="margin:5px 0">${esc(title)}</h3>
-        </div>
+        <div style="min-width:0"><div class="muted">${esc(objectName)} · ${fmt(f.createdAt||f.updatedAt)}</div><h3 style="margin:5px 0">${esc(title)}</h3></div>
         <div class="row">${badgeP(f.priority)}<span class="badge">${esc(decisionLabel(f.decisionStatus||'pending'))}</span></div>
       </div>
       ${photo?`${mediaImg(photo,'Dokumentationsfoto','', 'width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin:8px 0')}`:''}
@@ -7931,8 +7966,9 @@ const findings=(db.findings||[]).filter(f=>!externalFindingIds.has(String(f.id||
       </div>
     </div>`;
   }).join('');
-}
 
+  list.innerHTML=(reviewHtml+findingHtml)||`<div class="card"><strong>Keine Vorgänge für diese Filterkombination.</strong><div class="muted" style="margin-top:6px">Offene Entscheidungen insgesamt: ${pending.length+reviews.length}. Objekt: ${obj.options[obj.selectedIndex]?.text||'Alle Objekte'}.</div></div>`;
+}
 function resetDecisionFilters(){
   const o=document.getElementById('decisionObjectFilter');
   const s=document.getElementById('decisionStatusFilter');
@@ -8376,6 +8412,7 @@ function externalWorkQueueItemHtml(x){
 }
 function renderWorkQueue(){
   const externalFindingIds=externallyRoutedFindingIdsForCurrentTenant();
+  const pendingReviewFindingIds=pendingExternalReviewFindingIds();
   if(!canUseWorkQueueUI()){
     const host=document.getElementById('workqueueList')||document.getElementById('gfWorkQueue');
     if(host)host.innerHTML='<div class="empty">Für diese Rolle nicht freigegeben.</div>';
@@ -8389,7 +8426,9 @@ function renderWorkQueue(){
   const tasks=(db.tasks||[]).map(t=>({...t}));
   const taskByFinding=new Map(tasks.filter(t=>t.findingId).map(t=>[t.findingId,t]));
 
-  const items=(db.findings||[]).filter(f=>findingVisibleInCurrentTenantUI(f)).filter(f=>!externalFindingIds.has(String(f.id||'')))
+  const items=(db.findings||[]).filter(f=>findingVisibleInCurrentTenantUI(f))
+    .filter(f=>!externalFindingIds.has(String(f.id||'')))
+    .filter(f=>!pendingReviewFindingIds.has(String(f.id||'')))
     .filter(f=>(f.type||'Feststellung')==='Feststellung')
     .filter(f=>hasOperationalAdminAccess()||currentUserOwnsOperationalObject(f.objectId))
     .map(f=>{
@@ -9124,13 +9163,16 @@ function renderDashboard(){
   }
 
   // Offene Entscheidungen: alle sichtbaren Feststellungen, bei denen noch keine finale Entscheidung vorliegt.
-  const openDecisionCount=(db.findings||[]).filter(f=>findingVisibleInCurrentTenantUI(f)).filter(f=>{
+  const openFindingDecisionCount=(db.findings||[]).filter(f=>findingVisibleInCurrentTenantUI(f)).filter(f=>{
     if(String(f.type||'Feststellung')!=='Feststellung')return false;
     const ds=String(f.decisionStatus||f.decision_status||'').toLowerCase();
     return !['approved','rejected','not_required','completed','closed','done'].includes(ds);
   }).length;
+  const openDecisionCount=openFindingDecisionCount+pendingExternalReviewOrders().length;
   const decisionKpi=document.getElementById('kpiDecisions');
   if(decisionKpi)decisionKpi.textContent=openDecisionCount;
+  const decisionNavCount=document.getElementById('decisionNavCount');
+  if(decisionNavCount)decisionNavCount.textContent=openDecisionCount;
   const decisionCard=document.getElementById('kpiDecisionsCard');
   if(decisionCard){
     decisionCard.style.display=canUseDecisionsUI()?'':'none';
@@ -9145,8 +9187,10 @@ function renderDashboard(){
   const openDecisionStatesForKpi=new Set(['pending','quote_requested','quote_sent','approved','deferred','question']);
   const externalFindingIdsForKpi=externallyRoutedFindingIdsForCurrentTenant();
   const taskMapForKpi=new Map((db.tasks||[]).filter(t=>t.findingId).map(t=>[t.findingId,t]));
+  const pendingReviewFindingIdsForKpi=pendingExternalReviewFindingIds();
   const internalOpenWorkCount=(db.findings||[])
     .filter(f=>!externalFindingIdsForKpi.has(String(f.id||'')))
+    .filter(f=>!pendingReviewFindingIdsForKpi.has(String(f.id||'')))
     .filter(f=>(f.type||'Feststellung')==='Feststellung')
     .filter(f=>hasOperationalAdminAccess()||currentUserOwnsOperationalObject(f.objectId))
     .filter(f=>internalFindingIsConcreteWork(f,taskMapForKpi.get(f.id)))
