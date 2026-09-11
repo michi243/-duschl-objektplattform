@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.05</title>
+<title>Duschl Service – Objektplattform v2.20.06</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3100,7 +3100,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.05'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.06'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -3817,7 +3817,17 @@ async function submitPublicResidentReport(){
     publicReportFiles=[];
 
     const wrap=document.getElementById('publicReportFormWrap');
-    if(wrap)wrap.innerHTML=`<div class="public-report-success"><strong>Meldung wurde übermittelt.</strong><div class="muted">${hadPhotos?'Meldung und Fotos wurden gespeichert. Ein zuständiger Dienstleister wird – sofern eindeutig hinterlegt – automatisch informiert.':'Die Meldung wurde gespeichert. Ein zuständiger Dienstleister wird – sofern eindeutig hinterlegt – automatisch informiert.'}</div></div>`;
+    if(wrap){
+      const routingState=String(result?.routing_status||result?.route_status||'').toLowerCase();
+      const routed=Boolean(result?.routed_work_order_id||result?.auto_routed||['routed','assigned','forwarded'].includes(routingState));
+      const needsReview=Boolean(result?.needs_internal_review||['review','triage','unassigned','no_match'].includes(routingState));
+      const nextStep=routed
+        ? 'Die Meldung wurde automatisch an den zuständigen Dienstleister weitergeleitet. Dort wird geprüft, welche Maßnahme erforderlich ist, und die weitere Bearbeitung veranlasst.'
+        : needsReview
+          ? 'Die Meldung wird durch die zuständige Objektbetreuung geprüft. Dort wird die weitere Bearbeitung veranlasst.'
+          : 'Die Meldung wird automatisch an die zuständige Stelle weitergegeben. Dort wird geprüft, welche Maßnahme erforderlich ist, und die weitere Bearbeitung veranlasst.';
+      wrap.innerHTML=`<div class="public-report-success"><strong>Vielen Dank. Ihre Meldung wurde übermittelt.</strong><div class="muted" style="margin-top:12px">${hadPhotos?'Ihre Meldung und die Fotos wurden erfolgreich gespeichert.':'Ihre Meldung wurde erfolgreich gespeichert.'}</div><div style="margin-top:18px;font-weight:800">Wie geht es weiter?</div><div class="muted" style="margin-top:6px">${nextStep}</div><div style="margin-top:18px;font-weight:800">Sie müssen nichts weiter tun.</div><div class="muted" style="margin-top:14px;font-size:.92em">Ihre Kontaktdaten werden nicht an den Dienstleister weitergegeben.</div></div>`;
+    }
   }catch(e){
     console.error('Öffentliche Meldung fehlgeschlagen',e);
     const detail=(e&&e.message)?e.message:String(e||'Unbekannter Fehler');
