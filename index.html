@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.72</title>
+<title>Duschl Service – Objektplattform v2.19.73</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1053,7 +1053,25 @@ body.public-report-mode>#photoViewer{display:none!important}
 .speech-mic-btn.listening{
   outline:2px solid currentColor;
 }
-</style></head>
+</style>
+<style id="service-scope-ui-v21973">
+/* v2.19.73 – kompakter, eindeutiger Leistungsumfang-Katalog */
+.soc-selected-summary{margin:8px 0 10px;padding:10px 12px;border:1px solid #31536d;border-radius:11px;background:#0b2333}
+.soc-selected-summary-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.soc-selected-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.soc-scope-groups{display:grid;gap:8px;margin-top:8px}
+.soc-scope-group{border:1px solid var(--line);border-radius:11px;background:#0b1823;overflow:hidden}
+.soc-scope-group>summary{cursor:pointer;list-style:none;padding:10px 12px;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.soc-scope-group>summary::-webkit-details-marker{display:none}
+.soc-scope-group>summary:after{content:'›';font-size:22px;color:var(--muted);transform:rotate(90deg);transition:.15s}
+.soc-scope-group:not([open])>summary:after{transform:rotate(0deg)}
+.soc-scope-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:0 10px 10px}
+.soc-scope-option{display:flex!important;align-items:flex-start;gap:8px;margin:0!important;padding:8px 9px;border:1px solid var(--line);border-radius:9px;cursor:pointer;background:#0d1f2b}
+.soc-scope-option input{width:auto!important;margin:2px 0 0!important;flex:0 0 auto}
+.soc-scope-count{font-size:11px;color:var(--muted);font-weight:700}
+@media(max-width:520px){.soc-scope-grid{grid-template-columns:1fr}.soc-selected-summary-head{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
 <body>
 <div aria-live="polite" id="publicReportPage">
 <div class="public-report-shell">
@@ -1137,7 +1155,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.72</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.73</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1180,7 +1198,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.72</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.73</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1350,8 +1368,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.72</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.72 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.73</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.73 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3005,7 +3023,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.72'; // Governance: erledigte Dokumentationen sind schreibgeschützt; Bearbeitung erst nach dokumentierter Wiedereröffnung durch Auftraggeber/Admin.
+const APP_VERSION='2.19.73'; // Governance: erledigte Dokumentationen sind schreibgeschützt; Bearbeitung erst nach dokumentierter Wiedereröffnung durch Auftraggeber/Admin.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -5502,11 +5520,55 @@ async function cloudLoadSharedObjects(){
     }));
   }catch(e){console.warn('Extern betreute Objekte konnten nicht geladen werden',e);cloudSharedObjects=[];}
 }
+function normalizeServiceScopeCategory(category=''){
+  const raw=String(category||'').trim();
+  const aliases={
+    'Sonderleistung':'Sonderleistungen',
+    'Sonderleistungen':'Sonderleistungen',
+    'Objektservice':'Objektservice',
+    'Außenanlagen':'Außenanlagen',
+    'Gebäude':'Gebäude',
+    'Technik':'Technik',
+    'Sicherheit':'Sicherheit',
+    'Weitere Leistungen':'Weitere Leistungen'
+  };
+  return aliases[raw]||raw||'Weitere Leistungen';
+}
+function canonicalServiceScopeCode(code=''){
+  const raw=String(code||'').trim().toUpperCase();
+  const aliases={
+    HAUSMEISTER:'OBJEKTBETREUUNG',
+    GARTENPFLEGE:'GRUENPFLEGE',
+    TOR_TUER:'TUER_TOR',
+    DACH:'DACH_FASSADE',
+    SCHAEDLINGSBEKAEMPFUNG:'SCHAEDLING'
+  };
+  return aliases[raw]||raw;
+}
+function canonicalizeServiceScopeCatalog(rows=[]){
+  const preferredCodes=new Set(['OBJEKTBETREUUNG','REINIGUNG','WINTERDIENST','GRUENPFLEGE','AUFZUG','HEIZUNG','SANITAER','ELEKTRO','TUER_TOR','SCHLIESSANLAGE','BRANDSCHUTZ','DACH_FASSADE','MALER','SCHAEDLING','ABFALL','TIEFGARAGE','SONSTIGE']);
+  const byCode=new Map();
+  for(const row of (Array.isArray(rows)?rows:[])){
+    const canonicalCode=canonicalServiceScopeCode(row.code);
+    const normalized={...row,code:canonicalCode,category:normalizeServiceScopeCategory(row.category)};
+    const current=byCode.get(canonicalCode);
+    if(!current || (preferredCodes.has(String(row.code||'').toUpperCase()) && !preferredCodes.has(String(current._sourceCode||'').toUpperCase()))){
+      normalized._sourceCode=String(row.code||'').toUpperCase();
+      byCode.set(canonicalCode,normalized);
+    }
+  }
+  const categoryOrder=['Objektservice','Außenanlagen','Gebäude','Technik','Sicherheit','Sonderleistungen','Weitere Leistungen'];
+  return [...byCode.values()].sort((a,b)=>{
+    const ca=categoryOrder.indexOf(a.category), cb=categoryOrder.indexOf(b.category);
+    const xa=ca<0?999:ca, xb=cb<0?999:cb;
+    return xa-xb || Number(a.sort_order||999)-Number(b.sort_order||999) || String(a.name||'').localeCompare(String(b.name||''),'de');
+  });
+}
 async function cloudLoadServiceScopeCatalog(){
   if(!cloudSession?.access_token){cloudServiceScopeCatalog=[];return [];}
   try{
     const rows=await cloudRequest('rpc/get_service_scope_catalog',{method:'POST',body:JSON.stringify({})});
-    cloudServiceScopeCatalog=Array.isArray(rows)?rows:[];
+    cloudServiceScopeCatalog=canonicalizeServiceScopeCatalog(rows);
   }catch(e){
     cloudServiceScopeCatalog=[];
     console.warn('Leistungsumfang-Katalog konnte nicht geladen werden',e);
@@ -5545,7 +5607,54 @@ function collaborationScopesHtml(c){
   return names.map(n=>`<span class="badge" style="margin:2px 5px 2px 0">${esc(n)}</span>`).join('');
 }
 function selectedCollaborationScopeCodes(){
-  return [...document.querySelectorAll('.soc-scope-check:checked')].map(el=>el.value).filter(Boolean);
+  return [...new Set([...document.querySelectorAll('.soc-scope-check:checked')].map(el=>canonicalServiceScopeCode(el.value)).filter(Boolean))];
+}
+function updateCollaborationScopeSummary(){
+  const codes=selectedCollaborationScopeCodes();
+  const box=document.getElementById('socSelectedScopes');
+  const count=document.getElementById('socSelectedScopeCount');
+  if(count)count.textContent=`${codes.length} ausgewählt`;
+  if(box){
+    box.innerHTML=codes.length
+      ? codes.map(code=>{const row=cloudServiceScopeCatalog.find(x=>x.code===code);return `<span class="badge">${esc(row?.name||code)}</span>`;}).join('')
+      : '<span class="muted">Noch kein Leistungsumfang ausgewählt.</span>';
+  }
+  document.querySelectorAll('.soc-scope-group').forEach(group=>{
+    const selected=group.querySelectorAll('.soc-scope-check:checked').length;
+    const c=group.querySelector('.soc-scope-count');
+    if(c)c.textContent=selected?`${selected} ausgewählt`:`${group.querySelectorAll('.soc-scope-check').length} Leistungen`;
+    if(selected)group.open=true;
+  });
+}
+function clearCollaborationScopeSelection(){
+  document.querySelectorAll('.soc-scope-check').forEach(el=>{el.checked=false;});
+  updateCollaborationScopeSummary();
+}
+function collaborationByObjectAndPartnerCode(objectId,partnerCode){
+  const code=String(partnerCode||'').trim().toUpperCase();
+  if(!objectId||!code)return null;
+  return (cloudObjectCollaborations||[]).find(c=>
+    String(c.object_id||'')===String(objectId) &&
+    String(c.owner_organization_id||'')===String(currentOrganizationId()) &&
+    String(c.service_public_code||'').trim().toUpperCase()===code &&
+    !['rejected','cancelled'].includes(String(c.status||''))
+  )||null;
+}
+function refreshObjectCollaborationScopeSelection(){
+  const objectId=document.getElementById('socObject')?.value||'';
+  const partnerCode=document.getElementById('socPartnerCode')?.value||'';
+  const collaboration=collaborationByObjectAndPartnerCode(objectId,partnerCode);
+  const currentCodes=new Set(collaboration
+    ? collaborationScopeRows(collaboration.collaboration_id||collaboration.id).map(x=>canonicalServiceScopeCode(x.scope_code||x.code))
+    : []);
+  document.querySelectorAll('.soc-scope-check').forEach(el=>{el.checked=currentCodes.has(canonicalServiceScopeCode(el.value));});
+  const state=document.getElementById('socRelationState');
+  if(state){
+    state.innerHTML=collaboration
+      ? `<strong>Bestehende Betreuung gefunden.</strong> Aktuelle Leistungsumfänge wurden geladen und werden beim Speichern aktualisiert.`
+      : 'Neue Betreuung: Bitte die gewünschten Leistungsumfänge auswählen.';
+  }
+  updateCollaborationScopeSummary();
 }
 async function saveCollaborationScopes(collaborationId,codes){
   const payload={p_collaboration_id:collaborationId,p_scope_codes:codes};
@@ -5611,16 +5720,22 @@ async function openObjectCollaborationModal(preselectedObjectId=''){
   await Promise.all([cloudLoadObjectCollaborations(false),cloudLoadServiceScopeCatalog()]);
   const objs=(db.objects||[]).filter(o=>!o.externalManaged&&o.organizationId===currentOrganizationId());
   if(!objs.length)return alert('Kein eigenes Objekt für die Vergabe vorhanden.');
-  if(!cloudServiceScopeCatalog.length)return alert('Der Leistungsumfang-Katalog ist noch nicht in Supabase eingerichtet. Bitte zuerst das SQL-Update für v2.19.72 ausführen.');
+  if(!cloudServiceScopeCatalog.length)return alert('Der Leistungsumfang-Katalog ist noch nicht in Supabase eingerichtet. Bitte zuerst das SQL-Update für v2.19.73 ausführen.');
   const selected=objs.some(o=>o.id===preselectedObjectId)?preselectedObjectId:objs[0].id;
   const existing=cloudObjectCollaborations.filter(c=>c.object_id===selected&&c.owner_organization_id===currentOrganizationId()&&!['rejected','cancelled'].includes(c.status));
-  const groups=[...new Set(cloudServiceScopeCatalog.map(x=>x.category||'Weitere Leistungen'))];
-  const scopeHtml=groups.map(group=>{
-    const rows=cloudServiceScopeCatalog.filter(x=>(x.category||'Weitere Leistungen')===group);
-    return `<div class="card" style="padding:10px;margin-top:8px"><strong>${esc(group)}</strong><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:7px;margin-top:8px">${rows.map(x=>`<label style="display:flex;align-items:flex-start;gap:8px;margin:0;padding:7px;border:1px solid var(--line);border-radius:9px;cursor:pointer"><input class="soc-scope-check" type="checkbox" value="${esc(x.code)}" style="width:auto;margin:2px 0 0"><span>${esc(x.name)}</span></label>`).join('')}</div></div>`;
-  }).join('');
-  document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Betreuung vergeben</h2><p class="muted">Ein Partner wird je Objekt nur einmal angebunden. Unter dieser Beziehung können mehrere Leistungsumfänge gleichzeitig hinterlegt werden.</p><label>Objekt *</label><select id="socObject" onchange="refreshObjectCollaborationHint()">${objs.map(o=>`<option value="${esc(o.id)}" ${o.id===selected?'selected':''}>${esc(o.name)}</option>`).join('')}</select><div id="socExistingHint" class="muted" style="margin-top:6px">${existing.length?`Bestehende Betreuung: ${existing.map(c=>`${esc(c.service_organization_name||'Partnerunternehmen')}${c.service_public_code?' · '+esc(c.service_public_code):''} · ${esc(c.status==='pending'?'Offen':c.status==='active'?'Aktiv':c.status||'—')}`).join('<br>')}`:'Noch keine Betreuung für dieses Objekt.'}</div><label>Mandanten-ID des Dienstleisters *</label><input id="socPartnerCode" autocomplete="off" autocapitalize="characters" placeholder="z. B. DS-7K4P9X" style="text-transform:uppercase"><div class="muted" style="margin-top:5px">Besteht für Objekt und Dienstleister bereits eine Beziehung, werden deren Leistungsumfänge aktualisiert statt eine zweite Partnerschaft anzulegen.</div><label>Leistungsumfänge *</label>${scopeHtml}<div class="modal-actions"><button class="primary" onclick="createObjectCollaboration()">Betreuung speichern</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
+  const categoryOrder=['Objektservice','Außenanlagen','Gebäude','Technik','Sicherheit','Sonderleistungen','Weitere Leistungen'];
+  const groups=[...new Set(cloudServiceScopeCatalog.map(x=>normalizeServiceScopeCategory(x.category)))].sort((a,b)=>{
+    const ai=categoryOrder.indexOf(a),bi=categoryOrder.indexOf(b);
+    return (ai<0?999:ai)-(bi<0?999:bi)||a.localeCompare(b,'de');
+  });
+  const scopeHtml=`<div class="soc-selected-summary"><div class="soc-selected-summary-head"><strong>Ausgewählte Leistungen</strong><div class="row" style="gap:6px"><span class="soc-scope-count" id="socSelectedScopeCount">0 ausgewählt</span><button type="button" style="padding:5px 8px;font-size:11px" onclick="clearCollaborationScopeSelection()">Auswahl löschen</button></div></div><div class="soc-selected-chips" id="socSelectedScopes"><span class="muted">Noch kein Leistungsumfang ausgewählt.</span></div></div><div class="soc-scope-groups">${groups.map((group,idx)=>{
+    const rows=cloudServiceScopeCatalog.filter(x=>normalizeServiceScopeCategory(x.category)===group);
+    return `<details class="soc-scope-group" ${idx===0?'open':''}><summary><span>${esc(group)}</span><span class="soc-scope-count">${rows.length} Leistungen</span></summary><div class="soc-scope-grid">${rows.map(x=>`<label class="soc-scope-option"><input class="soc-scope-check" type="checkbox" value="${esc(x.code)}" onchange="updateCollaborationScopeSummary()"><span>${esc(x.name)}</span></label>`).join('')}</div></details>`;
+  }).join('')}</div>`;
+  document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Betreuung vergeben</h2><p class="muted">Ein Partner wird je Objekt nur einmal angebunden. Unter dieser Beziehung können mehrere Leistungsumfänge gleichzeitig hinterlegt werden.</p><label>Objekt *</label><select id="socObject" onchange="refreshObjectCollaborationHint();refreshObjectCollaborationScopeSelection()">${objs.map(o=>`<option value="${esc(o.id)}" ${o.id===selected?'selected':''}>${esc(o.name)}</option>`).join('')}</select><div id="socExistingHint" class="muted" style="margin-top:6px">${existing.length?`Bestehende Betreuung: ${existing.map(c=>`${esc(c.service_organization_name||'Partnerunternehmen')}${c.service_public_code?' · '+esc(c.service_public_code):''} · ${esc(c.status==='pending'?'Offen':c.status==='active'?'Aktiv':c.status||'—')}`).join('<br>')}`:'Noch keine Betreuung für dieses Objekt.'}</div><label>Mandanten-ID des Dienstleisters *</label><input id="socPartnerCode" autocomplete="off" autocapitalize="characters" placeholder="z. B. DS-7K4P9X" style="text-transform:uppercase" oninput="refreshObjectCollaborationScopeSelection()"><div id="socRelationState" class="muted" style="margin-top:5px">Besteht für Objekt und Dienstleister bereits eine Beziehung, werden deren aktuelle Leistungsumfänge automatisch geladen und aktualisiert statt eine zweite Partnerschaft anzulegen.</div><label>Leistungsumfänge *</label>${scopeHtml}<div class="modal-actions"><button class="primary" onclick="createObjectCollaboration()">Betreuung speichern</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
+  updateCollaborationScopeSummary();
 }
+
 function refreshObjectCollaborationHint(){
   const objectId=document.getElementById('socObject')?.value||'';const box=document.getElementById('socExistingHint');if(!box)return;
   const existing=cloudObjectCollaborations.filter(c=>c.object_id===objectId&&c.owner_organization_id===currentOrganizationId()&&!['rejected','cancelled'].includes(c.status));
