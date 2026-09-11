@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.07</title>
+<title>Duschl Service – Objektplattform v2.20.08</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1170,7 +1170,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <textarea id="prDescription" maxlength="2000" placeholder="Was ist aufgefallen? Wo genau befindet sich das Problem?"></textarea>
 <div class="public-report-photo-box">
 <label for="prPhotos" style="margin-top:0">Fotos</label>
-<input accept="image/*" id="prPhotos" multiple="" onchange="handlePublicReportPhotos(this)" type="file"/>
+<input accept="image/jpeg,image/png,image/webp,.heic,.heif" id="prPhotos" multiple="" onchange="handlePublicReportPhotos(this)" type="file"/>
 <div class="public-report-photo-help">Optional · maximal 3 Bilder · maximal 10 MB je Bild. Kamera oder Fotomediathek möglich.</div>
 <div class="public-report-photo-grid" id="prPhotoGrid"></div>
 </div>
@@ -3100,7 +3100,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.07'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.08'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -3699,23 +3699,30 @@ function publicReportLoadImageFromFile(file){
 }
 
 async function normalizePublicReportImage(file,index){
-  // Fotos aus der iPhone-Mediathek können als HEIC/HEIF oder mit uneindeutigem
-  // MIME-Type geliefert werden. Für den öffentlichen Upload normalisieren wir
-  // deshalb jedes auswählbare Bild browserseitig auf JPEG. So bekommen Kamera
-  // und Mediathek denselben stabilen Upload-Pfad.
-  const img=await publicReportLoadImageFromFile(file);
-  const maxEdge=2560;
-  const scale=Math.min(1,maxEdge/Math.max(img.naturalWidth||img.width||1,img.naturalHeight||img.height||1));
-  const width=Math.max(1,Math.round((img.naturalWidth||img.width||1)*scale));
-  const height=Math.max(1,Math.round((img.naturalHeight||img.height||1)*scale));
-  const canvas=document.createElement('canvas');
-  canvas.width=width; canvas.height=height;
-  const ctx=canvas.getContext('2d');
-  if(!ctx)throw new Error('Bild konnte nicht verarbeitet werden.');
-  ctx.drawImage(img,0,0,width,height);
-  const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Bild konnte nicht in JPEG umgewandelt werden.')),'image/jpeg',0.9));
-  const base=String(file.name||`foto_${index+1}`).replace(/\.[^.]+$/,'').replace(/[^a-zA-Z0-9_-]+/g,'_').slice(0,80)||`foto_${index+1}`;
-  return new File([blob],`${base}.jpg`,{type:'image/jpeg',lastModified:Date.now()});
+  // iOS-Fotomediathek: HEIC/HEIF-Dateien lassen sich in Safari nicht zuverlässig
+  // über <img> + Canvas decodieren. Genau dadurch wurden ausgewählte Mediathek-
+  // Fotos bisher verworfen. Wir erzeugen deshalb zuerst eine echte, stabile
+  // Byte-Kopie der vom Picker gelieferten Datei und machen die Aufnahme NICHT
+  // von einer erfolgreichen Browser-Vorschau abhängig.
+  const bytes=await file.arrayBuffer();
+  if(!bytes || !bytes.byteLength)throw new Error('Die ausgewählte Bilddatei ist leer.');
+
+  const originalName=String(file.name||`foto_${index+1}`).trim();
+  const extMatch=originalName.match(/\.([a-zA-Z0-9]+)$/);
+  const ext=(extMatch?.[1]||'').toLowerCase();
+  let mime=String(file.type||'').toLowerCase();
+  if(!mime){
+    mime=ext==='jpg'||ext==='jpeg'?'image/jpeg':
+         ext==='png'?'image/png':
+         ext==='webp'?'image/webp':
+         ext==='heic'?'image/heic':
+         ext==='heif'?'image/heif':'application/octet-stream';
+  }
+  const safeBase=originalName.replace(/\.[^.]+$/,'').replace(/[^a-zA-Z0-9_-]+/g,'_').slice(0,80)||`foto_${index+1}`;
+  const safeExt=ext||(
+    mime==='image/jpeg'?'jpg':mime==='image/png'?'png':mime==='image/webp'?'webp':mime==='image/heic'?'heic':mime==='image/heif'?'heif':'jpg'
+  );
+  return new File([bytes],`${safeBase}.${safeExt}`,{type:mime,lastModified:Date.now()});
 }
 
 async function handlePublicReportPhotos(input){
@@ -3734,7 +3741,7 @@ async function handlePublicReportPhotos(input){
       added++;
     }catch(e){
       console.error('Bewohnerfoto aus Mediathek übernehmen fehlgeschlagen',e,file);
-      publicReportMessage(`„${file.name||'Foto'}“ konnte nicht übernommen werden. Bitte wählen Sie ein anderes Foto oder nehmen Sie das Bild direkt mit der Kamera auf.`);
+      publicReportMessage(`„${file.name||'Foto'}“ konnte nicht übernommen werden. Bitte versuchen Sie die Auswahl erneut oder verwenden Sie ein anderes Foto.`);
     }
   }
   // Input nicht sofort leeren: iOS/Safari darf die Mediathek-Dateireferenz bis
