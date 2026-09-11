@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.19.85</title>
+<title>Duschl Service – Objektplattform v2.19.86</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1195,7 +1195,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.85</div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v2.19.86</div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1238,7 +1238,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.85</span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v2.19.86</span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1408,8 +1408,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.85</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.85 geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v2.19.86</div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v2.19.86 geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3063,7 +3063,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.19.85'; // Bewohner-Routing: Abnahme synchronisiert die ursprüngliche Bewohnermeldung auf Abgeschlossen.
+const APP_VERSION='2.19.86'; // Abgeschlossene Dokumentationen zeigen die vollständige Historie automatisch gerouteter Bewohnermeldungen.
 const SUPABASE_URL='https://dherkuguwqffwyzaigag.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk';
 const SUPABASE_SESSION_KEY='duschl_supabase_session_v1';
@@ -8513,7 +8513,7 @@ function resetDecisionFilters(){
 }
 
 
-function openFindingReadOnly(id){
+async function openFindingReadOnly(id){
   const f=db.findings.find(x=>x.id===id); if(!f)return;
   const o=db.objects.find(x=>x.id===f.objectId);
   const before=[...(f.beforePhotos||[])];
@@ -8521,6 +8521,31 @@ function openFindingReadOnly(id){
   const after=[...(f.afterPhotos||[])];
   if(f.afterPhoto&&!after.includes(f.afterPhoto))after.unshift(f.afterPhoto);
   const photos=[...before,...after].filter(Boolean);
+
+  // v2.19.86: Eine abgeschlossene operative Dokumentation muss ihren Ursprung
+  // und die vollständige Prozesshistorie der Bewohnermeldung nachvollziehbar zeigen.
+  // Die Historie bleibt eine gemeinsame Datenquelle (resident_report_events) und
+  // wird nicht als paralleles Protokoll an der Dokumentation dupliziert.
+  let residentRouteOrder=(cloudExternalOrders||[]).find(x=>
+    String(x.execution_finding_id||'')===String(f.id||'') &&
+    !!x.source_resident_report_id &&
+    String((x.source_snapshot||{}).route_type||'')==='resident_report_auto'
+  );
+  if(!residentRouteOrder && cloudSession?.access_token){
+    try{
+      await cloudLoadExternalOrders(false);
+      residentRouteOrder=(cloudExternalOrders||[]).find(x=>
+        String(x.execution_finding_id||'')===String(f.id||'') &&
+        !!x.source_resident_report_id &&
+        String((x.source_snapshot||{}).route_type||'')==='resident_report_auto'
+      );
+    }catch(_e){}
+  }
+  const residentOriginHtml=residentRouteOrder
+    ? `<div class="card" style="margin-top:12px;background:#101f2a"><strong>Ursprung: Bewohnermeldung</strong><div class="muted" style="margin-top:5px">Automatisch an den zuständigen Dienstleister weitergeleitet und als operative Dokumentation abgeschlossen.</div></div>`
+    : '';
+  const residentTimelineHtml=residentRouteOrder?residentRouteTimelineHtml(residentRouteOrder):'';
+
   modal(`<div class="row space">
       <div>
         <h2>Vorgang</h2>
@@ -8528,20 +8553,24 @@ function openFindingReadOnly(id){
       </div>
       <button onclick="closeModal()">✕</button>
     </div>
+    ${residentOriginHtml}
     <div class="card" style="margin-top:12px">
       <div class="row">${badgeP(f.priority)}<span class="badge">${esc(decisionLabel(f.decisionStatus||'pending'))}</span></div>
       <h3 style="margin:10px 0 6px">${esc(f.title||f.description||'Dokumentation')}</h3>
       ${f.area?`<div class="muted">${esc(f.area)}${f.areaDetail?' · '+esc(f.areaDetail):''}</div>`:''}
-      ${f.description?`<p><strong>Feststellung</strong><br>${esc(f.description)}</p>`:''}
+      ${f.description?`<p><strong>${(f.type||'')==='Leistung'?'Bemerkung / Zustand':'Feststellung'}</strong><br>${esc(f.description)}</p>`:''}
       ${f.action?`<p><strong>Empfehlung</strong><br>${esc(f.action)}</p>`:''}
       ${decisionMetaHtml(f)}
-      ${f.activity?`<p><strong>Leistung</strong><br>${esc(f.activity)}</p>`:''}
+      ${f.activity?`<p><strong>Durchgeführte Tätigkeit</strong><br>${esc(f.activity)}</p>`:''}
+      ${f.status==='Erledigt'&&f.completionType?`<p><strong>Abschluss</strong><br>${esc(f.completionType)}${f.completionNote?' – '+esc(f.completionNote):''}</p>`:''}
       ${photos.length?`<div class="photo-grid" style="margin-top:10px">${photos.map(p=>mediaImg(p,'Dokumentationsfoto','thumb')).join('')}</div>`:''}
     </div>
+    ${residentTimelineHtml}
     <div class="row" style="margin-top:14px">
       ${f.status!=='Erledigt'&&canUseDecisionsUI()?`<button class="primary" onclick="closeModal();setTimeout(()=>openDecisionModal('${f.id}'),50)">Entscheidung treffen</button>`:''}${canReopenCompletedFindingUI(f)?`<button class="primary" onclick="closeModal();setTimeout(()=>openReopenFindingModal('${f.id}'),50)">Wieder öffnen</button>`:''}
       <button onclick="closeModal()">Schließen</button>
     </div>`);
+  hydrateMediaImages();
 }
 
 function decisionActorDisplay(f){
