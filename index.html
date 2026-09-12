@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.13</title>
+<title>Duschl Service – Objektplattform v2.20.14</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3107,7 +3107,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.13'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.14'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -7309,6 +7309,7 @@ function renderOrganizations(){
     const storageClass=limit>0&&pct>=warn?'bad':'';
     return `<div class="card" style="display:block!important;visibility:visible!important;opacity:1!important"><div class="row space"><div><h3 style="margin:0">${esc(org.name)}</h3><div class="muted" style="margin-top:5px">${esc(org.organization_type||'Unternehmen')} · ${org.active===false?'Inaktiv':'Aktiv'}</div></div><span class="badge">${summary.count} Benutzer</span></div><div style="margin-top:12px"><div class="muted">Mandanten-Admin</div><div style="font-weight:800;margin-top:4px">${adminText}</div></div><div style="margin-top:12px"><div class="muted">Vertraglicher Speicher</div><div class="${storageClass}" style="font-weight:800;margin-top:4px">${storageText}</div></div><div class="row" style="margin-top:12px">
       <button class="primary" onclick="enterPlatformTenantMode('${esc(org.id)}')">Mandant administrieren</button>
+      ${isAdminRole()?`<button class="platform-warning-btn" onclick="openPlatformTenantDataCleanup('${esc(org.id)}')">Daten bereinigen</button>`:''}
       <button onclick="openOrganizationModal('${esc(org.id)}')">Mandant bearbeiten</button>
       <button onclick="openTenantAdminAssignmentModal('${esc(org.id)}')">${summary.admins.length?'Mandanten-Admin ändern':'Mandanten-Admin festlegen'}</button>
       ${isAdminRole()?`<button class="${org.active===false?'':'platform-warning-btn'}" onclick="platformToggleTenantActive('${esc(org.id)}',${org.active===false?'true':'false'})">${org.active===false?'Mandant aktivieren':'Mandant deaktivieren'}</button>
@@ -7386,6 +7387,15 @@ async function exitPlatformTenantMode(){
   applyRoleUI();
   showSection('dashboard');
   await cloudReloadObjects();
+}
+
+
+async function openPlatformTenantDataCleanup(orgId){
+  if(!isAdminRole())return alert('Nur der primäre Platform Admin darf Mandantendaten dauerhaft bereinigen.');
+  const org=cloudOrganizations.find(o=>o.id===orgId);
+  if(!org)return alert('Mandant wurde nicht gefunden.');
+  await enterPlatformTenantMode(orgId);
+  dsOpenDataManagement();
 }
 
 
@@ -12730,6 +12740,16 @@ async function dsPlatformOrphanCleanup({silent=false}={}){
   return {deleted:deletedRows.length,failed:failedRows.length};
 }
 
+function dsToggleTenantCleanupAll(checked){
+  document.querySelectorAll('[data-tenant-cleanup]').forEach(el=>{el.checked=!!checked;});
+}
+function dsSyncTenantCleanupAll(){
+  const all=document.getElementById('tenantCleanupAll');
+  if(!all)return;
+  const boxes=[...document.querySelectorAll('[data-tenant-cleanup]')];
+  all.checked=boxes.length>0&&boxes.every(el=>el.checked);
+}
+
 async function dsTenantCleanupPreview(){
   const box=document.getElementById('tenantCleanupResult');
   if(box)box.innerHTML='<div class="muted">Speicher wird analysiert …</div>';
@@ -12757,8 +12777,10 @@ async function dsTenantCleanupPreview(){
 async function dsTenantCleanupExecute(){
   const checks=[...document.querySelectorAll('[data-tenant-cleanup]:checked')].map(x=>x.value);
   if(!checks.length){alert('Bitte mindestens einen Datenbereich auswählen.');return;}
-  const phrase=prompt('Dauerhafte Löschung. Zur Bestätigung bitte LÖSCHEN eingeben.');
+  const tenantName=currentOrganization?.name||'dieser Mandant';
+  const phrase=prompt(`Dauerhafte Löschung für „${tenantName}“. Zur Bestätigung bitte LÖSCHEN eingeben.`);
   if(phrase!=='LÖSCHEN')return;
+  if(!confirm(`Ausgewählte Daten von „${tenantName}“ dauerhaft löschen?\n\nDer Mandant, seine Benutzer und Rollen bleiben erhalten. Zugehörige Bilder/Dateien werden aus dem Storage entfernt.`))return;
   try{
     const orgId=currentOrganizationId();
     if(!orgId)throw new Error('Kein Mandant ausgewählt.');
@@ -12907,15 +12929,17 @@ function dsOpenDataManagement(){
           </div>
           <button class="secondary" onclick="document.getElementById('dsDataManagementModal').style.display='none'">✕</button>
         </div>
-        <p class="muted">Daten und Speicher des eigenen Mandanten gezielt verwalten. Mandantenübergreifende Daten anderer Unternehmen werden nicht gelöscht.</p>
+        <p class="muted">Daten und Speicher des ausgewählten Mandanten gezielt verwalten. Mandantenübergreifende Daten anderer Unternehmen werden nicht gelöscht.</p>
+        <div class="card" style="margin:12px 0"><strong id="tenantCleanupContextName">${esc(currentOrganization?.name||'Mandant')}</strong><div class="muted">Der Mandant selbst sowie Benutzer, Rollen und Zugänge bleiben bestehen. Gelöscht werden nur die ausgewählten operativen Daten und zugehörigen Dateien.</div></div>
         <div id="tenantCleanupResult" class="card" style="margin:12px 0"></div>
         <div class="card">
           <h3 style="margin-top:0">Datenbereiche auswählen</h3>
+          <label style="display:block;padding:10px;border:1px solid var(--line);border-radius:10px;margin-bottom:12px"><input id="tenantCleanupAll" type="checkbox" onchange="dsToggleTenantCleanupAll(this.checked)"> <strong>Alle operativen Daten dieses Mandanten</strong><br><span class="muted">Wählt Mitteilungen, Meldungen, Dokumentationen und Objekte gemeinsam aus. Zugehörige Storage-Dateien werden mit entfernt.</span></label>
           <div style="display:grid;gap:12px">
-            <label><input type="checkbox" data-tenant-cleanup value="messages"> <strong>Mitteilungen</strong><br><span class="muted">Eigene Mandantenkommunikation und zugehörige Lesestatusdaten.</span></label>
-            <label><input type="checkbox" data-tenant-cleanup value="reports"> <strong>Meldungen</strong><br><span class="muted">Bewohner-/QR-Meldungen des Mandanten inklusive zugehöriger Bilder.</span></label>
-            <label><input type="checkbox" data-tenant-cleanup value="findings"> <strong>Dokumentationen</strong><br><span class="muted">Dokumentationen/Feststellungen inklusive zugehöriger Bilder und Medien.</span></label>
-            <label><input type="checkbox" data-tenant-cleanup value="objects"> <strong>Objekte</strong><br><span class="muted">Eigene Objekte inklusive abhängiger eigener Daten und Bilder. Cross-Tenant-Historien müssen serverseitig geschützt bleiben.</span></label>
+            <label><input type="checkbox" data-tenant-cleanup value="messages" onchange="dsSyncTenantCleanupAll()"> <strong>Mitteilungen</strong><br><span class="muted">Eigene Mandantenkommunikation und zugehörige Lesestatusdaten.</span></label>
+            <label><input type="checkbox" data-tenant-cleanup value="reports" onchange="dsSyncTenantCleanupAll()"> <strong>Meldungen</strong><br><span class="muted">Bewohner-/QR-Meldungen des Mandanten inklusive zugehöriger Bilder.</span></label>
+            <label><input type="checkbox" data-tenant-cleanup value="findings" onchange="dsSyncTenantCleanupAll()"> <strong>Dokumentationen</strong><br><span class="muted">Dokumentationen/Feststellungen inklusive zugehöriger Bilder und Medien.</span></label>
+            <label><input type="checkbox" data-tenant-cleanup value="objects" onchange="dsSyncTenantCleanupAll()"> <strong>Objekte</strong><br><span class="muted">Eigene Objekte inklusive abhängiger eigener Daten und Bilder. Cross-Tenant-Historien müssen serverseitig geschützt bleiben.</span></label>
           </div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
