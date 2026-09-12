@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.12</title>
+<title>Duschl Service – Objektplattform v2.20.13</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3107,7 +3107,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.13'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -12702,19 +12702,32 @@ async function dsPlatformOrphanCleanup({silent=false}={}){
   if(!rows.length){if(!silent)alert('Keine verwaisten Storage-Dateien gefunden.');return {deleted:0,failed:0};}
   const summary=dsOrphanSummary(rows);
   if(!silent && !confirm(`${summary.count} verwaiste Storage-Datei(en) mit ${dsBytes(summary.total)} dauerhaft löschen?\n\nEs werden ausschließlich Dateien gelöscht, die in keiner bekannten Medienreferenz mehr verwendet werden.`))return {deleted:0,failed:0};
-  let deleted=0; const failed=[];
+  const requestErrors=[];
   for(const row of rows){
-    try{await dsDeleteStorageOrphan(row);deleted++;}
-    catch(e){failed.push(row);console.warn('Verwaiste Storage-Datei konnte nicht gelöscht werden',row,e);}
+    try{await dsDeleteStorageOrphan(row);}
+    catch(e){requestErrors.push({row,error:e});console.warn('Verwaiste Storage-Datei konnte nicht gelöscht werden',row,e);}
   }
+  // Storage DELETE kann bei RLS-Ausschluss erfolgreich antworten, ohne ein Objekt zu löschen.
+  // Daher gilt eine Datei erst als gelöscht, wenn die authoritative Orphan-RPC sie nicht mehr liefert.
+  let remaining=[];
+  try{remaining=await dsPlatformStorageOrphans();}
+  catch(e){
+    if(!silent)alert('Löschanforderung wurde gesendet, die anschließende Verifikation ist jedoch fehlgeschlagen: '+(e.message||e));
+    return {deleted:0,failed:rows.length};
+  }
+  const remainingKeys=new Set(remaining.map(r=>`${String(r.bucket_id||'')}|${String(r.storage_path||'')}`));
+  const deletedRows=rows.filter(r=>!remainingKeys.has(`${String(r.bucket_id||'')}|${String(r.storage_path||'')}`));
+  const failedRows=rows.filter(r=>remainingKeys.has(`${String(r.bucket_id||'')}|${String(r.storage_path||'')}`));
   try{await dsRenderPlatformResources();}catch(_e){}
   try{await dsPlatformOrphanPreview();}catch(_e){}
   if(!silent){
-    alert(failed.length
-      ? `${deleted} Datei(en) gelöscht. ${failed.length} Datei(en) konnten nicht entfernt werden.`
-      : `${deleted} verwaiste Storage-Datei(en) wurden dauerhaft gelöscht.`);
+    if(failedRows.length){
+      alert(`${deletedRows.length} Datei(en) nachweislich gelöscht. ${failedRows.length} Datei(en) sind weiterhin im Storage vorhanden.\n\nUrsache ist in der Regel eine fehlende Storage-DELETE-Berechtigung (RLS).`);
+    }else{
+      alert(`${deletedRows.length} verwaiste Storage-Datei(en) wurden dauerhaft gelöscht und die Löschung wurde verifiziert.`);
+    }
   }
-  return {deleted,failed:failed.length};
+  return {deleted:deletedRows.length,failed:failedRows.length};
 }
 
 async function dsTenantCleanupPreview(){
