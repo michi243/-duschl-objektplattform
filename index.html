@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.20</title>
+<title>Duschl Service – Objektplattform v2.20.21</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -552,6 +552,7 @@ button.pa-kpi-card{width:100%;font:inherit;cursor:pointer}
 .tenant-kpi-green{background:linear-gradient(145deg,#0d6a50 0%,#124b3d 100%)!important}
 .tenant-kpi-purple{background:linear-gradient(145deg,#56308d 0%,#2d285d 100%)!important}
 .tenant-kpi-card.is-disabled{opacity:.62}
+#kpiExternalMonitoringCard{pointer-events:auto!important;cursor:pointer!important}
 .tenant-kpi-icon{width:50px;height:50px;border-radius:15px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.16);font-size:25px;margin-bottom:17px}
 .tenant-kpi-arrow{position:absolute;right:18px;top:24px;font-size:36px;color:rgba(255,255,255,.72);font-weight:300}
 .tenant-kpi-label{font-size:17px;font-weight:850;margin-bottom:5px}
@@ -3173,7 +3174,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.20'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.21'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -10416,8 +10417,12 @@ function renderDashboard(){
   if(externalMonitoringKpi)externalMonitoringKpi.textContent=String(externalMonitoringCount);
   const externalMonitoringCard=document.getElementById('kpiExternalMonitoringCard');
   if(externalMonitoringCard){
-    externalMonitoringCard.classList.toggle('is-disabled',externalMonitoringCount===0);
-    externalMonitoringCard.setAttribute('aria-disabled',externalMonitoringCount===0?'true':'false');
+    // v2.20.21: Monitoring bleibt immer navigierbar – auch bei 0 Vorgängen.
+    // So kann der Mandant die Monitoring-Ansicht bewusst öffnen und sieht dort
+    // den eindeutigen Leerzustand statt einer scheinbar funktionslosen Kachel.
+    externalMonitoringCard.classList.remove('is-disabled');
+    externalMonitoringCard.setAttribute('aria-disabled','false');
+    externalMonitoringCard.disabled=false;
   }
 
   const kpiInspections=document.getElementById('kpiInspections'); if(kpiInspections)kpiInspections.textContent=db.inspections.length;
