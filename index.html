@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.14</title>
+<title>Duschl Service – Objektplattform v2.20.15</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1310,6 +1310,25 @@ body.public-report-mode>#photoViewer{display:none!important}
       <div><div class="pa-metric-label">Noch verfügbar</div><div class="pa-metric-value" id="sysStorageFree">—</div></div>
     </div>
     <div class="pa-info-box">ⓘ <span id="sysStorageNote">Die freie Kapazität bezieht sich auf die Summe der vertraglich vergebenen Mandantenkontingente.</span></div>
+  </div>
+
+  <div class="pa-panel" id="platformDataManagementPanel">
+    <div class="pa-panel-head">
+      <div>
+        <div class="pa-panel-title"><span class="pa-panel-icon">▧</span>Daten &amp; Speicher</div>
+        <div class="pa-panel-sub">Operative Mandantendaten und zugehörigen Storage gezielt bereinigen. Mandant, Benutzer, Rollen und Zugänge bleiben bestehen.</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <label for="platformCleanupTenantSelect"><strong>Mandant auswählen</strong></label>
+      <select id="platformCleanupTenantSelect" style="margin-top:8px" onchange="renderPlatformCleanupTenantSummary()"></select>
+      <div id="platformCleanupTenantSummary" class="muted" style="margin-top:10px">Mandant auswählen.</div>
+      <div class="row" style="margin-top:14px;gap:10px;flex-wrap:wrap">
+        <button class="platform-warning-btn" type="button" onclick="openSelectedPlatformTenantDataCleanup()">Mandantendaten bereinigen</button>
+        <button class="secondary" type="button" onclick="openPlatformOrphanManagement()">Plattform-Speicher prüfen</button>
+      </div>
+    </div>
+    <div class="pa-info-box" style="margin-top:12px">ⓘ Die Mandantenbereinigung löscht ausschließlich ausgewählte operative Daten dieses Mandanten. Die plattformweite Orphan-Prüfung löscht ausschließlich Dateien ohne bekannte Datenbankreferenz.</div>
   </div>
 
   <div class="pa-panel">
@@ -3107,7 +3126,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.14'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.15'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -7109,6 +7128,7 @@ function renderPlatformSystemStatus(){
   set('sysStorageUsedTop',formatBytes(used));
   set('sysStorageContractedTop',formatBytes(contracted));
   set('sysStoragePercentInline',contracted>0?`${pct}%`:'—');
+  renderPlatformCleanupTenantSelector();
 
   const list=document.getElementById('sysTenantStorageList');
   if(list){
@@ -7289,6 +7309,53 @@ function platformOrganizationUserSummary(orgId){
     .filter(Boolean);
   return {count:activeMemberships.length,admins};
 }
+function renderPlatformCleanupTenantSelector(){
+  const select=document.getElementById('platformCleanupTenantSelect');
+  if(!select)return;
+  const previous=String(select.value||'');
+  const orgs=(cloudOrganizations||[]).slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'de'));
+  if(!orgs.length){
+    select.innerHTML='<option value="">Keine Mandanten vorhanden</option>';
+    select.disabled=true;
+    renderPlatformCleanupTenantSummary();
+    return;
+  }
+  select.disabled=false;
+  select.innerHTML='<option value="">Mandant auswählen …</option>'+orgs.map(org=>`<option value="${esc(org.id)}">${esc(org.name)}${org.active===false?' · inaktiv':''}</option>`).join('');
+  if(previous&&orgs.some(o=>String(o.id)===previous))select.value=previous;
+  renderPlatformCleanupTenantSummary();
+}
+function renderPlatformCleanupTenantSummary(){
+  const select=document.getElementById('platformCleanupTenantSelect');
+  const box=document.getElementById('platformCleanupTenantSummary');
+  if(!box)return;
+  const org=(cloudOrganizations||[]).find(o=>String(o.id)===String(select?.value||''));
+  if(!org){box.innerHTML='Mandant auswählen. Die Bereinigung startet erst nach einer zusätzlichen Löschbestätigung.';return;}
+  const summary=platformOrganizationUserSummary(org.id);
+  const usage=(platformStorageRows||[]).find(r=>String(r.organization_id)===String(org.id))||{};
+  box.innerHTML=`<strong>${esc(org.name)}</strong> · ${org.active===false?'inaktiv':'aktiv'} · ${summary.count} Benutzer · ${formatBytes(Number(usage.used_bytes||0))} belegter Speicher`;
+}
+async function openSelectedPlatformTenantDataCleanup(){
+  if(!isAdminRole())return alert('Nur der primäre Platform Admin darf Mandantendaten dauerhaft bereinigen.');
+  const orgId=String(document.getElementById('platformCleanupTenantSelect')?.value||'');
+  if(!orgId)return alert('Bitte zuerst einen Mandanten auswählen.');
+  await openPlatformTenantDataCleanup(orgId);
+}
+async function openPlatformOrphanManagement(){
+  if(!isAdminRole())return alert('Nur der primäre Platform Admin darf den plattformweiten Speicher bereinigen.');
+  const select=document.getElementById('platformCleanupTenantSelect');
+  let orgId=String(select?.value||'');
+  if(!orgId){
+    const first=(cloudOrganizations||[]).find(o=>o.active!==false)||(cloudOrganizations||[])[0];
+    orgId=String(first?.id||'');
+  }
+  if(!orgId)return alert('Es ist noch kein Mandant vorhanden.');
+  await enterPlatformTenantMode(orgId);
+  dsOpenDataManagement();
+  const card=document.getElementById('platformOrphanCleanupCard');
+  if(card){card.scrollIntoView({behavior:'smooth',block:'center'});}
+}
+
 function renderOrganizations(){
   const box=document.getElementById('organizationList');
   if(!box)return;
