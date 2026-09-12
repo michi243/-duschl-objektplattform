@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.21</title>
+<title>Duschl Service – Objektplattform v2.20.22</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1534,6 +1534,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 </select></div>
 <div><label>Priorität</label><select id="filterPriority" onchange="renderFindings()"><option value="">Alle</option><option value="critical">Sofort + Dringend</option><option value="P1">Sofort</option><option value="P2">Dringend</option><option value="P3">Planbar</option><option value="P4">Beobachten</option></select></div>
 <div><label>Typ</label><select id="filterType" onchange="renderFindings()"><option value="">Alle</option><option>Feststellung</option><option>Leistung</option></select></div>
+<div><label>Verantwortung</label><select id="filterResponsibility" onchange="renderFindings()"><option value="">Alle</option><option value="own">Eigene To-dos</option><option value="external">Extern in Bearbeitung</option><option value="completed">Abgeschlossen</option></select></div>
 </div>
 <div class="grid" id="findingList"></div>
 </section>
@@ -3174,7 +3175,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.21'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.22'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -10244,15 +10245,17 @@ function openObjectOpenFindings(objectId){
   requestAnimationFrame(()=>document.getElementById('findingList')?.scrollIntoView({behavior:'smooth',block:'start'}));
 }
 
-function openObjectDocumentation(objectId){
-  // v2.18.85: Objekthistorie unabhängig vom Offen-Status öffnen.
-  // Damit bleiben auch erledigte Feststellungen und Leistungen sichtbar.
+async function openObjectDocumentation(objectId){
+  // v2.20.22: Die Objektakte zeigt neben der Dokumentation auch den aktuellen
+  // externen Verantwortungsstatus. Fremdvergabe verschwindet nie aus der Objektakte.
+  try{await cloudLoadExternalOrders(false);}catch(e){console.warn('Externe Aufträge konnten für die Objektakte nicht aktualisiert werden',e);}
   showSection('findings');
   const object=document.getElementById('filterObject'); if(object)object.value=objectId;
   const status=document.getElementById('filterStatus'); if(status)status.value='';
   const priority=document.getElementById('filterPriority'); if(priority)priority.value='';
   const type=document.getElementById('filterType'); if(type)type.value='';
   const decision=document.getElementById('filterDecision'); if(decision)decision.value='';
+  const responsibility=document.getElementById('filterResponsibility'); if(responsibility)responsibility.value='';
   renderFindings();
 }
 
@@ -10320,6 +10323,31 @@ function externalMonitoringOrdersForCurrentTenant(){
     return true;
   });
 }
+function externalMonitoringOrdersForObject(objectId){
+  const oid=String(objectId||'');
+  if(!oid)return [];
+  return externalMonitoringOrdersForCurrentTenant().filter(x=>{
+    const orderObjectId=String(x.source_object_id||x.object_id||'');
+    if(orderObjectId)return orderObjectId===oid;
+    const fid=String(x.source_finding_id||'');
+    if(!fid)return false;
+    const f=(db.findings||[]).find(row=>String(row.id||'')===fid);
+    return String(f?.objectId||'')===oid;
+  });
+}
+
+function openObjectExternalMonitoring(objectId){
+  showSection('findings');
+  const object=document.getElementById('filterObject'); if(object)object.value=objectId||'';
+  const status=document.getElementById('filterStatus'); if(status)status.value='';
+  const priority=document.getElementById('filterPriority'); if(priority)priority.value='';
+  const type=document.getElementById('filterType'); if(type)type.value='';
+  const decision=document.getElementById('filterDecision'); if(decision)decision.value='';
+  const responsibility=document.getElementById('filterResponsibility'); if(responsibility)responsibility.value='external';
+  renderFindings();
+  requestAnimationFrame(()=>document.getElementById('findingList')?.scrollIntoView({behavior:'smooth',block:'start'}));
+}
+
 function openDashboardExternalMonitoring(){
   const rows=externalMonitoringOrdersForCurrentTenant();
   const html=rows.length?rows.map(x=>`<div class="card" style="margin:10px 0">
@@ -10490,12 +10518,16 @@ function renderObjects(){
       const fs=(Array.isArray(db.findings)?db.findings:[]).filter(f=>findingVisibleInCurrentTenantUI(f)&&f.objectId===o.id);
       const open=fs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt').length;
       const documentationCount=fs.length;
+      const externalInProgressCount=externalMonitoringOrdersForObject(o.id).length;
       const documentationBadge=documentationCount
         ? `<span class="badge badge-action" role="button" tabindex="0" aria-label="${documentationCount} Dokumentationen für ${esc(o.name||'Objekt')} anzeigen" title="Alle Dokumentationen anzeigen" onclick="openObjectDocumentation('${esc(o.id)}')">${documentationCount} Dokumentation${documentationCount===1?'':'en'}</span>`
         : `<span class="badge" aria-disabled="true">0 Dokumentationen</span>`;
       const openBadge=open
         ? `<span class="badge badge-action" role="button" tabindex="0" aria-label="${open} offene Feststellungen für ${esc(o.name||'Objekt')} anzeigen" title="Offene Feststellungen anzeigen" onclick="openObjectOpenFindings('${esc(o.id)}')">${open} offen</span>`
         : `<span class="badge" aria-disabled="true">0 offen</span>`;
+      const externalBadge=externalInProgressCount
+        ? `<span class="badge badge-action" role="button" tabindex="0" aria-label="${externalInProgressCount} extern in Bearbeitung für ${esc(o.name||'Objekt')} anzeigen" title="Extern in Bearbeitung anzeigen" onclick="openObjectExternalMonitoring('${esc(o.id)}')">${externalInProgressCount} extern in Bearbeitung</span>`
+        : '';
 
       let collaborationHtml='';
       if(!o.externalManaged){
@@ -10510,7 +10542,7 @@ function renderObjects(){
             <div class="muted">${esc(o.address||'')}</div>
             ${o.externalManaged?`<div class="muted" style="margin-top:4px">Auftraggeber: ${esc(o.ownerOrganizationName||'Partnerunternehmen')}</div>`:''}
           </div>
-          <div class="row" style="justify-content:flex-end">${documentationBadge}${openBadge}</div>
+          <div class="row" style="justify-content:flex-end">${documentationBadge}${openBadge}${externalBadge}</div>
         </div>
         ${o.notes?`<p>${esc(o.notes)}</p>`:''}
         ${o.externalManaged
@@ -10568,6 +10600,7 @@ function renderObjectFiles(){
     const open=docs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt').length;
     const urgent=docs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&['P1','P2'].includes(f.priority)&&f.status!=='Erledigt').length;
     const services=docs.filter(f=>(f.type||'Feststellung')==='Leistung').length;
+    const externalInProgress=externalMonitoringOrdersForObject(o.id).length;
 
     const lastFive=inspections.slice(0,5);
     const older=inspections.slice(5);
@@ -10602,6 +10635,7 @@ function renderObjectFiles(){
             <span class="stat-chip">${open} offen</span>
             <span class="stat-chip">${urgent} Sofort/Dringend</span>
             <span class="stat-chip">${services} Leistungen</span>
+            ${externalInProgress?`<span class="stat-chip" role="button" tabindex="0" onclick="openObjectExternalMonitoring('${esc(o.id)}')">${externalInProgress} extern in Bearbeitung</span>`:''}
             <span class="stat-chip">${inspections.length} Einsätze</span>
           </div>
         </div>
@@ -10717,9 +10751,13 @@ function openCustomerDocumentation(){
 function renderFindings(){
   renderCustomerObjectContext();
   const df=document.getElementById('filterDecision')?.value||'';
+  const rf=document.getElementById('filterResponsibility')?.value||'';
   const of=document.getElementById('filterObject')?.value||'', sf=document.getElementById('filterStatus')?.value||'', pf=document.getElementById('filterPriority')?.value||'', tf=document.getElementById('filterType')?.value||'';
   let arr=[...db.findings].filter(f=>findingVisibleInCurrentTenantUI(f)).sort((a,b)=>b.createdAt-a.createdAt);
   if(of)arr=arr.filter(x=>x.objectId===of);if(sf==='active')arr=arr.filter(x=>x.status!=='Erledigt');else if(sf)arr=arr.filter(x=>x.status===sf);if(df)arr=arr.filter(x=>(x.decisionStatus||'pending')===df);if(pf==='critical')arr=arr.filter(x=>['P1','P2'].includes(x.priority));else if(pf)arr=arr.filter(x=>x.priority===pf);if(tf)arr=arr.filter(x=>(x.type||'Feststellung')===tf);
+  if(rf==='external')arr=arr.filter(x=>{const o=externalResponsibilityOrderForFinding(x.id);return !!o&&findingIsOperationallyOwnedByOtherTenant(x.id)&&['accepted','in_progress'].includes(String(o.status||''));});
+  else if(rf==='own')arr=arr.filter(x=>x.status!=='Erledigt'&&!findingIsOperationallyOwnedByOtherTenant(x.id));
+  else if(rf==='completed')arr=arr.filter(x=>x.status==='Erledigt'||String(externalResponsibilityOrderForFinding(x.id)?.review_status||'')==='verified');
   const el=document.getElementById('findingList'); if(el)el.innerHTML=arr.length?arr.map(f=>findingCard(f)).join(''):`<div class="empty">Keine Dokumentationen im gewählten Filter.</div>`;
 }
 
