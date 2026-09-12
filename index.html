@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.17</title>
+<title>Duschl Service – Objektplattform v2.20.18</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3166,7 +3166,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.17'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.18'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -9345,8 +9345,12 @@ function gfWorkFilters(){
 let gfWorkQuickFilter='';
 function applyGFWorkKpiFilter(mode){
   const selectedObject=document.getElementById('gfWorkObject')?.value||'';
+  const externallyOwnedIds=externallyRoutedFindingIdsForCurrentTenant();
+  const pendingReviewIds=pendingExternalReviewFindingIds();
   const sourceItems=(db.findings||[])
     .filter(f=>(f.type||'Feststellung')==='Feststellung')
+    .filter(f=>!externallyOwnedIds.has(String(f.id||'')))
+    .filter(f=>!pendingReviewIds.has(String(f.id||'')))
     .filter(f=>!selectedObject || f.objectId===selectedObject)
     .filter(f=>hasOperationalAdminAccess()||currentUserOwnsOperationalObject(f.objectId))
     .map(f=>{
@@ -9470,16 +9474,38 @@ function outgoingRouteStatusLabel(order){
   if(status==='requested')return `An ${executor} weitergeleitet`;
   return `An ${executor} weitergeleitet`;
 }
+function externalResponsibilityOrderForFinding(findingId){
+  const rows=routedFindingOrders(findingId)
+    .filter(x=>['accepted','in_progress','completed'].includes(String(x.status||'')))
+    .filter(x=>!!x.executor_organization_id)
+    .sort((a,b)=>{
+      const ta=new Date(a.updated_at||a.accepted_at||a.created_at||0).getTime()||0;
+      const tb=new Date(b.updated_at||b.accepted_at||b.created_at||0).getTime()||0;
+      return tb-ta;
+    });
+  return rows[0]||null;
+}
+
+function findingIsOperationallyOwnedByOtherTenant(findingId){
+  const order=externalResponsibilityOrderForFinding(findingId);
+  if(!order)return false;
+  return String(order.executor_organization_id||'')!==String(currentOrganizationId()||'');
+}
+
 function externallyRoutedFindingIdsForCurrentTenant(){
-  // Nur die externen Aufträge berücksichtigen, die im aktuellen Arbeitsvorrat
-  // tatsächlich sichtbar sind. Sonst würde eine Feststellung verschwinden,
-  // obwohl ihr Ersatz-Auftrag dem aktuellen Objektbetreuer gar nicht angezeigt wird.
-  return new Set(
-    incomingExternalWorkOrders()
-      .filter(x=>String(x.order_kind||'')==='finding_route')
-      .map(x=>String(x.source_finding_id||''))
-      .filter(Boolean)
-  );
+  // v2.20.18: Arbeitsvorrat folgt der aktuellen operativen Verantwortung –
+  // nicht dem Ersteller, Objekteigentümer oder der bloßen Sichtbarkeit der Dokumentation.
+  // Sobald ein finding_route vom Dienstleister angenommen wurde, verschwindet die
+  // ursprüngliche Feststellung aus dem Arbeitsvorrat aller anderen Mandanten.
+  // Die Originaldokumentation und Chronik bleiben dort weiterhin sichtbar.
+  const ids=new Set();
+  for(const x of (cloudExternalOrders||[])){
+    if(String(x.order_kind||'')!=='finding_route')continue;
+    const fid=String(x.source_finding_id||'');
+    if(!fid)continue;
+    if(findingIsOperationallyOwnedByOtherTenant(fid))ids.add(fid);
+  }
+  return ids;
 }
 
 function externalWorkQueueItemHtml(x){
