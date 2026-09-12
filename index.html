@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.10</title>
+<title>Duschl Service – Objektplattform v2.20.11</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3107,7 +3107,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.10'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.11'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -12640,6 +12640,83 @@ async function dsRenderPlatformResources(){
 }
 document.addEventListener('DOMContentLoaded',()=>setTimeout(dsRenderPlatformResources,120));
 
+async function dsPlatformStorageOrphans(){
+  if(!isAdminRole())return [];
+  const data=await cloudRequest('rpc/platform_storage_orphans',{method:'POST',body:JSON.stringify({})});
+  return Array.isArray(data)?data:[];
+}
+function dsOrphanSummary(rows){
+  const total=(rows||[]).reduce((sum,r)=>sum+Number(r.size_bytes||0),0);
+  const byBucket={};
+  for(const r of (rows||[])){
+    const k=String(r.bucket_id||'Unbekannt');
+    if(!byBucket[k])byBucket[k]={count:0,bytes:0};
+    byBucket[k].count++;
+    byBucket[k].bytes+=Number(r.size_bytes||0);
+  }
+  return {count:(rows||[]).length,total,byBucket};
+}
+async function dsPlatformOrphanPreview(){
+  const card=document.getElementById('platformOrphanCleanupCard');
+  const box=document.getElementById('platformOrphanCleanupResult');
+  if(card)card.classList.toggle('hidden',!isAdminRole());
+  if(!isAdminRole()||!box)return;
+  box.innerHTML='<div class="muted">Verwaiste Storage-Dateien werden geprüft …</div>';
+  try{
+    const rows=await dsPlatformStorageOrphans();
+    const x=dsOrphanSummary(rows);
+    const details=Object.entries(x.byBucket).map(([bucket,v])=>`<div>${esc(bucket)} <strong>${v.count}</strong> Datei(en) · <strong>${esc(dsBytes(v.bytes))}</strong></div>`).join('');
+    box.innerHTML=x.count
+      ? `<div><strong>${x.count} verwaiste Datei(en) · ${esc(dsBytes(x.total))}</strong></div><div class="muted" style="margin-top:6px">${details}</div>`
+      : '<div><strong>Keine verwaisten Storage-Dateien gefunden.</strong></div>';
+    const btn=document.getElementById('platformOrphanCleanupBtn');
+    if(btn)btn.disabled=!x.count;
+  }catch(e){
+    box.innerHTML=`<div class="muted">Orphan-Prüfung nicht verfügbar: ${esc(e.message||String(e))}</div>`;
+    const btn=document.getElementById('platformOrphanCleanupBtn');
+    if(btn)btn.disabled=true;
+  }
+}
+async function dsDeleteStorageOrphan(row){
+  const bucket=String(row?.bucket_id||'');
+  const path=String(row?.storage_path||'');
+  if(!path)return;
+  if(bucket===RESIDENT_REPORT_PHOTO_BUCKET){
+    await deleteResidentReportStoragePath(path);
+    return;
+  }
+  if(bucket===SUPABASE_PHOTO_BUCKET){
+    await cloudMediaDelete('cloudmedia:'+path);
+    return;
+  }
+  throw new Error('Nicht freigegebener Storage-Bucket: '+bucket);
+}
+async function dsPlatformOrphanCleanup({silent=false}={}){
+  if(!isAdminRole()){
+    if(!silent)alert('Nur der Plattform-Admin darf verwaiste Storage-Dateien bereinigen.');
+    return {deleted:0,failed:0};
+  }
+  let rows=[];
+  try{rows=await dsPlatformStorageOrphans();}
+  catch(e){if(!silent)alert('Orphan-Prüfung fehlgeschlagen: '+(e.message||e));return {deleted:0,failed:0};}
+  if(!rows.length){if(!silent)alert('Keine verwaisten Storage-Dateien gefunden.');return {deleted:0,failed:0};}
+  const summary=dsOrphanSummary(rows);
+  if(!silent && !confirm(`${summary.count} verwaiste Storage-Datei(en) mit ${dsBytes(summary.total)} dauerhaft löschen?\n\nEs werden ausschließlich Dateien gelöscht, die in keiner bekannten Medienreferenz mehr verwendet werden.`))return {deleted:0,failed:0};
+  let deleted=0; const failed=[];
+  for(const row of rows){
+    try{await dsDeleteStorageOrphan(row);deleted++;}
+    catch(e){failed.push(row);console.warn('Verwaiste Storage-Datei konnte nicht gelöscht werden',row,e);}
+  }
+  try{await dsRenderPlatformResources();}catch(_e){}
+  try{await dsPlatformOrphanPreview();}catch(_e){}
+  if(!silent){
+    alert(failed.length
+      ? `${deleted} Datei(en) gelöscht. ${failed.length} Datei(en) konnten nicht entfernt werden.`
+      : `${deleted} verwaiste Storage-Datei(en) wurden dauerhaft gelöscht.`);
+  }
+  return {deleted,failed:failed.length};
+}
+
 async function dsTenantCleanupPreview(){
   const box=document.getElementById('tenantCleanupResult');
   if(box)box.innerHTML='<div class="muted">Speicher wird analysiert …</div>';
@@ -12692,10 +12769,21 @@ async function dsTenantCleanupExecute(){
       if(!path)continue;
       try{await deleteResidentReportStoragePath(path)}catch(e){storageErrors.push(path);console.warn('Meldungsdatei konnte nicht aus Storage gelöscht werden',path,e);}
     }
-    alert(storageErrors.length
-      ? `Datenbank bereinigt. ${storageErrors.length} Storage-Datei(en) konnten nicht gelöscht werden.`
-      : 'Die ausgewählten Mandantendaten wurden dauerhaft gelöscht.');
+    // Lifecycle-Q-Gate: Nach jeder Datenbereinigung werden auf Plattform-Admin-Ebene
+    // zusätzlich verwaiste Dateien erneut ermittelt und kontrolliert aus Storage entfernt.
+    // Dadurch bleiben fehlgeschlagene/ältere Löschvorgänge nicht dauerhaft als Orphans liegen.
+    let orphanSweep={deleted:0,failed:0};
+    if(isAdminRole()){
+      try{orphanSweep=await dsPlatformOrphanCleanup({silent:true});}
+      catch(e){console.warn('Automatische Orphan-Bereinigung fehlgeschlagen',e);}
+    }
+    const notes=[];
+    if(storageErrors.length)notes.push(`${storageErrors.length} direkt zugeordnete Storage-Datei(en) konnten im ersten Versuch nicht gelöscht werden.`);
+    if(orphanSweep.deleted)notes.push(`${orphanSweep.deleted} verwaiste Storage-Datei(en) wurden zusätzlich entfernt.`);
+    if(orphanSweep.failed)notes.push(`${orphanSweep.failed} verwaiste Datei(en) konnten nicht entfernt werden.`);
+    alert('Die ausgewählten Mandantendaten wurden dauerhaft gelöscht.'+(notes.length?'\n\n'+notes.join('\n'):''));
     await dsTenantCleanupPreview();
+    if(isAdminRole())await dsPlatformOrphanPreview();
     if(typeof cloudReloadAll==='function')await cloudReloadAll();
   }catch(e){alert('Löschen fehlgeschlagen: '+(e.message||e));}
 }
@@ -12821,11 +12909,21 @@ function dsOpenDataManagement(){
           <button class="secondary" onclick="dsTenantCleanupPreview()">Speicher analysieren</button>
           <button class="danger" onclick="dsTenantCleanupExecute()">Ausgewählte Daten dauerhaft löschen</button>
         </div>
+        <div id="platformOrphanCleanupCard" class="card hidden" style="margin-top:14px">
+          <h3 style="margin-top:0">Verwaiste Storage-Dateien</h3>
+          <p class="muted">Plattformweite Sicherheitsbereinigung. Es werden nur Dateien angezeigt, die in keiner bekannten Medienreferenz mehr verwendet werden.</p>
+          <div id="platformOrphanCleanupResult" class="muted">Noch nicht geprüft.</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+            <button class="secondary" onclick="dsPlatformOrphanPreview()">Orphans prüfen</button>
+            <button id="platformOrphanCleanupBtn" class="danger" onclick="dsPlatformOrphanCleanup()" disabled>Verwaiste Dateien löschen</button>
+          </div>
+        </div>
       </div>`;
     document.body.appendChild(modal);
   }
   modal.style.display='flex';
   dsTenantCleanupPreview();
+  dsPlatformOrphanPreview();
 }
 
 
