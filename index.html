@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.16</title>
+<title>Duschl Service – Objektplattform v2.20.17</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3166,7 +3166,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.16'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.17'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -9450,6 +9450,26 @@ function tenantFindingVisibilityDiagnostics(){
 }
 
 
+function outgoingRoutedOrderForFinding(findingId){
+  const orgId=String(currentOrganizationId()||'');
+  return (cloudExternalOrders||[]).find(x=>
+    String(x.source_organization_id||'')===orgId &&
+    String(x.source_finding_id||'')===String(findingId||'') &&
+    String(x.order_kind||'')==='finding_route' &&
+    !['rejected','cancelled'].includes(String(x.status||''))
+  )||null;
+}
+function outgoingRouteStatusLabel(order){
+  if(!order)return '';
+  const executor=partnerName(order.executor_organization_id);
+  const status=String(order.status||'');
+  if(status==='completed' && String(order.review_status||'')==='verified')return `Durch ${executor} abgeschlossen`;
+  if(status==='completed')return `Von ${executor} erledigt gemeldet`;
+  if(status==='in_progress')return `Bei ${executor} in Bearbeitung`;
+  if(status==='accepted')return `An ${executor} weitergeleitet`;
+  if(status==='requested')return `An ${executor} weitergeleitet`;
+  return `An ${executor} weitergeleitet`;
+}
 function externallyRoutedFindingIdsForCurrentTenant(){
   // Nur die externen Aufträge berücksichtigen, die im aktuellen Arbeitsvorrat
   // tatsächlich sichtbar sind. Sonst würde eine Feststellung verschwinden,
@@ -9665,7 +9685,10 @@ function renderWorkQueue(){
           : (t.findingStatus==='Erledigt'?'Dokumentation erledigt':'Noch keine Aufgabe');
         const decisionStatus=decisionLabel(t.decisionStatus||'pending');
         const overdue=t.hasTask && gfTaskDerivedBucket(t)==='overdue';
-        const canPlan=!t.hasTask
+        const outgoingOrder=outgoingRoutedOrderForFinding(f.id);
+        const routedExternally=!!outgoingOrder;
+        const routedExecutor=routedExternally?partnerName(outgoingOrder.executor_organization_id):'';
+        const canPlan=!routedExternally && !t.hasTask
           && t.findingStatus!=='Erledigt'
           && (
             (t.decisionStatus==='approved')
@@ -9680,20 +9703,21 @@ function renderWorkQueue(){
                 <div class="muted">${esc(o.name||o.address||'Objekt')}</div>
               </div>
               <div class="gf-statusstack">
-                <span class="gf-status">${esc(workStatus)}</span>
-                <span class="gf-status gf-status-decision">${esc(decisionStatus)}</span>
+                <span class="gf-status">${esc(routedExternally?outgoingRouteStatusLabel(outgoingOrder):workStatus)}</span>
+                <span class="gf-status gf-status-decision">${esc(routedExternally?'Extern vergeben':decisionStatus)}</span>
               </div>
             </div>
             <div class="gf-meta">
               <div><b>Dokumentation:</b> ${esc(documentationStatusForFinding(f))}</div>
               ${t.hasTask&&t.status==='completed'?`<div><b>Ausführung bestätigt durch:</b> ${esc(t.completedByName||'Nicht dokumentiert')}</div>`:''}
               ${t.hasTask&&t.status==='completed'&&t.completedAt?`<div><b>Erledigt am:</b> ${esc(new Date(t.completedAt).toLocaleString('de-DE'))}</div>`:''}
-              ${t.hasTask?`<div><b>Fällig:</b> ${esc(due)}</div>`:''}
+              ${t.hasTask&&!routedExternally?`<div><b>Fällig:</b> ${esc(due)}</div>`:''}
+              ${routedExternally?`<div><b>Verantwortlich:</b> ${esc(routedExecutor)}</div><div><b>Übergabe:</b> ${esc(externalOrderLifecycleLabel(outgoingOrder))}</div>`:''}
               ${t.workNote?`<div><b>Arbeitsinfo:</b> ${esc(t.workNote)}</div>`:''}
             </div>
-            ${ticketTimelineForFinding(f,t.hasTask?(db.tasks||[]).find(q=>q.id===t.taskId)||null:null)}
+            ${routedExternally?ticketTimelineForExternalOrder(outgoingOrder):ticketTimelineForFinding(f,t.hasTask?(db.tasks||[]).find(q=>q.id===t.taskId)||null:null)}
             <div class="row">
-              ${t.hasTask?`<button type="button" onclick="openWorkItem('${f.id}')">Aufgabe bearbeiten</button>`:''}
+              ${t.hasTask&&!routedExternally?`<button type="button" onclick="openWorkItem('${f.id}')">Aufgabe bearbeiten</button>`:''}
               ${canPlan?`<button type="button" class="primary" onclick="openWorkItem('${f.id}')">Aufgabe planen</button>`:''}
               <button type="button" onclick="openFindingModal('${f.objectId||''}','${f.inspectionId||''}','${f.id}')">Dokumentation öffnen</button>
             </div>
