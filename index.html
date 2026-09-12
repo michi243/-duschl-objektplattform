@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.22</title>
+<title>Duschl Service – Objektplattform v2.20.23</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1435,7 +1435,7 @@ body.public-report-mode>#photoViewer{display:none!important}
     </button>
     <button class="tenant-kpi-card tenant-kpi-green" type="button" onclick="showSection('findings')">
       <div class="tenant-kpi-icon">▤</div><div class="tenant-kpi-arrow">›</div>
-      <div class="tenant-kpi-label">Offene Punkte</div><div class="tenant-kpi-value" id="kpiOpen">0</div><div class="tenant-kpi-sub">Feststellungen offen · <span id="kpiCritical">0</span> dringend</div>
+      <div class="tenant-kpi-label">Dokumentation</div><div class="tenant-kpi-value" id="kpiOpen">0</div><div class="tenant-kpi-sub"><span id="kpiOpenDocs">0</span> Vorgänge · <span id="kpiCritical">0</span> dringend</div>
     </button>
     <button aria-label="Offene Bewohnermeldungen anzeigen" class="tenant-kpi-card tenant-kpi-orange" id="kpiResidentReportsCard"
       onclick="openDashboardResidentReports()"
@@ -1495,10 +1495,10 @@ body.public-report-mode>#photoViewer{display:none!important}
   <div class="tenant-panel">
     <div class="tenant-panel-head">
       <div>
-        <div class="tenant-panel-title"><span class="tenant-panel-icon">✓</span>Offene Punkte</div>
-        <div class="tenant-panel-sub">Die wichtigsten aktuell offenen Feststellungen.</div>
+        <div class="tenant-panel-title"><span class="tenant-panel-icon">▤</span>Dokumentation</div>
+        <div class="tenant-panel-sub">Aktuelle Dokumentationen und Feststellungen des Mandanten.</div>
       </div>
-      <button class="tenant-action-btn" type="button" onclick="showSection('findings')">Alle anzeigen ›</button>
+      <button class="tenant-action-btn" type="button" onclick="showSection('findings')">Dokumentation öffnen ›</button>
     </div>
     <div class="grid tenant-open-grid" id="dashboardFindings" style="margin-top:14px"></div>
   </div>
@@ -3175,7 +3175,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.22'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.23'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -10349,16 +10349,18 @@ function openObjectExternalMonitoring(objectId){
 }
 
 function openDashboardExternalMonitoring(){
-  const rows=externalMonitoringOrdersForCurrentTenant();
-  const html=rows.length?rows.map(x=>`<div class="card" style="margin:10px 0">
-    <div class="row space"><strong>${esc(x.title||'Externer Vorgang')}</strong><span class="badge">${esc(externalOrderLifecycleLabel(x))}</span></div>
-    <div class="muted" style="margin-top:5px">${esc(x.source_object_name||'Objekt')}</div>
-    <div style="margin-top:8px"><b>Verantwortlich:</b> ${esc(partnerName(x.executor_organization_id))}</div>
-    ${x.description?`<div class="muted" style="margin-top:5px">${esc(x.description)}</div>`:''}
-    <div class="muted" style="margin-top:7px">Kein operatives To-do für ${esc(currentOrganizationName()||'diesen Mandanten')}.</div>
-    ${ticketTimelineForExternalOrder(x)}
-  </div>`).join(''):'<div class="empty">Aktuell sind keine Vorgänge bei Dritten in Bearbeitung.</div>';
-  openModal(`<div class="row space"><div><h2 style="margin:0">Extern in Bearbeitung</h2><div class="muted">Monitoring laufender Fremdleistungen · kein Arbeitsvorrat</div></div><button type="button" onclick="closeModal()">Schließen</button></div>${html}`);
+  // v2.20.23: Kein separates Modal mehr. Monitoring ist Teil der Dokumentation.
+  // Dadurch führt die KPI zuverlässig in dieselbe objekt-/vorgangsbezogene Sicht
+  // und verhält sich auf iOS wie die übrigen Dashboard-Kacheln.
+  showSection('findings');
+  const object=document.getElementById('filterObject'); if(object)object.value='';
+  const status=document.getElementById('filterStatus'); if(status)status.value='';
+  const priority=document.getElementById('filterPriority'); if(priority)priority.value='';
+  const type=document.getElementById('filterType'); if(type)type.value='';
+  const decision=document.getElementById('filterDecision'); if(decision)decision.value='';
+  const responsibility=document.getElementById('filterResponsibility'); if(responsibility)responsibility.value='external';
+  renderFindings();
+  requestAnimationFrame(()=>document.getElementById('findingList')?.scrollIntoView({behavior:'smooth',block:'start'}));
 }
 
 function openDashboardResidentReports(){
@@ -10373,8 +10375,11 @@ function renderDashboard(){
   renderDashboardMessages();
   renderDashboardCareRequests();
   document.getElementById('kpiObjects').textContent=db.objects.length;
-  const open=db.findings.filter(f=>findingVisibleInCurrentTenantUI(f)).filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt');
-  document.getElementById('kpiOpen').textContent=open.length;
+  // v2.20.23: Dashboard-KPI bildet die vollständige Dokumentation ab, nicht nur offene Punkte.
+  const visibleDocumentation=(db.findings||[]).filter(f=>findingVisibleInCurrentTenantUI(f));
+  const open=visibleDocumentation.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt');
+  document.getElementById('kpiOpen').textContent=visibleDocumentation.length;
+  const openDocsEl=document.getElementById('kpiOpenDocs'); if(openDocsEl)openDocsEl.textContent=visibleDocumentation.length;
   const criticalCount=open.filter(f=>['P1','P2'].includes(f.priority)).length;
   document.getElementById('kpiCritical').textContent=criticalCount;
   const criticalCard=document.getElementById('kpiCriticalCard');
@@ -10455,8 +10460,8 @@ function renderDashboard(){
 
   const kpiInspections=document.getElementById('kpiInspections'); if(kpiInspections)kpiInspections.textContent=db.inspections.length;
   const box=document.getElementById('dashboardFindings');
-  const rows=open.sort((a,b)=>a.priority.localeCompare(b.priority)||b.createdAt-a.createdAt).slice(0,8);
-  box.innerHTML=rows.length?rows.map(f=>findingCard(f)).join(''):`<div class="empty">Keine offenen Feststellungen.</div>`;
+  const rows=[...visibleDocumentation].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,8);
+  box.innerHTML=rows.length?rows.map(f=>findingCard(f)).join(''):`<div class="empty">Noch keine Dokumentationen vorhanden.</div>`;
 }
 function objectCollaborationAccessHtml(objectId){
   if(!hasOperationalAdminAccess())return '';
