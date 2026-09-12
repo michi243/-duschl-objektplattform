@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.19</title>
+<title>Duschl Service – Objektplattform v2.20.20</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1456,6 +1456,13 @@ body.public-report-mode>#photoViewer{display:none!important}
       type="button">
       <div class="tenant-kpi-icon">☰</div><div class="tenant-kpi-arrow">›</div>
       <div class="tenant-kpi-label">Arbeitsvorrat</div><div class="tenant-kpi-value" id="kpiWorkQueue">0</div><div class="tenant-kpi-sub">offen</div>
+    </button>
+    <button aria-label="Extern laufende Vorgänge anzeigen" class="tenant-kpi-card tenant-kpi-blue" id="kpiExternalMonitoringCard"
+      onclick="openDashboardExternalMonitoring()"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDashboardExternalMonitoring();}"
+      type="button">
+      <div class="tenant-kpi-icon">⇄</div><div class="tenant-kpi-arrow">›</div>
+      <div class="tenant-kpi-label">Extern in Bearbeitung</div><div class="tenant-kpi-value" id="kpiExternalMonitoring">0</div><div class="tenant-kpi-sub">bei Dritten · kein To-do</div>
     </button>
   </div>
 
@@ -3166,7 +3173,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.19'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.20'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -10291,6 +10298,40 @@ async function openDashboardWorkQueue(){
   try{renderWorkQueue();renderDashboard();}catch(e){console.error('Arbeitsvorrat konnte nicht dargestellt werden',e);}
 }
 
+function externalMonitoringOrdersForCurrentTenant(){
+  const orgId=String(currentOrganizationId()||'');
+  const visibleFindingIds=new Set((db.findings||[])
+    .filter(f=>findingVisibleInCurrentTenantUI(f))
+    .map(f=>String(f.id||''))
+    .filter(Boolean));
+  const seen=new Set();
+  return (cloudExternalOrders||[]).filter(x=>{
+    const status=String(x.status||'');
+    if(!['accepted','in_progress'].includes(status))return false;
+    if(String(x.executor_organization_id||'')===orgId)return false;
+    const fid=String(x.source_finding_id||'');
+    const directlyOwned=String(x.source_organization_id||'')===orgId;
+    const visibleOrigin=!!fid && visibleFindingIds.has(fid);
+    if(!directlyOwned&&!visibleOrigin)return false;
+    const key=String(x.id||fid||'');
+    if(!key||seen.has(key))return false;
+    seen.add(key);
+    return true;
+  });
+}
+function openDashboardExternalMonitoring(){
+  const rows=externalMonitoringOrdersForCurrentTenant();
+  const html=rows.length?rows.map(x=>`<div class="card" style="margin:10px 0">
+    <div class="row space"><strong>${esc(x.title||'Externer Vorgang')}</strong><span class="badge">${esc(externalOrderLifecycleLabel(x))}</span></div>
+    <div class="muted" style="margin-top:5px">${esc(x.source_object_name||'Objekt')}</div>
+    <div style="margin-top:8px"><b>Verantwortlich:</b> ${esc(partnerName(x.executor_organization_id))}</div>
+    ${x.description?`<div class="muted" style="margin-top:5px">${esc(x.description)}</div>`:''}
+    <div class="muted" style="margin-top:7px">Kein operatives To-do für ${esc(currentOrganizationName()||'diesen Mandanten')}.</div>
+    ${ticketTimelineForExternalOrder(x)}
+  </div>`).join(''):'<div class="empty">Aktuell sind keine Vorgänge bei Dritten in Bearbeitung.</div>';
+  openModal(`<div class="row space"><div><h2 style="margin:0">Extern in Bearbeitung</h2><div class="muted">Monitoring laufender Fremdleistungen · kein Arbeitsvorrat</div></div><button type="button" onclick="closeModal()">Schließen</button></div>${html}`);
+}
+
 function openDashboardResidentReports(){
   if(isCustomerRole())return;
   const filter=document.getElementById('residentReportStatusFilter');
@@ -10365,6 +10406,18 @@ function renderDashboard(){
     workCard.style.display=canUseWorkQueueUI()?'':'none';
     workCard.classList.toggle('is-disabled',openWorkCount===0);
     workCard.setAttribute('aria-disabled',openWorkCount===0?'true':'false');
+  }
+
+  // v2.20.20: Monitoring ist bewusst vom Arbeitsvorrat getrennt.
+  // Gezählt werden angenommene/laufende Fremdleistungen, deren Ursprung der
+  // aktuelle Mandant sehen darf, die aber operativ bei einem anderen Mandanten liegen.
+  const externalMonitoringCount=externalMonitoringOrdersForCurrentTenant().length;
+  const externalMonitoringKpi=document.getElementById('kpiExternalMonitoring');
+  if(externalMonitoringKpi)externalMonitoringKpi.textContent=String(externalMonitoringCount);
+  const externalMonitoringCard=document.getElementById('kpiExternalMonitoringCard');
+  if(externalMonitoringCard){
+    externalMonitoringCard.classList.toggle('is-disabled',externalMonitoringCount===0);
+    externalMonitoringCard.setAttribute('aria-disabled',externalMonitoringCount===0?'true':'false');
   }
 
   const kpiInspections=document.getElementById('kpiInspections'); if(kpiInspections)kpiInspections.textContent=db.inspections.length;
