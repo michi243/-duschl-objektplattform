@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.15</title>
+<title>Duschl Service – Objektplattform v2.20.16</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1080,6 +1080,46 @@ body.public-report-mode>#photoViewer{display:none!important}
 .soc-scope-option-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
 .soc-scope-conflict{font-size:11px;color:#f0c36b;line-height:1.3}
 @media(max-width:520px){.soc-scope-grid{grid-template-columns:1fr}.soc-selected-summary-head{align-items:flex-start;flex-direction:column}}
+</style>
+
+<style id="tenant-cleanup-ui-v22016">
+/* v2.20.16 – kompakte mobile Mandanten-Datenbereinigung */
+.ds-cleanup-summary{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px 14px;border:1px solid #29485e;border-radius:13px;background:#091c29;margin:12px 0}
+.ds-cleanup-summary-name{font-weight:800;font-size:16px;color:#f4f8fb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ds-cleanup-summary-meta{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap}
+.ds-cleanup-pill{display:inline-flex;align-items:center;min-height:28px;padding:4px 9px;border-radius:999px;background:#102b3d;border:1px solid #33556d;color:#dce9f2;font-size:12px;font-weight:800}
+.ds-cleanup-panel{padding:0!important;overflow:hidden}
+.ds-cleanup-panel-head{padding:14px 14px 8px}
+.ds-cleanup-panel-head h3{margin:0;font-size:18px}
+.ds-cleanup-master,.ds-cleanup-row{display:grid!important;grid-template-columns:minmax(0,1fr) 34px;align-items:center;gap:12px;margin:0!important;cursor:pointer}
+.ds-cleanup-master{padding:13px 14px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#0c2332}
+.ds-cleanup-master-copy strong{display:block;font-size:15px;color:#f6fbff}
+.ds-cleanup-master-copy small{display:block;margin-top:3px;color:var(--muted);font-size:12px;line-height:1.35}
+.ds-cleanup-list{display:grid}
+.ds-cleanup-row{padding:12px 14px;border-bottom:1px solid rgba(71,101,122,.46)}
+.ds-cleanup-row:last-child{border-bottom:0}
+.ds-cleanup-row-copy{min-width:0;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ds-cleanup-row-title{font-weight:800;color:#f4f8fb}
+.ds-cleanup-row-stat{color:var(--muted);font-size:12px;font-weight:800;white-space:nowrap}
+.ds-cleanup-check{appearance:none!important;-webkit-appearance:none!important;width:28px!important;height:28px!important;min-height:28px!important;margin:0!important;border-radius:8px!important;border:2px solid #6c8394!important;background:#06131c!important;display:grid!important;place-items:center!important;justify-self:end}
+.ds-cleanup-check:checked{background:#dfeef8!important;border-color:#dfeef8!important}
+.ds-cleanup-check:checked:after{content:'✓';color:#07131c;font-size:19px;font-weight:1000;line-height:1}
+.ds-cleanup-note{padding:10px 14px 13px;border-top:1px solid rgba(71,101,122,.35);color:var(--muted);font-size:12px;line-height:1.4}
+.ds-cleanup-actions{position:sticky;bottom:-1px;z-index:15;display:grid;grid-template-columns:1fr 1.35fr;gap:10px;margin:14px -22px -22px;padding:12px 22px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(10,24,34,.90),#0a1822 28%);border-top:1px solid #29485e}
+.ds-cleanup-actions button{min-height:46px}
+.ds-cleanup-actions .danger:disabled{opacity:.38;cursor:not-allowed}
+#tenantCleanupResult{margin:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+#tenantCleanupResult .grid2{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
+#tenantCleanupResult .grid2>div{padding:8px;border:1px solid #29485e;border-radius:10px;background:#091c29;font-size:11px;color:var(--muted)}
+#tenantCleanupResult .grid2 strong{display:block;margin-top:2px;font-size:15px;color:#f4f8fb}
+@media(max-width:520px){
+ .ds-cleanup-summary{grid-template-columns:1fr;padding:10px 11px}
+ .ds-cleanup-summary-meta{justify-content:flex-start}
+ .ds-cleanup-row,.ds-cleanup-master{padding:11px 12px}
+ .ds-cleanup-actions{margin:12px -18px -18px;padding:11px 18px calc(11px + env(safe-area-inset-bottom))}
+ .ds-cleanup-actions button{font-size:13px;padding-left:8px;padding-right:8px}
+ #tenantCleanupResult .grid2{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
 </style>
 
 <style id="global-modal-close-v21975">
@@ -3126,7 +3166,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.15'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.16'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -12809,12 +12849,18 @@ async function dsPlatformOrphanCleanup({silent=false}={}){
 
 function dsToggleTenantCleanupAll(checked){
   document.querySelectorAll('[data-tenant-cleanup]').forEach(el=>{el.checked=!!checked;});
+  dsUpdateTenantCleanupActionState();
+}
+function dsUpdateTenantCleanupActionState(){
+  const btn=document.getElementById('tenantCleanupExecuteBtn');
+  if(btn)btn.disabled=!document.querySelector('[data-tenant-cleanup]:checked');
 }
 function dsSyncTenantCleanupAll(){
   const all=document.getElementById('tenantCleanupAll');
   if(!all)return;
   const boxes=[...document.querySelectorAll('[data-tenant-cleanup]')];
   all.checked=boxes.length>0&&boxes.every(el=>el.checked);
+  dsUpdateTenantCleanupActionState();
 }
 
 async function dsTenantCleanupPreview(){
@@ -12828,15 +12874,16 @@ async function dsTenantCleanupPreview(){
       body:JSON.stringify({p_organization_id:orgId})
     });
     const x=Array.isArray(data)?(data[0]||{}):(data||{});
-    if(box)box.innerHTML=`
-      <div class="grid2">
-        <div>Mitteilungen <strong>${Number(x.messages||0)}</strong></div>
-        <div>Objekte <strong>${Number(x.objects||0)}</strong></div>
-        <div>Meldungen <strong>${Number(x.reports||0)}</strong></div>
-        <div>Dokumentationen <strong>${Number(x.findings||0)}</strong></div>
-        <div>Bilder/Dateien <strong>${Number(x.media||0)}</strong></div>
-        <div>Speicher <strong>${esc(dsBytes(x.storage_bytes||0))}</strong></div>
-      </div>`;
+    const counts={messages:Number(x.messages||0),objects:Number(x.objects||0),reports:Number(x.reports||0),findings:Number(x.findings||0),media:Number(x.media||0)};
+    const totalRecords=counts.messages+counts.objects+counts.reports+counts.findings;
+    const setText=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
+    setText('tenantCleanupRecordCount',`${totalRecords} Datensätze`);
+    setText('tenantCleanupStorageSize',dsBytes(x.storage_bytes||0));
+    setText('tenantCleanupStatMessages',String(counts.messages));
+    setText('tenantCleanupStatReports',counts.media?`${counts.reports} · ${counts.media} Datei${counts.media===1?'':'en'}`:String(counts.reports));
+    setText('tenantCleanupStatFindings',String(counts.findings));
+    setText('tenantCleanupStatObjects',String(counts.objects));
+    if(box)box.innerHTML='';
   }catch(e){
     if(box)box.innerHTML=`<div class="muted">Analyse nicht verfügbar: ${esc(e.message||String(e))}</div>`;
   }
@@ -12996,22 +13043,46 @@ function dsOpenDataManagement(){
           </div>
           <button class="secondary" onclick="document.getElementById('dsDataManagementModal').style.display='none'">✕</button>
         </div>
-        <p class="muted">Daten und Speicher des ausgewählten Mandanten gezielt verwalten. Mandantenübergreifende Daten anderer Unternehmen werden nicht gelöscht.</p>
-        <div class="card" style="margin:12px 0"><strong id="tenantCleanupContextName">${esc(currentOrganization?.name||'Mandant')}</strong><div class="muted">Der Mandant selbst sowie Benutzer, Rollen und Zugänge bleiben bestehen. Gelöscht werden nur die ausgewählten operativen Daten und zugehörigen Dateien.</div></div>
-        <div id="tenantCleanupResult" class="card" style="margin:12px 0"></div>
-        <div class="card">
-          <h3 style="margin-top:0">Datenbereiche auswählen</h3>
-          <label style="display:block;padding:10px;border:1px solid var(--line);border-radius:10px;margin-bottom:12px"><input id="tenantCleanupAll" type="checkbox" onchange="dsToggleTenantCleanupAll(this.checked)"> <strong>Alle operativen Daten dieses Mandanten</strong><br><span class="muted">Wählt Mitteilungen, Meldungen, Dokumentationen und Objekte gemeinsam aus. Zugehörige Storage-Dateien werden mit entfernt.</span></label>
-          <div style="display:grid;gap:12px">
-            <label><input type="checkbox" data-tenant-cleanup value="messages" onchange="dsSyncTenantCleanupAll()"> <strong>Mitteilungen</strong><br><span class="muted">Eigene Mandantenkommunikation und zugehörige Lesestatusdaten.</span></label>
-            <label><input type="checkbox" data-tenant-cleanup value="reports" onchange="dsSyncTenantCleanupAll()"> <strong>Meldungen</strong><br><span class="muted">Bewohner-/QR-Meldungen des Mandanten inklusive zugehöriger Bilder.</span></label>
-            <label><input type="checkbox" data-tenant-cleanup value="findings" onchange="dsSyncTenantCleanupAll()"> <strong>Dokumentationen</strong><br><span class="muted">Dokumentationen/Feststellungen inklusive zugehöriger Bilder und Medien.</span></label>
-            <label><input type="checkbox" data-tenant-cleanup value="objects" onchange="dsSyncTenantCleanupAll()"> <strong>Objekte</strong><br><span class="muted">Eigene Objekte inklusive abhängiger eigener Daten und Bilder. Cross-Tenant-Historien müssen serverseitig geschützt bleiben.</span></label>
+        <div class="ds-cleanup-summary">
+          <div>
+            <div class="muted" style="font-size:11px;font-weight:800;letter-spacing:.04em">AUSGEWÄHLTER MANDANT</div>
+            <div id="tenantCleanupContextName" class="ds-cleanup-summary-name">${esc(currentOrganization?.name||'Mandant')}</div>
+          </div>
+          <div class="ds-cleanup-summary-meta">
+            <span id="tenantCleanupRecordCount" class="ds-cleanup-pill">Analysiere …</span>
+            <span id="tenantCleanupStorageSize" class="ds-cleanup-pill">Speicher …</span>
           </div>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
-          <button class="secondary" onclick="dsTenantCleanupPreview()">Speicher analysieren</button>
-          <button class="danger" onclick="dsTenantCleanupExecute()">Ausgewählte Daten dauerhaft löschen</button>
+        <div id="tenantCleanupResult"></div>
+        <div class="card ds-cleanup-panel">
+          <div class="ds-cleanup-panel-head"><h3>Datenbereiche</h3></div>
+          <label class="ds-cleanup-master">
+            <span class="ds-cleanup-master-copy"><strong>Alle operativen Daten</strong><small>Mitteilungen, Meldungen, Dokumentationen und Objekte gemeinsam auswählen.</small></span>
+            <input id="tenantCleanupAll" class="ds-cleanup-check" type="checkbox" onchange="dsToggleTenantCleanupAll(this.checked);dsUpdateTenantCleanupActionState()">
+          </label>
+          <div class="ds-cleanup-list">
+            <label class="ds-cleanup-row">
+              <span class="ds-cleanup-row-copy"><span class="ds-cleanup-row-title">Mitteilungen</span><span id="tenantCleanupStatMessages" class="ds-cleanup-row-stat">–</span></span>
+              <input class="ds-cleanup-check" type="checkbox" data-tenant-cleanup value="messages" onchange="dsSyncTenantCleanupAll();dsUpdateTenantCleanupActionState()">
+            </label>
+            <label class="ds-cleanup-row">
+              <span class="ds-cleanup-row-copy"><span class="ds-cleanup-row-title">Meldungen</span><span id="tenantCleanupStatReports" class="ds-cleanup-row-stat">–</span></span>
+              <input class="ds-cleanup-check" type="checkbox" data-tenant-cleanup value="reports" onchange="dsSyncTenantCleanupAll();dsUpdateTenantCleanupActionState()">
+            </label>
+            <label class="ds-cleanup-row">
+              <span class="ds-cleanup-row-copy"><span class="ds-cleanup-row-title">Dokumentationen</span><span id="tenantCleanupStatFindings" class="ds-cleanup-row-stat">–</span></span>
+              <input class="ds-cleanup-check" type="checkbox" data-tenant-cleanup value="findings" onchange="dsSyncTenantCleanupAll();dsUpdateTenantCleanupActionState()">
+            </label>
+            <label class="ds-cleanup-row">
+              <span class="ds-cleanup-row-copy"><span class="ds-cleanup-row-title">Objekte</span><span id="tenantCleanupStatObjects" class="ds-cleanup-row-stat">–</span></span>
+              <input class="ds-cleanup-check" type="checkbox" data-tenant-cleanup value="objects" onchange="dsSyncTenantCleanupAll();dsUpdateTenantCleanupActionState()">
+            </label>
+          </div>
+          <div class="ds-cleanup-note">Zugehörige Bilder und Dateien werden zusammen mit den ausgewählten Daten entfernt. Mandant, Benutzer, Rollen und Zugänge bleiben bestehen.</div>
+        </div>
+        <div class="ds-cleanup-actions">
+          <button class="secondary" onclick="document.getElementById('dsDataManagementModal').style.display='none'">Abbrechen</button>
+          <button id="tenantCleanupExecuteBtn" class="danger" onclick="dsTenantCleanupExecute()" disabled>Auswahl bereinigen</button>
         </div>
         <div id="platformOrphanCleanupCard" class="card hidden" style="margin-top:14px">
           <h3 style="margin-top:0">Verwaiste Storage-Dateien</h3>
@@ -13026,6 +13097,8 @@ function dsOpenDataManagement(){
     document.body.appendChild(modal);
   }
   modal.style.display='flex';
+  document.querySelectorAll('[data-tenant-cleanup],#tenantCleanupAll').forEach(el=>{el.checked=false;});
+  dsUpdateTenantCleanupActionState();
   dsTenantCleanupPreview();
   dsPlatformOrphanPreview();
 }
