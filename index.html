@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.29</title>
+<title>Duschl Service – Objektplattform v2.20.30</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3175,7 +3175,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.29'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.30'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -10323,17 +10323,42 @@ async function openDashboardWorkQueue(){
 }
 
 function externalMonitoringOrdersForCurrentTenant(){
-  // v2.20.28: "Extern in Bearbeitung" ist ausschließlich Auftraggeber-Monitoring.
-  // Ein Mandant sieht hier nur Work Orders, die er selbst als source_organization
-  // an einen anderen Mandanten vergeben hat. Bloßer Objekt-/Finding-Zugriff darf
-  // fremde Vergaben anderer Mandanten weder in KPI noch Dokumentation sichtbar machen.
+  // v2.20.30: "Bei Dritten" folgt der fachlichen Beteiligung am Vorgang.
+  // Sichtbar sind
+  // 1) eigene Vergaben des aktuellen Mandanten und
+  // 2) Vergaben des führenden Objektmandanten, wenn die zugrunde liegende
+  //    Dokumentation nachweislich vom aktuellen Mandanten erstellt wurde.
+  // Damit bleibt der Ersteller im Monitoring, ohne dadurch erneut einen
+  // operativen Arbeitsvorrat zu erhalten. Bloßer Objektzugriff reicht weiterhin nicht.
   const orgId=String(currentOrganizationId()||'');
   const seen=new Set();
+  const activeStatuses=new Set(['requested','accepted','in_progress','completed']);
   return (cloudExternalOrders||[]).filter(x=>{
     const status=String(x.status||'');
-    if(!['accepted','in_progress'].includes(status))return false;
-    if(String(x.source_organization_id||'')!==orgId)return false;
-    if(String(x.executor_organization_id||'')===orgId)return false;
+    if(!activeStatuses.has(status))return false;
+    if(status==='completed' && String(x.review_status||'')==='verified')return false;
+
+    const sourceOrg=String(x.source_organization_id||'');
+    const executorOrg=String(x.executor_organization_id||'');
+    if(!sourceOrg||!executorOrg||executorOrg===orgId)return false;
+
+    const ownOutgoing=sourceOrg===orgId;
+
+    let creatorMonitoring=false;
+    if(!ownOutgoing){
+      const fid=String(x.source_finding_id||'');
+      const f=fid?(db.findings||[]).find(row=>String(row.id||'')===fid):null;
+      const creatorOrg=String(f?.creatorOrganizationIdSnapshot||f?.creator_organization_id_snapshot||'');
+      if(f && creatorOrg===orgId){
+        const o=(db.objects||[]).find(row=>String(row.id||'')===String(f.objectId||''));
+        const ownerOrg=String(o?.organizationId||'');
+        // Nur die Vergabe des führenden Objektmandanten zählt. Eine beliebige
+        // Fremdvergabe eines weiteren Mandanten auf demselben Objekt bleibt unsichtbar.
+        creatorMonitoring=!!ownerOrg && ownerOrg===sourceOrg;
+      }
+    }
+
+    if(!ownOutgoing && !creatorMonitoring)return false;
     const key=String(x.id||'');
     if(!key||seen.has(key))return false;
     seen.add(key);
