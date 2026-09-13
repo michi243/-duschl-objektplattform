@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.39</title>
+<title>Duschl Service – Objektplattform v2.20.41</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3198,7 +3198,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.39'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.41'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -3371,6 +3371,7 @@ function renderDashboardMessages(){
       <div class="dashboard-message-meta"><strong>Gesendet</strong><br>${esc(formatUserMessageTime(first.created_at))}${obj?` · ${esc(obj.name||'Objekt')}`:''} · <strong>Gelesen: ${readCount} von ${total}</strong></div>
       <div class="dashboard-message-text">${esc(first.message||'')}</div>
       <details style="margin-top:10px" ${total<=3?'open':''}><summary>Lesestatus (${readCount}/${total} gelesen)</summary><div style="margin-top:6px">${recipientRows}</div></details>
+      ${canDeleteSentUserMessage()?`<div class="dashboard-message-actions"><button type="button" class="danger" onclick="deleteSentUserMessage('${esc(first.id)}')">Mitteilung löschen</button></div>`:''}
     </div>`;
   };
 
@@ -3388,6 +3389,29 @@ function renderDashboardMessages(){
 
   box.innerHTML=unreadHtml+readHtml+sentHtml;
 }
+function canDeleteSentUserMessage(){
+  return isPlatformOperatorRole()||isTenantAdminRole()||isAdminDelegate();
+}
+
+async function deleteSentUserMessage(messageId){
+  if(!canDeleteSentUserMessage())return alert('Keine Berechtigung zum Löschen dieser Mitteilung.');
+  const id=String(messageId||'').trim();
+  if(!id)return;
+  const message=(userDashboardMessages||[]).find(m=>m.id===id);
+  const title=message?.title||'Mitteilung';
+  if(!confirm(`Mitteilung „${title}“ wirklich endgültig löschen?\n\nBei einer Gruppenmitteilung werden alle Empfänger-Kopien und zugehörigen Lesestatus-/Antwortdaten dieser Sendung gelöscht.`))return;
+  try{
+    await cloudRequest('rpc/delete_user_message_group',{
+      method:'POST',
+      body:JSON.stringify({p_message_id:id})
+    });
+    await loadUserMessages();
+    renderDashboardMessages();
+  }catch(e){
+    alert('Mitteilung konnte nicht gelöscht werden: '+(e?.message||e));
+  }
+}
+
 function canReplyToUserMessage(m){
   if(!m || m.recipient_id!==currentUserId() || m.reply_text)return false;
   // Objektbetreuer dürfen auch bei historischen Mitteilungen nicht direkt an Auftraggeber antworten.
@@ -12840,9 +12864,68 @@ async function deleteFinding(id){
   }
 }
 
-function exportData(){
-  const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`Duschl_Objektdoku_${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href)
+async function exportData(){
+  if(!isAdminRole())return alert('Die Mandantensicherung ist nur für Administratoren verfügbar.');
+  const orgId=currentOrganizationId();
+  if(!orgId)return alert('Kein Mandant ausgewählt.');
+  if(!cloudSession?.access_token)return alert('Für die Mandantensicherung ist eine aktive Anmeldung erforderlich.');
+
+  const btn=document.getElementById('backupBtn')||document.querySelector('[data-backup-button="1"]');
+  const oldHtml=btn?.innerHTML;
+  if(btn){btn.disabled=true;btn.innerHTML='… <span>Sicherung läuft</span>';}
+  try{
+    const objects=await cloudRequest(`objects?select=*&organization_id=eq.${encodeURIComponent(orgId)}`)||[];
+    const objectIds=objects.map(x=>x.id).filter(Boolean);
+    const inFilter=ids=>ids.length?`in.(${ids.map(x=>encodeURIComponent(x)).join(',')})`:'';
+    const byObjects=async(table)=>objectIds.length?await cloudRequest(`${table}?select=*&object_id=${inFilter(objectIds)}`)||[]:[];
+
+    const [inspections,findings,tasks,media,residentReports,assignments,directoryProfiles,memberships,collaborations,workOrders,messages]=await Promise.all([
+      byObjects('inspections'),
+      byObjects('findings'),
+      byObjects('tasks'),
+      byObjects('media'),
+      byObjects('resident_reports'),
+      objectIds.length?cloudRequest(`object_user_assignments?select=*&object_id=${inFilter(objectIds)}`).catch(()=>[]):Promise.resolve([]),
+      cloudRequest(`organization_directory_profiles?select=*&organization_id=eq.${encodeURIComponent(orgId)}`).catch(()=>[]),
+      cloudRequest(`organization_memberships?select=*&organization_id=eq.${encodeURIComponent(orgId)}`).catch(()=>[]),
+      cloudRequest(`object_collaborations?select=*&or=(owner_organization_id.eq.${encodeURIComponent(orgId)},service_organization_id.eq.${encodeURIComponent(orgId)})`).catch(()=>[]),
+      cloudRequest(`shared_work_orders?select=*&or=(source_organization_id.eq.${encodeURIComponent(orgId)},executor_organization_id.eq.${encodeURIComponent(orgId)})`).catch(()=>[]),
+      cloudRequest(`user_messages?select=*&or=(created_by.eq.${encodeURIComponent(currentUserId())},recipient_id.eq.${encodeURIComponent(currentUserId())})`).catch(()=>[])
+    ]);
+
+    const findingIds=findings.map(x=>x.id).filter(Boolean);
+    const reportIds=residentReports.map(x=>x.id).filter(Boolean);
+    const [decisions,residentEvents,residentMedia]=await Promise.all([
+      findingIds.length?cloudRequest(`decisions?select=*&finding_id=${inFilter(findingIds)}`).catch(()=>[]):Promise.resolve([]),
+      reportIds.length?cloudRequest(`resident_report_events?select=*&resident_report_id=${inFilter(reportIds)}`).catch(()=>[]):Promise.resolve([]),
+      reportIds.length?cloudRequest(`resident_report_media?select=*&resident_report_id=${inFilter(reportIds)}`).catch(()=>[]):Promise.resolve([])
+    ]);
+
+    const organization=(cloudOrganizations||[]).find(o=>String(o.id)===String(orgId))||currentOrganization||null;
+    const payload={
+      backup_format:'duschl_service_tenant_backup_v2',
+      app_version:APP_VERSION,
+      exported_at:new Date().toISOString(),
+      organization_id:orgId,
+      organization_name:organization?.name||currentOrganizationName()||'',
+      scope_note:'Mandantenbezogener Datenexport. Fremde Mandantendaten werden nur soweit exportiert, wie sie Bestandteil eines für diesen Mandanten sichtbaren gemeinsamen Vorgangs sind.',
+      media_note:'Enthält Medien-Metadaten und Storage-Pfade. Die Binärdateien/Fotos selbst sind nicht in dieser JSON-Datei eingebettet.',
+      organization,
+      central_data:{objects,object_user_assignments:assignments,inspections,findings,tasks,decisions,media,resident_reports:residentReports,resident_report_events:residentEvents,resident_report_media:residentMedia,organization_memberships:memberships,organization_directory_profiles:directoryProfiles,object_collaborations:collaborations,shared_work_orders:workOrders,user_messages:messages},
+      local_snapshot:db
+    };
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    const safeName=(payload.organization_name||'Mandant').replace(/[^a-zA-Z0-9äöüÄÖÜß_-]+/g,'_').replace(/^_+|_+$/g,'');
+    a.href=url;a.download=`Duschl_Mandantensicherung_${safeName}_${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    alert(`Mandantensicherung erstellt.\n\nGesichert: ${objects.length} Objekte, ${findings.length} Dokumentationen, ${residentReports.length} Bewohnermeldungen, ${workOrders.length} Arbeitsaufträge.\n\nHinweis: Fotos/Dateien selbst sind nicht eingebettet; deren Metadaten und Storage-Pfade sind enthalten.`);
+  }catch(e){
+    console.error('Mandantensicherung fehlgeschlagen',e);
+    alert('Mandantensicherung konnte nicht erstellt werden: '+(e.message||e));
+  }finally{
+    if(btn){btn.disabled=false;if(oldHtml!=null)btn.innerHTML=oldHtml;}
+  }
 }
 function importData(){
   const file=document.getElementById('importFile').files[0];if(!file)return alert('Bitte Sicherungsdatei wählen.');
