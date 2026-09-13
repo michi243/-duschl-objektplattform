@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.47</title>
+<title>Duschl Service – Objektplattform v2.20.51</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3209,7 +3209,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.50'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.51'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -3500,24 +3500,6 @@ async function openUserMessageComposer(){
     return;
   }
 
-  if(isObjectManagerRole()||isExternalContractorRole()){
-    modal(`<h2>Mitteilung an die Administration</h2>
-      <p class="muted">Deine Mitteilung wird an die Administratoren und Admin-Vertretungen deines aktuellen Mandanten gesendet. Eine Empfängerauswahl ist nicht erforderlich.</p>
-      <label>Titel<input id="userMessageTitle" maxlength="120" placeholder="z. B. Rückfrage zum Objekt"></label>
-      <label>Nachricht<textarea id="userMessageText" maxlength="2000" placeholder="Kurze, konkrete Information"></textarea></label>
-      <label>Objekt (optional)
-        <select id="userMessageObject">
-          <option value="">Kein Objektbezug</option>
-          ${(db.objects||[]).filter(o=>currentUserOwnsOperationalObject(o.id)).map(o=>`<option value="${esc(o.id)}">${esc(o.name||'Objekt')}</option>`).join('')}
-        </select>
-      </label>
-      <div class="row" style="margin-top:14px">
-        <button class="primary" type="button" onclick="sendUserMessage()">Mitteilung senden</button>
-        <button type="button" onclick="closeModal()">Abbrechen</button>
-      </div>`);
-    return;
-  }
-
   if(isTestUserRole()){
     modal(`<h2>Mitteilung an die Administration</h2>
       <p class="muted">Deine Test-Mitteilung wird ausschließlich an Administrator / GF und Admin-Vertretungen gesendet. Eine Empfängerauswahl ist nicht erforderlich.</p>
@@ -3538,9 +3520,15 @@ async function openUserMessageComposer(){
 
   let recipients=[];
   try{
-    recipients=await cloudRequest('rpc/get_user_message_recipients',{
+    const recipientRpc=(isObjectManagerRole()||isExternalContractorRole())
+      ? 'rpc/get_tenant_message_recipients'
+      : 'rpc/get_user_message_recipients';
+    const recipientBody=(isObjectManagerRole()||isExternalContractorRole())
+      ? {p_organization_id:currentOrganizationId()}
+      : {};
+    recipients=await cloudRequest(recipientRpc,{
       method:'POST',
-      body:JSON.stringify({})
+      body:JSON.stringify(recipientBody)
     })||[];
   }catch(e){
     alert('Zulässige Empfänger konnten nicht geladen werden: '+(e.message||e));
@@ -3677,23 +3665,29 @@ async function sendUserMessage(){
     if(objectId && !currentUserOwnsOperationalObject(objectId)){
       return alert('Mitteilungen dürfen nur mit Bezug zu einem dir zugewiesenen Objekt gesendet werden.');
     }
+    const recipients=selectedUserMessageRecipients();
+    if(!recipients.length)return alert('Bitte mindestens einen Empfänger auswählen.');
     try{
-      const result=await cloudRequest('rpc/send_object_manager_admin_message',{
-        method:'POST',
-        body:JSON.stringify({
-          p_organization_id:currentOrganizationId(),
-          p_title:title,
-          p_message:message,
-          p_object_id:objectId||null
-        })
-      });
+      const messageGroupId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():null;
+      for(const recipient of recipients){
+        await cloudRequest('rpc/send_tenant_user_message',{
+          method:'POST',
+          body:JSON.stringify({
+            p_organization_id:currentOrganizationId(),
+            p_recipient_id:recipient,
+            p_title:title,
+            p_message:message,
+            p_object_id:objectId||null,
+            p_message_group_id:messageGroupId
+          })
+        });
+      }
       closeModal();
       await loadUserMessages();
       renderDashboardMessages();
-      const count=Number(result)||0;
-      alert(count>0
-        ? 'Mitteilung wurde an die Administration gesendet.'
-        : 'Mitteilung konnte nicht gesendet werden: Es ist kein aktiver Administrator oder keine aktive Admin-Vertretung vorhanden.');
+      alert(recipients.length===1
+        ? 'Mitteilung wurde gesendet.'
+        : `Mitteilung wurde an ${recipients.length} Benutzer gesendet.`);
     }catch(e){
       alert('Mitteilung konnte nicht gespeichert werden: '+(e.message||e));
     }
@@ -10634,10 +10628,14 @@ function messageBelongsToCurrentTenant(message){
     return false;
   }
 
-  // Für personenbezogene Nachrichten ohne Objekt gilt:
-  // Absender oder Empfänger muss aktuell Mitglied des aktiven Mandanten sein.
-  // Platform-/Cross-Tenant-Nachrichten ohne aktuellen Mandantenbezug
-  // werden bewusst nicht im Mandantendashboard gezählt.
+  // Persönliche Nachrichten ohne Objektbezug werden dem tatsächlichen Absender/Empfänger
+  // immer angezeigt. Die zulässige Mandantenzuordnung wird serverseitig beim Versand geprüft.
+  // Dadurch hängt der Posteingang eines Objektbetreuers nicht davon ab, ob die lokale
+  // Membership-Liste vollständig geladen wurde.
+  if(String(message?.created_by||'')===String(currentUserId()||'') ||
+     String(message?.recipient_id||'')===String(currentUserId()||''))return true;
+
+  // Fallback für administrative Mandantensichten.
   const memberships=Array.isArray(db?.organization_memberships)
     ? db.organization_memberships
     : (Array.isArray(window.organizationMemberships)?window.organizationMemberships:[]);
