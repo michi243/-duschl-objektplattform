@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.53</title>
+<title>Duschl Service – Objektplattform v2.20.54</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1194,8 +1194,12 @@ body.public-report-mode>#photoViewer{display:none!important}
 <input autocomplete="name" id="prName" maxlength="120" placeholder="Vor- und Nachname" type="text"/>
 <label for="prEmail">E-Mail für Rückmeldung</label>
 <input autocomplete="email" id="prEmail" maxlength="180" placeholder="name@beispiel.de" type="email"/>
-<label for="prLocation">Bereich / Ort</label>
-<input id="prLocation" maxlength="180" placeholder="z. B. Treppenhaus 2. OG" type="text"/>
+<label for="prArea">Bereich *</label>
+<select id="prArea" required aria-required="true" onchange="this.removeAttribute('aria-invalid')">
+<option value="">Bitte auswählen</option>
+</select>
+<label for="prLocation">Genauer Ort / Zusatz</label>
+<input id="prLocation" maxlength="180" placeholder="z. B. 2. OG vor Wohnung 12 (optional)" type="text"/>
 <label for="prCategory">Kategorie *</label>
 <select id="prCategory" required aria-required="true" onchange="this.removeAttribute('aria-invalid')">
 <option value="">Bitte auswählen</option>
@@ -3209,7 +3213,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.53'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.54'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -3752,6 +3756,7 @@ let publicResidentReportMode=false;
 let publicResidentObjectId='';
 let publicResidentAreaId='';
 let publicResidentAreaName='';
+let publicResidentAreas=[];
 
 function validUuid(raw=''){
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test((raw||'').trim());
@@ -3760,42 +3765,42 @@ function publicReportObjectFromUrl(){
   const raw=(new URLSearchParams(location.search).get('meldung')||'').trim();
   return validUuid(raw)?raw:'';
 }
-function publicReportAreaFromUrl(){
-  const raw=(new URLSearchParams(location.search).get('bereich')||'').trim();
-  return validUuid(raw)?raw:'';
-}
 async function loadPublicResidentReportContext(){
   const box=document.getElementById('prContext');
   if(!publicResidentObjectId)return;
   try{
+    // v2.20.54: Bewohner-QR identifiziert ausschließlich das Objekt.
+    // Der Bereich wird immer bewusst im Formular gewählt.
     const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_public_report_context`,{
       method:'POST',
       headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},
-      body:JSON.stringify({p_object_id:publicResidentObjectId,p_area_id:publicResidentAreaId||null})
+      body:JSON.stringify({p_object_id:publicResidentObjectId,p_area_id:null})
     });
-    if(!r.ok){
-      if(publicResidentAreaId)throw new Error('Bereich konnte nicht geladen werden.');
-      return;
-    }
+    if(!r.ok)return;
     const raw=await r.text();
     let rows=[]; try{rows=raw?JSON.parse(raw):[]}catch(_e){}
     const ctx=Array.isArray(rows)?rows[0]:rows;
-    if(!ctx){if(publicResidentAreaId)throw new Error('Bereich nicht verfügbar.');return;}
-    publicResidentAreaName=(ctx.area_name||'').trim();
-    if(box){
-      box.innerHTML=`<strong>${esc(ctx.object_name||'Objekt')}</strong>${publicResidentAreaName?`<div style="margin-top:4px">Bereich: <strong>${esc(publicResidentAreaName)}</strong></div>`:''}`;
+    if(ctx&&box){
+      box.innerHTML=`<strong>${esc(ctx.object_name||'Objekt')}</strong>`;
       box.style.display='block';
     }
-    const loc=document.getElementById('prLocation');
-    const lab=document.querySelector('label[for="prLocation"]');
-    if(publicResidentAreaId && publicResidentAreaName){
-      if(lab)lab.textContent='Genauer Ort / Zusatz';
-      if(loc)loc.placeholder='z. B. neben Stellplatz 18 (optional)';
+    const ar=await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_public_report_areas`,{
+      method:'POST',
+      headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({p_object_id:publicResidentObjectId})
+    });
+    if(!ar.ok)throw new Error('Bereiche konnten nicht geladen werden.');
+    const areaRaw=await ar.text();
+    let areaRows=[]; try{areaRows=areaRaw?JSON.parse(areaRaw):[]}catch(_e){}
+    publicResidentAreas=Array.isArray(areaRows)?areaRows:[];
+    const sel=document.getElementById('prArea');
+    if(sel){
+      sel.innerHTML='<option value="">Bitte auswählen</option>'+publicResidentAreas.map(a=>`<option value="${esc(a.id)}">${esc(a.name||'Bereich')}</option>`).join('');
     }
+    if(!publicResidentAreas.length)throw new Error('Für dieses Objekt sind keine aktiven Bereiche hinterlegt.');
   }catch(e){
-    console.error('Öffentlicher Bereichskontext konnte nicht geladen werden',e);
-    const wrap=document.getElementById('publicReportFormWrap');
-    if(publicResidentAreaId&&wrap)wrap.innerHTML='<div class="public-report-success"><strong>QR-Code ungültig</strong><div class="muted">Dieser Bereich ist nicht mehr verfügbar. Bitte verwenden Sie den QR-Code des Objekts.</div></div>';
+    console.error('Öffentlicher Objektkontext konnte nicht vollständig geladen werden',e);
+    publicReportMessage(e.message||'Objektdaten konnten nicht geladen werden.');
   }
 }
 
@@ -3804,7 +3809,9 @@ function bootPublicResidentReport(){
   if(!hasParam)return false;
   publicResidentReportMode=true;
   publicResidentObjectId=publicReportObjectFromUrl();
-  publicResidentAreaId=publicReportAreaFromUrl();
+  // v2.20.54: Alte Bereichsparameter werden absichtlich ignoriert.
+  publicResidentAreaId='';
+  publicResidentAreaName='';
   document.body.classList.add('public-report-mode');
   document.getElementById('publicReportPage')?.classList.add('active');
   setTimeout(bindPublicReportPhotoInputs,0);
@@ -3818,7 +3825,7 @@ function bootPublicResidentReport(){
 }
 
 function startAnotherPublicResidentReport(){
-  // Gleicher Objekt-/Bereichs-QR bleibt erhalten; eine neue Meldung startet sauber von vorn.
+  // Gleicher Objekt-QR bleibt erhalten; Bereich und Meldung werden neu gewählt.
   location.reload();
 }
 
@@ -3976,12 +3983,19 @@ async function submitPublicResidentReport(){
   if(!publicResidentObjectId)return publicReportMessage('Der Objektlink ist ungültig.');
   const name=(document.getElementById('prName')?.value||'').trim();
   const email=(document.getElementById('prEmail')?.value||'').trim();
+  const areaId=(document.getElementById('prArea')?.value||'').trim();
   const locationDetail=(document.getElementById('prLocation')?.value||'').trim();
   const category=(document.getElementById('prCategory')?.value||'').trim();
   const description=(document.getElementById('prDescription')?.value||'').trim();
   const consent=!!document.getElementById('prConsent')?.checked;
 
   if(!name)return publicReportMessage('Bitte geben Sie Ihren Namen ein.');
+  if(!areaId){
+    const areaEl=document.getElementById('prArea');
+    if(areaEl){areaEl.focus();areaEl.setAttribute('aria-invalid','true');}
+    return publicReportMessage('Bitte wählen Sie einen Bereich aus.');
+  }
+  document.getElementById('prArea')?.removeAttribute('aria-invalid');
   if(!category){
     const categoryEl=document.getElementById('prCategory');
     if(categoryEl){categoryEl.focus();categoryEl.setAttribute('aria-invalid','true');}
@@ -4001,7 +4015,7 @@ async function submitPublicResidentReport(){
 
   let reportCreated=false;
   try{
-    const rpcName=publicResidentAreaId?'create_public_resident_report_with_area':'create_public_resident_report_with_token';
+    const rpcName='create_public_resident_report_with_area';
     const payload={
       p_object_id:publicResidentObjectId,
       p_resident_name:name,
@@ -4011,7 +4025,7 @@ async function submitPublicResidentReport(){
       p_location_detail:locationDetail||null,
       p_consent_given:true
     };
-    if(publicResidentAreaId)payload.p_area_id=publicResidentAreaId;
+    payload.p_area_id=areaId;
     const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/${rpcName}`,{
       method:'POST',
       headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},
@@ -4561,7 +4575,7 @@ async function reopenCompletedFinding(id){
 function canEditFindingUI(f){
   if(!f)return canCreateDocumentationUI();
 
-  // v2.20.53: Der Plattform-Admin ist die explizite Governance-Ausnahme.
+  // v2.20.54: Der Plattform-Admin ist die explizite Governance-Ausnahme.
   // Er darf mandantenübergreifend jede Dokumentation öffnen und bearbeiten.
   if(isPlatformSuperuser())return true;
 
@@ -4570,7 +4584,7 @@ function canEditFindingUI(f){
   // Nacharbeit setzt den Vorgang serverseitig wieder auf "in_progress".
   if(f.status==='Erledigt')return false;
 
-  // v2.20.53: Eine execution_finding_id gehört fachlich zum gerouteten
+  // v2.20.54: Eine execution_finding_id gehört fachlich zum gerouteten
   // Arbeitsauftrag. Der berechtigte Executor darf diesen Leistungsnachweis
   // bearbeiten, auch wenn er nicht der ursprüngliche Ersteller des Findings ist.
   const executionOrder=(cloudExternalOrders||[]).find(o=>
@@ -6649,7 +6663,7 @@ function openExternalOrderById(id){
 
 function canOperateExternalOrder(order){
   if(!order)return false;
-  // v2.20.53: Plattform-Admin besitzt mandantenübergreifenden Vollzugriff.
+  // v2.20.54: Plattform-Admin besitzt mandantenübergreifenden Vollzugriff.
   if(isPlatformSuperuser())return true;
   if(hasOperationalAdminAccess())return true;
   if(!(isObjectManagerRole()||isExternalContractorRole()))return false;
@@ -12058,11 +12072,9 @@ async function ensureQrCodeLibrary(){
   throw new Error('Lokale QR-Code-Bibliothek ist nicht verfügbar.');
 }
 
-function objectPublicReportUrl(objectId,areaId=''){
+function objectPublicReportUrl(objectId){
   const base='https://michi243.github.io/-duschl-objektplattform/';
-  const p=new URLSearchParams({meldung:objectId});
-  if(areaId)p.set('bereich',areaId);
-  return `${base}?${p.toString()}`;
+  return `${base}?${new URLSearchParams({meldung:objectId}).toString()}`;
 }
 
 async function openObjectQrCode(objectId,areaId=''){
@@ -12072,8 +12084,7 @@ async function openObjectQrCode(objectId,areaId=''){
   }
   const o=(db.objects||[]).find(x=>x.id===objectId);
   if(!o)return alert('Objekt wurde nicht gefunden.');
-  const area=areaId?objectAreaById(areaId):null;
-  if(areaId&&(!area||area.object_id!==objectId||area.active===false))return alert('Der Bereich wurde nicht gefunden oder ist deaktiviert.');
+  const area=null; // v2.20.54: ausschließlich ein Objekt-QR
   if(isTestUserRole()&&o.isTest!==true){
     alert('Testbenutzer dürfen QR-Codes ausschließlich für Testobjekte erzeugen.');
     return;
@@ -12083,18 +12094,18 @@ async function openObjectQrCode(objectId,areaId=''){
     alert('QR-Code konnte nicht geladen werden. Bitte Verbindung prüfen und später erneut versuchen.');
     return;
   }
-  const url=objectPublicReportUrl(objectId,areaId);
+  const url=objectPublicReportUrl(objectId);
   modal(`<div class="qr-modal-head"><h2>QR-Code Bewohnermeldung</h2></div>
     <div class="card qr-modal-card">
       <canvas id="objectQrCanvas" width="320" height="320" class="qr-modal-canvas"></canvas>
       <div class="qr-modal-object">${esc(o.name||'Objekt')}</div>
-      ${area?`<div class="qr-modal-area">Bereich: ${esc(area.name)}</div>`:''}
+      
       ${o.address?`<div class="muted qr-modal-address">${esc(o.address)}</div>`:''}
     </div>
     <div class="qr-modal-actions">
-      <button class="primary" onclick="downloadObjectQrCode('${objectId}','${areaId}')">QR-Code herunterladen</button>
-      <button onclick="printObjectQrCode('${objectId}','${areaId}')">Drucken</button>
-      <button onclick="copyObjectReportLink('${objectId}','${areaId}')">Link kopieren</button>
+      <button class="primary" onclick="downloadObjectQrCode('${objectId}')">QR-Code herunterladen</button>
+      <button onclick="printObjectQrCode('${objectId}')">Drucken</button>
+      <button onclick="copyObjectReportLink('${objectId}')">Link kopieren</button>
     </div>`);
   const canvas=document.getElementById('objectQrCanvas');
   try{await QRCode.toCanvas(canvas,url,{width:320,margin:2,errorCorrectionLevel:'M',color:{dark:'#000000',light:'#ffffff'}});}
@@ -12166,7 +12177,7 @@ function printObjectQrCode(objectId,areaId=''){
 }
 
 async function copyObjectReportLink(objectId,areaId=''){
-  const url=objectPublicReportUrl(objectId,areaId);
+  const url=objectPublicReportUrl(objectId);
   try{await navigator.clipboard.writeText(url);alert('Meldelink wurde kopiert.');}
   catch(_e){prompt('Meldelink kopieren:',url);}
 }
@@ -12373,13 +12384,13 @@ async function cleanupObjectData(){
 function renderObjectAreaRows(objectId){
   const rows=objectAreasFor(objectId,{includeInactive:true});
   if(!rows.length)return '<div class="empty">Noch keine Bereiche angelegt.</div>';
-  return rows.map(a=>`<div class="list-item"><div class="row space"><div><strong>${esc(a.name)}</strong>${a.active===false?' <span class="badge">deaktiviert</span>':''}</div><div class="row">${a.active!==false?`<button onclick="openObjectQrCode('${objectId}','${a.id}')">QR-Code</button>`:''}<button onclick="renameObjectArea('${objectId}','${a.id}')">Bearbeiten</button><button onclick="toggleObjectArea('${objectId}','${a.id}',${a.active===false?'true':'false'})">${a.active===false?'Aktivieren':'Deaktivieren'}</button></div></div></div>`).join('');
+  return rows.map(a=>`<div class="list-item"><div class="row space"><div><strong>${esc(a.name)}</strong>${a.active===false?' <span class="badge">deaktiviert</span>':''}</div><div class="row"><button onclick="renameObjectArea('${objectId}','${a.id}')">Bearbeiten</button><button onclick="toggleObjectArea('${objectId}','${a.id}',${a.active===false?'true':'false'})">${a.active===false?'Aktivieren':'Deaktivieren'}</button></div></div></div>`).join('');
 }
 function openObjectAreasModal(objectId){
   if(!requireOperationalAdminUI('Bereiche verwalten'))return;
   const o=(db.objects||[]).find(x=>x.id===objectId); if(!o)return alert('Objekt wurde nicht gefunden.');
   modal(`<div class="row space"><div><h2>Bereiche</h2><div class="muted">${esc(o.name)}</div></div><button onclick="closeModal()">✕</button></div>
-    <div class="card" style="margin-top:12px"><h3 style="margin-top:0">Bereich hinzufügen</h3><div class="row"><input id="newAreaName" placeholder="z. B. Tiefgarage" style="flex:1"><button class="primary" onclick="addObjectArea('${objectId}')">Hinzufügen</button></div><div class="muted" style="margin-top:8px">Bereiche werden in Dokumentationen zur Auswahl angeboten und können einen eigenen QR-Code erhalten.</div></div>
+    <div class="card" style="margin-top:12px"><h3 style="margin-top:0">Bereich hinzufügen</h3><div class="row"><input id="newAreaName" placeholder="z. B. Tiefgarage" style="flex:1"><button class="primary" onclick="addObjectArea('${objectId}')">Hinzufügen</button></div><div class="muted" style="margin-top:8px">Bereiche werden in Dokumentationen und bei Bewohnermeldungen zur strukturierten Auswahl angeboten.</div></div>
     <div style="margin-top:12px">${renderObjectAreaRows(objectId)}</div>`);
 }
 async function addObjectArea(objectId){
