@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.37</title>
+<title>Duschl Service – Objektplattform v2.20.38</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -668,6 +668,9 @@ body.platform-menu-mode #organizationList{
 @media(max-width:700px){.delete-preview-grid{grid-template-columns:1fr}}
 
 .focus-ring{outline:2px solid currentColor;outline-offset:4px;border-radius:14px}
+
+/* v2.20.38 Partnerverzeichnis */
+.partner-directory-head{align-items:flex-start;gap:16px;flex-wrap:wrap}.partner-directory-head h2{margin:0 0 6px}.partner-directory-own{margin:14px 0;padding:14px 16px;border:1px solid var(--line,#284457);border-radius:16px;background:rgba(32,143,255,.07)}.partner-directory-own strong{display:block;margin-bottom:3px}.partner-directory-filter{margin:16px 0}.partner-directory-filter-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}.partner-directory-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px}.partner-directory-card{border:1px solid var(--line,#284457);border-radius:20px;background:var(--card,#0c1d29);padding:18px;box-shadow:0 8px 22px rgba(0,0,0,.12)}.partner-directory-card-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.partner-directory-card h3{margin:0;font-size:21px}.partner-directory-badges{display:flex;gap:7px;flex-wrap:wrap;margin:11px 0}.partner-directory-badge{display:inline-flex;align-items:center;border:1px solid #3b5c70;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:750;background:#102838}.partner-directory-badge.available{border-color:#267c5a;background:rgba(34,139,94,.14)}.partner-directory-scope-list{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.partner-directory-scope{padding:5px 8px;border-radius:9px;background:rgba(255,255,255,.055);font-size:12px}.partner-directory-meta{display:grid;gap:7px;margin-top:13px}.partner-directory-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.partner-directory-disclaimer{font-size:12px;margin-top:16px;color:var(--muted,#90a3b3)}.directory-scope-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:8px 0 14px}.directory-scope-picker label{display:flex;gap:8px;align-items:flex-start;padding:9px;border:1px solid var(--line,#284457);border-radius:12px}.directory-scope-picker input{width:auto;margin:3px 0 0}.directory-profile-toggle{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:13px;border:1px solid var(--line,#284457);border-radius:14px;margin:10px 0}.directory-profile-toggle input{width:auto}@media(max-width:720px){.partner-directory-filter-grid{grid-template-columns:1fr}.directory-scope-picker{grid-template-columns:1fr}.partner-directory-card{padding:15px}}
 </style>
 <style>
 .object-file{border:1px solid #dfe5e8;border-radius:14px;background:#fff;margin-bottom:14px;overflow:hidden}
@@ -1280,6 +1283,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <button id="navDecisions" onclick="showSection('decisions')"><span class="nav-icon">✓</span><span>Entscheidungen</span><span class="badge nav-count" id="decisionNavCount">0</span></button>
 <button id="navWorkqueue" onclick="showSection('workqueue')"><span class="nav-icon">⌁</span><span>Arbeitsvorrat</span><span class="badge nav-count" id="workqueueNavCount">0</span></button>
 <button id="navReports" onclick="showSection('reports')"><span class="nav-icon">▥</span><span>Berichte</span></button>
+<button id="navPartnerDirectory" onclick="showSection('partnerDirectory')"><span class="nav-icon">⌘</span><span>Partnerverzeichnis</span></button>
 <button id="navOrganizations" onclick="showSection('organizations')"><span class="nav-icon">▣</span><span>Unternehmen / Mandanten</span></button>
 <button id="navUsers" onclick="showSection('users')"><span class="nav-icon">♙</span><span>Benutzer &amp; Berechtigungen</span></button>
 </nav>
@@ -1704,6 +1708,24 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </div>
 <div id="reportContent"></div>
+</section>
+<section class="section" id="partnerDirectory">
+  <div class="row space partner-directory-head">
+    <div>
+      <h2>Partnerverzeichnis</h2>
+      <div class="muted">Freiwillig gelistete Unternehmen auf der Plattform. Die Listung ist keine Empfehlung oder Qualitätszusage durch Duschl Service.</div>
+    </div>
+    <button id="partnerDirectoryEditOwnBtn" class="primary hidden" type="button" onclick="openOwnDirectoryProfileModal()">Eigenes Profil verwalten</button>
+  </div>
+  <div id="partnerDirectoryOwnStatus" class="partner-directory-own hidden"></div>
+  <div class="card partner-directory-filter">
+    <div class="partner-directory-filter-grid">
+      <div><label>Suche</label><input id="partnerDirectorySearch" type="search" placeholder="Unternehmen, Leistung oder Region" oninput="renderPartnerDirectory()"></div>
+      <div><label>Leistungsbereich</label><select id="partnerDirectoryScope" onchange="renderPartnerDirectory()"><option value="">Alle Leistungen</option></select></div>
+      <div><label>Verfügbarkeit</label><select id="partnerDirectoryAvailability" onchange="renderPartnerDirectory()"><option value="">Alle</option><option value="available">Für neue Aufträge verfügbar</option></select></div>
+    </div>
+  </div>
+  <div id="partnerDirectoryList"><div class="empty">Partnerverzeichnis wird geladen …</div></div>
 </section>
 <section class="section" id="organizations">
 <div class="row space"><div><h2>Unternehmen / Mandanten</h2><div class="muted">Plattformweite Mandantenverwaltung. Der Plattform-Admin legt den Mandanten und dessen initialen Mandanten-Admin an. Die weitere Benutzer- und Objektverwaltung erfolgt innerhalb des Mandanten.</div></div><button class="primary" id="addOrganizationBtn" onclick="openOrganizationModal()">+ Mandant</button></div>
@@ -3175,7 +3197,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.37'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.38'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -4804,6 +4826,7 @@ function applyRoleUI(){
   show('navWorkqueue',hasAppRole && !platformMode && canUseWorkQueueUI());
   show('navExternalOrders',hasAppRole && !platformMode && (hasOperationalAdminAccess()||isObjectManagerRole()));
   show('navReports',hasAppRole && !platformMode);
+  show('navPartnerDirectory',hasAppRole);
   show('navDecisions',hasAppRole && !platformMode && canUseDecisionsUI());
   show('navOrganizations',hasAppRole && platformMode);
   show('navUsers',hasAppRole && !platformMode && canManageUsersUI());
@@ -8977,7 +9000,7 @@ function showSection(id){
   document.querySelectorAll('#platformBottomNav [data-pa-nav]').forEach(b=>b.classList.toggle('active',b.getAttribute('data-pa-nav')===id));
   if(id==='objects'){renderObjectsDirect();try{renderObjects();}catch(e){console.error('Detail-Renderer Objektseite fehlgeschlagen',e);}}
   if(id==='platformUsers' && isAdminRole() && !isPlatformTenantMode()){refreshPlatformOrphanUserCard();}
-  if(id==='dashboard'&&isAdminRole()){loadPlatformSystemStatus();}if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='externalOrders')cloudLoadExternalOrders();if(id==='users')loadUserAdminData();
+  if(id==='dashboard'&&isAdminRole()){loadPlatformSystemStatus();}if(id==='partnerDirectory'){loadPartnerDirectory();}if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='externalOrders')cloudLoadExternalOrders();if(id==='users')loadUserAdminData();
 }
 function priorityLabel(p){
   return ({P1:'Sofort',P2:'Dringend',P3:'Planbar',P4:'Beobachten'})[p]||p||'';
@@ -13437,6 +13460,129 @@ async function dsTenantCleanupExecute(){
   }catch(e){alert('Löschen fehlgeschlagen: '+(e.message||e));}
 }
 
+
+
+// ============================================================
+// v2.20.38 Partnerverzeichnis
+// ============================================================
+const DIRECTORY_SERVICE_SCOPES=[
+  ['OBJEKTBETREUUNG','Objektbetreuung / Hausmeisterservice'],
+  ['REINIGUNG','Gebäudereinigung'],['ABFALL','Abfall / Müllbereitstellung'],
+  ['WINTERDIENST','Winterdienst'],['GRUENPFLEGE','Garten- und Grünanlagenpflege'],
+  ['TUER_TOR','Türen / Tore / Zutritt'],['SCHLIESSANLAGE','Schließanlage'],
+  ['SCHLOSSER','Schlosserarbeiten'],['DACH_FASSADE','Dach / Fassade'],
+  ['MALER','Malerarbeiten'],['TIEFGARAGE','Garage / Tiefgarage'],
+  ['AUFZUG','Aufzugsservice'],['HEIZUNG','Heizung / Wärmeversorgung'],
+  ['SANITAER','Sanitär / Wasser'],['ELEKTRO','Elektro / Beleuchtung'],
+  ['BRANDSCHUTZ','Brandschutz'],['SCHAEDLING','Schädlingsbekämpfung'],
+  ['SONSTIGE','Sonstige Leistungen']
+];
+let partnerDirectoryProfiles=[];
+function directoryScopeLabel(code){return DIRECTORY_SERVICE_SCOPES.find(x=>x[0]===String(code||''))?.[1]||String(code||'');}
+function canManageOwnDirectoryProfile(){return !!currentOrganizationId() && (isTenantAdminRole()||isAdminDelegate()||(isAdminRole()&&isPlatformTenantMode()));}
+async function loadPartnerDirectory(){
+  const list=document.getElementById('partnerDirectoryList');
+  if(list)list.innerHTML='<div class="empty">Partnerverzeichnis wird geladen …</div>';
+  try{
+    partnerDirectoryProfiles=await cloudRequest('organization_directory_profiles?select=organization_id,is_listed,available_for_new_orders,short_description,service_scope_codes,service_region,contact_name,contact_email,website_url,updated_at,organizations(name,organization_type,active)&order=updated_at.desc');
+    const scope=document.getElementById('partnerDirectoryScope');
+    if(scope && scope.options.length<=1){scope.innerHTML='<option value="">Alle Leistungen</option>'+DIRECTORY_SERVICE_SCOPES.map(([c,l])=>`<option value="${esc(c)}">${esc(l)}</option>`).join('');}
+    const edit=document.getElementById('partnerDirectoryEditOwnBtn');
+    edit?.classList.toggle('hidden',!canManageOwnDirectoryProfile());
+    renderPartnerDirectoryOwnStatus();
+    renderPartnerDirectory();
+  }catch(e){
+    if(list)list.innerHTML=`<div class="empty">Partnerverzeichnis konnte nicht geladen werden: ${esc(e?.message||e)}</div>`;
+  }
+}
+function directoryOrgName(p){return p?.organizations?.name||organizationName(p?.organization_id)||'Unternehmen';}
+function renderPartnerDirectoryOwnStatus(){
+  const el=document.getElementById('partnerDirectoryOwnStatus');if(!el)return;
+  const orgId=String(currentOrganizationId()||'');
+  if(!orgId||!canManageOwnDirectoryProfile()){el.classList.add('hidden');return;}
+  const p=(partnerDirectoryProfiles||[]).find(x=>String(x.organization_id)===orgId);
+  el.classList.remove('hidden');
+  if(p?.is_listed){el.innerHTML=`<strong>Dein Unternehmen ist im Partnerverzeichnis sichtbar.</strong><span class="muted">${p.available_for_new_orders?'Für neue Aufträge verfügbar.':'Derzeit nicht als verfügbar markiert.'}</span>`;}
+  else{el.innerHTML='<strong>Dein Unternehmen ist nicht gelistet.</strong><span class="muted">Die Veröffentlichung erfolgt ausschließlich nach aktivem Opt-in des Mandanten-Admins.</span>';}
+}
+function renderPartnerDirectory(){
+  const list=document.getElementById('partnerDirectoryList');if(!list)return;
+  const q=String(document.getElementById('partnerDirectorySearch')?.value||'').trim().toLowerCase();
+  const scope=String(document.getElementById('partnerDirectoryScope')?.value||'');
+  const availability=String(document.getElementById('partnerDirectoryAvailability')?.value||'');
+  const ownOrg=String(currentOrganizationId()||'');
+  const rows=(partnerDirectoryProfiles||[]).filter(p=>{
+    // Unveröffentlichte eigene Profile dürfen Admins wegen RLS sehen, gehören aber nicht in die öffentliche Liste.
+    if(!p.is_listed)return false;
+    if(p.organizations?.active===false)return false;
+    const scopes=Array.isArray(p.service_scope_codes)?p.service_scope_codes:[];
+    if(scope&&!scopes.includes(scope))return false;
+    if(availability==='available'&&!p.available_for_new_orders)return false;
+    const hay=[directoryOrgName(p),p.short_description,p.service_region,...scopes.map(directoryScopeLabel)].join(' ').toLowerCase();
+    return !q||hay.includes(q);
+  });
+  if(!rows.length){list.innerHTML='<div class="empty">Keine passenden gelisteten Unternehmen gefunden.</div>';return;}
+  list.innerHTML=`<div class="partner-directory-grid">${rows.map(p=>{
+    const scopes=Array.isArray(p.service_scope_codes)?p.service_scope_codes:[];
+    const website=String(p.website_url||'').trim();
+    const mail=String(p.contact_email||'').trim();
+    return `<article class="partner-directory-card">
+      <div class="partner-directory-card-head"><div><h3>${esc(directoryOrgName(p))}</h3>${p.service_region?`<div class="muted">${esc(p.service_region)}</div>`:''}</div></div>
+      <div class="partner-directory-badges"><span class="partner-directory-badge">Plattform-Partner</span>${p.available_for_new_orders?'<span class="partner-directory-badge available">Für neue Aufträge verfügbar</span>':''}</div>
+      ${p.short_description?`<div>${esc(p.short_description)}</div>`:''}
+      ${scopes.length?`<div class="partner-directory-scope-list">${scopes.map(c=>`<span class="partner-directory-scope">${esc(directoryScopeLabel(c))}</span>`).join('')}</div>`:''}
+      <div class="partner-directory-meta">${p.contact_name?`<div><strong>Ansprechpartner:</strong> ${esc(p.contact_name)}</div>`:''}${mail?`<div><strong>E-Mail:</strong> ${esc(mail)}</div>`:''}</div>
+      <div class="partner-directory-actions">${mail?`<button type="button" onclick="window.location.href='mailto:${esc(mail)}'">Kontakt</button>`:''}${website?`<button type="button" onclick="openDirectoryWebsite('${esc(website)}')">Website</button>`:''}${canManageOwnDirectoryProfile()&&String(p.organization_id)===ownOrg?'<button type="button" onclick="openOwnDirectoryProfileModal()">Profil bearbeiten</button>':''}</div>
+    </article>`;
+  }).join('')}</div><div class="partner-directory-disclaimer">Die Listung bestätigt ausschließlich die freiwillige Teilnahme am Partnerverzeichnis. Sie stellt keine Empfehlung, Zertifizierung oder Qualitätszusage durch Duschl Service dar.</div>`;
+}
+function openDirectoryWebsite(url){
+  let u=String(url||'').trim(); if(!u)return; if(!/^https?:\/\//i.test(u))u='https://'+u; window.open(u,'_blank','noopener');
+}
+async function openOwnDirectoryProfileModal(){
+  if(!canManageOwnDirectoryProfile())return alert('Nur Mandanten-Admin bzw. Admin-Vertretung darf das Verzeichnisprofil verwalten.');
+  const orgId=String(currentOrganizationId()||'');
+  let p=(partnerDirectoryProfiles||[]).find(x=>String(x.organization_id)===orgId);
+  if(!p){
+    try{const rows=await cloudRequest(`organization_directory_profiles?select=*&organization_id=eq.${encodeURIComponent(orgId)}&limit=1`);p=rows?.[0]||null;}catch(_e){}
+  }
+  const scopes=Array.isArray(p?.service_scope_codes)?p.service_scope_codes:[];
+  modal(`<div class="row space"><div><div class="muted">PARTNERVERZEICHNIS</div><h2 style="margin:4px 0">${esc(currentOrganization?.name||'Unternehmen')}</h2></div><button onclick="closeModal()">✕</button></div>
+    <div class="directory-profile-toggle"><div><strong>Im Partnerverzeichnis sichtbar</strong><div class="muted">Freiwilliges Opt-in. Dein Unternehmen wird nur bei aktivierter Listung anderen Plattformnutzern angezeigt.</div></div><input id="directoryIsListed" type="checkbox" ${p?.is_listed?'checked':''}></div>
+    <div class="directory-profile-toggle"><div><strong>Für neue Aufträge verfügbar</strong><div class="muted">Signalisiert anderen Mandanten, dass neue Anfragen erwünscht sind.</div></div><input id="directoryAvailable" type="checkbox" ${p?.available_for_new_orders?'checked':''}></div>
+    <label>Kurzbeschreibung</label><textarea id="directoryDescription" maxlength="500" placeholder="Leistungsschwerpunkt und Positionierung">${esc(p?.short_description||'')}</textarea>
+    <label>Einsatzgebiet / Region</label><input id="directoryRegion" maxlength="200" placeholder="z. B. München und 50 km Umkreis" value="${esc(p?.service_region||'')}">
+    <label>Leistungsbereiche</label><div class="directory-scope-picker">${DIRECTORY_SERVICE_SCOPES.map(([c,l])=>`<label><input type="checkbox" data-directory-scope value="${esc(c)}" ${scopes.includes(c)?'checked':''}><span>${esc(l)}</span></label>`).join('')}</div>
+    <label>Ansprechpartner <span class="muted">(optional)</span></label><input id="directoryContactName" maxlength="160" value="${esc(p?.contact_name||'')}">
+    <label>Kontakt-E-Mail <span class="muted">(optional)</span></label><input id="directoryContactEmail" type="email" maxlength="254" value="${esc(p?.contact_email||'')}">
+    <label>Website <span class="muted">(optional)</span></label><input id="directoryWebsite" maxlength="300" placeholder="https://…" value="${esc(p?.website_url||'')}">
+    <div class="pa-info-box" style="margin-top:12px">ⓘ Die Listung bedeutet ausschließlich, dass dein Unternehmen die Plattform nutzt. Sie ist keine Empfehlung oder Qualitätszusage durch Duschl Service.</div>
+    <div class="row" style="margin-top:16px;gap:10px"><button class="primary" onclick="saveOwnDirectoryProfile()">Profil speichern</button><button onclick="closeModal()">Abbrechen</button></div>`);
+}
+async function saveOwnDirectoryProfile(){
+  if(!canManageOwnDirectoryProfile())return alert('Keine Berechtigung.');
+  const orgId=String(currentOrganizationId()||''); if(!orgId)return alert('Kein Mandant ausgewählt.');
+  const email=String(document.getElementById('directoryContactEmail')?.value||'').trim().toLowerCase();
+  if(email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return alert('Bitte eine gültige Kontakt-E-Mail eingeben.');
+  const scopes=[...document.querySelectorAll('[data-directory-scope]:checked')].map(x=>x.value);
+  const payload={
+    organization_id:orgId,
+    is_listed:!!document.getElementById('directoryIsListed')?.checked,
+    available_for_new_orders:!!document.getElementById('directoryAvailable')?.checked,
+    short_description:String(document.getElementById('directoryDescription')?.value||'').trim()||null,
+    service_region:String(document.getElementById('directoryRegion')?.value||'').trim()||null,
+    service_scope_codes:scopes,
+    contact_name:String(document.getElementById('directoryContactName')?.value||'').trim()||null,
+    contact_email:email||null,
+    website_url:String(document.getElementById('directoryWebsite')?.value||'').trim()||null,
+    updated_by:currentUserId()||null,
+    updated_at:new Date().toISOString()
+  };
+  try{
+    await cloudRequest('organization_directory_profiles',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(payload)});
+    closeModal();await loadPartnerDirectory();
+  }catch(e){alert('Verzeichnisprofil konnte nicht gespeichert werden: '+(e?.message||e));}
+}
 
 function dsRemoveLegacyTestObjectUI(){
   [...document.querySelectorAll('label,.label,strong,span,div')].forEach(n=>{
