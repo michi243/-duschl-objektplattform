@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.24</title>
+<title>Duschl Service – Objektplattform v2.20.25</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3175,7 +3175,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.24'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.25'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -10766,17 +10766,68 @@ function openCustomerDocumentation(){
   alert('Neue Dokumentationen werden ausschließlich über „Objekte“ angelegt.');
 }
 
+function externalMonitoringDocumentationCard(x){
+  const executor=partnerName(x.executor_organization_id);
+  const snapshot=x.source_snapshot||{};
+  const fid=String(x.source_finding_id||'');
+  const localFinding=fid?(db.findings||[]).find(f=>String(f.id||'')===fid):null;
+  const objectName=x.source_object_name||((db.objects||[]).find(o=>String(o.id||'')===String(x.source_object_id||''))?.name)||'Objekt';
+  const statusLabel=externalOrderLifecycleLabel(x);
+  return `<div class="card" data-external-monitoring-order-id="${esc(x.id)}">
+    <div class="row" style="justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
+      <div>
+        <div class="row" style="gap:7px;flex-wrap:wrap;margin-bottom:8px">
+          <span class="badge">Extern in Bearbeitung</span>
+          <span class="badge">${esc(statusLabel)}</span>
+        </div>
+        <h3 style="margin:0 0 6px">${esc(x.title||localFinding?.title||'Externer Vorgang')}</h3>
+        <div class="muted">${esc(objectName)}${snapshot.area?` · ${esc(snapshot.area)}`:''}</div>
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <div><b>Verantwortlich:</b> ${esc(executor)}</div>
+      <div><b>Status:</b> ${esc(statusLabel)}</div>
+      ${x.description?`<div><b>Auftrag:</b> ${esc(x.description)}</div>`:''}
+      <div class="muted" style="margin-top:8px">Aktuell keine Aktion durch ${esc(currentOrganization?.name||'diesen Mandanten')} erforderlich.</div>
+    </div>
+    ${ticketTimelineForExternalOrder(x)}
+    <div class="row" style="margin-top:10px">
+      ${localFinding?`<button type="button" onclick="openFindingModal('${esc(localFinding.objectId||'')}','', '${esc(localFinding.id)}')">Dokumentation öffnen</button>`:`<button type="button" onclick="openExternalOrderById('${esc(x.id)}')">Vorgang ansehen</button>`}
+    </div>
+  </div>`;
+}
+
 function renderFindings(){
   renderCustomerObjectContext();
   const df=document.getElementById('filterDecision')?.value||'';
   const rf=document.getElementById('filterResponsibility')?.value||'';
   const of=document.getElementById('filterObject')?.value||'', sf=document.getElementById('filterStatus')?.value||'', pf=document.getElementById('filterPriority')?.value||'', tf=document.getElementById('filterType')?.value||'';
+  const el=document.getElementById('findingList');
+
+  // v2.20.25: Externe Monitoring-Vorgänge werden direkt aus shared_work_orders
+  // dargestellt. Damit hängt die Dokumentationssicht nicht mehr davon ab, ob
+  // source_finding_id im aktuellen Mandanten auf eine lokal geladene Feststellung
+  // aufgelöst werden kann. Dashboard-KPI und Dokumentationsfilter verwenden
+  // dadurch dieselbe Datenquelle.
+  if(rf==='external'){
+    let external=[...externalMonitoringOrdersForCurrentTenant()];
+    if(of)external=external.filter(x=>String(x.source_object_id||'')===String(of));
+    if(pf==='critical')external=external.filter(x=>['P1','P2'].includes(String(x.priority||'')));
+    else if(pf)external=external.filter(x=>String(x.priority||'')===String(pf));
+    external.sort((a,b)=>{
+      const ta=new Date(a.updated_at||a.accepted_at||a.created_at||0).getTime()||0;
+      const tb=new Date(b.updated_at||b.accepted_at||b.created_at||0).getTime()||0;
+      return tb-ta;
+    });
+    if(el)el.innerHTML=external.length?external.map(externalMonitoringDocumentationCard).join(''):`<div class="empty">Keine extern bearbeiteten Dokumentationen im gewählten Filter.</div>`;
+    return;
+  }
+
   let arr=[...db.findings].filter(f=>findingVisibleInCurrentTenantUI(f)).sort((a,b)=>b.createdAt-a.createdAt);
   if(of)arr=arr.filter(x=>x.objectId===of);if(sf==='active')arr=arr.filter(x=>x.status!=='Erledigt');else if(sf)arr=arr.filter(x=>x.status===sf);if(df)arr=arr.filter(x=>(x.decisionStatus||'pending')===df);if(pf==='critical')arr=arr.filter(x=>['P1','P2'].includes(x.priority));else if(pf)arr=arr.filter(x=>x.priority===pf);if(tf)arr=arr.filter(x=>(x.type||'Feststellung')===tf);
-  if(rf==='external')arr=arr.filter(x=>!!externalMonitoringOrderForFinding(x.id));
-  else if(rf==='own')arr=arr.filter(x=>x.status!=='Erledigt'&&!findingIsOperationallyOwnedByOtherTenant(x.id));
+  if(rf==='own')arr=arr.filter(x=>x.status!=='Erledigt'&&!findingIsOperationallyOwnedByOtherTenant(x.id));
   else if(rf==='completed')arr=arr.filter(x=>x.status==='Erledigt'||String(externalResponsibilityOrderForFinding(x.id)?.review_status||'')==='verified');
-  const el=document.getElementById('findingList'); if(el)el.innerHTML=arr.length?arr.map(f=>findingCard(f)).join(''):`<div class="empty">Keine Dokumentationen im gewählten Filter.</div>`;
+  if(el)el.innerHTML=arr.length?arr.map(f=>findingCard(f)).join(''):`<div class="empty">Keine Dokumentationen im gewählten Filter.</div>`;
 }
 
 let reportCustomerMode=false;
