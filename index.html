@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.42</title>
+<title>Duschl Service – Objektplattform v2.20.43</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1803,6 +1803,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <select id="newUserRole">
 <option value="tenant_admin">Mandanten-Admin</option>
 <option value="admin_delegate">Admin-Vertretung</option>
+<option value="property_manager">Verwalter</option>
 <option value="object_manager">Objektbetreuer</option>
 <option value="customer">Auftraggeber</option>
 <option value="external_contractor">Externer Auftragnehmer</option>
@@ -3207,7 +3208,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.42'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.43'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -3264,6 +3265,7 @@ function dashboardRoleContextText(){
   if(isTenantAdminRole())return `Gesamtübersicht · ${currentOrganization?.name||'Mandant'}`;
   const role=effectiveUserRole();
   if(role==='platform_admin')return 'Plattformverwaltung';
+  if(isPropertyManagerRole())return 'Deine zugewiesenen Objekte, Dokumentationen und Entscheidungen';
   if(role==='object_manager'||role==='staff')return 'Deine zugewiesenen Objekte, offenen Punkte und Aufgaben';
   if(role==='customer')return 'Deine Objekte, Dokumentationen und offenen Entscheidungen';
   if(role==='test_user')return 'Testübersicht für deine freigegebenen Testobjekte';
@@ -4254,6 +4256,7 @@ const ROLE_LABELS={
   test_user:'Testbenutzer (Legacy)',
   external_contractor:'Externer Auftragnehmer',
   tenant_admin:'Mandanten-Admin',
+  property_manager:'Verwalter',
   admin_delegate:'Admin-Vertretung'
 };
 
@@ -4276,15 +4279,16 @@ function isPlatformSuperuser(){return isAdminRole();}
 function isPlatformAdminDelegateRole(){return effectiveUserRole()==='platform_admin_delegate'}
 function isPlatformOperatorRole(){return isAdminRole()||isPlatformAdminDelegateRole()}
 function isTenantAdminRole(){return effectiveOrganizationRole()==='tenant_admin'&&(!isPlatformOperatorRole()||isPlatformTenantMode())}
+function isPropertyManagerRole(){return effectiveOrganizationRole()==='property_manager'&&!isPlatformTenantMode()&&!isPlatformOperatorRole()}
 function isAdminDelegate(){return effectiveOrganizationRole()==='admin_delegate'&&!isPlatformTenantMode()&&!isPlatformOperatorRole()}
 function hasOperationalAdminAccess(){return (isAdminRole()&&isPlatformTenantMode())||isTenantAdminRole()||isAdminDelegate()}
 function canManageUsersUI(){return (isAdminRole()&&isPlatformTenantMode())||isTenantAdminRole()||isAdminDelegate()}
-function isObjectManagerRole(){return !hasOperationalAdminAccess()&&['object_manager','staff'].includes(effectiveUserRole())}
+function isObjectManagerRole(){return !hasOperationalAdminAccess()&&!isPropertyManagerRole()&&['object_manager','staff'].includes(effectiveUserRole())}
 function isExternalContractorRole(){return effectiveOrganizationRole()==='external_contractor'&&!hasOperationalAdminAccess()}
-function isCustomerRole(){return effectiveUserRole()==='customer'&&!hasOperationalAdminAccess()}
+function isCustomerRole(){return effectiveUserRole()==='customer'&&!hasOperationalAdminAccess()&&!isPropertyManagerRole()}
 function isTestUserRole(){return effectiveUserRole()==='test_user'&&!hasOperationalAdminAccess()}
 function canManageObjectsUI(){return (isAdminRole()&&isPlatformTenantMode())||hasOperationalAdminAccess()}
-function canUseDecisionsUI(){return (isAdminRole()&&isPlatformTenantMode())||hasOperationalAdminAccess()||isCustomerRole()||isTestUserRole()}
+function canUseDecisionsUI(){return (isAdminRole()&&isPlatformTenantMode())||hasOperationalAdminAccess()||isPropertyManagerRole()||isCustomerRole()||isTestUserRole()}
 function canUseDecisionsForObject(objectId){
   const o=(db.objects||[]).find(x=>x.id===objectId);
   // Auftraggeberentscheidungen dürfen ausschließlich im eigenen Mandantenkontext
@@ -4297,6 +4301,9 @@ function canUseDecisionsForObject(objectId){
 }
 function canRouteFindingUI(f){
   if(!f||String(f.type||'Feststellung')!=='Feststellung')return false;
+  // Verwalter dürfen v2.20.43 Entscheidungen und externe Einzelaufträge für zugewiesene Objekte steuern.
+  // Das bestehende Finding-Routing bleibt bis zur serverseitigen Rollenfreigabe bewusst dem Mandanten-Admin vorbehalten.
+  if(isPropertyManagerRole())return false;
   // Routing ist eine explizite Entscheidung des führenden Mandanten.
   // Externe Betreuer dürfen Vorgänge nicht eigenmächtig an andere Mandanten freigeben.
   return canUseDecisionsForObject(f.objectId);
@@ -4364,9 +4371,9 @@ function refreshFindingDecisionAccess(){
   if(hint)hint.classList.toggle('hidden',allowed);
 }
 function canUseWorkQueueUI(){return (isAdminRole()&&isPlatformTenantMode())||hasOperationalAdminAccess()||isObjectManagerRole()||isExternalContractorRole()||isTestUserRole()}
-function canCreateDocumentationUI(){return hasOperationalAdminAccess()||isObjectManagerRole()||isExternalContractorRole()||isCustomerRole()||isTestUserRole()}
+function canCreateDocumentationUI(){return hasOperationalAdminAccess()||isPropertyManagerRole()||isObjectManagerRole()||isExternalContractorRole()||isCustomerRole()||isTestUserRole()}
 function canUseSettingsUI(){return isAdminRole()||hasOperationalAdminAccess()}
-function canSeeInternalPersonnelUI(){return hasOperationalAdminAccess()||(!isCustomerRole()&&!isTestUserRole())}
+function canSeeInternalPersonnelUI(){return hasOperationalAdminAccess()||(!isPropertyManagerRole()&&!isCustomerRole()&&!isTestUserRole())}
 function customerSafeText(v){return isCustomerRole()?'':(v||'')}
 function currentUserId(){return currentUserProfile?.id||cloudSession?.user?.id||''}
 
@@ -4549,7 +4556,7 @@ async function cloudLoadCurrentProfile(){
 
   try{
     const memberships=await cloudRequest(`organization_memberships?select=id,organization_id,user_id,role&user_id=eq.${encodeURIComponent(uid)}`)||[];
-    const membershipPriority={tenant_admin:1,admin_delegate:2,external_contractor:3,object_manager:4,customer:5};
+    const membershipPriority={tenant_admin:1,admin_delegate:2,property_manager:3,external_contractor:4,object_manager:5,customer:6};
     currentOrganizationMembership=[...memberships].sort((a,b)=>
       (membershipPriority[String(a?.role||'').toLowerCase()]||99)-
       (membershipPriority[String(b?.role||'').toLowerCase()]||99)
@@ -4816,6 +4823,8 @@ function applyRoleUI(){
           ? (isPlatformTenantMode()?'Platform Admin-Vertretung · Mandantenmodus':'Platform Admin-Vertretung')
         : isTenantAdminRole()
           ? 'Mandanten-Admin'
+        : isPropertyManagerRole()
+          ? 'Verwalter'
         : role==='object_manager'
           ? 'Objektbetreuer'
           : role==='customer'
@@ -4856,9 +4865,9 @@ function applyRoleUI(){
   show('navObjects',hasAppRole && !platformMode);
   show('navInspections',false);
   show('navFindings',hasAppRole && !platformMode && canCreateDocumentationUI());
-  show('navResidentReports',hasAppRole && !platformMode && !isCustomerRole());
+  show('navResidentReports',hasAppRole && !platformMode && !isCustomerRole() && !isPropertyManagerRole());
   show('navWorkqueue',hasAppRole && !platformMode && canUseWorkQueueUI());
-  show('navExternalOrders',hasAppRole && !platformMode && (hasOperationalAdminAccess()||isObjectManagerRole()));
+  show('navExternalOrders',hasAppRole && !platformMode && (hasOperationalAdminAccess()||isPropertyManagerRole()||isObjectManagerRole()));
   show('navReports',hasAppRole && !platformMode);
   show('navPartnerDirectory',hasAppRole);
   show('navDecisions',hasAppRole && !platformMode && canUseDecisionsUI());
@@ -4902,6 +4911,8 @@ function applyRoleUI(){
       ? 'MANDANTEN-ADMIN'
       : isAdminDelegate()
         ? 'ADMIN-VERTRETUNG'
+        : isPropertyManagerRole()
+          ? 'VERWALTER'
         : role==='object_manager'||role==='staff'||role==='employee'
           ? 'OBJEKTBETREUUNG'
           : role==='customer'
@@ -4913,6 +4924,8 @@ function applyRoleUI(){
       ? 'Steuerung deines Unternehmens, der Objekte und der operativen Vorgänge.'
       : isAdminDelegate()
         ? 'Operative Steuerung und Vertretung innerhalb des Mandanten.'
+        : isPropertyManagerRole()
+          ? 'Steuerung und Entscheidungen für deine zugewiesenen Objekte.'
         : role==='object_manager'||role==='staff'||role==='employee'
           ? 'Deine Objekte, offenen Feststellungen und Arbeitsvorgänge.'
           : role==='customer'
@@ -5774,7 +5787,7 @@ async function cloudLoadResidentReports(){
   // v2.19.42: Bewohnermeldungen werden nicht mehr über den direkten Tabellenzugriff
   // geladen. Der Server entscheidet anhand Eigentümermandant + manueller Weiterleitung,
   // welcher Mandant eine Meldung sehen darf.
-  if(isCustomerRole()){
+  if(isCustomerRole()||isPropertyManagerRole()){
     cloudResidentReports=[];
     cloudResidentReportMedia=[];
     return cloudResidentReports;
@@ -5893,8 +5906,8 @@ async function refreshAllCloudData(){
     if(canManageUsersUI())await loadUserAdminData();
     if(isAdminRole())await cloudLoadOrganizations();
     await loadUserMessages();
-    if(hasOperationalAdminAccess())await cloudLoadObjectCollaborations(false);
-    if(hasOperationalAdminAccess()||isObjectManagerRole())await cloudLoadExternalOrders(false);
+    if(hasOperationalAdminAccess()||isPropertyManagerRole())await cloudLoadObjectCollaborations(false);
+    if(hasOperationalAdminAccess()||isPropertyManagerRole()||isObjectManagerRole())await cloudLoadExternalOrders(false);
     renderAll();
     cloudSetStatus('Verbunden · Daten zentral aktualisiert','ok');
   }catch(e){
@@ -6578,10 +6591,15 @@ function pendingExternalReviewFindingIds(){
 
 
 function canReviewExternalOrder(order){
-  if(!order||!hasOperationalAdminAccess())return false;
-  return String(order.source_organization_id||'')===String(currentOrganizationId()||'')
-    && String(order.status||'')==='completed'
-    && String(order.review_status||'pending')!=='verified';
+  if(!order||!(hasOperationalAdminAccess()||isPropertyManagerRole()))return false;
+  if(String(order.source_organization_id||'')!==String(currentOrganizationId()||''))return false;
+  if(String(order.status||'')!=='completed'||String(order.review_status||'pending')==='verified')return false;
+  if(isPropertyManagerRole()){
+    // Rohdaten einer Bewohnermeldung bleiben für Verwalter bewusst außerhalb der Freigabe.
+    if(order.source_resident_report_id)return false;
+    return (db.objects||[]).some(o=>String(o.id||'')===String(order.source_object_id||''));
+  }
+  return true;
 }
 
 async function reviewExternalOrder(id,decision){
@@ -6607,6 +6625,15 @@ async function reviewExternalOrder(id,decision){
           p_work_order_id:id,
           p_review_status:decision,
           p_note:note||null
+        })
+      });
+    }else if(isPropertyManagerRole()){
+      await cloudRequest('rpc/property_manager_review_external_order',{
+        method:'POST',
+        body:JSON.stringify({
+          p_organization_id:currentOrganizationId()||null,
+          p_work_order_id:id,
+          p_review_status:decision
         })
       });
     }else{
@@ -6989,7 +7016,7 @@ async function routeFindingToOrganization(findingId){
 }
 
 async function openExternalOrderModal(){
-  if(!hasOperationalAdminAccess())return alert('Nur Mandanten-Admin oder Admin-Vertretung können externe Aufträge auslösen.');
+  if(!(hasOperationalAdminAccess()||isPropertyManagerRole()))return alert('Nur Mandanten-Admin, Admin-Vertretung oder Verwalter können externe Aufträge auslösen.');
   await cloudLoadExternalOrders(false);
   const partners=cloudCollaborationPartners.filter(p=>p.can_send===true);
   if(!partners.length)return alert('Für diesen Mandanten ist noch kein Partnerunternehmen für externe Beauftragungen freigeschaltet.');
@@ -7002,7 +7029,22 @@ async function createExternalOrder(){
   if(!partner||!objectId||!title)return alert('Partnerunternehmen, Objekt und Titel sind Pflichtfelder.');
   const o=(db.objects||[]).find(x=>x.id===objectId); if(!o)return alert('Objekt nicht gefunden.');
   try{
-    await cloudRequest('shared_work_orders',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify({source_organization_id:currentOrganizationId(),executor_organization_id:partner,source_object_id:objectId,source_object_name:o.name||'Objekt',source_object_address:o.address||'',title,description,priority,status:'requested',subcontracting_allowed:subcontractingAllowed,visibility_scope:'order_only',created_by:currentUserId()})});
+    if(isPropertyManagerRole()){
+      await cloudRequest('rpc/property_manager_create_external_order',{
+        method:'POST',
+        body:JSON.stringify({
+          p_organization_id:currentOrganizationId(),
+          p_executor_organization_id:partner,
+          p_object_id:objectId,
+          p_title:title,
+          p_description:description||null,
+          p_priority:priority,
+          p_subcontracting_allowed:subcontractingAllowed
+        })
+      });
+    }else{
+      await cloudRequest('shared_work_orders',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify({source_organization_id:currentOrganizationId(),executor_organization_id:partner,source_object_id:objectId,source_object_name:o.name||'Objekt',source_object_address:o.address||'',title,description,priority,status:'requested',subcontracting_allowed:subcontractingAllowed,visibility_scope:'order_only',created_by:currentUserId()})});
+    }
     closeModal();await cloudLoadExternalOrders();alert('Der Auftrag wurde dem Partnerunternehmen freigegeben.');
   }catch(e){alert('Externer Auftrag konnte nicht erstellt werden: '+(e.message||e));}
 }
@@ -8336,6 +8378,11 @@ async function cloudReloadObjects(){
             method:'POST',
             body:JSON.stringify({p_organization_id:tenantOrgId})
           });
+        }else if(isPropertyManagerRole() && tenantOrgId){
+          rows=await cloudRequest('rpc/property_manager_get_objects',{
+            method:'POST',
+            body:JSON.stringify({p_organization_id:tenantOrgId})
+          });
         }else{
           rows=await cloudRequest('rpc/tenant_get_accessible_objects',{
             method:'POST',
@@ -8374,7 +8421,7 @@ async function cloudReloadObjects(){
     await cloudLoadSharedObjects();
     // v2.18.82: Betreuungsanfragen bei jedem Mandanten-Reload laden.
     // Pending-Anfragen sind absichtlich active=false und müssen trotzdem sichtbar bleiben.
-    if(hasOperationalAdminAccess()) await cloudLoadObjectCollaborations(false);
+    if(hasOperationalAdminAccess()||isPropertyManagerRole()) await cloudLoadObjectCollaborations(false);
     else cloudObjectCollaborations=[];
     const ownIds=new Set(ownObjects.map(o=>o.id));
     db.objects=ownObjects.concat(cloudSharedObjects.filter(o=>!ownIds.has(o.id)));
@@ -8413,7 +8460,7 @@ async function cloudReloadObjects(){
     // Externe Aufträge vor den Findings laden. Nur so ist beim Laden bereits klar,
     // welche fremden Original-Feststellungen im aktuellen Executor-Mandanten durch
     // einen gerouteten Arbeitsauftrag ersetzt werden.
-    if(hasOperationalAdminAccess()||isObjectManagerRole()||isExternalContractorRole()){
+    if(hasOperationalAdminAccess()||isPropertyManagerRole()||isObjectManagerRole()||isExternalContractorRole()){
       try{await cloudLoadExternalOrders(false);}catch(e){
         console.warn('Externe Aufträge konnten vor der Dokumentationssicht nicht geladen werden',e);
         cloudExternalOrders=[];
@@ -8998,7 +9045,7 @@ function showSection(id){
   if(id==='inspections')id='findings';
   if(id==='decisions'&&!canUseDecisionsUI())return requireDecisionUI();
   if(id==='workqueue'&&!canUseWorkQueueUI()){alert('Der Arbeitsvorrat ist nur für Admin/GF und Objektbetreuer freigegeben.');return;}
-  if(id==='externalOrders'&&!(hasOperationalAdminAccess()||isObjectManagerRole())){alert('Externe Aufträge sind für die operative Mandantensteuerung freigegeben.');return;}
+  if(id==='externalOrders'&&!(hasOperationalAdminAccess()||isPropertyManagerRole()||isObjectManagerRole())){alert('Externe Aufträge sind für die operative Mandantensteuerung freigegeben.');return;}
   if(id==='platformUsers'){
     if(!isAdminRole())return requireAdminUI('Plattform-Benutzer');
     if(isPlatformTenantMode()){
@@ -10059,7 +10106,7 @@ function loadUserAdminEditor(){
   const membership=userAdminMemberships.find(m=>m.user_id===uid)||null;
   const orgId=membership?.organization_id||currentOrganizationId();
   const assigned=new Set(userAdminAssignments.filter(a=>a.user_id===uid&&a.active!==false).map(a=>a.object_id));
-  const roles=[['tenant_admin','Mandanten-Admin'],['admin_delegate','Admin-Vertretung'],['object_manager','Objektbetreuer'],['external_contractor','Externer Auftragnehmer'],['customer','Auftraggeber']];
+  const roles=[['tenant_admin','Mandanten-Admin'],['admin_delegate','Admin-Vertretung'],['property_manager','Verwalter'],['object_manager','Objektbetreuer'],['external_contractor','Externer Auftragnehmer'],['customer','Auftraggeber']];
   const allowedRoles=isAdminDelegate()?roles.filter(([v])=>!['tenant_admin','admin_delegate'].includes(v)):roles;
   const roleOptions=allowedRoles.map(([v,l])=>`<option value="${v}" ${membership?.role===v?'selected':''}>${l}</option>`).join('');
   const ownObjects=(db.objects||[]).filter(o=>!o.externalManaged&&(!orgId||o.organizationId===orgId));
@@ -10139,7 +10186,7 @@ async function createUserAndInvite(){
   if(!fullName)return alert('Bitte einen Anzeigenamen eingeben.');
   if(!organizationId)return alert('Bitte ein Unternehmen / einen Mandanten auswählen.');
   if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return alert('Bitte eine gültige E-Mail-Adresse eingeben.');
-  if(!['tenant_admin','admin_delegate','object_manager','external_contractor','customer'].includes(role))return alert('Ungültige Rolle.');
+  if(!['tenant_admin','admin_delegate','property_manager','object_manager','external_contractor','customer'].includes(role))return alert('Ungültige Rolle.');
 
   const btn=event?.currentTarget;
   if(btn){btn.disabled=true;btn.textContent='Benutzer wird angelegt…';}
@@ -10151,7 +10198,7 @@ async function createUserAndInvite(){
         'Authorization':`Bearer ${cloudSession?.access_token||''}`,
         'apikey':SUPABASE_PUBLISHABLE_KEY
       },
-      body:JSON.stringify({fullName,email,role:(['tenant_admin','admin_delegate','external_contractor'].includes(role)?'object_manager':role),objectIds})
+      body:JSON.stringify({fullName,email,role:(role==='property_manager'?'customer':(['tenant_admin','admin_delegate','external_contractor'].includes(role)?'object_manager':role)),objectIds})
     });
 
     const responseText=await res.text();
@@ -10330,7 +10377,7 @@ async function saveUserAdminPermissions(){
   if(!isAdminRole()&&orgId!==currentOrganizationId())return alert('Benutzer eines anderen Mandanten dürfen nicht bearbeitet werden.');
   if(uid===currentUserProfile?.id&&!active)return alert('Der aktuell angemeldete Benutzer kann sich nicht selbst deaktivieren.');
   const checked=[...document.querySelectorAll('.userObjectAssignment:checked')].map(x=>x.value);
-  const globalRole=organizationRole==='customer'?'customer':'object_manager';
+  const globalRole=['customer','property_manager'].includes(organizationRole)?'customer':'object_manager';
   try{
     await cloudRequest('profiles?id=eq.'+encodeURIComponent(uid),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({full_name:fullName,role:globalRole,active})});
     await cloudRequest(`organization_memberships?organization_id=eq.${encodeURIComponent(orgId)}&user_id=eq.${encodeURIComponent(uid)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({role:organizationRole})});
@@ -11229,7 +11276,7 @@ function residentReportStatusLabel(status){
 }
 
 function canUseResidentReportUI(r){
-  if(!r||isCustomerRole())return false;
+  if(!r||isCustomerRole()||isPropertyManagerRole())return false;
   const o=(db.objects||[]).find(x=>x.id===r.object_id);
   if(!o)return false;
   if(isTestUserRole())return o.isTest===true;
