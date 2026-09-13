@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.32</title>
+<title>Duschl Service – Objektplattform v2.20.33</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3175,7 +3175,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.32'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.33'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -5563,7 +5563,17 @@ async function cloudReloadFindings(){
       body:JSON.stringify({p_organization_id:currentOrganizationId()})
     });
     const visibleIds=new Set((Array.isArray(visible)?visible:[]).map(x=>String(x.finding_id||x.id||x)));
-    rows=rows.filter(f=>visibleIds.has(String(f.id)));
+    const currentOrgId=String(currentOrganizationId()||'');
+    const objectOwnerById=new Map((db.objects||[]).map(o=>[String(o.id||''),String(o.organizationId||o.organization_id||'')]));
+    // v2.20.33: Die Support-RPC darf den fachlichen Historienbestand eines Mandanten
+    // nicht verkürzen. Eigentümer- und Ersteller-Mandant behalten die Original-
+    // dokumentation daher auch nach externer Abnahme / verified dauerhaft sichtbar.
+    rows=rows.filter(f=>{
+      if(visibleIds.has(String(f.id)))return true;
+      const ownerOrg=objectOwnerById.get(String(f.object_id||''))||'';
+      const creatorOrg=String(f.creator_organization_id_snapshot||'');
+      return !!currentOrgId && (ownerOrg===currentOrgId || creatorOrg===currentOrgId);
+    });
   }
   const findingIds=new Set(rows.map(f=>f.id));
   const decisionsRaw=await cloudRequest('decisions?select=id,finding_id,required,status,decided_by,decided_by_name,decided_at,decision_date,implementation_responsibility,comment,amount,created_at,updated_at');
@@ -10797,21 +10807,24 @@ function findingCard(f){
   const type=f.type||'Feststellung';
   const before=f.beforePhoto||f.photo||'', after=f.afterPhoto||'';
   const responsibilityOrder=type==='Feststellung'?externalResponsibilityOrderForFinding(f.id):null;
-  const externallyOwned=!!responsibilityOrder && findingIsOperationallyOwnedByOtherTenant(f.id);
+  const externallyOwned=!!responsibilityOrder && String(responsibilityOrder.review_status||'')!=='verified' && findingIsOperationallyOwnedByOtherTenant(f.id);
   const externalExecutor=responsibilityOrder?partnerName(responsibilityOrder.executor_organization_id):'';
   const externalLifecycle=responsibilityOrder?externalOrderLifecycleLabel(responsibilityOrder):'';
-  const statusHtml=externallyOwned
-    ? `<span class="badge">Extern vergeben</span>`
-    : statusBadge(f.status);
+  const routeVerified=!!responsibilityOrder && String(responsibilityOrder.review_status||'')==='verified';
+  const statusHtml=routeVerified
+    ? `<span class="badge">Abgeschlossen</span>`
+    : externallyOwned
+      ? `<span class="badge">Extern vergeben</span>`
+      : statusBadge(f.status);
   const externalResponsibilityHtml=externallyOwned
     ? `<div class="card" style="margin-top:12px;padding:12px 14px;border-color:rgba(76,154,255,.38);background:rgba(76,154,255,.07)">
         <div style="font-weight:700">Extern vergeben an ${esc(externalExecutor)}</div>
         <div class="muted" style="margin-top:4px"><strong>Status:</strong> ${esc(externalLifecycle||'Angenommen')}</div>
-        <div class="muted" style="margin-top:4px">Aktuell keine Aktion durch ${esc(currentOrganizationName()||'diesen Mandanten')} erforderlich.</div>
+        <div class="muted" style="margin-top:4px">Aktuell keine Aktion durch ${esc(((currentOrganization&&currentOrganization.name)||organizationName(currentOrganizationId())||'diesen Mandanten'))} erforderlich.</div>
       </div>`
     : '';
-  const actionHtml=f.status==='Erledigt'
-    ? `<button onclick="openFindingReadOnly('${f.id}')">Anzeigen</button>${canReopenCompletedFindingUI(f)?`<button onclick="openReopenFindingModal('${f.id}')">Wieder öffnen</button>`:''}`
+  const actionHtml=(f.status==='Erledigt'||routeVerified)
+    ? `<button onclick="openFindingReadOnly('${f.id}')">Anzeigen</button>${f.status==='Erledigt'&&canReopenCompletedFindingUI(f)?`<button onclick="openReopenFindingModal('${f.id}')">Wieder öffnen</button>`:''}`
     : externallyOwned
       ? (canEditFindingUI(f)?`<button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}')">Dokumentation öffnen</button>`:`<button onclick="openFindingReadOnly('${f.id}')">Dokumentation ansehen</button>`)
       : (canEditFindingUI(f)?`<button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}')">Bearbeiten</button>${!findingHasVerifiedRoute(f.id)?`<button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}',true)">Abschließen</button>`:''}`:`<span class="muted">Nur durch Ersteller, zugewiesenen Objektbetreuer oder Admin/GF änderbar.</span>`);
