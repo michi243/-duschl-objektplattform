@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.30</title>
+<title>Duschl Service – Objektplattform v2.20.31</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3175,7 +3175,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.30'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.31'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -6371,6 +6371,41 @@ function externalOrderResponsibilityHtml(order){
 
 function externalOrderStatusLabel(v){return ({requested:'Übermittelt',accepted:'Angenommen',in_progress:'In Bearbeitung',completed:'Erledigt',rejected:'Abgelehnt',cancelled:'Storniert'})[v]||v||'—';}
 
+// v2.20.31: Einheitliche Herkunft eines Vorgangs über alle Mandantensichten.
+// Die Organisation des ursprünglichen Melders ist fachlich unabhängig von
+// Auftraggeber/Entscheider und ausführendem Dienstleister. Bewohnermeldungen
+// bleiben personenbezogen geschützt und werden nur als Meldekanal ausgewiesen.
+function externalOrderReporterLabel(order){
+  if(!order)return '';
+  const snap=order.source_snapshot||{};
+  if(order.source_resident_report_id && String(snap.route_type||'')==='resident_report_auto')return 'Bewohner-QR';
+  const fid=String(order.source_finding_id||'');
+  const f=fid?(db.findings||[]).find(x=>String(x.id||'')===fid):null;
+  const fromFinding=(f?.creatorOrganizationNameSnapshot||f?.creator_organization_name_snapshot||'').trim();
+  if(fromFinding)return fromFinding;
+  const fromCreatorMeta=(cloudFindingCreatorMeta.get(fid)?.organizationName||'').trim();
+  if(fromCreatorMeta)return fromCreatorMeta;
+  const snapName=String(
+    snap.reporter_organization_name || snap.reporterOrganizationName ||
+    snap.creator_organization_name || snap.creatorOrganizationName || ''
+  ).trim();
+  if(snapName)return snapName;
+  const snapId=String(
+    snap.reporter_organization_id || snap.reporterOrganizationId ||
+    snap.creator_organization_id || snap.creatorOrganizationId || ''
+  ).trim();
+  if(snapId)return organizationName(snapId)||partnerName(snapId)||'';
+  return '';
+}
+function externalOrderReporterHtml(order,opts={}){
+  const reporter=externalOrderReporterLabel(order);
+  if(!reporter)return '';
+  const label=(order?.source_resident_report_id&&String((order?.source_snapshot||{}).route_type||'')==='resident_report_auto')?'Gemeldet über':'Gemeldet von';
+  const cls=opts.muted===false?'':' class="muted"';
+  const style=opts.style||'margin-top:4px';
+  return `<div${cls} style="${esc(style)}">${label}: <strong>${esc(reporter)}</strong></div>`;
+}
+
 async function syncRoutedWorkOrdersForFinding(findingId,completed){
   if(!findingId||!cloudSession?.access_token)return;
   try{
@@ -6663,7 +6698,10 @@ function ticketTimelineForFinding(f,task=null){
 function ticketTimelineForExternalOrder(x){
   if(!x)return '';
   if(x.source_resident_report_id&&String((x.source_snapshot||{}).route_type||'')==='resident_report_auto')return residentRouteTimelineHtml(x);
-  const events=[{when:x.created_at,label:'Auftrag weitergeleitet',note:`Von ${partnerName(x.source_organization_id)} an ${partnerName(x.executor_organization_id)}.`}];
+  const reporter=externalOrderReporterLabel(x);
+  const events=[];
+  if(reporter)events.push({when:x.created_at,label:'Ursprung des Vorgangs',note:`Gemeldet von ${reporter}.`});
+  events.push({when:x.created_at,label:'Auftrag weitergeleitet',note:`Von ${partnerName(x.source_organization_id)} an ${partnerName(x.executor_organization_id)}.`});
   if(x.accepted_at)events.push({when:x.accepted_at,label:'Auftrag angenommen',actor:partnerName(x.executor_organization_id)});
   if(x.updated_at&&String(x.status||'')==='in_progress')events.push({when:x.updated_at,label:'Bearbeitung begonnen',actor:partnerName(x.executor_organization_id)});
   if(x.completed_at)events.push({when:x.completed_at,label:'Erledigt gemeldet',actor:partnerName(x.executor_organization_id)});
@@ -6786,7 +6824,7 @@ function renderExternalOrders(){
     const childContext=childOrders.length?`<div class="muted" style="margin-top:8px"><strong>Weitervergeben:</strong> ${childOrders.map(c=>`${esc(partnerName(c.executor_organization_id))} · ${esc(externalOrderStatusLabel(c.status))}`).join(' · ')}</div>`:'';
     const needKey=externalOrderWorkFilterKey(x,orgId);
     const needLabel={new:'Neu eingegangen',decision:'Entscheidung erforderlich',in_progress:'In Bearbeitung',completed_pending:'Erledigt gemeldet',rework:'Nacharbeit erforderlich',closed:'Abgeschlossen'}[needKey]||externalOrderLifecycleLabel(x);
-    return `<div class="card" data-external-order-id="${esc(x.id)}" style="margin:10px 0"><div class="row space"><div><span class="badge">${direction}</span>${routeBadge}${hierarchyBadge} ${badgeP(x.priority||'P3')}</div><span class="badge">${esc(needLabel)}</span></div><h3 style="margin:10px 0 4px">${esc(x.title||'Externer Auftrag')}</h3><div class="muted">${esc(other)} · ${esc(x.source_object_name||'Objekt')}${x.source_object_address?` · ${esc(x.source_object_address)}`:''}</div>${routeContext}${x.description?`<div style="margin-top:9px">${esc(x.description)}</div>`:''}${externalOrderResidentMediaHtml(x)}${externalOrderRouteMediaHtml(x.id)}${assignedName?`<div class="muted" style="margin-top:8px">Verantwortlich: <strong>${esc(assignedName)}</strong></div>`:''}${childContext}<div class="muted" style="margin-top:8px">Erstellt: ${esc(fmt(x.created_at))}</div>${ticketTimelineForExternalOrder(x)}${actions}</div>`;
+    return `<div class="card" data-external-order-id="${esc(x.id)}" style="margin:10px 0"><div class="row space"><div><span class="badge">${direction}</span>${routeBadge}${hierarchyBadge} ${badgeP(x.priority||'P3')}</div><span class="badge">${esc(needLabel)}</span></div><h3 style="margin:10px 0 4px">${esc(x.title||'Externer Auftrag')}</h3><div class="muted">${esc(other)} · ${esc(x.source_object_name||'Objekt')}${x.source_object_address?` · ${esc(x.source_object_address)}`:''}</div>${routeContext}${externalOrderReporterHtml(x)}${x.description?`<div style="margin-top:9px">${esc(x.description)}</div>`:''}${externalOrderResidentMediaHtml(x)}${externalOrderRouteMediaHtml(x.id)}${assignedName?`<div class="muted" style="margin-top:8px">Verantwortlich: <strong>${esc(assignedName)}</strong></div>`:''}${childContext}<div class="muted" style="margin-top:8px">Erstellt: ${esc(fmt(x.created_at))}</div>${ticketTimelineForExternalOrder(x)}${actions}</div>`;
   }).join('');
   hydrateResidentReportImages(list).catch(e=>console.warn('Meldungsfotos im Dienstleisterauftrag konnten nicht geladen werden',e));
 }
@@ -9577,6 +9615,7 @@ function externalWorkQueueItemHtml(x){
     </div>
     <div class="gf-meta">
       ${x.source_object_address?`<div><b>Adresse:</b> ${esc(x.source_object_address)}</div>`:''}
+      ${externalOrderReporterLabel(x)?`<div><b>${x.source_resident_report_id&&String((x.source_snapshot||{}).route_type||'')==='resident_report_auto'?'Gemeldet über':'Gemeldet von'}:</b> ${esc(externalOrderReporterLabel(x))}</div>`:''}
       ${snapshot.area?`<div><b>Bereich:</b> ${esc(snapshot.area)}${snapshot.area_detail?` · ${esc(snapshot.area_detail)}`:''}</div>`:''}
       ${x.description?`<div><b>Auftrag:</b> ${esc(x.description)}</div>`:''}
       ${assignedName?`<div><b>Verantwortlich:</b> ${esc(assignedName)}</div>`:''}
@@ -10863,8 +10902,7 @@ function externalMonitoringDocumentationCard(x){
   const snapshot=x.source_snapshot||{};
   const fid=String(x.source_finding_id||'');
   const localFinding=fid?(db.findings||[]).find(f=>String(f.id||'')===fid):null;
-  const reporterOrgId=String(localFinding?.creatorOrganizationIdSnapshot||localFinding?.creator_organization_id_snapshot||snapshot.creator_organization_id||snapshot.creatorOrganizationId||'');
-  const reporterOrg=reporterOrgId?organizationName(reporterOrgId):String(snapshot.creator_organization_name||snapshot.creatorOrganizationName||'');
+  const reporterOrg=externalOrderReporterLabel(x);
   const objectName=x.source_object_name||((db.objects||[]).find(o=>String(o.id||'')===String(x.source_object_id||''))?.name)||'Objekt';
   const area=snapshot.area||localFinding?.area||'';
   const priority=String(x.priority||localFinding?.priority||'P3');
