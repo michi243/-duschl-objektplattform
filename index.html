@@ -3209,7 +3209,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.44'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.45'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -5790,10 +5790,11 @@ async function cloudDeleteFinding(id){
 }
 
 async function cloudLoadResidentReports(){
-  // v2.19.42: Bewohnermeldungen werden nicht mehr über den direkten Tabellenzugriff
-  // geladen. Der Server entscheidet anhand Eigentümermandant + manueller Weiterleitung,
-  // welcher Mandant eine Meldung sehen darf.
-  if(isCustomerRole()||isPropertyManagerRole()){
+  // v2.20.45: Verwalter erhalten Bewohnermeldungen ausschließlich für explizit
+  // zugewiesene Objekte über eine eigene SECURITY-DEFINER-RPC. Bewohner-PII
+  // verbleibt damit beim Auftraggeber und wird nicht an operative Dienstleister
+  // oder Objektbetreuer weitergegeben.
+  if(isCustomerRole()){
     cloudResidentReports=[];
     cloudResidentReportMedia=[];
     return cloudResidentReports;
@@ -5809,7 +5810,7 @@ async function cloudLoadResidentReports(){
     return cloudResidentReports;
   }
 
-  const rows=await cloudRequest('rpc/get_visible_resident_reports',{
+  const rows=await cloudRequest(isPropertyManagerRole()?'rpc/property_manager_get_resident_reports':'rpc/get_visible_resident_reports',{
     method:'POST',
     body:JSON.stringify({p_organization_id:orgId})
   });
@@ -11282,9 +11283,12 @@ function residentReportStatusLabel(status){
 }
 
 function canUseResidentReportUI(r){
-  if(!r||isCustomerRole()||isPropertyManagerRole())return false;
+  if(!r||isCustomerRole())return false;
   const o=(db.objects||[]).find(x=>x.id===r.object_id);
   if(!o)return false;
+  // Verwalter sehen Bewohnerdaten nur für die ihnen serverseitig und lokal
+  // zugewiesenen Objekte. Andere Mandantenrollen behalten ihr bisheriges Verhalten.
+  if(isPropertyManagerRole())return true;
   if(isTestUserRole())return o.isTest===true;
   return true;
 }
@@ -11414,8 +11418,8 @@ function renderResidentReports(){
       </div>
       <div style="margin-top:10px">${esc(r.description||'')}</div>
       <div class="muted" style="margin-top:10px">
-        ${esc(r.resident_name||'')}
-        ${r.resident_email?' · '+esc(r.resident_email):''}
+        <strong>Gemeldet von:</strong> ${esc(r.resident_name||'—')}
+        ${r.resident_email?' · <strong>E-Mail:</strong> '+esc(r.resident_email):''}
         ${when?' · '+esc(fmt(when)):''}
       </div>
       ${residentReportMediaFor(r.id).length?`<div style="margin-top:10px"><strong>Fotos der Meldung</strong><div class="photo-grid">${residentReportMediaFor(r.id).map((m,i)=>residentReportMediaImg(m,`Meldungsfoto ${i+1}`,'thumb')).join('')}</div></div>`:''}
@@ -11424,8 +11428,8 @@ function renderResidentReports(){
       ${ticketTimelineForResidentReport(r)}
       <div class="row" style="margin-top:12px">
         <button type="button" onclick="openResidentReportDetails('${r.id}')">Details</button>
-        ${!r.converted_to_finding_id&&!finalState?`<button type="button" class="primary" onclick="convertResidentReportToFinding('${r.id}')">Dokumentieren</button>`:''}
-        ${!finalState?`<button type="button" onclick="openResidentReportCloseModal('${r.id}','closed')">Schließen</button>`:''}
+        ${!isPropertyManagerRole()&&!r.converted_to_finding_id&&!finalState?`<button type="button" class="primary" onclick="convertResidentReportToFinding('${r.id}')">Dokumentieren</button>`:''}
+        ${!isPropertyManagerRole()&&!finalState?`<button type="button" onclick="openResidentReportCloseModal('${r.id}','closed')">Schließen</button>`:''}
         ${r.is_owner_view?`<button type="button" class="danger" onclick="deleteResidentReport('${r.id}')">Löschen</button>`:''}
         ${r.converted_to_finding_id?`<button type="button" onclick="openResidentConvertedFinding('${r.converted_to_finding_id}')">Dokumentation öffnen</button>`:''}
       </div>
@@ -11459,8 +11463,8 @@ function openResidentReportDetails(id){
       ${ticketTimelineForResidentReport(r)}
     </div>
     <div class="row" style="margin-top:14px">
-      ${!r.converted_to_finding_id&&!['closed','rejected','completed'].includes(r.status||'')?`<button class="primary" onclick="closeModal();convertResidentReportToFinding('${r.id}')">Dokumentieren</button>`:''}
-      ${!['closed','rejected','completed'].includes(r.status||'')?`<button onclick="closeModal();openResidentReportCloseModal('${r.id}','closed')">Schließen</button>`:''}
+      ${!isPropertyManagerRole()&&!r.converted_to_finding_id&&!['closed','rejected','completed'].includes(r.status||'')?`<button class="primary" onclick="closeModal();convertResidentReportToFinding('${r.id}')">Dokumentieren</button>`:''}
+      ${!isPropertyManagerRole()&&!['closed','rejected','completed'].includes(r.status||'')?`<button onclick="closeModal();openResidentReportCloseModal('${r.id}','closed')">Schließen</button>`:''}
       ${r.is_owner_view?`<button class="danger" onclick="closeModal();deleteResidentReport('${r.id}')">Löschen</button>`:''}
       <button onclick="closeModal()">Abbrechen</button>
     </div>`);
