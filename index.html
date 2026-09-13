@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.51</title>
+<title>Duschl Service – Objektplattform v2.20.52</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3209,7 +3209,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.51'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.52'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -6741,7 +6741,19 @@ function externalOrderIsOpen(v){return !['completed','rejected','cancelled'].inc
 async function cloudLoadExternalOrders(render=true){
   if(!cloudSession?.access_token||isPlatformOperatorRole()&&!isPlatformTenantMode())return;
   try{
-    const rows=await cloudRequest('shared_work_orders?select=id,parent_work_order_id,root_work_order_id,source_organization_id,executor_organization_id,source_object_id,source_object_name,source_object_address,title,description,priority,status,review_status,reviewed_at,reviewed_by,assigned_user_id,created_by,created_at,accepted_at,completed_at,updated_at,subcontracting_allowed,visibility_scope,source_finding_id,source_resident_report_id,execution_finding_id,order_kind,source_snapshot,triage_status,triage_note,triaged_at,triaged_by,decision_required&order=created_at.desc');
+    let rows=[];
+    // v2.20.52: Objektbetreuer lesen eingehende Fremdaufträge nicht mehr über
+    // eine generische Tabellen-RLS. Die RPC prüft Mandant + persönliche Objekt-
+    // zuweisung serverseitig und liefert ausschließlich den eigenen Arbeitsvorrat.
+    if((isObjectManagerRole()||isExternalContractorRole()||isTestUserRole()) && !hasOperationalAdminAccess()){
+      rows=await cloudRequest('rpc/get_visible_external_work_orders',{
+        method:'POST',
+        body:JSON.stringify({p_organization_id:currentOrganizationId()||null})
+      });
+      rows=(Array.isArray(rows)?rows:[]).sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));
+    }else{
+      rows=await cloudRequest('shared_work_orders?select=id,parent_work_order_id,root_work_order_id,source_organization_id,executor_organization_id,source_object_id,source_object_name,source_object_address,title,description,priority,status,review_status,reviewed_at,reviewed_by,assigned_user_id,created_by,created_at,accepted_at,completed_at,updated_at,subcontracting_allowed,visibility_scope,source_finding_id,source_resident_report_id,execution_finding_id,order_kind,source_snapshot,triage_status,triage_note,triaged_at,triaged_by,decision_required&order=created_at.desc');
+    }
     cloudExternalOrders=Array.isArray(rows)?rows:[];
     try{
       const residentIds=[...new Set([...(cloudExternalOrders||[]).map(x=>x.source_resident_report_id),...(db.findings||[]).map(f=>f.sourceResidentReportId||f.source_resident_report_id)].filter(Boolean))];
@@ -8431,10 +8443,32 @@ async function cloudLoadCurrentUserObjectAssignments(){
   if(!cloudSession?.access_token||!uid)return;
   try{
     const rows=await cloudRequest(`object_user_assignments?select=object_id&user_id=eq.${encodeURIComponent(uid)}&active=eq.true`);
-    currentUserAssignedObjectIds=new Set((Array.isArray(rows)?rows:[]).map(r=>String(r.object_id||'')).filter(Boolean));
+    for(const r of (Array.isArray(rows)?rows:[])){
+      const oid=String(r.object_id||'');
+      if(oid)currentUserAssignedObjectIds.add(oid);
+    }
   }catch(e){
     console.warn('Eigene Objektzuweisungen konnten nicht geladen werden',e);
-    currentUserAssignedObjectIds=new Set();
+  }
+
+  // v2.20.52: Bei extern betreuten Objekten liegt die persönliche Zuordnung
+  // nicht in object_user_assignments, sondern in shared_object_user_assignments.
+  // Diese serverseitig autorisierte Sicht wird deshalb in denselben operativen
+  // Assignment-Scope übernommen. Dadurch verwenden Objekte, Dokumentation und
+  // Arbeitsvorrat dieselbe persönliche Zuständigkeit.
+  if(currentOrganizationId() && (isObjectManagerRole()||isExternalContractorRole()||isTestUserRole())){
+    try{
+      const shared=await cloudRequest('rpc/get_my_shared_object_assignments',{
+        method:'POST',
+        body:JSON.stringify({p_organization_id:currentOrganizationId()})
+      });
+      for(const r of (Array.isArray(shared)?shared:[])){
+        const oid=String(r.object_id||'');
+        if(oid)currentUserAssignedObjectIds.add(oid);
+      }
+    }catch(e){
+      console.warn('Eigene externe Objektzuweisungen konnten nicht geladen werden',e);
+    }
   }
 }
 
