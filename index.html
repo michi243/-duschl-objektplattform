@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.36</title>
+<title>Duschl Service – Objektplattform v2.20.37</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3175,7 +3175,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.36'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.37'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -6638,6 +6638,11 @@ function residentRouteOrderForFinding(findingId){
     String((o.source_snapshot||{}).route_type||'')==='resident_report_auto'
   )||null;
 }
+function residentReportReference(reportId){
+  const raw=String(reportId||'').trim();
+  if(!raw)return '';
+  return '#'+raw.replace(/-/g,'').slice(0,8).toUpperCase();
+}
 function residentRouteOriginHtmlForFinding(f,includePhoto=true){
   const order=residentRouteOrderForFinding(f?.id||'');
   const reportId=residentReportIdForFinding(f);
@@ -6645,7 +6650,15 @@ function residentRouteOriginHtmlForFinding(f,includePhoto=true){
   const text=order
     ? 'Automatisch übernommen und als Objektdokumentation fortgeführt.'
     : 'Aus einer Bewohnermeldung in die Objektdokumentation übernommen.';
-  return `<div class="card" style="margin-top:10px;padding:10px 12px"><strong>Ursprung: Bewohnermeldung</strong><div class="muted" style="margin-top:3px">${esc(text)}</div>${includePhoto?residentReportMediaHtmlById(reportId,'Bewohnerbild'):''}</div>`;
+  const reference=residentReportReference(reportId);
+  const routedAt=order?.created_at||'';
+  return `<div class="card" style="margin-top:10px;padding:10px 12px">
+    <strong>Ursprung: Bewohnermeldung</strong>
+    ${reference?`<div style="margin-top:6px"><strong>Meldungsreferenz:</strong> ${esc(reference)}</div>`:''}
+    ${routedAt?`<div class="muted" style="margin-top:3px">Erfasst / automatisch weitergeleitet: ${esc(fmt(routedAt))}</div>`:''}
+    <div class="muted" style="margin-top:3px">${esc(text)}</div>
+    ${includePhoto?residentReportMediaHtmlById(reportId,'Bewohnerbild'):''}
+  </div>`;
 }
 
 function residentRouteEventLabel(type){
@@ -6729,6 +6742,8 @@ function residentRouteTimelineHtml(order){
     .map(e=>({when:e.created_at||'',label:residentRouteEventLabel(e.event_type),note:e.internal_note||''}));
 
   const has=(label)=>events.some(e=>e.label===label);
+  const reportRef=residentReportReference(order.source_resident_report_id);
+  if(order.created_at&&!has('Bewohnermeldung eingegangen'))events.push({when:order.created_at,label:'Bewohnermeldung eingegangen',note:reportRef?`Meldungsreferenz ${reportRef}`:''});
   if(order.created_at&&!has('Automatisch zugeordnet'))events.push({when:order.created_at,label:'Automatisch zugeordnet',note:'Bewohnermeldung automatisch an den zuständigen Dienstleister weitergeleitet.'});
   if(order.triaged_at&&!has('Leistungsumfang bestätigt')&&String(order.triage_status||'')==='within_scope')events.push({when:order.triaged_at,label:'Leistungsumfang bestätigt',note:'Dienstleister hat die Zuständigkeit bestätigt.'});
   if(order.triaged_at&&!has('Nicht im Leistungsumfang')&&String(order.triage_status||'')==='outside_scope')events.push({when:order.triaged_at,label:'Nicht im Leistungsumfang',note:order.triage_note||''});
