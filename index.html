@@ -3209,7 +3209,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.49'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.50'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -3500,6 +3500,24 @@ async function openUserMessageComposer(){
     return;
   }
 
+  if(isObjectManagerRole()||isExternalContractorRole()){
+    modal(`<h2>Mitteilung an die Administration</h2>
+      <p class="muted">Deine Mitteilung wird an die Administratoren und Admin-Vertretungen deines aktuellen Mandanten gesendet. Eine Empfängerauswahl ist nicht erforderlich.</p>
+      <label>Titel<input id="userMessageTitle" maxlength="120" placeholder="z. B. Rückfrage zum Objekt"></label>
+      <label>Nachricht<textarea id="userMessageText" maxlength="2000" placeholder="Kurze, konkrete Information"></textarea></label>
+      <label>Objekt (optional)
+        <select id="userMessageObject">
+          <option value="">Kein Objektbezug</option>
+          ${(db.objects||[]).filter(o=>currentUserOwnsOperationalObject(o.id)).map(o=>`<option value="${esc(o.id)}">${esc(o.name||'Objekt')}</option>`).join('')}
+        </select>
+      </label>
+      <div class="row" style="margin-top:14px">
+        <button class="primary" type="button" onclick="sendUserMessage()">Mitteilung senden</button>
+        <button type="button" onclick="closeModal()">Abbrechen</button>
+      </div>`);
+    return;
+  }
+
   if(isTestUserRole()){
     modal(`<h2>Mitteilung an die Administration</h2>
       <p class="muted">Deine Test-Mitteilung wird ausschließlich an Administrator / GF und Admin-Vertretungen gesendet. Eine Empfängerauswahl ist nicht erforderlich.</p>
@@ -3637,6 +3655,33 @@ async function sendUserMessage(){
       const result=await cloudRequest('rpc/send_customer_admin_message',{
         method:'POST',
         body:JSON.stringify({
+          p_title:title,
+          p_message:message,
+          p_object_id:objectId||null
+        })
+      });
+      closeModal();
+      await loadUserMessages();
+      renderDashboardMessages();
+      const count=Number(result)||0;
+      alert(count>0
+        ? 'Mitteilung wurde an die Administration gesendet.'
+        : 'Mitteilung konnte nicht gesendet werden: Es ist kein aktiver Administrator oder keine aktive Admin-Vertretung vorhanden.');
+    }catch(e){
+      alert('Mitteilung konnte nicht gespeichert werden: '+(e.message||e));
+    }
+    return;
+  }
+
+  if(isObjectManagerRole()||isExternalContractorRole()){
+    if(objectId && !currentUserOwnsOperationalObject(objectId)){
+      return alert('Mitteilungen dürfen nur mit Bezug zu einem dir zugewiesenen Objekt gesendet werden.');
+    }
+    try{
+      const result=await cloudRequest('rpc/send_object_manager_admin_message',{
+        method:'POST',
+        body:JSON.stringify({
+          p_organization_id:currentOrganizationId(),
           p_title:title,
           p_message:message,
           p_object_id:objectId||null
@@ -10577,11 +10622,16 @@ function messageBelongsToCurrentTenant(message){
   const orgId=currentOrganizationId();
   if(!orgId)return false;
 
-  // Objektgebundene Nachrichten gehören nur dann zum aktuellen Mandanten,
-  // wenn das Objekt diesem Mandanten gehört bzw. im aktuellen Kontext zugreifbar ist.
+  // v2.20.50: Bei extern betreuten Objekten gehört das Objekt fachlich dem Auftraggeber,
+  // kann aber im aktuellen Dienstleister-Mandanten einem konkreten Objektbetreuer
+  // persönlich zugewiesen sein. Eine persönliche Mitteilung zu diesem Objekt darf
+  // deshalb nicht allein über organization_id ausgefiltert werden.
   if(message?.object_id){
-    const obj=(Array.isArray(db?.objects)?db.objects:[]).find(o=>o.id===message.object_id);
-    if(obj)return String(obj.organization_id||'')===String(orgId);
+    const obj=(Array.isArray(db?.objects)?db.objects:[]).find(o=>String(o.id||'')===String(message.object_id||''));
+    if(!obj)return false;
+    if(String(obj.organizationId||obj.organization_id||'')===String(orgId))return true;
+    if(obj.externalManaged===true && currentUserOwnsOperationalObject(message.object_id))return true;
+    return false;
   }
 
   // Für personenbezogene Nachrichten ohne Objekt gilt:
