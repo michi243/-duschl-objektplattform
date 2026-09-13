@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.25</title>
+<title>Duschl Service – Objektplattform v2.20.26</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3175,7 +3175,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.25'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.26'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -10767,32 +10767,38 @@ function openCustomerDocumentation(){
 }
 
 function externalMonitoringDocumentationCard(x){
+  // v2.20.26: Derselbe Vorgang erhält in der Dokumentation dieselbe Grundkarte
+  // wie eine lokale Feststellung. Unterschiede ergeben sich nur aus Verantwortung
+  // und Berechtigung – nicht aus einer zweiten, künstlichen Ticketdarstellung.
   const executor=partnerName(x.executor_organization_id);
+  const sourceOrg=partnerName(x.source_organization_id);
   const snapshot=x.source_snapshot||{};
   const fid=String(x.source_finding_id||'');
   const localFinding=fid?(db.findings||[]).find(f=>String(f.id||'')===fid):null;
   const objectName=x.source_object_name||((db.objects||[]).find(o=>String(o.id||'')===String(x.source_object_id||''))?.name)||'Objekt';
+  const area=snapshot.area||localFinding?.area||'';
+  const priority=String(x.priority||localFinding?.priority||'P3');
   const statusLabel=externalOrderLifecycleLabel(x);
-  return `<div class="card" data-external-monitoring-order-id="${esc(x.id)}">
-    <div class="row" style="justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
-      <div>
-        <div class="row" style="gap:7px;flex-wrap:wrap;margin-bottom:8px">
-          <span class="badge">Extern in Bearbeitung</span>
-          <span class="badge">${esc(statusLabel)}</span>
-        </div>
-        <h3 style="margin:0 0 6px">${esc(x.title||localFinding?.title||'Externer Vorgang')}</h3>
-        <div class="muted">${esc(objectName)}${snapshot.area?` · ${esc(snapshot.area)}`:''}</div>
-      </div>
+  const title=x.title||localFinding?.title||'Externer Vorgang';
+  const description=x.description||localFinding?.description||'';
+  const createdAt=x.created_at||localFinding?.createdAt||null;
+  return `<div class="card finding" data-priority="${esc(priority)}" data-external-monitoring-order-id="${esc(x.id)}">
+    <div class="row space">
+      <div><span class="badge">Feststellung</span> ${badgeP(priority)} <span class="badge">Extern vergeben</span></div>
+      <small class="muted">${createdAt?fmt(createdAt):''}</small>
     </div>
-    <div style="margin-top:12px">
-      <div><b>Verantwortlich:</b> ${esc(executor)}</div>
-      <div><b>Status:</b> ${esc(statusLabel)}</div>
-      ${x.description?`<div><b>Auftrag:</b> ${esc(x.description)}</div>`:''}
-      <div class="muted" style="margin-top:8px">Aktuell keine Aktion durch ${esc(currentOrganization?.name||'diesen Mandanten')} erforderlich.</div>
+    <h3 style="margin-bottom:5px">${esc(title)}</h3>
+    <div class="muted">${esc(objectName)}${area?` · ${esc(area)}`:''}</div>
+    ${sourceOrg?`<div class="muted" style="margin-top:4px">Auftraggeber: <strong>${esc(sourceOrg)}</strong></div>`:''}
+    <div class="card" style="margin-top:12px;padding:12px 14px;border-color:rgba(76,154,255,.38);background:rgba(76,154,255,.07)">
+      <div style="font-weight:700">Extern vergeben an ${esc(executor)}</div>
+      <div class="muted" style="margin-top:4px"><strong>Status:</strong> ${esc(statusLabel)}</div>
+      <div class="muted" style="margin-top:4px">Aktuell keine Aktion durch ${esc(currentOrganization?.name||'diesen Mandanten')} erforderlich.</div>
     </div>
+    ${description?`<p><b>Auftrag:</b> ${esc(description)}</p>`:''}
     ${ticketTimelineForExternalOrder(x)}
-    <div class="row" style="margin-top:10px">
-      ${localFinding?`<button type="button" onclick="openFindingModal('${esc(localFinding.objectId||'')}','', '${esc(localFinding.id)}')">Dokumentation öffnen</button>`:`<button type="button" onclick="openExternalOrderById('${esc(x.id)}')">Vorgang ansehen</button>`}
+    <div class="row">
+      ${localFinding?`<button type="button" onclick="openFindingModal('${esc(localFinding.objectId||'')}','', '${esc(localFinding.id)}')">Dokumentation öffnen</button>`:`<button type="button" onclick="openExternalOrderById('${esc(x.id)}')">Vorgang öffnen</button>`}
     </div>
   </div>`;
 }
