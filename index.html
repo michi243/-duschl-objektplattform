@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.54</title>
+<title>Duschl Service – Objektplattform v2.20.55</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1176,6 +1176,19 @@ body.public-report-mode>#photoViewer{display:none!important}
   .qr-modal-actions .primary{grid-column:1/-1}
   .qr-modal-actions button:last-child{grid-column:auto}
 }
+</style>
+
+<style id="object-area-list-v22055">
+.area-add-btn{width:100%;margin-top:14px;font-weight:800;font-size:17px}
+.area-add-form{margin-top:10px;padding:12px}
+.area-manage-list{display:flex;flex-direction:column;gap:7px}
+.area-manage-row{display:grid;grid-template-columns:48px minmax(0,1fr) auto;align-items:center;gap:11px;padding:8px 9px;border:1px solid var(--line);border-radius:13px;background:linear-gradient(180deg,var(--panel) 0%,var(--bg-soft) 100%)}
+.area-manage-row.is-inactive{opacity:.58}
+.area-manage-icon{width:44px;height:44px;border:1px solid #35546b;border-radius:11px;background:#142b3b;display:flex;align-items:center;justify-content:center;font-size:23px;font-weight:800;color:#d9e9f7}
+.area-manage-main{min-width:0;display:flex;flex-direction:column;gap:3px}.area-manage-main strong{font-size:16px;white-space:normal;overflow-wrap:anywhere}
+.area-status{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px}.area-status i{width:9px;height:9px;border-radius:50%;background:#35d878;display:inline-block}.is-inactive .area-status i{background:#788895}
+.area-manage-actions{display:flex;gap:7px}.area-icon-btn{width:42px;height:42px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:11px;font-size:20px}.area-danger{color:#ff625c;border-color:rgba(255,98,92,.35)}
+@media(max-width:520px){.area-manage-row{grid-template-columns:44px minmax(0,1fr) auto;gap:8px;padding:7px}.area-manage-icon{width:40px;height:40px}.area-icon-btn{width:39px;height:39px}.area-manage-main strong{font-size:15px}}
 </style>
 </head>
 <body>
@@ -3213,7 +3226,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.54'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.56'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -6538,21 +6551,44 @@ function externalOrderResponsibilityHtml(order){
 
 function externalOrderStatusLabel(v){return ({requested:'Übermittelt',accepted:'Angenommen',in_progress:'In Bearbeitung',completed:'Erledigt',rejected:'Abgelehnt',cancelled:'Storniert'})[v]||v||'—';}
 
+// v2.20.56: Bewohnerherkunft wird unabhängig vom Routingweg ermittelt.
+// Manuelle Weiterleitungen können technisch als finding_route vorliegen; maßgeblich
+// ist die Herkunft der Quellfeststellung bzw. der Snapshot, nicht der Routingtyp.
+function externalOrderResidentReportId(order){
+  if(!order)return '';
+  const direct=String(order.source_resident_report_id||'').trim();
+  if(direct)return direct;
+  const snap=order.source_snapshot||{};
+  const snapId=String(snap.source_resident_report_id||snap.resident_report_id||snap.residentReportId||'').trim();
+  if(snapId)return snapId;
+  const fid=String(order.source_finding_id||'').trim();
+  if(fid){
+    const f=(db.findings||[]).find(x=>String(x.id||'')===fid);
+    const fromFinding=String(f?.sourceResidentReportId||f?.source_resident_report_id||'').trim();
+    if(fromFinding)return fromFinding;
+  }
+  return '';
+}
+function externalOrderIsResidentOrigin(order){return !!externalOrderResidentReportId(order);}
+function externalOrderIsAutoResidentRoute(order){
+  return externalOrderIsResidentOrigin(order)&&String((order?.source_snapshot||{}).route_type||'')==='resident_report_auto';
+}
+
 // v2.20.46: Herkunft eines Vorgangs mit objektbezogener PII-Sicht.
 // Bewohnerdaten werden ausschließlich beim Auftraggeber angezeigt: Mandanten-Admin,
 // Admin-Vertretung und zuständiger Verwalter. Operative Rollen und externe
 // Dienstleister sehen weiterhin ausschließlich den Meldekanal "Bewohner-QR".
 function residentReporterDetailsForOrder(order){
-  if(!order?.source_resident_report_id)return null;
+  const residentReportId=externalOrderResidentReportId(order);
+  if(!residentReportId)return null;
   const snap=order.source_snapshot||{};
-  if(String(snap.route_type||'')!=='resident_report_auto')return null;
 
   const currentOrgId=String(currentOrganizationId()||'');
   const sourceOrgId=String(order.source_organization_id||'');
   const maySeePii=!!currentOrgId && currentOrgId===sourceOrgId && (hasOperationalAdminAccess()||isPropertyManagerRole());
   if(!maySeePii)return null;
 
-  const report=(cloudResidentReports||[]).find(r=>String(r.id||'')===String(order.source_resident_report_id||''));
+  const report=(cloudResidentReports||[]).find(r=>String(r.id||'')===String(residentReportId||''));
   if(!report)return null;
   const name=String(report.resident_name||'').trim();
   const email=String(report.resident_email||'').trim();
@@ -6562,7 +6598,7 @@ function residentReporterDetailsForOrder(order){
 function externalOrderReporterLabel(order){
   if(!order)return '';
   const snap=order.source_snapshot||{};
-  if(order.source_resident_report_id && String(snap.route_type||'')==='resident_report_auto'){
+  if(externalOrderIsResidentOrigin(order)){
     const resident=residentReporterDetailsForOrder(order);
     return resident?.name||'Bewohner-QR';
   }
@@ -6587,7 +6623,7 @@ function externalOrderReporterLabel(order){
 function externalOrderReporterHtml(order,opts={}){
   const reporter=externalOrderReporterLabel(order);
   if(!reporter)return '';
-  const isResidentRoute=!!(order?.source_resident_report_id&&String((order?.source_snapshot||{}).route_type||'')==='resident_report_auto');
+  const isResidentRoute=externalOrderIsResidentOrigin(order);
   const resident=isResidentRoute?residentReporterDetailsForOrder(order):null;
   const label=isResidentRoute?(resident?'Gemeldet von':'Gemeldet über'):'Gemeldet von';
   const cls=opts.muted===false?'':' class="muted"';
@@ -6821,7 +6857,8 @@ function externalOrderRouteMediaHtml(orderId){
 }
 
 function externalOrderResidentMediaHtml(order){
-  if(!order?.source_resident_report_id)return '';
+  const residentReportId=externalOrderResidentReportId(order);
+  if(!residentReportId)return '';
   const rows=(cloudExternalOrderResidentMedia||[]).filter(m=>String(m.resident_report_id||'')===String(order.source_resident_report_id||''));
   if(!rows.length)return '';
   return `<div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">${rows.map((m,i)=>`<div><small class="muted">Bewohnerbild</small><br>${residentReportMediaImg(m,m.file_name||`Foto ${i+1}`,'thumb')}</div>`).join('')}</div>`;
@@ -6928,7 +6965,7 @@ function ticketTimelineForFinding(f,task=null){
 
 function ticketTimelineForExternalOrder(x){
   if(!x)return '';
-  if(x.source_resident_report_id&&String((x.source_snapshot||{}).route_type||'')==='resident_report_auto')return residentRouteTimelineHtml(x);
+  if(externalOrderIsResidentOrigin(x))return residentRouteTimelineHtml(x);
   const reporter=externalOrderReporterLabel(x);
   const events=[];
   if(reporter)events.push({when:x.created_at,label:'Ursprung des Vorgangs',note:`Gemeldet von ${reporter}.`});
@@ -6942,16 +6979,21 @@ function ticketTimelineForExternalOrder(x){
 }
 
 function residentRouteTimelineHtml(order){
-  if(!order?.source_resident_report_id||String((order.source_snapshot||{}).route_type||'')!=='resident_report_auto')return '';
+  if(!order?.source_resident_report_id)return '';
   const snapshot=order.source_snapshot||{};
   let events=(cloudExternalOrderResidentEvents||[])
     .filter(e=>String(e.resident_report_id||'')===String(order.source_resident_report_id||''))
     .map(e=>({when:e.created_at||'',label:residentRouteEventLabel(e.event_type),note:e.internal_note||''}));
 
   const has=(label)=>events.some(e=>e.label===label);
-  const reportRef=residentReportReference(order.source_resident_report_id);
+  const reportRef=residentReportReference(residentReportId);
   if(order.created_at&&!has('Bewohnermeldung eingegangen'))events.push({when:order.created_at,label:'Bewohnermeldung eingegangen',note:reportRef?`Meldungsreferenz ${reportRef}`:''});
-  if(order.created_at&&!has('Automatisch zugeordnet'))events.push({when:order.created_at,label:'Automatisch zugeordnet',note:'Bewohnermeldung automatisch an den zuständigen Dienstleister weitergeleitet.'});
+  const isAutoResidentRoute=String(snapshot.route_type||'')==='resident_report_auto';
+  if(isAutoResidentRoute){
+    if(order.created_at&&!has('Automatisch zugeordnet'))events.push({when:order.created_at,label:'Automatisch zugeordnet',note:'Bewohnermeldung automatisch an den zuständigen Dienstleister weitergeleitet.'});
+  }else{
+    if(order.created_at&&!has('Weitergeleitet'))events.push({when:order.created_at,label:'Weitergeleitet',note:`Bewohnermeldung von ${partnerName(order.source_organization_id)} an ${partnerName(order.executor_organization_id)} weitergeleitet.`});
+  }
   if(order.triaged_at&&!has('Leistungsumfang bestätigt')&&String(order.triage_status||'')==='within_scope')events.push({when:order.triaged_at,label:'Leistungsumfang bestätigt',note:'Dienstleister hat die Zuständigkeit bestätigt.'});
   if(order.triaged_at&&!has('Nicht im Leistungsumfang')&&String(order.triage_status||'')==='outside_scope')events.push({when:order.triaged_at,label:'Nicht im Leistungsumfang',note:order.triage_note||''});
   if(snapshot.execution_started_at&&!has('Bearbeitung begonnen'))events.push({when:snapshot.execution_started_at,label:'Bearbeitung begonnen',note:''});
@@ -7042,16 +7084,19 @@ function renderExternalOrders(){
     const other=isIn?partnerName(x.source_organization_id):partnerName(x.executor_organization_id);
     const direction=isIn?'Eingehend':'Ausgehend';
     const assignedName=cloudExternalOrderAssignees.find(a=>a.user_id===x.assigned_user_id)?.display_name||'';
-    const residentTriage=!!x.source_resident_report_id&&x.status==='requested';
-    const isResidentRoute=!!x.source_resident_report_id&&String((x.source_snapshot||{}).route_type||'')==='resident_report_auto';
+    const residentOrigin=externalOrderIsResidentOrigin(x);
+    const residentAuto=externalOrderIsAutoResidentRoute(x);
+    const residentTriage=residentAuto&&x.status==='requested';
     const adminActions=isIn&&hasOperationalAdminAccess()?`<div class="row" style="margin-top:10px;gap:8px">${residentTriage?`<button class="primary" onclick="triageResidentReportOrder('${esc(x.id)}','within_scope')">Im Leistungsumfang</button><button onclick="triageResidentReportOrder('${esc(x.id)}','outside_scope')">Nicht im Leistungsumfang</button>`:x.status==='requested'?`<button class="primary" onclick="updateExternalOrderStatus('${esc(x.id)}','accepted')">Annehmen</button><button onclick="updateExternalOrderStatus('${esc(x.id)}','rejected')">Ablehnen</button>`:''}${['accepted','in_progress'].includes(x.status)?`<button class="primary" onclick="openExternalOrderDocumentation('${esc(x.id)}')">Bearbeiten / Dokumentieren</button>`:''}${['accepted','in_progress'].includes(x.status)&&x.subcontracting_allowed!==false?`<button onclick="openSubcontractOrderModal('${esc(x.id)}')">Weitervergeben</button>`:''}<button onclick="openExternalOrderAssignmentModal('${esc(x.id)}')">${x.assigned_user_id?'Zuweisung ändern':'Objektbetreuer zuweisen'}</button></div>`:'';
     const operationalActions=isIn&&!hasOperationalAdminAccess()&&canOperateExternalOrder(x)&&['accepted','in_progress'].includes(String(x.status||''))?`<div class="row" style="margin-top:10px;gap:8px"><button class="primary" onclick="openExternalOrderDocumentation('${esc(x.id)}')">Bearbeiten / Dokumentieren</button></div>`:'';
     const reviewActions=canReviewExternalOrder(x)?`<div class="row" style="margin-top:10px;gap:8px"><button class="primary" onclick="reviewExternalOrder('${esc(x.id)}','verified')">Abschluss bestätigen</button><button onclick="reviewExternalOrder('${esc(x.id)}','rework_required')">Nacharbeit erforderlich</button></div>`:'';
     const actions=adminActions||operationalActions||reviewActions;
-    const routeBadge=(x.order_kind==='finding_route'||!!x.source_finding_id)?` <span class="badge">Gerouteter Vorgang</span>`:!!x.source_resident_report_id?` <span class="badge">Bewohnermeldung · automatisch</span>`:'';
+    const routeBadge=residentOrigin
+      ? ` <span class="badge">Bewohnermeldung · ${residentAuto?'automatisch':'manuell weitergeleitet'}</span>`
+      : (x.order_kind==='finding_route'||!!x.source_finding_id)?` <span class="badge">Gerouteter Vorgang</span>`:'';
     const snapshot=x.source_snapshot||{};
-    const isAutoResidentRoute=!!x.source_resident_report_id&&String(snapshot.route_type||'')==='resident_report_auto';
-    const routeContext=((String(x.order_kind||'')==='finding_route'||!!x.source_finding_id)||isAutoResidentRoute)&&snapshot.area?`<div class="muted" style="margin-top:6px">Bereich: ${esc(snapshot.area)}${snapshot.area_detail?` · ${esc(snapshot.area_detail)}`:''}</div>`:'';
+    const isAutoResidentRoute=residentAuto;
+    const routeContext=((String(x.order_kind||'')==='finding_route'||!!x.source_finding_id)||residentOrigin)&&snapshot.area?`<div class="muted" style="margin-top:6px">Bereich: ${esc(snapshot.area)}${snapshot.area_detail?` · ${esc(snapshot.area_detail)}`:''}</div>`:'';
     const hierarchyBadge=x.parent_work_order_id?` <span class="badge">Unterauftrag</span>`:'';
     const childOrders=(cloudExternalOrders||[]).filter(c=>String(c.parent_work_order_id||'')===String(x.id||''));
     const childContext=childOrders.length?`<div class="muted" style="margin-top:8px"><strong>Weitervergeben:</strong> ${childOrders.map(c=>`${esc(partnerName(c.executor_organization_id))} · ${esc(externalOrderStatusLabel(c.status))}`).join(' · ')}</div>`:'';
@@ -9936,7 +9981,8 @@ function externalWorkQueueItemHtml(x){
   const source=partnerName(x.source_organization_id);
   const assignedName=cloudExternalOrderAssignees.find(a=>a.user_id===x.assigned_user_id)?.display_name||'';
   const snapshot=x.source_snapshot||{};
-  const isAutoResidentRoute=!!x.source_resident_report_id&&String(snapshot.route_type||'')==='resident_report_auto';
+  const isResidentRoute=externalOrderIsResidentOrigin(x);
+  const isAutoResidentRoute=externalOrderIsAutoResidentRoute(x);
   const subOrders=(cloudExternalOrders||[]).filter(c=>String(c.parent_work_order_id||'')===String(x.id||'')&&externalOrderIsOpen(c.status));
   const subcontractInfo=subOrders.length
     ? `<div><b>Untervergabe:</b> ${subOrders.map(c=>`${esc(partnerName(c.executor_organization_id))} · ${esc(externalOrderStatusLabel(c.status))}`).join(' · ')}</div>`
@@ -9944,14 +9990,14 @@ function externalWorkQueueItemHtml(x){
   const executionFinding=x.execution_finding_id
     ? (db.findings||[]).find(f=>String(f.id||'')===String(x.execution_finding_id||''))
     : null;
-  const executionSummary=isAutoResidentRoute&&executionFinding
+  const executionSummary=isResidentRoute&&executionFinding
     ? `${executionFinding.activity?`<div><b>Durchgeführte Tätigkeit:</b> ${esc(executionFinding.activity).replace(/\n/g,' · ')}</div>`:''}${executionFinding.completionNote?`<div><b>Durchgeführte Maßnahme:</b> ${esc(executionFinding.completionNote)}</div>`:''}${String(x.status||'')==='completed'?`<div><b>Abschluss:</b> Erledigt</div>`:''}`
     : '';
-  const originText=isAutoResidentRoute
-    ? 'Bewohnermeldung · automatisch zugeordnet'
+  const originText=isResidentRoute
+    ? `Bewohnermeldung · ${isAutoResidentRoute?'automatisch zugeordnet':'manuell weitergeleitet'}`
     : `Extern von ${esc(source)}`;
-  const routingBadge=isAutoResidentRoute
-    ? 'Automatisch zugeordnet'
+  const routingBadge=isResidentRoute
+    ? (isAutoResidentRoute?'Automatisch zugeordnet':'Manuell weitergeleitet')
     : ((String(x.order_kind||'')==='finding_route'||!!x.source_finding_id)?'Gerouteter Arbeitsauftrag':'Externer Arbeitsauftrag');
   const triageActions=isAutoResidentRoute&&String(x.status||'')==='requested'&&hasOperationalAdminAccess()
     ? `<button type="button" class="primary" onclick="triageResidentReportOrder('${esc(x.id)}','within_scope')">Im Leistungsumfang</button><button type="button" onclick="triageResidentReportOrder('${esc(x.id)}','outside_scope')">Nicht im Leistungsumfang</button>`
@@ -12145,7 +12191,20 @@ function printObjectQrCode(objectId,areaId=''){
     img{width:92mm;height:92mm;object-fit:contain;display:block}
     .hint{margin-top:20px;max-width:150mm;font-size:16px;line-height:1.45}
     @media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
-  </style></head><body><main class="sheet"><h1>Bewohnermeldung</h1><img src="${img}" alt="QR-Code Bewohnermeldung"><div class="object">${title}</div>${areaHtml}${addressHtml}<div class="hint"><strong>Anliegen oder Schaden melden</strong><br>QR-Code mit dem Smartphone scannen und Meldung direkt über die Objektplattform senden.</div></main></body></html>`;
+  </style>
+<style id="object-area-list-v22055">
+.area-add-btn{width:100%;margin-top:14px;font-weight:800;font-size:17px}
+.area-add-form{margin-top:10px;padding:12px}
+.area-manage-list{display:flex;flex-direction:column;gap:7px}
+.area-manage-row{display:grid;grid-template-columns:48px minmax(0,1fr) auto;align-items:center;gap:11px;padding:8px 9px;border:1px solid var(--line);border-radius:13px;background:linear-gradient(180deg,var(--panel) 0%,var(--bg-soft) 100%)}
+.area-manage-row.is-inactive{opacity:.58}
+.area-manage-icon{width:44px;height:44px;border:1px solid #35546b;border-radius:11px;background:#142b3b;display:flex;align-items:center;justify-content:center;font-size:23px;font-weight:800;color:#d9e9f7}
+.area-manage-main{min-width:0;display:flex;flex-direction:column;gap:3px}.area-manage-main strong{font-size:16px;white-space:normal;overflow-wrap:anywhere}
+.area-status{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px}.area-status i{width:9px;height:9px;border-radius:50%;background:#35d878;display:inline-block}.is-inactive .area-status i{background:#788895}
+.area-manage-actions{display:flex;gap:7px}.area-icon-btn{width:42px;height:42px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:11px;font-size:20px}.area-danger{color:#ff625c;border-color:rgba(255,98,92,.35)}
+@media(max-width:520px){.area-manage-row{grid-template-columns:44px minmax(0,1fr) auto;gap:8px;padding:7px}.area-manage-icon{width:40px;height:40px}.area-icon-btn{width:39px;height:39px}.area-manage-main strong{font-size:15px}}
+</style>
+</head><body><main class="sheet"><h1>Bewohnermeldung</h1><img src="${img}" alt="QR-Code Bewohnermeldung"><div class="object">${title}</div>${areaHtml}${addressHtml}<div class="hint"><strong>Anliegen oder Schaden melden</strong><br>QR-Code mit dem Smartphone scannen und Meldung direkt über die Objektplattform senden.</div></main></body></html>`;
 
   // Verlässlicher als window.open(): vermeidet Pop-up-Blocker in iOS/Safari.
   const iframe=document.createElement('iframe');
@@ -12381,17 +12440,44 @@ async function cleanupObjectData(){
   }
 }
 
+function objectAreaIcon(name=''){
+  const n=String(name).toLowerCase();
+  if(n.includes('treppen'))return '▰';
+  if(n.includes('aufzug'))return '↕';
+  if(n.includes('fahrrad'))return '◉';
+  if(n.includes('tiefgarage')||n.includes('garage'))return '▣';
+  if(n.includes('müll')||n.includes('abfall'))return '▤';
+  if(n.includes('außen')||n.includes('garten')||n.includes('grün'))return '♣';
+  if(n.includes('technik')||n.includes('heizung'))return '⚙';
+  if(n.includes('eingang'))return '⌂';
+  if(n.includes('keller'))return '◇';
+  return '□';
+}
 function renderObjectAreaRows(objectId){
   const rows=objectAreasFor(objectId,{includeInactive:true});
   if(!rows.length)return '<div class="empty">Noch keine Bereiche angelegt.</div>';
-  return rows.map(a=>`<div class="list-item"><div class="row space"><div><strong>${esc(a.name)}</strong>${a.active===false?' <span class="badge">deaktiviert</span>':''}</div><div class="row"><button onclick="renameObjectArea('${objectId}','${a.id}')">Bearbeiten</button><button onclick="toggleObjectArea('${objectId}','${a.id}',${a.active===false?'true':'false'})">${a.active===false?'Aktivieren':'Deaktivieren'}</button></div></div></div>`).join('');
+  return `<div class="area-manage-list">${rows.map(a=>`<div class="area-manage-row ${a.active===false?'is-inactive':''}">
+    <div class="area-manage-icon" aria-hidden="true">${objectAreaIcon(a.name)}</div>
+    <div class="area-manage-main"><strong>${esc(a.name)}</strong><span class="area-status"><i></i>${a.active===false?'Deaktiviert':'Aktiv'}</span></div>
+    <div class="area-manage-actions">
+      <button class="area-icon-btn" title="Bearbeiten" aria-label="${esc(a.name)} bearbeiten" onclick="renameObjectArea('${objectId}','${a.id}')">✎</button>
+      <button class="area-icon-btn ${a.active===false?'':'area-danger'}" title="${a.active===false?'Aktivieren':'Deaktivieren'}" aria-label="${esc(a.name)} ${a.active===false?'aktivieren':'deaktivieren'}" onclick="toggleObjectArea('${objectId}','${a.id}',${a.active===false?'true':'false'})">${a.active===false?'↻':'⌫'}</button>
+    </div>
+  </div>`).join('')}</div>`;
 }
 function openObjectAreasModal(objectId){
   if(!requireOperationalAdminUI('Bereiche verwalten'))return;
   const o=(db.objects||[]).find(x=>x.id===objectId); if(!o)return alert('Objekt wurde nicht gefunden.');
-  modal(`<div class="row space"><div><h2>Bereiche</h2><div class="muted">${esc(o.name)}</div></div><button onclick="closeModal()">✕</button></div>
-    <div class="card" style="margin-top:12px"><h3 style="margin-top:0">Bereich hinzufügen</h3><div class="row"><input id="newAreaName" placeholder="z. B. Tiefgarage" style="flex:1"><button class="primary" onclick="addObjectArea('${objectId}')">Hinzufügen</button></div><div class="muted" style="margin-top:8px">Bereiche werden in Dokumentationen und bei Bewohnermeldungen zur strukturierten Auswahl angeboten.</div></div>
+  modal(`<div class="row space"><div><h2 style="margin-bottom:2px">Bereiche</h2><div class="muted">${esc(o.name)}</div></div><button onclick="closeModal()">✕</button></div>
+    <div class="muted" style="margin-top:14px">Bereiche werden in Dokumentationen und bei Bewohnermeldungen zur Auswahl angeboten.</div>
+    <button class="primary area-add-btn" onclick="showObjectAreaAddForm('${objectId}')">＋ Bereich hinzufügen</button>
+    <div id="objectAreaAddForm" class="card area-add-form" style="display:none"><label>Bezeichnung</label><div class="row"><input id="newAreaName" placeholder="z. B. Tiefgarage" style="flex:1"><button class="primary" onclick="addObjectArea('${objectId}')">Hinzufügen</button></div></div>
     <div style="margin-top:12px">${renderObjectAreaRows(objectId)}</div>`);
+}
+function showObjectAreaAddForm(objectId){
+  const box=document.getElementById('objectAreaAddForm'); if(!box)return;
+  box.style.display='block';
+  const input=document.getElementById('newAreaName'); if(input){input.focus();input.onkeydown=e=>{if(e.key==='Enter')addObjectArea(objectId)}}
 }
 async function addObjectArea(objectId){
   const name=(document.getElementById('newAreaName')?.value||'').trim(); if(!name)return alert('Bitte Bereichsbezeichnung eingeben.');
