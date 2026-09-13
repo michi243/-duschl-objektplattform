@@ -3209,7 +3209,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.47'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.48'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -3229,6 +3229,9 @@ let cloudFindingCreatorMeta=new Map();
 let userDashboardMessages=[];
 let userMessagesAvailable=true;
 let userMessageRefreshTimer=null;
+// v2.20.48: Explizite Objektzuweisungen des aktuell angemeldeten Benutzers.
+// Sichtbarkeit eines extern geteilten Objekts ist nicht automatisch operative Zuständigkeit.
+let currentUserAssignedObjectIds=new Set();
 
 function stopUserMessageAutoRefresh(){
   if(userMessageRefreshTimer){
@@ -3328,13 +3331,15 @@ function renderDashboardMessages(){
   const sent=active.filter(m=>m.created_by===currentUserId()&&m.recipient_id!==currentUserId());
   const unread=received.filter(m=>!m.read_at);
   const read=received.filter(m=>!!m.read_at);
-  wrap.style.display=(received.length||sent.length)?'block':'none';
+  // v2.20.48: Die Mitteilungsbox ist auch ohne vorhandene Nachrichten sichtbar.
+  // Sonst verschwand für Objektbetreuer gleichzeitig der Button „Mitteilung schreiben“.
+  wrap.style.display=currentUserId()?'block':'none';
 
   if(count){
     count.textContent=`${unread.length} neu`;
     count.style.display=unread.length?'inline-flex':'none';
   }
-  if(!active.length){box.innerHTML='';return;}
+  if(!active.length){box.innerHTML='<div class="empty">Keine Mitteilungen vorhanden.</div>';return;}
 
   const receivedCard=m=>{
     const obj=(db.objects||[]).find(o=>o.id===m.object_id);
@@ -8376,6 +8381,19 @@ async function saveOrganization(id=''){
   }catch(e){alert('Unternehmen konnte nicht gespeichert werden: '+(e.message||e));}
 }
 
+async function cloudLoadCurrentUserObjectAssignments(){
+  currentUserAssignedObjectIds=new Set();
+  const uid=currentUserId();
+  if(!cloudSession?.access_token||!uid)return;
+  try{
+    const rows=await cloudRequest(`object_user_assignments?select=object_id&user_id=eq.${encodeURIComponent(uid)}&active=eq.true`);
+    currentUserAssignedObjectIds=new Set((Array.isArray(rows)?rows:[]).map(r=>String(r.object_id||'')).filter(Boolean));
+  }catch(e){
+    console.warn('Eigene Objektzuweisungen konnten nicht geladen werden',e);
+    currentUserAssignedObjectIds=new Set();
+  }
+}
+
 async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
   cloudSetStatus('Supabase wird geladen …','wait');
@@ -8448,6 +8466,7 @@ async function cloudReloadObjects(){
       rows:Array.isArray(rows)?rows.length:null
     });
     const ownObjects=(rows||[]).map(cloudObjectToLocal);
+    await cloudLoadCurrentUserObjectAssignments();
     await cloudLoadSharedObjects();
     // v2.18.82: Betreuungsanfragen bei jedem Mandanten-Reload laden.
     // Pending-Anfragen sind absichtlich active=false und müssen trotzdem sichtbar bleiben.
@@ -9499,14 +9518,21 @@ function currentUserOwnsOperationalObject(objectId){
   if(hasOperationalAdminAccess())return true;
   if(!objectId)return false;
 
-  // Autoritative Frontend-Sicht:
-  // db.objects enthält nach cloudReloadObjects() bereits genau die Objekte,
-  // die der aktuelle Benutzer gemäß Backend/RLS/RPC sehen darf.
-  // Dokumentation, Objektliste und Arbeitsvorrat müssen deshalb dieselbe
-  // Objektmenge verwenden. Eine zweite Prüfung über Collaboration-Metadaten
-  // würde extern betreute Objekte bei Objektbetreuern fälschlich ausblenden.
+  const oid=String(objectId||'');
+  const object=(db.objects||[]).find(o=>String(o.id||'')===oid);
+  if(!object)return false;
+
   if(isObjectManagerRole()||isExternalContractorRole()||isTestUserRole()){
-    return (db.objects||[]).some(o=>String(o.id||'')===String(objectId));
+    // v2.20.48: Extern geteilte Objekte werden mandantenweit geladen, damit
+    // Admins/Monitoring die Zusammenarbeit sehen können. Für einen operativen
+    // Benutzer bedeutet diese Sichtbarkeit aber noch keine Zuständigkeit.
+    // Bei externalManaged ist deshalb eine aktive persönliche Objektzuweisung
+    // zwingend erforderlich. Eigene Objekte kommen bei Objektbetreuern bereits
+    // über tenant_get_accessible_objects ausschließlich aus ihren Zuweisungen.
+    if(object.externalManaged===true){
+      return currentUserAssignedObjectIds.has(oid);
+    }
+    return true;
   }
 
   return false;
@@ -9672,6 +9698,12 @@ function findingVisibleInCurrentTenantUI(f){
   }
 
   const object=(db.objects||[]).find(o=>String(o.id||'')===String(f.objectId||''));
+  // v2.20.48: Ein Objektbetreuer darf Dokumentationen eines extern geteilten
+  // Objekts nur sehen, wenn er diesem Objekt persönlich zugewiesen ist.
+  // Damit sind Dokumentation und Arbeitsvorrat auf demselben Zuständigkeits-Scope.
+  if((isObjectManagerRole()||isExternalContractorRole()) && object?.externalManaged===true && !currentUserOwnsOperationalObject(f.objectId)){
+    return false;
+  }
   const ownerOrg=String(object?.organizationId||'');
   const creatorOrg=String(f.creatorOrganizationIdSnapshot||f.creator_organization_id_snapshot||'');
 
