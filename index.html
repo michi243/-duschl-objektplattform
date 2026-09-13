@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.33</title>
+<title>Duschl Service – Objektplattform v2.20.34</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3175,7 +3175,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.33'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.34'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -9481,6 +9481,21 @@ function incomingRoutedFindingIdsForCurrentTenant(){
 function findingVisibleInCurrentTenantUI(f){
   if(!f)return false;
   const orgId=String(currentOrganizationId()||'');
+
+  // v2.20.34: Die Ausführungsdokumentation eines gerouteten Auftrags ist ein
+  // Leistungsnachweis innerhalb des ursprünglichen Vorgangs und keine zweite
+  // Top-Level-Dokumentation für Auftraggeber oder ursprünglichen Melder.
+  // Nur der ausführende Mandant sieht seine execution_finding_id weiterhin als
+  // eigene operative Dokumentation. Damit gilt: ein Vorgang = eine Dokumentation.
+  const executionOrder=(cloudExternalOrders||[]).find(x=>
+    String(x.execution_finding_id||'')===String(f.id||'') &&
+    !!x.source_finding_id
+  );
+  if(executionOrder){
+    const executorOrg=String(executionOrder.executor_organization_id||'');
+    if(executorOrg && executorOrg!==orgId)return false;
+  }
+
   const object=(db.objects||[]).find(o=>String(o.id||'')===String(f.objectId||''));
   const ownerOrg=String(object?.organizationId||'');
   const creatorOrg=String(f.creatorOrganizationIdSnapshot||f.creator_organization_id_snapshot||'');
