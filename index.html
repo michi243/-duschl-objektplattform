@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.34</title>
+<title>Duschl Service – Objektplattform v2.20.35</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3175,7 +3175,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.34'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.35'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -7033,6 +7033,31 @@ async function openExternalOrderDocumentation(id){
     externalOrderDocumentationContext={orderId:order.id,findingId:f.id,routeType:isResidentRoute?'resident_report_auto':'finding_route'};
     openFindingModal(f.objectId||order.source_object_id||'','',f.id);
     return;
+  }
+
+  // v2.20.35: Falls die Verknüpfung am Work Order historisch fehlt, aber bereits
+  // eine Leistungsdokumentation zu derselben Bewohnermeldung existiert, diese
+  // wiederverwenden und nachträglich verknüpfen. Das verhindert neue Duplikate.
+  if(isResidentRoute && !order.execution_finding_id){
+    const reportId=String(order.source_resident_report_id||'');
+    const orgId=String(currentOrganizationId()||'');
+    const candidates=(db.findings||[]).filter(f=>
+      String(f.sourceResidentReportId||f.source_resident_report_id||'')===reportId &&
+      String(f.type||'')==='Leistung' &&
+      String(f.creatorOrganizationIdSnapshot||f.creator_organization_id_snapshot||'')===orgId
+    ).sort((a,b)=>Number(b.updatedAt||b.createdAt||0)-Number(a.updatedAt||a.createdAt||0));
+    if(candidates.length){
+      const f=candidates[0];
+      try{
+        await syncResidentRouteDocumentation(order.id,f.id,String(f.status||'')==='Erledigt');
+        await cloudLoadExternalOrders(false);
+      }catch(e){
+        console.warn('Bestehende Bewohner-Auftragsdokumentation konnte nicht nachverknüpft werden',e);
+      }
+      externalOrderDocumentationContext={orderId:order.id,findingId:f.id,routeType:'resident_report_auto'};
+      openFindingModal(f.objectId||order.source_object_id||'','',f.id);
+      return;
+    }
   }
 
   const objectId=String(order.source_object_id||'');
@@ -10961,6 +10986,53 @@ function externalMonitoringDocumentationCard(x){
   </div>`;
 }
 
+// v2.20.35: Resident-Route-Dokumentationen auf genau einen fachlichen Vorgang reduzieren.
+// Historisch konnten bei Teilfehlern mehrere Leistungsdokumentationen für dieselbe
+// Bewohnermeldung entstehen. Wenn der Work Order eine execution_finding_id kennt,
+// ist diese der kanonische Leistungsnachweis. Andernfalls bleibt je Melder-Mandant
+// und Dokumentationstyp nur der jüngste Datensatz sichtbar.
+function dedupeResidentRouteFindings(findings){
+  const rows=Array.isArray(findings)?findings:[];
+  const hidden=new Set();
+  const byReport=new Map();
+  rows.forEach(f=>{
+    const reportId=String(f.sourceResidentReportId||f.source_resident_report_id||'');
+    if(!reportId)return;
+    if(!byReport.has(reportId))byReport.set(reportId,[]);
+    byReport.get(reportId).push(f);
+  });
+  byReport.forEach((group,reportId)=>{
+    const order=(cloudExternalOrders||[]).find(o=>
+      String(o.source_resident_report_id||'')===reportId &&
+      String((o.source_snapshot||{}).route_type||'')==='resident_report_auto'
+    );
+    const canonicalExecutionId=String(order?.execution_finding_id||'');
+    const executorOrg=String(order?.executor_organization_id||'');
+    if(canonicalExecutionId){
+      group.forEach(f=>{
+        const fid=String(f.id||'');
+        const creatorOrg=String(f.creatorOrganizationIdSnapshot||f.creator_organization_id_snapshot||'');
+        const isExecutionLike=String(f.type||'')==='Leistung' && (!executorOrg || creatorOrg===executorOrg);
+        if(fid!==canonicalExecutionId && isExecutionLike)hidden.add(fid);
+      });
+      return;
+    }
+    const buckets=new Map();
+    group.forEach(f=>{
+      const creatorOrg=String(f.creatorOrganizationIdSnapshot||f.creator_organization_id_snapshot||'');
+      const key=[creatorOrg,String(f.type||''),String(f.objectId||'')].join('|');
+      if(!buckets.has(key))buckets.set(key,[]);
+      buckets.get(key).push(f);
+    });
+    buckets.forEach(list=>{
+      if(list.length<2)return;
+      list.sort((a,b)=>Number(b.updatedAt||b.createdAt||0)-Number(a.updatedAt||a.createdAt||0));
+      list.slice(1).forEach(f=>hidden.add(String(f.id||'')));
+    });
+  });
+  return rows.filter(f=>!hidden.has(String(f.id||'')));
+}
+
 function renderFindings(){
   renderCustomerObjectContext();
   const df=document.getElementById('filterDecision')?.value||'';
@@ -10988,7 +11060,7 @@ function renderFindings(){
     return;
   }
 
-  let arr=[...db.findings].filter(f=>findingVisibleInCurrentTenantUI(f)).sort((a,b)=>b.createdAt-a.createdAt);
+  let arr=dedupeResidentRouteFindings([...db.findings].filter(f=>findingVisibleInCurrentTenantUI(f))).sort((a,b)=>b.createdAt-a.createdAt);
   if(of)arr=arr.filter(x=>x.objectId===of);if(sf==='active')arr=arr.filter(x=>x.status!=='Erledigt');else if(sf)arr=arr.filter(x=>x.status===sf);if(df)arr=arr.filter(x=>(x.decisionStatus||'pending')===df);if(pf==='critical')arr=arr.filter(x=>['P1','P2'].includes(x.priority));else if(pf)arr=arr.filter(x=>x.priority===pf);if(tf)arr=arr.filter(x=>(x.type||'Feststellung')===tf);
   if(rf==='own')arr=arr.filter(x=>x.status!=='Erledigt'&&!findingIsOperationallyOwnedByOtherTenant(x.id));
   else if(rf==='completed')arr=arr.filter(x=>x.status==='Erledigt'||String(externalResponsibilityOrderForFinding(x.id)?.review_status||'')==='verified');
