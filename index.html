@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.43</title>
+<title>Duschl Service – Objektplattform v2.20.44</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1214,7 +1214,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 <option>Sonstiges</option>
 </select>
 <label for="prDescription">Beschreibung *</label>
-<textarea id="prDescription" maxlength="2000" placeholder="Was ist aufgefallen? Wo genau befindet sich das Problem?"></textarea>
+<div class="public-report-note" style="margin-top:6px;margin-bottom:8px"><strong>Bitte erfassen Sie pro Meldung nur ein Anliegen.</strong><div style="margin-top:4px">Wenn Sie mehrere unterschiedliche Themen melden möchten, erstellen Sie bitte für jedes Anliegen eine eigene Meldung.</div></div>
+<textarea id="prDescription" maxlength="2000" placeholder="Bitte beschreiben Sie genau ein Anliegen: Was ist aufgefallen und wo befindet sich das Problem?"></textarea>
 <div class="public-report-photo-box">
 <label style="margin-top:0">Fotos</label>
 <div class="row" style="gap:8px;flex-wrap:wrap">
@@ -3208,7 +3209,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.43'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.44'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -3772,6 +3773,11 @@ function bootPublicResidentReport(){
   return true;
 }
 
+function startAnotherPublicResidentReport(){
+  // Gleicher Objekt-/Bereichs-QR bleibt erhalten; eine neue Meldung startet sauber von vorn.
+  location.reload();
+}
+
 function publicReportMessage(text,type='bad'){
   const el=document.getElementById('prMessage');
   if(!el)return;
@@ -3996,7 +4002,7 @@ async function submitPublicResidentReport(){
         : needsReview
           ? 'Die Meldung wird durch die zuständige Objektbetreuung geprüft. Dort wird die weitere Bearbeitung veranlasst.'
           : 'Die Meldung wird automatisch an die zuständige Stelle weitergegeben. Dort wird geprüft, welche Maßnahme erforderlich ist, und die weitere Bearbeitung veranlasst.';
-      wrap.innerHTML=`<div class="public-report-success"><strong>Vielen Dank. Ihre Meldung wurde übermittelt.</strong><div class="muted" style="margin-top:12px">${hadPhotos?'Ihre Meldung und die Fotos wurden erfolgreich gespeichert.':'Ihre Meldung wurde erfolgreich gespeichert.'}</div><div style="margin-top:18px;font-weight:800">Wie geht es weiter?</div><div class="muted" style="margin-top:6px">${nextStep}</div><div style="margin-top:18px;font-weight:800">Sie müssen nichts weiter tun.</div><div class="muted" style="margin-top:14px;font-size:.92em">Ihre Kontaktdaten werden nicht an den Dienstleister weitergegeben.</div></div>`;
+      wrap.innerHTML=`<div class="public-report-success"><strong>Vielen Dank. Ihre Meldung wurde übermittelt.</strong><div class="muted" style="margin-top:12px">${hadPhotos?'Ihre Meldung und die Fotos wurden erfolgreich gespeichert.':'Ihre Meldung wurde erfolgreich gespeichert.'}</div><div style="margin-top:18px;font-weight:800">Wie geht es weiter?</div><div class="muted" style="margin-top:6px">${nextStep}</div><div style="margin-top:18px;font-weight:800">Sie müssen nichts weiter tun.</div><button class="primary public-report-submit" type="button" style="margin-top:20px" onclick="startAnotherPublicResidentReport()">Weiteres Anliegen melden</button><div class="muted" style="margin-top:14px;font-size:.92em">Ihre Kontaktdaten werden nicht an den Dienstleister weitergegeben.</div></div>`;
     }
   }catch(e){
     console.error('Öffentliche Meldung fehlgeschlagen',e);
