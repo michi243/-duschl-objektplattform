@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.44</title>
+<title>Duschl Service – Objektplattform v2.20.46</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3209,7 +3209,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.45'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.46'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -6459,14 +6459,34 @@ function externalOrderResponsibilityHtml(order){
 
 function externalOrderStatusLabel(v){return ({requested:'Übermittelt',accepted:'Angenommen',in_progress:'In Bearbeitung',completed:'Erledigt',rejected:'Abgelehnt',cancelled:'Storniert'})[v]||v||'—';}
 
-// v2.20.31: Einheitliche Herkunft eines Vorgangs über alle Mandantensichten.
-// Die Organisation des ursprünglichen Melders ist fachlich unabhängig von
-// Auftraggeber/Entscheider und ausführendem Dienstleister. Bewohnermeldungen
-// bleiben personenbezogen geschützt und werden nur als Meldekanal ausgewiesen.
+// v2.20.46: Herkunft eines Vorgangs mit objektbezogener PII-Sicht.
+// Bewohnerdaten werden ausschließlich beim Auftraggeber angezeigt: Mandanten-Admin,
+// Admin-Vertretung und zuständiger Verwalter. Operative Rollen und externe
+// Dienstleister sehen weiterhin ausschließlich den Meldekanal "Bewohner-QR".
+function residentReporterDetailsForOrder(order){
+  if(!order?.source_resident_report_id)return null;
+  const snap=order.source_snapshot||{};
+  if(String(snap.route_type||'')!=='resident_report_auto')return null;
+
+  const currentOrgId=String(currentOrganizationId()||'');
+  const sourceOrgId=String(order.source_organization_id||'');
+  const maySeePii=!!currentOrgId && currentOrgId===sourceOrgId && (hasOperationalAdminAccess()||isPropertyManagerRole());
+  if(!maySeePii)return null;
+
+  const report=(cloudResidentReports||[]).find(r=>String(r.id||'')===String(order.source_resident_report_id||''));
+  if(!report)return null;
+  const name=String(report.resident_name||'').trim();
+  const email=String(report.resident_email||'').trim();
+  if(!name&&!email)return null;
+  return {name,email};
+}
 function externalOrderReporterLabel(order){
   if(!order)return '';
   const snap=order.source_snapshot||{};
-  if(order.source_resident_report_id && String(snap.route_type||'')==='resident_report_auto')return 'Bewohner-QR';
+  if(order.source_resident_report_id && String(snap.route_type||'')==='resident_report_auto'){
+    const resident=residentReporterDetailsForOrder(order);
+    return resident?.name||'Bewohner-QR';
+  }
   const fid=String(order.source_finding_id||'');
   const f=fid?(db.findings||[]).find(x=>String(x.id||'')===fid):null;
   const fromFinding=(f?.creatorOrganizationNameSnapshot||f?.creator_organization_name_snapshot||'').trim();
@@ -6488,10 +6508,13 @@ function externalOrderReporterLabel(order){
 function externalOrderReporterHtml(order,opts={}){
   const reporter=externalOrderReporterLabel(order);
   if(!reporter)return '';
-  const label=(order?.source_resident_report_id&&String((order?.source_snapshot||{}).route_type||'')==='resident_report_auto')?'Gemeldet über':'Gemeldet von';
+  const isResidentRoute=!!(order?.source_resident_report_id&&String((order?.source_snapshot||{}).route_type||'')==='resident_report_auto');
+  const resident=isResidentRoute?residentReporterDetailsForOrder(order):null;
+  const label=isResidentRoute?(resident?'Gemeldet von':'Gemeldet über'):'Gemeldet von';
   const cls=opts.muted===false?'':' class="muted"';
-  const style=opts.style||'margin-top:4px';
-  return `<div${cls} style="${esc(style)}">${label}: <strong>${esc(reporter)}</strong></div>`;
+  const style=opts.style===undefined?'margin-top:4px':opts.style;
+  const email=resident?.email?`<div${cls} style="${esc(style)}">E-Mail: <strong>${esc(resident.email)}</strong></div>`:'';
+  return `<div${cls} style="${esc(style)}">${label}: <strong>${esc(reporter)}</strong></div>${email}`;
 }
 
 async function syncRoutedWorkOrdersForFinding(findingId,completed){
@@ -9792,7 +9815,7 @@ function externalWorkQueueItemHtml(x){
     </div>
     <div class="gf-meta">
       ${x.source_object_address?`<div><b>Adresse:</b> ${esc(x.source_object_address)}</div>`:''}
-      ${externalOrderReporterLabel(x)?`<div><b>${x.source_resident_report_id&&String((x.source_snapshot||{}).route_type||'')==='resident_report_auto'?'Gemeldet über':'Gemeldet von'}:</b> ${esc(externalOrderReporterLabel(x))}</div>`:''}
+      ${externalOrderReporterHtml(x,{muted:false,style:''})}
       ${snapshot.area?`<div><b>Bereich:</b> ${esc(snapshot.area)}${snapshot.area_detail?` · ${esc(snapshot.area_detail)}`:''}</div>`:''}
       ${x.description?`<div><b>Auftrag:</b> ${esc(x.description)}</div>`:''}
       ${assignedName?`<div><b>Verantwortlich:</b> ${esc(assignedName)}</div>`:''}
@@ -11098,7 +11121,7 @@ function externalMonitoringDocumentationCard(x){
     <h3 style="margin-bottom:5px">${esc(title)}</h3>
     <div class="muted">${esc(objectName)}${area?` · ${esc(area)}`:''}</div>
     ${sourceOrg?`<div class="muted" style="margin-top:4px">Auftraggeber: <strong>${esc(sourceOrg)}</strong></div>`:''}
-    ${reporterOrg?`<div class="muted" style="margin-top:4px">Gemeldet von: <strong>${esc(reporterOrg)}</strong></div>`:''}
+    ${reporterOrg?externalOrderReporterHtml(x):''}
     <div class="card" style="margin-top:12px;padding:12px 14px;border-color:rgba(76,154,255,.38);background:rgba(76,154,255,.07)">
       <div style="font-weight:700">Extern vergeben an ${esc(executor)}</div>
       <div class="muted" style="margin-top:4px"><strong>Status:</strong> ${esc(statusLabel)}</div>
