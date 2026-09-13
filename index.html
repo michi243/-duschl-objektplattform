@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.26</title>
+<title>Duschl Service – Objektplattform v2.20.28</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1458,12 +1458,12 @@ body.public-report-mode>#photoViewer{display:none!important}
       <div class="tenant-kpi-icon">☰</div><div class="tenant-kpi-arrow">›</div>
       <div class="tenant-kpi-label">Arbeitsvorrat</div><div class="tenant-kpi-value" id="kpiWorkQueue">0</div><div class="tenant-kpi-sub">offen</div>
     </button>
-    <button aria-label="Extern laufende Vorgänge anzeigen" class="tenant-kpi-card tenant-kpi-blue" id="kpiExternalMonitoringCard"
+    <button aria-label="Vorgänge bei Dritten anzeigen" class="tenant-kpi-card tenant-kpi-blue" id="kpiExternalMonitoringCard"
       onclick="openDashboardExternalMonitoring()"
       onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openDashboardExternalMonitoring();}"
       type="button">
       <div class="tenant-kpi-icon">⇄</div><div class="tenant-kpi-arrow">›</div>
-      <div class="tenant-kpi-label">Extern in Bearbeitung</div><div class="tenant-kpi-value" id="kpiExternalMonitoring">0</div><div class="tenant-kpi-sub">bei Dritten · kein To-do</div>
+      <div class="tenant-kpi-label">Bei Dritten</div><div class="tenant-kpi-value" id="kpiExternalMonitoring">0</div><div class="tenant-kpi-sub">kein eigenes To-do</div>
     </button>
   </div>
 
@@ -1534,7 +1534,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 </select></div>
 <div><label>Priorität</label><select id="filterPriority" onchange="renderFindings()"><option value="">Alle</option><option value="critical">Sofort + Dringend</option><option value="P1">Sofort</option><option value="P2">Dringend</option><option value="P3">Planbar</option><option value="P4">Beobachten</option></select></div>
 <div><label>Typ</label><select id="filterType" onchange="renderFindings()"><option value="">Alle</option><option>Feststellung</option><option>Leistung</option></select></div>
-<div><label>Verantwortung</label><select id="filterResponsibility" onchange="renderFindings()"><option value="">Alle</option><option value="own">Eigene To-dos</option><option value="external">Extern in Bearbeitung</option><option value="completed">Abgeschlossen</option></select></div>
+<div><label>Verantwortung</label><select id="filterResponsibility" onchange="renderFindings()"><option value="">Alle</option><option value="own">Eigene To-dos</option><option value="external">Bei Dritten</option><option value="completed">Abgeschlossen</option></select></div>
 </div>
 <div class="grid" id="findingList"></div>
 </section>
@@ -3175,7 +3175,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.26'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.28'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -9484,14 +9484,17 @@ function outgoingRouteStatusLabel(order){
   return `An ${executor} weitergeleitet`;
 }
 function externalResponsibilityOrderForFinding(findingId){
-  // v2.20.24: Eine einzige Quelle für den aktuellen externen Verantwortungsstatus.
-  // Entscheidend ist die fachliche Verknüpfung über source_finding_id – nicht,
-  // ob ältere Datensätze order_kind exakt als "finding_route" gespeichert haben.
-  // Damit verwenden Dashboard, Dokumentationsfilter und Finding-Karte dieselbe Wahrheit.
+  // v2.20.28: Externe Verantwortung wird mandantenbezogen ausgewertet.
+  // Relevant ist nur eine Vergabe, bei der der aktuell betrachtete Mandant
+  // selbst Auftraggeber/source_organization ist. Eine Fremdvergabe eines anderen
+  // Mandanten auf demselben Objekt/Finding darf die eigene Dokumentationskarte
+  // nicht in "Extern vergeben" umklassifizieren.
   const fid=String(findingId||'');
-  if(!fid)return null;
+  const orgId=String(currentOrganizationId()||'');
+  if(!fid||!orgId)return null;
   const rows=(cloudExternalOrders||[])
     .filter(x=>String(x.source_finding_id||'')===fid)
+    .filter(x=>String(x.source_organization_id||'')===orgId)
     .filter(x=>['accepted','in_progress','completed'].includes(String(x.status||'')))
     .filter(x=>!!x.executor_organization_id)
     .sort((a,b)=>{
@@ -10316,26 +10319,49 @@ async function openDashboardWorkQueue(){
 }
 
 function externalMonitoringOrdersForCurrentTenant(){
+  // v2.20.28: "Extern in Bearbeitung" ist ausschließlich Auftraggeber-Monitoring.
+  // Ein Mandant sieht hier nur Work Orders, die er selbst als source_organization
+  // an einen anderen Mandanten vergeben hat. Bloßer Objekt-/Finding-Zugriff darf
+  // fremde Vergaben anderer Mandanten weder in KPI noch Dokumentation sichtbar machen.
   const orgId=String(currentOrganizationId()||'');
-  const visibleFindingIds=new Set((db.findings||[])
-    .filter(f=>findingVisibleInCurrentTenantUI(f))
-    .map(f=>String(f.id||''))
-    .filter(Boolean));
   const seen=new Set();
   return (cloudExternalOrders||[]).filter(x=>{
     const status=String(x.status||'');
     if(!['accepted','in_progress'].includes(status))return false;
+    if(String(x.source_organization_id||'')!==orgId)return false;
     if(String(x.executor_organization_id||'')===orgId)return false;
-    const fid=String(x.source_finding_id||'');
-    const directlyOwned=String(x.source_organization_id||'')===orgId;
-    const visibleOrigin=!!fid && visibleFindingIds.has(fid);
-    if(!directlyOwned&&!visibleOrigin)return false;
-    const key=String(x.id||fid||'');
+    const key=String(x.id||'');
     if(!key||seen.has(key))return false;
     seen.add(key);
     return true;
   });
 }
+function pendingAtOwnerFindingsForCurrentTenant(){
+  // Eigene Dokumentation auf einem fremdgeführten Objekt: Der Ersteller behält
+  // Monitoring, während die Entscheidung beim führenden Mandanten liegt.
+  const orgId=String(currentOrganizationId()||'');
+  return (db.findings||[]).filter(f=>{
+    if(String(f.type||'Feststellung')!=='Feststellung')return false;
+    if(String(f.creatorOrganizationIdSnapshot||f.creator_organization_id_snapshot||'')!==orgId)return false;
+    const o=(db.objects||[]).find(x=>String(x.id||'')===String(f.objectId||''));
+    const ownerOrg=String(o?.organizationId||'');
+    if(!ownerOrg||ownerOrg===orgId)return false;
+    if(f.status==='Erledigt')return false;
+    const ds=String(f.decisionStatus||f.decision_status||'pending').toLowerCase();
+    if(!['pending','quote_requested','quote_sent','question','deferred'].includes(ds))return false;
+    // Sobald der aktuelle Mandant selbst Auftraggeber eines laufenden externen
+    // Auftrags ist, wird der Vorgang über das reguläre Fremdleistungsmonitoring geführt.
+    if(externalMonitoringOrdersForCurrentTenant().some(x=>String(x.source_finding_id||'')===String(f.id||'')))return false;
+    return true;
+  });
+}
+function thirdPartyMonitoringCountForCurrentTenant(){
+  return externalMonitoringOrdersForCurrentTenant().length+pendingAtOwnerFindingsForCurrentTenant().length;
+}
+function pendingAtOwnerForObject(objectId){
+  return pendingAtOwnerFindingsForCurrentTenant().filter(f=>String(f.objectId||'')===String(objectId||''));
+}
+
 function externalMonitoringOrdersForObject(objectId){
   const oid=String(objectId||'');
   if(!oid)return [];
@@ -10458,7 +10484,7 @@ function renderDashboard(){
   // v2.20.20: Monitoring ist bewusst vom Arbeitsvorrat getrennt.
   // Gezählt werden angenommene/laufende Fremdleistungen, deren Ursprung der
   // aktuelle Mandant sehen darf, die aber operativ bei einem anderen Mandanten liegen.
-  const externalMonitoringCount=externalMonitoringOrdersForCurrentTenant().length;
+  const externalMonitoringCount=thirdPartyMonitoringCountForCurrentTenant();
   const externalMonitoringKpi=document.getElementById('kpiExternalMonitoring');
   if(externalMonitoringKpi)externalMonitoringKpi.textContent=String(externalMonitoringCount);
   const externalMonitoringCard=document.getElementById('kpiExternalMonitoringCard');
@@ -10536,7 +10562,7 @@ function renderObjects(){
       const fs=(Array.isArray(db.findings)?db.findings:[]).filter(f=>findingVisibleInCurrentTenantUI(f)&&f.objectId===o.id);
       const open=fs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt').length;
       const documentationCount=fs.length;
-      const externalInProgressCount=externalMonitoringOrdersForObject(o.id).length;
+      const externalInProgressCount=externalMonitoringOrdersForObject(o.id).length+pendingAtOwnerForObject(o.id).length;
       const documentationBadge=documentationCount
         ? `<span class="badge badge-action" role="button" tabindex="0" aria-label="${documentationCount} Dokumentationen für ${esc(o.name||'Objekt')} anzeigen" title="Alle Dokumentationen anzeigen" onclick="openObjectDocumentation('${esc(o.id)}')">${documentationCount} Dokumentation${documentationCount===1?'':'en'}</span>`
         : `<span class="badge" aria-disabled="true">0 Dokumentationen</span>`;
@@ -10544,7 +10570,7 @@ function renderObjects(){
         ? `<span class="badge badge-action" role="button" tabindex="0" aria-label="${open} offene Feststellungen für ${esc(o.name||'Objekt')} anzeigen" title="Offene Feststellungen anzeigen" onclick="openObjectOpenFindings('${esc(o.id)}')">${open} offen</span>`
         : `<span class="badge" aria-disabled="true">0 offen</span>`;
       const externalBadge=externalInProgressCount
-        ? `<span class="badge badge-action" role="button" tabindex="0" aria-label="${externalInProgressCount} extern in Bearbeitung für ${esc(o.name||'Objekt')} anzeigen" title="Extern in Bearbeitung anzeigen" onclick="openObjectExternalMonitoring('${esc(o.id)}')">${externalInProgressCount} extern in Bearbeitung</span>`
+        ? `<span class="badge badge-action" role="button" tabindex="0" aria-label="${externalInProgressCount} Vorgänge bei Dritten für ${esc(o.name||'Objekt')} anzeigen" title="Bei Dritten anzeigen" onclick="openObjectExternalMonitoring('${esc(o.id)}')">${externalInProgressCount} extern in Bearbeitung</span>`
         : '';
 
       let collaborationHtml='';
@@ -10618,7 +10644,7 @@ function renderObjectFiles(){
     const open=docs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt').length;
     const urgent=docs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&['P1','P2'].includes(f.priority)&&f.status!=='Erledigt').length;
     const services=docs.filter(f=>(f.type||'Feststellung')==='Leistung').length;
-    const externalInProgress=externalMonitoringOrdersForObject(o.id).length;
+    const externalInProgress=externalMonitoringOrdersForObject(o.id).length+pendingAtOwnerForObject(o.id).length;
 
     const lastFive=inspections.slice(0,5);
     const older=inspections.slice(5);
@@ -10653,7 +10679,7 @@ function renderObjectFiles(){
             <span class="stat-chip">${open} offen</span>
             <span class="stat-chip">${urgent} Sofort/Dringend</span>
             <span class="stat-chip">${services} Leistungen</span>
-            ${externalInProgress?`<span class="stat-chip" role="button" tabindex="0" onclick="openObjectExternalMonitoring('${esc(o.id)}')">${externalInProgress} extern in Bearbeitung</span>`:''}
+            ${externalInProgress?`<span class="stat-chip" role="button" tabindex="0" onclick="openObjectExternalMonitoring('${esc(o.id)}')">${externalInProgress} bei Dritten</span>`:''}
             <span class="stat-chip">${inspections.length} Einsätze</span>
           </div>
         </div>
@@ -10766,6 +10792,24 @@ function openCustomerDocumentation(){
   alert('Neue Dokumentationen werden ausschließlich über „Objekte“ angelegt.');
 }
 
+function pendingAtOwnerDocumentationCard(f){
+  const o=(db.objects||[]).find(x=>String(x.id||'')===String(f.objectId||''));
+  const ownerName=organizationName(o?.organizationId)||o?.ownerOrganizationName||'Auftraggeber';
+  return `<div class="card finding" data-priority="${esc(f.priority||'P3')}">
+    <div class="row" style="gap:8px;flex-wrap:wrap"><span class="badge">Feststellung</span><span class="badge">Bei Auftraggeber</span><span class="badge">Entscheidung ausstehend</span></div>
+    <div class="muted" style="margin-top:8px">${esc(f.createdAt?fmt(f.createdAt):'')}</div>
+    <h3 style="margin:12px 0 4px">${esc(f.title||'Dokumentation')}</h3>
+    <div class="muted">${esc(o?.name||'Objekt')}${f.area?` · ${esc(f.area)}`:''}</div>
+    <div class="card" style="margin-top:12px">
+      <div style="font-weight:700">Bei ${esc(ownerName)}</div>
+      <div class="muted" style="margin-top:4px"><strong>Status:</strong> Entscheidung ausstehend</div>
+      <div class="muted" style="margin-top:8px">Aktuell keine Aktion durch ${esc(currentOrganization?.name||organizationName(currentOrganizationId())||'diesen Mandanten')} erforderlich.</div>
+    </div>
+    ${ticketTimelineHtml(f)}
+    <div class="row" style="margin-top:12px"><button type="button" onclick="openFindingModal('${esc(f.objectId||'')}','', '${esc(f.id)}')">Dokumentation öffnen</button></div>
+  </div>`;
+}
+
 function externalMonitoringDocumentationCard(x){
   // v2.20.26: Derselbe Vorgang erhält in der Dokumentation dieselbe Grundkarte
   // wie eine lokale Feststellung. Unterschiede ergeben sich nur aus Verantwortung
@@ -10817,15 +10861,16 @@ function renderFindings(){
   // dadurch dieselbe Datenquelle.
   if(rf==='external'){
     let external=[...externalMonitoringOrdersForCurrentTenant()];
-    if(of)external=external.filter(x=>String(x.source_object_id||'')===String(of));
-    if(pf==='critical')external=external.filter(x=>['P1','P2'].includes(String(x.priority||'')));
-    else if(pf)external=external.filter(x=>String(x.priority||'')===String(pf));
+    let pendingOwner=[...pendingAtOwnerFindingsForCurrentTenant()];
+    if(of){external=external.filter(x=>String(x.source_object_id||'')===String(of));pendingOwner=pendingOwner.filter(f=>String(f.objectId||'')===String(of));}
+    if(pf==='critical'){external=external.filter(x=>['P1','P2'].includes(String(x.priority||'')));pendingOwner=pendingOwner.filter(f=>['P1','P2'].includes(String(f.priority||'')));}
+    else if(pf){external=external.filter(x=>String(x.priority||'')===String(pf));pendingOwner=pendingOwner.filter(f=>String(f.priority||'')===String(pf));}
     external.sort((a,b)=>{
       const ta=new Date(a.updated_at||a.accepted_at||a.created_at||0).getTime()||0;
       const tb=new Date(b.updated_at||b.accepted_at||b.created_at||0).getTime()||0;
       return tb-ta;
     });
-    if(el)el.innerHTML=external.length?external.map(externalMonitoringDocumentationCard).join(''):`<div class="empty">Keine extern bearbeiteten Dokumentationen im gewählten Filter.</div>`;
+    if(el){const cards=[...pendingOwner.map(pendingAtOwnerDocumentationCard),...external.map(externalMonitoringDocumentationCard)];el.innerHTML=cards.length?cards.join(''):`<div class="empty">Keine Vorgänge bei Dritten im gewählten Filter.</div>`;}
     return;
   }
 
