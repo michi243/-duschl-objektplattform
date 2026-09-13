@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.41</title>
+<title>Duschl Service – Objektplattform v2.20.42</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1289,7 +1289,6 @@ body.public-report-mode>#photoViewer{display:none!important}
 <button id="navUsers" onclick="showSection('users')"><span class="nav-icon">♙</span><span>Benutzer &amp; Berechtigungen</span></button>
 </nav>
 <div class="app-menu-actions">
-<button id="orphanUserCleanupBtn" class="hidden platform-danger-btn" onclick="closeAppMenu();openOrphanUserCleanupModal()">Benutzer ohne Mandant löschen</button>
 <button id="headerDataBtn" class="hidden" onclick="closeAppMenu();dsOpenDataManagement()">▧ <span>Daten</span></button>
 <button id="globalRefreshBtn" onclick="refreshAllCloudData();closeAppMenu()">↻ <span>Aktualisieren</span></button>
 <button id="headerPasswordBtn" onclick="closeAppMenu();showVoluntaryPasswordChange()">⌘ <span>Passwort ändern</span></button>
@@ -1390,6 +1389,25 @@ body.public-report-mode>#photoViewer{display:none!important}
         <div>Name</div><div>Status</div><div>Benutzer</div><div>Mandanten-Admin</div><div>Speicher</div><div></div>
       </div>
       <div id="sysTenantStorageList"><div class="empty">Mandantendaten werden geladen …</div></div>
+    </div>
+  </div>
+
+  <div class="pa-panel" id="platformSystemCheckPanel">
+    <div class="pa-panel-head">
+      <div>
+        <div class="pa-panel-title"><span class="pa-panel-icon">✓</span>Systemprüfung</div>
+        <div class="pa-panel-sub">Prüft inkonsistente Plattformzustände. Nicht zugeordnete Benutzer sind kein regulärer Betriebszustand und werden hier ausschließlich zur Fehlerbereinigung angezeigt.</div>
+      </div>
+      <button class="pa-refresh-btn" type="button" onclick="refreshPlatformOrphanUserCard()">↻ Prüfen</button>
+    </div>
+    <div id="platformOrphanUserCard" class="card" style="margin-top:12px">
+      <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
+        <div>
+          <h3 style="margin:0">Nicht zugeordnete Benutzer</h3>
+          <div class="muted" style="margin-top:6px">Benutzer ohne aktive Mandantenzuordnung. Plattform-Administratoren sind ausgeschlossen.</div>
+        </div>
+        <button class="platform-warning-btn" type="button" onclick="openOrphanUserCleanupModal()">Prüfung öffnen</button>
+      </div>
     </div>
   </div>
 
@@ -1762,15 +1780,6 @@ body.public-report-mode>#photoViewer{display:none!important}
       <div class="muted" style="margin-top:6px">Plattformweite Benutzerverwaltung.</div>
     </div>
     <button onclick="showSection('dashboard')">Zurück zum Dashboard</button>
-  </div>
-</div>
-<div id="platformOrphanUserCard" class="card platform-danger-zone" style="margin-top:16px">
-  <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
-    <div>
-      <h2 style="margin:0">Benutzer ohne Mandant</h2>
-      <div class="muted" style="margin-top:6px">Benutzer ohne Mandantenzuordnung prüfen und gezielt aus der aktiven Plattform entfernen. Platform-Administratoren sind ausgeschlossen.</div>
-    </div>
-    <button class="platform-danger-btn" type="button" onclick="openOrphanUserCleanupModal()">Benutzer ohne Mandant anzeigen</button>
   </div>
 </div>
 </section>
@@ -3198,7 +3207,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.41'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.42'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -7911,19 +7920,19 @@ async function refreshPlatformOrphanUserCard(){
       body:JSON.stringify({})
     });
     const users=Array.isArray(result)?result:(result?.users||[]);
-    if(btn)btn.textContent=`Benutzer ohne Mandant anzeigen (${users.length})`;
+    if(btn)btn.textContent=`Nicht zugeordnete Benutzer (${users.length})`;
   }catch(e){
-    if(btn)btn.textContent='Benutzer ohne Mandant anzeigen';
+    if(btn)btn.textContent='Nicht zugeordnete Benutzer prüfen';
     console.warn('Verwaiste Benutzer konnten nicht vorab gezählt werden',e);
   }
 }
 
 async function openOrphanUserCleanupModal(){
   if(!isAdminRole())return alert('Nur der primäre Platform Admin darf verwaiste Benutzer verwalten.');
-  if(isPlatformTenantMode())return alert('Benutzer ohne Mandant können nur in der globalen Plattformverwaltung verwaltet werden.');
+  if(isPlatformTenantMode())return alert('Nicht zugeordnete Benutzer können nur in der globalen Plattformverwaltung geprüft werden.');
 
-  modal(`<div class="row space"><h2>Benutzer ohne Mandant</h2><button onclick="closeModal()">✕</button></div>
-    <div class="muted">Angezeigt werden ausschließlich Benutzer ohne aktive Mandantenzuordnung. Platform-Administratoren sind ausgeschlossen.</div>
+  modal(`<div class="row space"><h2>Nicht zugeordnete Benutzer</h2><button onclick="closeModal()">✕</button></div>
+    <div class="muted">Diese Systemprüfung zeigt ausschließlich Benutzer ohne aktive Mandantenzuordnung. Plattform-Administratoren sind ausgeschlossen.</div>
     <div id="orphanUserList" style="margin-top:14px"><div class="muted">Analyse wird geladen …</div></div>`);
 
   try{
@@ -7936,7 +7945,7 @@ async function openOrphanUserCleanupModal(){
     if(!host)return;
 
     if(!users.length){
-      host.innerHTML='<div class="empty">Keine Benutzer ohne Mandantenzuordnung vorhanden.</div>';
+      host.innerHTML='<div class="empty">Systemprüfung ohne Befund: keine nicht zugeordneten Benutzer vorhanden.</div>';
       return;
     }
 
