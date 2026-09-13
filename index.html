@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.28</title>
+<title>Duschl Service – Objektplattform v2.20.29</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3175,7 +3175,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.28'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.29'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -9292,6 +9292,7 @@ function currentUserOwnsOperationalObject(objectId){
 
 function workQueueDiagnostics(){
   const externalIds=externallyRoutedFindingIdsForCurrentTenant();
+  const thirdPartyIds=thirdPartyFindingIdsForCurrentTenant();
   const taskMap=new Map((db.tasks||[]).filter(t=>t.findingId).map(t=>[t.findingId,t]));
   return (db.findings||[])
     .filter(f=>(f.type||'Feststellung')==='Feststellung')
@@ -9304,6 +9305,7 @@ function workQueueDiagnostics(){
       decision:f.decisionStatus||(f.decisionRequired===false?'not_required':'pending'),
       findingStatus:f.status||'Offen',
       routedReplacementVisible:externalIds.has(String(f.id||'')),
+      atThirdParty:thirdPartyIds.has(String(f.id||'')),
       taskId:taskMap.get(f.id)?.id||'',
       taskStatus:taskMap.get(f.id)?.status||'',
       concreteWork:internalFindingIsConcreteWork(f,taskMap.get(f.id))
@@ -9592,6 +9594,7 @@ function externalWorkQueueItemHtml(x){
 }
 function renderWorkQueue(){
   const externalFindingIds=externallyRoutedFindingIdsForCurrentTenant();
+  const thirdPartyFindingIds=thirdPartyFindingIdsForCurrentTenant();
   const pendingReviewFindingIds=pendingExternalReviewFindingIds();
   if(!canUseWorkQueueUI()){
     const host=document.getElementById('workqueueList')||document.getElementById('gfWorkQueue');
@@ -9608,6 +9611,7 @@ function renderWorkQueue(){
 
   const items=(db.findings||[]).filter(f=>findingVisibleInCurrentTenantUI(f))
     .filter(f=>!externalFindingIds.has(String(f.id||'')))
+    .filter(f=>!thirdPartyFindingIds.has(String(f.id||'')))
     .filter(f=>!pendingReviewFindingIds.has(String(f.id||'')))
     .filter(f=>(f.type||'Feststellung')==='Feststellung')
     .filter(f=>hasOperationalAdminAccess()||currentUserOwnsOperationalObject(f.objectId))
@@ -10358,6 +10362,19 @@ function pendingAtOwnerFindingsForCurrentTenant(){
 function thirdPartyMonitoringCountForCurrentTenant(){
   return externalMonitoringOrdersForCurrentTenant().length+pendingAtOwnerFindingsForCurrentTenant().length;
 }
+function thirdPartyFindingIdsForCurrentTenant(){
+  // v2.20.29: Ein Vorgang unter "Bei Dritten" ist per Definition kein eigener
+  // operativer Arbeitsvorrat. Das gilt sowohl während der Entscheidung beim
+  // führenden Auftraggeber als auch nach dessen externer Vergabe.
+  const ids=new Set();
+  for(const f of pendingAtOwnerFindingsForCurrentTenant()){
+    if(f?.id)ids.add(String(f.id));
+  }
+  for(const x of externalMonitoringOrdersForCurrentTenant()){
+    if(x?.source_finding_id)ids.add(String(x.source_finding_id));
+  }
+  return ids;
+}
 function pendingAtOwnerForObject(objectId){
   return pendingAtOwnerFindingsForCurrentTenant().filter(f=>String(f.objectId||'')===String(objectId||''));
 }
@@ -10462,10 +10479,12 @@ function renderDashboard(){
   const taskByFindingForKpi=new Map(tasksForKpi.filter(t=>t.findingId).map(t=>[t.findingId,t]));
   const openDecisionStatesForKpi=new Set(['pending','quote_requested','quote_sent','approved','deferred','question']);
   const externalFindingIdsForKpi=externallyRoutedFindingIdsForCurrentTenant();
+  const thirdPartyFindingIdsForKpi=thirdPartyFindingIdsForCurrentTenant();
   const taskMapForKpi=new Map((db.tasks||[]).filter(t=>t.findingId).map(t=>[t.findingId,t]));
   const pendingReviewFindingIdsForKpi=pendingExternalReviewFindingIds();
   const internalOpenWorkCount=(db.findings||[])
     .filter(f=>!externalFindingIdsForKpi.has(String(f.id||'')))
+    .filter(f=>!thirdPartyFindingIdsForKpi.has(String(f.id||'')))
     .filter(f=>!pendingReviewFindingIdsForKpi.has(String(f.id||'')))
     .filter(f=>(f.type||'Feststellung')==='Feststellung')
     .filter(f=>hasOperationalAdminAccess()||currentUserOwnsOperationalObject(f.objectId))
@@ -10819,6 +10838,8 @@ function externalMonitoringDocumentationCard(x){
   const snapshot=x.source_snapshot||{};
   const fid=String(x.source_finding_id||'');
   const localFinding=fid?(db.findings||[]).find(f=>String(f.id||'')===fid):null;
+  const reporterOrgId=String(localFinding?.creatorOrganizationIdSnapshot||localFinding?.creator_organization_id_snapshot||snapshot.creator_organization_id||snapshot.creatorOrganizationId||'');
+  const reporterOrg=reporterOrgId?organizationName(reporterOrgId):String(snapshot.creator_organization_name||snapshot.creatorOrganizationName||'');
   const objectName=x.source_object_name||((db.objects||[]).find(o=>String(o.id||'')===String(x.source_object_id||''))?.name)||'Objekt';
   const area=snapshot.area||localFinding?.area||'';
   const priority=String(x.priority||localFinding?.priority||'P3');
@@ -10834,6 +10855,7 @@ function externalMonitoringDocumentationCard(x){
     <h3 style="margin-bottom:5px">${esc(title)}</h3>
     <div class="muted">${esc(objectName)}${area?` · ${esc(area)}`:''}</div>
     ${sourceOrg?`<div class="muted" style="margin-top:4px">Auftraggeber: <strong>${esc(sourceOrg)}</strong></div>`:''}
+    ${reporterOrg?`<div class="muted" style="margin-top:4px">Gemeldet von: <strong>${esc(reporterOrg)}</strong></div>`:''}
     <div class="card" style="margin-top:12px;padding:12px 14px;border-color:rgba(76,154,255,.38);background:rgba(76,154,255,.07)">
       <div style="font-weight:700">Extern vergeben an ${esc(executor)}</div>
       <div class="muted" style="margin-top:4px"><strong>Status:</strong> ${esc(statusLabel)}</div>
