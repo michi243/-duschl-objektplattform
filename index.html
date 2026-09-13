@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.31</title>
+<title>Duschl Service – Objektplattform v2.20.32</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3175,7 +3175,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.31'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.32'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -4213,6 +4213,7 @@ function effectiveOrganizationRole(){
   return String(currentOrganizationMembership?.role||'').trim().toLowerCase();
 }
 function currentOrganizationId(){return isPlatformTenantMode()?platformTenantModeOrgId:(currentOrganizationMembership?.organization_id||'')}
+function currentOrganizationName(){return (currentOrganization?.name||organizationName(currentOrganizationId())||'').trim()}
 function isAdminRole(){return effectiveUserRole()==='platform_admin'}
 function isPlatformSuperuser(){return isAdminRole();}
 
