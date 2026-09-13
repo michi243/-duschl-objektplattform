@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.52</title>
+<title>Duschl Service – Objektplattform v2.20.53</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3209,7 +3209,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.52'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.53'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -4420,9 +4420,9 @@ function refreshFindingDecisionAccess(){
   if(card)card.style.display=allowed?'':'none';
   if(hint)hint.classList.toggle('hidden',allowed);
 }
-function canUseWorkQueueUI(){return (isAdminRole()&&isPlatformTenantMode())||hasOperationalAdminAccess()||isObjectManagerRole()||isExternalContractorRole()||isTestUserRole()}
-function canCreateDocumentationUI(){return hasOperationalAdminAccess()||isPropertyManagerRole()||isObjectManagerRole()||isExternalContractorRole()||isCustomerRole()||isTestUserRole()}
-function canUseSettingsUI(){return isAdminRole()||hasOperationalAdminAccess()}
+function canUseWorkQueueUI(){return isPlatformSuperuser()||hasOperationalAdminAccess()||isObjectManagerRole()||isExternalContractorRole()||isTestUserRole()}
+function canCreateDocumentationUI(){return isPlatformSuperuser()||hasOperationalAdminAccess()||isPropertyManagerRole()||isObjectManagerRole()||isExternalContractorRole()||isCustomerRole()||isTestUserRole()}
+function canUseSettingsUI(){return isPlatformSuperuser()||hasOperationalAdminAccess()}
 function canSeeInternalPersonnelUI(){return hasOperationalAdminAccess()||(!isPropertyManagerRole()&&!isCustomerRole()&&!isTestUserRole())}
 function customerSafeText(v){return isCustomerRole()?'':(v||'')}
 function currentUserId(){return currentUserProfile?.id||cloudSession?.user?.id||''}
@@ -4560,9 +4560,24 @@ async function reopenCompletedFinding(id){
 
 function canEditFindingUI(f){
   if(!f)return canCreateDocumentationUI();
+
+  // v2.20.53: Der Plattform-Admin ist die explizite Governance-Ausnahme.
+  // Er darf mandantenübergreifend jede Dokumentation öffnen und bearbeiten.
+  if(isPlatformSuperuser())return true;
+
   if(!findingVisibleInCurrentTenantUI(f))return false;
-  // Abgeschlossene Vorgänge sind revisionssicher schreibgeschützt.
+  // Abgeschlossene Vorgänge bleiben für alle operativen Rollen revisionssicher.
+  // Nacharbeit setzt den Vorgang serverseitig wieder auf "in_progress".
   if(f.status==='Erledigt')return false;
+
+  // v2.20.53: Eine execution_finding_id gehört fachlich zum gerouteten
+  // Arbeitsauftrag. Der berechtigte Executor darf diesen Leistungsnachweis
+  // bearbeiten, auch wenn er nicht der ursprüngliche Ersteller des Findings ist.
+  const executionOrder=(cloudExternalOrders||[]).find(o=>
+    String(o.execution_finding_id||'')===String(f.id||'')
+  );
+  if(executionOrder&&canOperateExternalOrder(executionOrder))return true;
+
   return hasOperationalAdminAccess()
     || isTestUserRole()
     || ((isObjectManagerRole()||isExternalContractorRole())&&isAccessibleObjectUI(f.objectId))
@@ -4570,6 +4585,7 @@ function canEditFindingUI(f){
 }
 function canEditInspectionUI(i){
   if(!i)return canCreateDocumentationUI();
+  if(isPlatformSuperuser())return true;
   return hasOperationalAdminAccess()
     || isTestUserRole()
     || (isObjectManagerRole()&&isAccessibleObjectUI(i.objectId))
@@ -6633,6 +6649,8 @@ function openExternalOrderById(id){
 
 function canOperateExternalOrder(order){
   if(!order)return false;
+  // v2.20.53: Plattform-Admin besitzt mandantenübergreifenden Vollzugriff.
+  if(isPlatformSuperuser())return true;
   if(hasOperationalAdminAccess())return true;
   if(!(isObjectManagerRole()||isExternalContractorRole()))return false;
   if(String(order.executor_organization_id||'')!==String(currentOrganizationId()||''))return false;
