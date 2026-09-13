@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.35</title>
+<title>Duschl Service – Objektplattform v2.20.36</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3175,7 +3175,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.35'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.36'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -10986,50 +10986,63 @@ function externalMonitoringDocumentationCard(x){
   </div>`;
 }
 
-// v2.20.35: Resident-Route-Dokumentationen auf genau einen fachlichen Vorgang reduzieren.
-// Historisch konnten bei Teilfehlern mehrere Leistungsdokumentationen für dieselbe
-// Bewohnermeldung entstehen. Wenn der Work Order eine execution_finding_id kennt,
-// ist diese der kanonische Leistungsnachweis. Andernfalls bleibt je Melder-Mandant
-// und Dokumentationstyp nur der jüngste Datensatz sichtbar.
+// v2.20.36: Resident-Route-Dokumentationen strikt auf einen kanonischen
+// Leistungsnachweis je Bewohnermeldung reduzieren.
+// Historische Teilfehler können mehrere Findings mit demselben
+// source_resident_report_id erzeugt haben. Sobald der Work Order eine
+// execution_finding_id besitzt, ist ausschließlich dieser Leistungsnachweis
+// sichtbar. Die Ersteller-Organisation ist dafür bewusst kein zusätzliches
+// Kriterium mehr: genau dieses Kriterium ließ Alt-Duplikate durch.
 function dedupeResidentRouteFindings(findings){
   const rows=Array.isArray(findings)?findings:[];
   const hidden=new Set();
   const byReport=new Map();
+
   rows.forEach(f=>{
-    const reportId=String(f.sourceResidentReportId||f.source_resident_report_id||'');
-    if(!reportId)return;
-    if(!byReport.has(reportId))byReport.set(reportId,[]);
-    byReport.get(reportId).push(f);
+    const directReportId=String(f.sourceResidentReportId||f.source_resident_report_id||'');
+    const inferredReportId=directReportId || String(residentReportIdForFinding(f)||'');
+    if(!inferredReportId)return;
+    if(!byReport.has(inferredReportId))byReport.set(inferredReportId,[]);
+    byReport.get(inferredReportId).push(f);
   });
+
   byReport.forEach((group,reportId)=>{
-    const order=(cloudExternalOrders||[]).find(o=>
-      String(o.source_resident_report_id||'')===reportId &&
+    const orders=(cloudExternalOrders||[]).filter(o=>
+      String(o.source_resident_report_id||'')===String(reportId) &&
       String((o.source_snapshot||{}).route_type||'')==='resident_report_auto'
     );
-    const canonicalExecutionId=String(order?.execution_finding_id||'');
-    const executorOrg=String(order?.executor_organization_id||'');
-    if(canonicalExecutionId){
+    const canonicalIds=new Set(orders.map(o=>String(o.execution_finding_id||'')).filter(Boolean));
+
+    // Normalfall: Es gibt genau einen kanonischen execution_finding_id.
+    // Alle anderen Leistungs-Findings derselben Bewohnermeldung sind historische
+    // Dubletten und werden nur aus der Anzeige entfernt, nicht aus der DB gelöscht.
+    if(canonicalIds.size){
       group.forEach(f=>{
         const fid=String(f.id||'');
-        const creatorOrg=String(f.creatorOrganizationIdSnapshot||f.creator_organization_id_snapshot||'');
-        const isExecutionLike=String(f.type||'')==='Leistung' && (!executorOrg || creatorOrg===executorOrg);
-        if(fid!==canonicalExecutionId && isExecutionLike)hidden.add(fid);
+        if(String(f.type||'')==='Leistung' && !canonicalIds.has(fid))hidden.add(fid);
       });
       return;
     }
+
+    // Legacy-Fallback ohne execution_finding_id: pro Bewohnermeldung und
+    // Dokumentationstyp nur den zuletzt aktualisierten Datensatz anzeigen.
     const buckets=new Map();
     group.forEach(f=>{
-      const creatorOrg=String(f.creatorOrganizationIdSnapshot||f.creator_organization_id_snapshot||'');
-      const key=[creatorOrg,String(f.type||''),String(f.objectId||'')].join('|');
+      const key=[String(f.type||''),String(f.objectId||'')].join('|');
       if(!buckets.has(key))buckets.set(key,[]);
       buckets.get(key).push(f);
     });
     buckets.forEach(list=>{
       if(list.length<2)return;
-      list.sort((a,b)=>Number(b.updatedAt||b.createdAt||0)-Number(a.updatedAt||a.createdAt||0));
+      list.sort((a,b)=>{
+        const ta=Date.parse(b.updatedAt||b.updated_at||b.createdAt||b.created_at||'')||0;
+        const tb=Date.parse(a.updatedAt||a.updated_at||a.createdAt||a.created_at||'')||0;
+        return ta-tb;
+      });
       list.slice(1).forEach(f=>hidden.add(String(f.id||'')));
     });
   });
+
   return rows.filter(f=>!hidden.has(String(f.id||'')));
 }
 
