@@ -3209,7 +3209,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.48'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.49'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -6164,8 +6164,13 @@ async function cloudLoadObjectCollaborations(render=true){
         || String(c.service_organization_id||'')===String(orgId);
   });
     await cloudLoadObjectCollaborationScopes();
-    if(hasOperationalAdminAccess()){
-      try{const a=await cloudRequest('rpc/get_external_order_assignees',{method:'POST',body:JSON.stringify({})});cloudSharedObjectAssignees=Array.isArray(a)?a:[];}catch(_e){cloudSharedObjectAssignees=[];}
+    if(hasOperationalAdminAccess()||isObjectManagerRole()||isExternalContractorRole()){
+      try{
+        const a=await cloudRequest('rpc/get_external_order_assignees',{method:'POST',body:JSON.stringify({})});
+        cloudSharedObjectAssignees=Array.isArray(a)?a:[];
+      }catch(_e){
+        cloudSharedObjectAssignees=[];
+      }
     }
     if(render)renderObjectCollaborations();
   }catch(e){console.warn('Betreuungsbeziehungen konnten nicht geladen werden',e);cloudObjectCollaborations=[];if(render)renderObjectCollaborations();}
@@ -8470,7 +8475,7 @@ async function cloudReloadObjects(){
     await cloudLoadSharedObjects();
     // v2.18.82: Betreuungsanfragen bei jedem Mandanten-Reload laden.
     // Pending-Anfragen sind absichtlich active=false und müssen trotzdem sichtbar bleiben.
-    if(hasOperationalAdminAccess()||isPropertyManagerRole()) await cloudLoadObjectCollaborations(false);
+    if(hasOperationalAdminAccess()||isPropertyManagerRole()||isObjectManagerRole()||isExternalContractorRole()) await cloudLoadObjectCollaborations(false);
     else cloudObjectCollaborations=[];
     const ownIds=new Set(ownObjects.map(o=>o.id));
     db.objects=ownObjects.concat(cloudSharedObjects.filter(o=>!ownIds.has(o.id)));
@@ -9530,7 +9535,23 @@ function currentUserOwnsOperationalObject(objectId){
     // zwingend erforderlich. Eigene Objekte kommen bei Objektbetreuern bereits
     // über tenant_get_accessible_objects ausschließlich aus ihren Zuweisungen.
     if(object.externalManaged===true){
-      return currentUserAssignedObjectIds.has(oid);
+      if(currentUserAssignedObjectIds.has(oid))return true;
+
+      // v2.20.49: Extern betreute Objekte werden über die Betreuungsbeziehung
+      // zugewiesen. Diese Zuordnung liegt nicht zwingend in object_user_assignments.
+      // Deshalb zusätzlich die aktive Shared-Object-Zuweisung der konkreten
+      // Collaboration prüfen. Nur der persönlich zugewiesene Mitarbeiter erhält
+      // daraus Dokumentation und Arbeitsvorrat.
+      const collabId=String(object.collaborationId||'');
+      const uid=String(currentUserId()||'');
+      if(collabId&&uid){
+        return (cloudSharedObjectAssignees||[]).some(a=>
+          String(a.collaboration_id||'')===collabId &&
+          String(a.user_id||a.id||'')===uid &&
+          a.active!==false
+        );
+      }
+      return false;
     }
     return true;
   }
