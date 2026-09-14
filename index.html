@@ -3226,7 +3226,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.58'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.59'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -7783,14 +7783,27 @@ function renderOrganizations(){
     const warn=Number(org.storage_warning_percent||80);
     const storageText=limit>0?`${formatBytes(used)} von ${formatBytes(limit)} · ${pct}%`:'Kein Speicherlimit definiert';
     const storageClass=limit>0&&pct>=warn?'bad':'';
-    return `<div class="card" style="display:block!important;visibility:visible!important;opacity:1!important"><div class="row space"><div><h3 style="margin:0">${esc(org.name)}</h3><div class="muted" style="margin-top:5px">${esc(org.organization_type||'Unternehmen')} · ${org.active===false?'Inaktiv':'Aktiv'}</div></div><span class="badge">${summary.count} Benutzer</span></div><div style="margin-top:12px"><div class="muted">Mandanten-Admin</div><div style="font-weight:800;margin-top:4px">${adminText}</div></div><div style="margin-top:12px"><div class="muted">Vertraglicher Speicher</div><div class="${storageClass}" style="font-weight:800;margin-top:4px">${storageText}</div></div><div class="row" style="margin-top:12px">
-      <button class="primary" onclick="enterPlatformTenantMode('${esc(org.id)}')">Mandant administrieren</button>
-      ${isAdminRole()?`<button class="platform-warning-btn" onclick="openPlatformTenantDataCleanup('${esc(org.id)}')">Daten bereinigen</button>`:''}
-      <button onclick="openOrganizationModal('${esc(org.id)}')">Mandant bearbeiten</button>
-      <button onclick="openTenantAdminAssignmentModal('${esc(org.id)}')">${summary.admins.length?'Mandanten-Admin ändern':'Mandanten-Admin festlegen'}</button>
-      ${isAdminRole()?`<button class="${org.active===false?'':'platform-warning-btn'}" onclick="platformToggleTenantActive('${esc(org.id)}',${org.active===false?'true':'false'})">${org.active===false?'Mandant aktivieren':'Mandant deaktivieren'}</button>
-      <button class="platform-danger-btn" onclick="openPlatformTenantDeleteModal('${esc(org.id)}')">Mandant löschen</button>`:''}
-    </div></div>`;
+    return `<div class="card" style="display:block!important;visibility:visible!important;opacity:1!important">
+      <div class="row space" style="gap:10px">
+        <h3 style="margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis">${esc(org.name)}</h3>
+        <button type="button" aria-label="Details zu ${esc(org.name)} ein- oder ausklappen" onclick="const d=this.closest('.card').querySelector('.tenant-admin-details');const open=d.hidden;d.hidden=!open;this.textContent=open?'⌃':'⌄';this.setAttribute('aria-expanded',open?'true':'false')" aria-expanded="false" style="width:auto;min-width:44px;padding:8px 12px;font-size:20px;line-height:1">⌄</button>
+      </div>
+      <button class="primary" style="width:100%;margin-top:12px" onclick="enterPlatformTenantMode('${esc(org.id)}')">Mandant administrieren</button>
+      <div class="tenant-admin-details" hidden style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
+        <div class="row space"><span class="muted">Mandantentyp</span><strong>${esc(org.organization_type||'Unternehmen')}</strong></div>
+        <div class="row space" style="margin-top:8px"><span class="muted">Status</span><strong>${org.active===false?'Inaktiv':'Aktiv'}</strong></div>
+        <div class="row space" style="margin-top:8px"><span class="muted">Benutzer</span><strong>${summary.count}</strong></div>
+        <div class="row space" style="margin-top:8px"><span class="muted">Mandanten-Admin</span><strong style="text-align:right">${adminText}</strong></div>
+        <div class="row space" style="margin-top:8px"><span class="muted">Vertraglicher Speicher</span><strong class="${storageClass}" style="text-align:right">${storageText}</strong></div>
+        <div class="row" style="margin-top:14px">
+          <button onclick="openOrganizationModal('${esc(org.id)}')">Mandant bearbeiten</button>
+          <button onclick="openTenantAdminAssignmentModal('${esc(org.id)}')">${summary.admins.length?'Mandanten-Admin ändern':'Mandanten-Admin festlegen'}</button>
+          ${isAdminRole()?`<button class="platform-warning-btn" onclick="openPlatformTenantDataCleanup('${esc(org.id)}')">Daten bereinigen</button>
+          <button class="${org.active===false?'':'platform-warning-btn'}" onclick="platformToggleTenantActive('${esc(org.id)}',${org.active===false?'true':'false'})">${org.active===false?'Mandant aktivieren':'Mandant deaktivieren'}</button>
+          <button class="platform-danger-btn" onclick="openPlatformTenantDeleteModal('${esc(org.id)}')">Mandant löschen</button>`:''}
+        </div>
+      </div>
+    </div>`;
   }).join('');
 }
 
