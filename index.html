@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.65</title>
+<title>Duschl Service – Objektplattform v2.20.66</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1469,7 +1469,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.65</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.66</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1512,7 +1512,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.65</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.66</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1727,8 +1727,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.65</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.65</span> geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.66</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.66</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3407,7 +3407,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.65'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.66'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -3740,14 +3740,16 @@ async function openUserMessageComposer(){
   const adminAudienceTabs=hasOperationalAdminAccess();
   const internalCount=recipients.filter(p=>String(p.role||'').toLowerCase()!=='customer').length;
   const externalCount=recipients.filter(p=>String(p.role||'').toLowerCase()==='customer').length;
+  const totalRecipientCount=recipients.length;
 
   modal(`<h2>Persönliche Mitteilung</h2>
-    <p class="muted">Eine Mitteilung kann an einen oder mehrere Benutzer gleichzeitig gesendet werden.</p>
+    <p class="muted">Eine Mitteilung kann an einen, mehrere oder alle zulässigen Benutzer gleichzeitig gesendet werden.</p>
 
     <label>Empfänger</label>
     ${adminAudienceTabs?`
       <div class="user-message-audience-tabs" role="group" aria-label="Empfängergruppe">
-        <button id="userMessageAudienceInternal" class="user-message-audience-tab active" type="button" onclick="setUserMessageAudience('internal')">Intern <span class="user-message-audience-count">(${internalCount})</span></button>
+        <button id="userMessageAudienceAll" class="user-message-audience-tab active" type="button" onclick="setUserMessageAudience('all')">Alle <span class="user-message-audience-count">(${totalRecipientCount})</span></button>
+        <button id="userMessageAudienceInternal" class="user-message-audience-tab" type="button" onclick="setUserMessageAudience('internal')">Intern <span class="user-message-audience-count">(${internalCount})</span></button>
         <button id="userMessageAudienceExternal" class="user-message-audience-tab" type="button" onclick="setUserMessageAudience('external')">Extern <span class="user-message-audience-count">(${externalCount})</span></button>
       </div>`:''}
     <div class="user-message-recipient-tools">
@@ -3756,11 +3758,11 @@ async function openUserMessageComposer(){
       <span id="userMessageRecipientCount" class="muted">0 ausgewählt</span>
     </div>
 
-    <div id="userMessageRecipients" class="user-message-recipient-box" data-audience="${adminAudienceTabs?'internal':'all'}">
+    <div id="userMessageRecipients" class="user-message-recipient-box" data-audience="all">
       ${recipients.map(p=>{
         const scope=String(p.role||'').toLowerCase()==='customer'?'external':'internal';
         return `
-        <label class="user-message-recipient-row ${adminAudienceTabs&&scope==='external'?'message-scope-hidden':''}" data-message-scope="${scope}">
+        <label class="user-message-recipient-row" data-message-scope="${scope}">
           <input type="checkbox" class="user-message-recipient-check" value="${esc(p.id)}" onchange="updateUserMessageRecipientCount()">
           <span class="user-message-recipient-main">
             <span class="user-message-recipient-name">${esc(p.full_name||'Benutzer')}</span>
@@ -3799,19 +3801,18 @@ function updateUserMessageRecipientCount(){
 function setUserMessageAudience(audience){
   const box=document.getElementById('userMessageRecipients');
   if(!box)return;
-  const next=audience==='external'?'external':'internal';
+  const next=(audience==='internal'||audience==='external')?audience:'all';
   box.dataset.audience=next;
 
-  // Beim Wechsel keine unsichtbaren Alt-Auswahlen behalten.
+  // v2.20.66: Mandanten-Admins können bewusst alle internen und externen
+  // Empfänger gemeinsam auswählen. Bereits getroffene Auswahlen bleiben beim
+  // Wechsel zwischen den Filtern erhalten.
   document.querySelectorAll('.user-message-recipient-row').forEach(row=>{
-    const visible=row.dataset.messageScope===next;
+    const visible=next==='all'||row.dataset.messageScope===next;
     row.classList.toggle('message-scope-hidden',!visible);
-    if(!visible){
-      const check=row.querySelector('.user-message-recipient-check');
-      if(check)check.checked=false;
-    }
   });
 
+  document.getElementById('userMessageAudienceAll')?.classList.toggle('active',next==='all');
   document.getElementById('userMessageAudienceInternal')?.classList.toggle('active',next==='internal');
   document.getElementById('userMessageAudienceExternal')?.classList.toggle('active',next==='external');
   updateUserMessageRecipientCount();
