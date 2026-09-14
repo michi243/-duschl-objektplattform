@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.60</title>
+<title>Duschl Service – Objektplattform v2.20.62</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3407,7 +3407,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.61'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.62'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -6916,6 +6916,18 @@ function externalOrderNeedsReview(order){
 function pendingExternalReviewOrders(){
   return (cloudExternalOrders||[]).filter(externalOrderNeedsReview);
 }
+
+// v2.20.62: Ein neu eingegangener externer Auftrag ist noch keine operative Arbeit.
+// Solange der Dienstleister ihn annehmen/ablehnen bzw. den Leistungsumfang bestätigen muss,
+// gehört er fachlich in „Entscheidungen“. Erst nach Annahme wechselt er in den Arbeitsvorrat.
+function pendingIncomingExternalOrderDecisions(){
+  const orgId=String(currentOrganizationId()||'');
+  if(!orgId || !hasOperationalAdminAccess())return [];
+  return (cloudExternalOrders||[]).filter(x=>
+    String(x.executor_organization_id||'')===orgId &&
+    String(x.status||'').toLowerCase()==='requested'
+  );
+}
 function pendingExternalReviewFindingIds(){
   return new Set(pendingExternalReviewOrders().map(x=>String(x.source_finding_id||'')).filter(Boolean));
 }
@@ -9541,12 +9553,16 @@ function renderDecisions(){
   const selectedPriority=pr.value||'';
 
   const reviews=pendingExternalReviewOrders();
+  const incomingOrderDecisions=pendingIncomingExternalOrderDecisions();
 
   const objectMap=new Map((db.objects||[]).map(o=>[o.id,o.name||o.id]));
   (db.findings||[]).filter(f=>findingVisibleInCurrentTenantUI(f)).forEach(f=>{
     if(f.objectId&&!objectMap.has(f.objectId))objectMap.set(f.objectId,`Nicht zugeordnet (${f.objectId})`);
   });
   reviews.forEach(x=>{
+    if(x.source_object_id&&!objectMap.has(x.source_object_id))objectMap.set(x.source_object_id,x.source_object_name||x.source_object_id);
+  });
+  incomingOrderDecisions.forEach(x=>{
     if(x.source_object_id&&!objectMap.has(x.source_object_id))objectMap.set(x.source_object_id,x.source_object_name||x.source_object_id);
   });
   const objectOptions=[...objectMap.entries()].sort((a,b)=>String(a[1]).localeCompare(String(b[1]),'de'));
@@ -9560,15 +9576,16 @@ function renderDecisions(){
   const pending=findings.filter(f=>String(f.decisionStatus||'pending').trim()==='pending');
 
   const reviewScope=obj.value?reviews.filter(x=>String(x.source_object_id||'')===String(obj.value)):reviews;
+  const incomingDecisionScope=obj.value?incomingOrderDecisions.filter(x=>String(x.source_object_id||'')===String(obj.value)):incomingOrderDecisions;
   const findingScope=obj.value?pending.filter(f=>f.objectId===obj.value):pending;
   const openEl=document.getElementById('decisionOpenCount');
   const immediateEl=document.getElementById('decisionImmediateCount');
   const urgentEl=document.getElementById('decisionUrgentCount');
-  if(openEl)openEl.textContent=findingScope.length+reviewScope.length;
-  if(immediateEl)immediateEl.textContent=findingScope.filter(f=>f.priority==='P1').length+reviewScope.filter(x=>x.priority==='P1').length;
-  if(urgentEl)urgentEl.textContent=findingScope.filter(f=>f.priority==='P2').length+reviewScope.filter(x=>x.priority==='P2').length;
+  if(openEl)openEl.textContent=findingScope.length+reviewScope.length+incomingDecisionScope.length;
+  if(immediateEl)immediateEl.textContent=findingScope.filter(f=>f.priority==='P1').length+reviewScope.filter(x=>x.priority==='P1').length+incomingDecisionScope.filter(x=>x.priority==='P1').length;
+  if(urgentEl)urgentEl.textContent=findingScope.filter(f=>f.priority==='P2').length+reviewScope.filter(x=>x.priority==='P2').length+incomingDecisionScope.filter(x=>x.priority==='P2').length;
   const navCount=document.getElementById('decisionNavCount');
-  if(navCount)navCount.textContent=pending.length+reviews.length;
+  if(navCount)navCount.textContent=pending.length+reviews.length+incomingOrderDecisions.length;
 
   let items=findings.slice();
   if(obj.value)items=items.filter(f=>f.objectId===obj.value);
@@ -9580,12 +9597,40 @@ function renderDecisions(){
   if(selectedStatus && selectedStatus!=='pending')reviewItems=[];
   if(selectedPriority)reviewItems=reviewItems.filter(x=>String(x.priority||'P3')===selectedPriority);
 
+  let incomingDecisionItems=incomingOrderDecisions.slice();
+  if(obj.value)incomingDecisionItems=incomingDecisionItems.filter(x=>String(x.source_object_id||'')===String(obj.value));
+  if(selectedStatus && selectedStatus!=='pending')incomingDecisionItems=[];
+  if(selectedPriority)incomingDecisionItems=incomingDecisionItems.filter(x=>String(x.priority||'P3')===selectedPriority);
+
   const rank={P1:1,P2:2,P3:3,P4:4};
   items.sort((a,b)=>(rank[a.priority]||9)-(rank[b.priority]||9)||(b.createdAt||b.updatedAt||0)-(a.createdAt||a.updatedAt||0));
   reviewItems.sort((a,b)=>(rank[a.priority]||9)-(rank[b.priority]||9)||new Date(b.completed_at||0)-new Date(a.completed_at||0));
+  incomingDecisionItems.sort((a,b)=>(rank[a.priority]||9)-(rank[b.priority]||9)||new Date(b.created_at||0)-new Date(a.created_at||0));
 
   const count=document.getElementById('decisionResultCount');
-  if(count)count.textContent=items.length+reviewItems.length;
+  if(count)count.textContent=items.length+reviewItems.length+incomingDecisionItems.length;
+
+  const incomingDecisionHtml=incomingDecisionItems.map(x=>{
+    const isAutoResidentRoute=externalOrderIsAutoResidentRoute(x);
+    const source=partnerName(x.source_organization_id);
+    const snap=x.source_snapshot||{};
+    const decisionActions=isAutoResidentRoute
+      ? `<button class="primary" onclick="triageResidentReportOrder('${esc(x.id)}','within_scope')">Im Leistungsumfang</button><button onclick="triageResidentReportOrder('${esc(x.id)}','outside_scope')">Nicht im Leistungsumfang</button>`
+      : `<button class="primary" onclick="updateExternalOrderStatus('${esc(x.id)}','accepted')">Auftrag annehmen</button><button onclick="updateExternalOrderStatus('${esc(x.id)}','rejected')">Ablehnen</button>`;
+    return `<div class="card" style="margin-bottom:12px;border-color:rgba(217,149,53,.6)">
+      <div class="row space">
+        <div><span class="badge">Auftragsentscheidung</span> ${badgeP(x.priority||'P3')}</div>
+        <small class="muted">${x.created_at?fmt(x.created_at):''}</small>
+      </div>
+      <h3 style="margin:10px 0 6px">${esc(x.title||'Externer Auftrag')}</h3>
+      <div class="muted">${esc(x.source_object_name||'Objekt')} · Auftrag von ${esc(source)}</div>
+      ${snap.area?`<div class="muted" style="margin-top:5px">${esc(snap.area)}${snap.area_detail?' · '+esc(snap.area_detail):''}</div>`:''}
+      ${x.description?`<div style="margin-top:8px"><strong>Auftrag:</strong> ${esc(x.description)}</div>`:''}
+      <div style="margin-top:8px"><strong>Entscheidung erforderlich:</strong> ${isAutoResidentRoute?'Leistungsumfang bestätigen':'Auftrag annehmen oder ablehnen'}</div>
+      ${isAutoResidentRoute?externalOrderResidentMediaHtml(x):externalOrderRouteMediaHtml(x.id)}
+      <div class="row" style="margin-top:12px">${decisionActions}<button onclick="openExternalOrderById('${esc(x.id)}')">Details</button></div>
+    </div>`;
+  }).join('');
 
   const reviewHtml=reviewItems.map(x=>{
     const snap=x.source_snapshot||{};
@@ -9630,7 +9675,7 @@ function renderDecisions(){
     </div>`;
   }).join('');
 
-  list.innerHTML=(reviewHtml+findingHtml)||`<div class="card"><strong>Keine Vorgänge für diese Filterkombination.</strong><div class="muted" style="margin-top:6px">Offene Entscheidungen insgesamt: ${pending.length+reviews.length}. Objekt: ${obj.options[obj.selectedIndex]?.text||'Alle Objekte'}.</div></div>`;
+  list.innerHTML=(incomingDecisionHtml+reviewHtml+findingHtml)||`<div class="card"><strong>Keine Vorgänge für diese Filterkombination.</strong><div class="muted" style="margin-top:6px">Offene Entscheidungen insgesamt: ${pending.length+reviews.length+incomingOrderDecisions.length}. Objekt: ${obj.options[obj.selectedIndex]?.text||'Alle Objekte'}.</div></div>`;
 }
 function resetDecisionFilters(){
   const o=document.getElementById('decisionObjectFilter');
@@ -10023,6 +10068,9 @@ function incomingExternalWorkOrders(){
   const orgId=String(currentOrganizationId()||'');
   return (cloudExternalOrders||[]).filter(x=>{
     if(String(x.executor_organization_id||'')!==orgId || !externalOrderIsOpen(x.status))return false;
+    // v2.20.62: Status „requested“ ist eine Annahme-/Zuständigkeitsentscheidung
+    // und wird deshalb ausschließlich unter „Entscheidungen“ geführt.
+    if(String(x.status||'').toLowerCase()==='requested')return false;
     if(hasOperationalAdminAccess())return true;
 
     const objectId=String(x.source_object_id||x.object_id||'');
@@ -11143,7 +11191,7 @@ function renderDashboard(){
     const ds=String(f.decisionStatus||f.decision_status||'').toLowerCase();
     return !['approved','rejected','not_required','completed','closed','done'].includes(ds);
   }).length;
-  const openDecisionCount=openFindingDecisionCount+pendingExternalReviewOrders().length;
+  const openDecisionCount=openFindingDecisionCount+pendingExternalReviewOrders().length+pendingIncomingExternalOrderDecisions().length;
   const decisionKpi=document.getElementById('kpiDecisions');
   if(decisionKpi)decisionKpi.textContent=openDecisionCount;
   const decisionNavCount=document.getElementById('decisionNavCount');
