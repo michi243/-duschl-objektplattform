@@ -3226,7 +3226,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.57'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.58'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -5751,11 +5751,14 @@ async function cloudReloadFindings(){
     return x;
   }).filter(f=>findingVisibleInCurrentTenantUI(f));
 
-  // Cloud is authoritative for cloud findings; keep only purely local legacy/test rows
-  // that have no cloud UUID counterpart. New saves are replaced with the returned cloud UUID.
-  const cloudIds=new Set(cloudRows.map(f=>f.id));
-  const localOnly=(db.findings||[]).filter(f=>!f.cloud && !cloudIds.has(f.id));
-  db.findings=[...cloudRows,...localOnly];
+  // v2.20.58: Bei aktiver Supabase-Sitzung ist die serverseitig autorisierte
+  // Finding-Menge die einzige fachliche Wahrheit. Lokale Alt-/Legacy-Datensätze
+  // dürfen nicht zusätzlich in eine Mandantensicht gemischt werden, weil sie die
+  // RLS umgehen und dadurch fremde Dokumentationen/Entscheidungen sichtbar machen können.
+  // Neue Dokumentationen werden ohnehin zuerst in Supabase gespeichert und danach
+  // als Cloud-Datensatz in db.findings übernommen.
+  db.findings=[...cloudRows];
+  try{localStorage.setItem(KEY,JSON.stringify(db))}catch(_e){}
   await cloudLoadFindingCreatorNames();
   await cloudLoadTasks();
   renderAll();
