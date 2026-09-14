@@ -3407,7 +3407,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.63'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.64'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -6868,6 +6868,12 @@ async function syncRoutedWorkOrdersForFinding(findingId,completed){
 }
 
 function openExternalOrderById(id){
+  const target=(cloudExternalOrders||[]).find(x=>String(x.id||'')===String(id||''));
+  const filter=document.getElementById('externalWorkFilter');
+  if(target && !externalOrderIsOpen(target.status) && filter){
+    filter.value='all';
+    renderExternalOrders();
+  }
   showSection('externalOrders');
   setTimeout(()=>{
     const sel=`[data-external-order-id="${String(id).replace(/"/g,'\\"')}"]`;
@@ -6901,6 +6907,8 @@ function externalOrderLifecycleLabel(order){
   if(!order)return '';
   const status=String(order.status||'');
   const review=String(order.review_status||'');
+  const snapshot=order.source_snapshot||{};
+  if(status==='rejected' && snapshot.returned_by_executor_at)return 'An Auftraggeber zurückgegeben';
   if(status==='completed' && review==='verified')return 'Abgeschlossen';
   if(status==='completed')return 'Erledigt gemeldet';
   if(review==='rework_required' && status==='in_progress')return 'Nacharbeit erforderlich';
@@ -6927,6 +6935,19 @@ function pendingIncomingExternalOrderDecisions(){
     String(x.executor_organization_id||'')===orgId &&
     String(x.status||'').toLowerCase()==='requested'
   );
+}
+
+// v2.20.64: Vom Dienstleister nach Annahme zurückgegebene Aufträge sind
+// eine neue Entscheidung des ursprünglichen Auftraggebers.
+function returnedExternalOrderDecisions(){
+  const orgId=String(currentOrganizationId()||'');
+  if(!orgId || !(hasOperationalAdminAccess()||isPropertyManagerRole()))return [];
+  return (cloudExternalOrders||[]).filter(x=>{
+    const snap=x.source_snapshot||{};
+    return String(x.source_organization_id||'')===orgId &&
+      String(x.status||'').toLowerCase()==='rejected' &&
+      !!snap.returned_by_executor_at;
+  });
 }
 function pendingExternalReviewFindingIds(){
   return new Set(pendingExternalReviewOrders().map(x=>String(x.source_finding_id||'')).filter(Boolean));
@@ -7592,6 +7613,68 @@ async function syncExternalRouteDocumentation(orderId,findingId,completed){
       p_completed:completed===true
     })
   });
+}
+
+function openExternalOrderReturnModal(id){
+  const order=(cloudExternalOrders||[]).find(x=>String(x.id||'')===String(id||''));
+  if(!order)return alert('Auftrag nicht gefunden.');
+  if(!hasOperationalAdminAccess()||!canOperateExternalOrder(order)||!['accepted','in_progress'].includes(String(order.status||''))){
+    return alert('Dieser Auftrag kann aktuell nicht zurückgegeben werden.');
+  }
+  modal(`<h2>Auftrag an Auftraggeber zurückgeben</h2>
+    <p class="muted">Der Auftrag wird aus deinem Arbeitsvorrat entfernt und beim Auftraggeber wieder als Entscheidung angezeigt. Die bisherige Historie bleibt erhalten.</p>
+    <label>Grund *
+      <select id="externalOrderReturnReason">
+        <option value="outside_scope">Nicht im Leistungsumfang</option>
+        <option value="wrong_provider">Falscher Dienstleister</option>
+        <option value="approval_required">Zusatzfreigabe erforderlich</option>
+        <option value="other">Sonstiger Grund</option>
+      </select>
+    </label>
+    <label>Kommentar
+      <textarea id="externalOrderReturnNote" maxlength="1000" placeholder="Kurze Begründung für den Auftraggeber"></textarea>
+    </label>
+    <div class="row" style="margin-top:14px">
+      <button class="primary" type="button" onclick="submitExternalOrderReturn('${esc(id)}')">Zurückgeben</button>
+      <button type="button" onclick="closeModal()">Abbrechen</button>
+    </div>`);
+}
+
+async function submitExternalOrderReturn(id){
+  const order=(cloudExternalOrders||[]).find(x=>String(x.id||'')===String(id||''));
+  if(!order)return alert('Auftrag nicht gefunden.');
+  const reason=document.getElementById('externalOrderReturnReason')?.value||'';
+  const note=(document.getElementById('externalOrderReturnNote')?.value||'').trim();
+  if(!reason)return alert('Bitte einen Grund auswählen.');
+  const labels={outside_scope:'Nicht im Leistungsumfang',wrong_provider:'Falscher Dienstleister',approval_required:'Zusatzfreigabe erforderlich',other:'Sonstiger Grund'};
+  const oldSnapshot=(order.source_snapshot&&typeof order.source_snapshot==='object')?order.source_snapshot:{};
+  const now=new Date().toISOString();
+  try{
+    await cloudRequest(`shared_work_orders?id=eq.${encodeURIComponent(id)}`,{
+      method:'PATCH',
+      headers:{'Prefer':'return=minimal'},
+      body:JSON.stringify({
+        status:'rejected',
+        updated_at:now,
+        source_snapshot:{
+          ...oldSnapshot,
+          returned_by_executor_at:now,
+          returned_by_executor_organization_id:currentOrganizationId()||null,
+          returned_by_executor_user_id:currentUserId()||null,
+          return_reason:reason,
+          return_reason_label:labels[reason]||reason,
+          return_note:note||null
+        }
+      })
+    });
+    closeModal();
+    await cloudLoadExternalOrders();
+    renderDecisions();
+    renderWorkQueue();
+    renderDashboard();
+  }catch(e){
+    alert('Auftrag konnte nicht zurückgegeben werden: '+(e.message||e));
+  }
 }
 
 async function updateExternalOrderStatus(id,status){
@@ -9563,6 +9646,7 @@ function renderDecisions(){
 
   const reviews=pendingExternalReviewOrders();
   const incomingOrderDecisions=pendingIncomingExternalOrderDecisions();
+  const returnedOrderDecisions=returnedExternalOrderDecisions();
 
   const objectMap=new Map((db.objects||[]).map(o=>[o.id,o.name||o.id]));
   (db.findings||[]).filter(f=>findingVisibleInCurrentTenantUI(f)).forEach(f=>{
@@ -9572,6 +9656,9 @@ function renderDecisions(){
     if(x.source_object_id&&!objectMap.has(x.source_object_id))objectMap.set(x.source_object_id,x.source_object_name||x.source_object_id);
   });
   incomingOrderDecisions.forEach(x=>{
+    if(x.source_object_id&&!objectMap.has(x.source_object_id))objectMap.set(x.source_object_id,x.source_object_name||x.source_object_id);
+  });
+  returnedOrderDecisions.forEach(x=>{
     if(x.source_object_id&&!objectMap.has(x.source_object_id))objectMap.set(x.source_object_id,x.source_object_name||x.source_object_id);
   });
   const objectOptions=[...objectMap.entries()].sort((a,b)=>String(a[1]).localeCompare(String(b[1]),'de'));
@@ -9586,15 +9673,16 @@ function renderDecisions(){
 
   const reviewScope=obj.value?reviews.filter(x=>String(x.source_object_id||'')===String(obj.value)):reviews;
   const incomingDecisionScope=obj.value?incomingOrderDecisions.filter(x=>String(x.source_object_id||'')===String(obj.value)):incomingOrderDecisions;
+  const returnedDecisionScope=obj.value?returnedOrderDecisions.filter(x=>String(x.source_object_id||'')===String(obj.value)):returnedOrderDecisions;
   const findingScope=obj.value?pending.filter(f=>f.objectId===obj.value):pending;
   const openEl=document.getElementById('decisionOpenCount');
   const immediateEl=document.getElementById('decisionImmediateCount');
   const urgentEl=document.getElementById('decisionUrgentCount');
-  if(openEl)openEl.textContent=findingScope.length+reviewScope.length+incomingDecisionScope.length;
-  if(immediateEl)immediateEl.textContent=findingScope.filter(f=>f.priority==='P1').length+reviewScope.filter(x=>x.priority==='P1').length+incomingDecisionScope.filter(x=>x.priority==='P1').length;
-  if(urgentEl)urgentEl.textContent=findingScope.filter(f=>f.priority==='P2').length+reviewScope.filter(x=>x.priority==='P2').length+incomingDecisionScope.filter(x=>x.priority==='P2').length;
+  if(openEl)openEl.textContent=findingScope.length+reviewScope.length+incomingDecisionScope.length+returnedDecisionScope.length;
+  if(immediateEl)immediateEl.textContent=findingScope.filter(f=>f.priority==='P1').length+reviewScope.filter(x=>x.priority==='P1').length+incomingDecisionScope.filter(x=>x.priority==='P1').length+returnedDecisionScope.filter(x=>x.priority==='P1').length;
+  if(urgentEl)urgentEl.textContent=findingScope.filter(f=>f.priority==='P2').length+reviewScope.filter(x=>x.priority==='P2').length+incomingDecisionScope.filter(x=>x.priority==='P2').length+returnedDecisionScope.filter(x=>x.priority==='P2').length;
   const navCount=document.getElementById('decisionNavCount');
-  if(navCount)navCount.textContent=pending.length+reviews.length+incomingOrderDecisions.length;
+  if(navCount)navCount.textContent=pending.length+reviews.length+incomingOrderDecisions.length+returnedOrderDecisions.length;
 
   let items=findings.slice();
   if(obj.value)items=items.filter(f=>f.objectId===obj.value);
@@ -9611,13 +9699,19 @@ function renderDecisions(){
   if(selectedStatus && selectedStatus!=='pending')incomingDecisionItems=[];
   if(selectedPriority)incomingDecisionItems=incomingDecisionItems.filter(x=>String(x.priority||'P3')===selectedPriority);
 
+  let returnedDecisionItems=returnedOrderDecisions.slice();
+  if(obj.value)returnedDecisionItems=returnedDecisionItems.filter(x=>String(x.source_object_id||'')===String(obj.value));
+  if(selectedStatus && selectedStatus!=='pending')returnedDecisionItems=[];
+  if(selectedPriority)returnedDecisionItems=returnedDecisionItems.filter(x=>String(x.priority||'P3')===selectedPriority);
+
   const rank={P1:1,P2:2,P3:3,P4:4};
   items.sort((a,b)=>(rank[a.priority]||9)-(rank[b.priority]||9)||(b.createdAt||b.updatedAt||0)-(a.createdAt||a.updatedAt||0));
   reviewItems.sort((a,b)=>(rank[a.priority]||9)-(rank[b.priority]||9)||new Date(b.completed_at||0)-new Date(a.completed_at||0));
   incomingDecisionItems.sort((a,b)=>(rank[a.priority]||9)-(rank[b.priority]||9)||new Date(b.created_at||0)-new Date(a.created_at||0));
+  returnedDecisionItems.sort((a,b)=>new Date((b.source_snapshot||{}).returned_by_executor_at||0)-new Date((a.source_snapshot||{}).returned_by_executor_at||0));
 
   const count=document.getElementById('decisionResultCount');
-  if(count)count.textContent=items.length+reviewItems.length+incomingDecisionItems.length;
+  if(count)count.textContent=items.length+reviewItems.length+incomingDecisionItems.length+returnedDecisionItems.length;
 
   const incomingDecisionHtml=incomingDecisionItems.map(x=>{
     const isAutoResidentRoute=externalOrderIsAutoResidentRoute(x);
@@ -9638,6 +9732,25 @@ function renderDecisions(){
       <div style="margin-top:8px"><strong>Entscheidung erforderlich:</strong> ${isAutoResidentRoute?'Leistungsumfang bestätigen':'Auftrag annehmen oder ablehnen'}</div>
       ${isAutoResidentRoute?externalOrderResidentMediaHtml(x):externalOrderRouteMediaHtml(x.id)}
       <div class="row" style="margin-top:12px">${decisionActions}<button onclick="openExternalOrderById('${esc(x.id)}')">Details</button></div>
+    </div>`;
+  }).join('');
+
+  const returnedDecisionHtml=returnedDecisionItems.map(x=>{
+    const snap=x.source_snapshot||{};
+    const executor=partnerName(x.executor_organization_id);
+    const reasonLabels={outside_scope:'Nicht im Leistungsumfang',wrong_provider:'Falscher Dienstleister',approval_required:'Zusatzfreigabe erforderlich',other:'Sonstiger Grund'};
+    const reason=reasonLabels[snap.return_reason]||snap.return_reason_label||'Zurückgegeben';
+    return `<div class="card" style="margin-bottom:12px;border-color:rgba(255,107,107,.65)">
+      <div class="row space">
+        <div><span class="badge">Vom Dienstleister zurückgegeben</span> ${badgeP(x.priority||'P3')}</div>
+        <small class="muted">${snap.returned_by_executor_at?fmt(snap.returned_by_executor_at):''}</small>
+      </div>
+      <h3 style="margin:10px 0 6px">${esc(x.title||'Externer Auftrag')}</h3>
+      <div class="muted">${esc(x.source_object_name||'Objekt')} · zurückgegeben von ${esc(executor)}</div>
+      <div style="margin-top:8px"><strong>Grund:</strong> ${esc(reason)}</div>
+      ${snap.return_note?`<div style="margin-top:6px"><strong>Kommentar:</strong> ${esc(snap.return_note)}</div>`:''}
+      <div style="margin-top:8px"><strong>Entscheidung erforderlich:</strong> Vorgang prüfen und neu zuordnen oder intern übernehmen.</div>
+      <div class="row" style="margin-top:12px"><button class="primary" onclick="openExternalOrderById('${esc(x.id)}')">Vorgang prüfen</button></div>
     </div>`;
   }).join('');
 
@@ -9684,7 +9797,7 @@ function renderDecisions(){
     </div>`;
   }).join('');
 
-  list.innerHTML=(incomingDecisionHtml+reviewHtml+findingHtml)||`<div class="card"><strong>Keine Vorgänge für diese Filterkombination.</strong><div class="muted" style="margin-top:6px">Offene Entscheidungen insgesamt: ${pending.length+reviews.length+incomingOrderDecisions.length}. Objekt: ${obj.options[obj.selectedIndex]?.text||'Alle Objekte'}.</div></div>`;
+  list.innerHTML=(incomingDecisionHtml+returnedDecisionHtml+reviewHtml+findingHtml)||`<div class="card"><strong>Keine Vorgänge für diese Filterkombination.</strong><div class="muted" style="margin-top:6px">Offene Entscheidungen insgesamt: ${pending.length+reviews.length+incomingOrderDecisions.length+returnedOrderDecisions.length}. Objekt: ${obj.options[obj.selectedIndex]?.text||'Alle Objekte'}.</div></div>`;
 }
 function resetDecisionFilters(){
   const o=document.getElementById('decisionObjectFilter');
@@ -10258,9 +10371,7 @@ function externalWorkQueueItemHtml(x){
     ? `<button type="button" class="primary" onclick="triageResidentReportOrder('${esc(x.id)}','within_scope')">Im Leistungsumfang</button><button type="button" onclick="triageResidentReportOrder('${esc(x.id)}','outside_scope')">Nicht im Leistungsumfang</button>`
     : '';
   const normalActions=canOperateExternalOrder(x)&&['accepted','in_progress'].includes(String(x.status||''))
-    ? (isAutoResidentRoute
-      ? `<button type="button" class="primary" onclick="openExternalOrderDocumentation('${esc(x.id)}')">Bearbeiten / Dokumentieren</button>`
-      : `<button type="button" class="primary" onclick="openExternalOrderDocumentation('${esc(x.id)}')">Bearbeiten / Dokumentieren</button>`)
+    ? `<button type="button" class="primary" onclick="openExternalOrderDocumentation('${esc(x.id)}')">Bearbeiten / Dokumentieren</button>${hasOperationalAdminAccess()?`<button type="button" onclick="openExternalOrderReturnModal('${esc(x.id)}')">An Auftraggeber zurückgeben</button>`:''}`
     : `<button type="button" class="primary" onclick="openExternalOrderById('${esc(x.id)}')">Auftrag ansehen</button>`;
   return `<div class="gf-workitem" data-external-order-id="${esc(x.id)}">
     <div class="gf-workhead">
@@ -11200,7 +11311,7 @@ function renderDashboard(){
     const ds=String(f.decisionStatus||f.decision_status||'').toLowerCase();
     return !['approved','rejected','not_required','completed','closed','done'].includes(ds);
   }).length;
-  const openDecisionCount=openFindingDecisionCount+pendingExternalReviewOrders().length+pendingIncomingExternalOrderDecisions().length;
+  const openDecisionCount=openFindingDecisionCount+pendingExternalReviewOrders().length+pendingIncomingExternalOrderDecisions().length+returnedExternalOrderDecisions().length;
   const decisionKpi=document.getElementById('kpiDecisions');
   if(decisionKpi)decisionKpi.textContent=openDecisionCount;
   const decisionNavCount=document.getElementById('decisionNavCount');
