@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.62</title>
+<title>Duschl Service – Objektplattform v2.20.65</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1469,7 +1469,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.01</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.65</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1512,7 +1512,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.01</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.65</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1727,8 +1727,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.01</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.01</span> geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.65</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.65</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3407,7 +3407,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.64'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.65'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -4541,6 +4541,7 @@ function isPropertyManagerRole(){return effectiveOrganizationRole()==='property_
 function isAdminDelegate(){return effectiveOrganizationRole()==='admin_delegate'&&!isPlatformTenantMode()&&!isPlatformOperatorRole()}
 function hasOperationalAdminAccess(){return (isAdminRole()&&isPlatformTenantMode())||isTenantAdminRole()||isAdminDelegate()}
 function canManageUsersUI(){return (isAdminRole()&&isPlatformTenantMode())||isTenantAdminRole()||isAdminDelegate()}
+function canResetUserPasswordUI(){return (isAdminRole()&&isPlatformTenantMode())||isTenantAdminRole()}
 function isObjectManagerRole(){return !hasOperationalAdminAccess()&&!isPropertyManagerRole()&&['object_manager','staff'].includes(effectiveUserRole())}
 function isExternalContractorRole(){return effectiveOrganizationRole()==='external_contractor'&&!hasOperationalAdminAccess()}
 function isCustomerRole(){return effectiveUserRole()==='customer'&&!hasOperationalAdminAccess()&&!isPropertyManagerRole()}
@@ -10771,7 +10772,7 @@ function loadUserAdminEditor(){
   const orgName=organizationName(orgId)||currentOrganization?.name||'—';
   ed.innerHTML=`<div class="card"><h3>${esc(p.email||p.full_name||'Benutzer')}</h3><div class="muted" style="margin-bottom:12px">Unternehmen: <strong>${esc(orgName)}</strong></div><div class="grid2"><label>Anzeigename<input id="userAdminFullName" value="${esc(p.full_name||'')}" placeholder="z. B. Hans Müller"></label><label>Mandantenrolle<select id="userAdminRole">${roleOptions}</select></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminActive" type="checkbox" ${p.active!==false?'checked':''}><span>Benutzer aktiv</span></label></div><p class="muted">Berechtigungen gelten ausschließlich innerhalb des zugeordneten Unternehmens. Plattformadministrator-Rechte können hier nicht vergeben werden.</p><h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px">
   <button onclick="saveUserAdminPermissions()">Speichern</button>
-  ${isAdminRole()?'<button onclick="resetSelectedUserInitialPassword()">Initialpasswort erzeugen</button>':''}
+  ${canResetUserPasswordUI()?'<button onclick="resetSelectedUserInitialPassword()">Initialpasswort erzeugen</button>':''}
   ${isAdminRole()?'<button class="danger" onclick="deleteSelectedUser()">Benutzer löschen</button>':''}
 </div></div>`;
 }
@@ -10868,13 +10869,22 @@ function showResetInitialPasswordResult(email,password){
 }
 
 async function resetSelectedUserInitialPassword(){
-  if(!isAdminRole())return requireAdminUI('Initialpasswort erzeugen');
+  if(!canResetUserPasswordUI())return alert('Nur der Mandanten-Admin oder der Plattform-Admin im Mandantenmodus darf Initialpasswörter erzeugen.');
   const uid=document.getElementById('userAdminSelect')?.value;
   if(!uid)return alert('Bitte zuerst einen Benutzer auswählen.');
   if(uid===currentUserProfile?.id)return alert('Für den aktuell angemeldeten Administrator kann hier kein Initialpasswort erzeugt werden. Nutze dafür „Passwort ändern“.');
 
   const p=(userAdminProfiles||[]).find(x=>x.id===uid);
   if(!p)return alert('Benutzerprofil wurde nicht gefunden.');
+
+  // v2.20.65: Mandanten-Admins dürfen ausschließlich Benutzer ihres eigenen
+  // Mandanten zurücksetzen. Die UI-Liste ist bereits gefiltert; diese Prüfung
+  // schützt zusätzlich vor manipulierten Benutzer-IDs im Browser.
+  const orgId=currentOrganizationId();
+  const membership=(userAdminMemberships||[]).find(m=>String(m.user_id||'')===String(uid));
+  if(!orgId || String(membership?.organization_id||'')!==String(orgId)){
+    return alert('Das Passwort kann nur für Benutzer des eigenen Mandanten zurückgesetzt werden.');
+  }
   const label=p.full_name||p.email||'diesen Benutzer';
 
   const ok=confirm(
