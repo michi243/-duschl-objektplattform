@@ -3407,7 +3407,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.62'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.63'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -7484,7 +7484,11 @@ async function triageResidentReportOrder(id,decision){
       try{await cloudReloadFindings();}catch(_e){}
     }
     await cloudLoadExternalOrders();
+    // v2.20.63: Auch Triage-Entscheidungen sofort aus der Entscheidungsliste entfernen
+    // und den Zielbereich ohne manuellen Seitenreload aktualisieren.
+    renderDecisions();
     renderWorkQueue();
+    renderDashboard();
   }catch(e){
     alert('Triage konnte nicht gespeichert werden: '+(e.message||e));
   }
@@ -7618,7 +7622,12 @@ async function updateExternalOrderStatus(id,status){
       });
     }
     await cloudLoadExternalOrders();
+    // v2.20.63: UI nach Statuswechsel sofort fachlich neu einsortieren.
+    // Ein angenommener Auftrag verschwindet unmittelbar aus „Entscheidungen“
+    // und erscheint ohne Seitenreload im Arbeitsvorrat.
+    renderDecisions();
     renderWorkQueue();
+    renderDashboard();
   }catch(e){alert('Status konnte nicht geändert werden: '+(e.message||e));}
 }
 
