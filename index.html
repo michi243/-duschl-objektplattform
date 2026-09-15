@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.74</title>
+<title>Duschl Service – Objektplattform v2.20.75</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1469,7 +1469,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.73</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.75</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1512,7 +1512,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.73</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.75</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1742,8 +1742,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.73</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.73</span> geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.75</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.75</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3422,7 +3422,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.74'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.75'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -3683,7 +3683,7 @@ function renderMessageArchive(){
     box.innerHTML=[...groups.values()].map(group=>{
       const first=group[0]||{};
       const readCount=group.filter(m=>m.read_at).length;
-      // v2.20.74: Gruppenmitteilungen bleiben im Archiv eine Nachricht, zeigen aber
+      // v2.20.75: Gruppenmitteilungen bleiben im Archiv eine Nachricht, zeigen aber
       // Lesestatus und Antwort je Empfänger. Dadurch ist jede Antwort eindeutig der
       // ursprünglichen Sendung und dem antwortenden Empfänger zugeordnet.
       const recipientRows=group
@@ -7297,6 +7297,8 @@ function ticketTimelineForExternalOrder(x){
   if(reporter)events.push({when:x.created_at,label:'Ursprung des Vorgangs',note:`Gemeldet von ${reporter}.`});
   events.push({when:x.created_at,label:'Auftrag weitergeleitet',note:`Von ${partnerName(x.source_organization_id)} an ${partnerName(x.executor_organization_id)}.`});
   if(x.accepted_at)events.push({when:x.accepted_at,label:'Auftrag angenommen',actor:partnerName(x.executor_organization_id)});
+  const withdrawSnap=x.source_snapshot||{};
+  if(withdrawSnap.withdrawn_by_source_at)events.push({when:withdrawSnap.withdrawn_by_source_at,label:'Auftrag zurückgezogen',actor:partnerName(x.source_organization_id),note:withdrawSnap.withdraw_reason_label||withdrawSnap.withdraw_note||''});
   if(x.updated_at&&String(x.status||'')==='in_progress')events.push({when:x.updated_at,label:'Bearbeitung begonnen',actor:partnerName(x.executor_organization_id)});
   if(x.completed_at)events.push({when:x.completed_at,label:'Erledigt gemeldet',actor:partnerName(x.executor_organization_id)});
   if(x.reviewed_at&&String(x.review_status||'')==='verified')events.push({when:x.reviewed_at,label:'Abschluss bestätigt',actor:partnerName(x.source_organization_id)});
@@ -7324,6 +7326,7 @@ function residentRouteTimelineHtml(order){
   if(order.triaged_at&&!has('Leistungsumfang bestätigt')&&String(order.triage_status||'')==='within_scope')events.push({when:order.triaged_at,label:'Leistungsumfang bestätigt',note:'Dienstleister hat die Zuständigkeit bestätigt.'});
   if(order.triaged_at&&!has('Nicht im Leistungsumfang')&&String(order.triage_status||'')==='outside_scope')events.push({when:order.triaged_at,label:'Nicht im Leistungsumfang',note:order.triage_note||''});
   if(snapshot.execution_started_at&&!has('Bearbeitung begonnen'))events.push({when:snapshot.execution_started_at,label:'Bearbeitung begonnen',note:''});
+  if(snapshot.withdrawn_by_source_at&&!has('Auftrag zurückgezogen'))events.push({when:snapshot.withdrawn_by_source_at,label:'Auftrag zurückgezogen',note:snapshot.withdraw_reason_label||snapshot.withdraw_note||'Auftraggeber hat die externe Vergabe zurückgezogen.'});
   if(order.completed_at&&!has('Erledigt gemeldet'))events.push({when:order.completed_at,label:'Erledigt gemeldet',note:snapshot.execution_measure||''});
   if(order.reviewed_at&&String(order.review_status||'')==='verified'&&!has('Abschluss bestätigt'))events.push({when:order.reviewed_at,label:'Abschluss bestätigt',note:'Auftraggeber hat den Abschluss bestätigt.'});
   if(order.reviewed_at&&String(order.review_status||'')==='rework_required'&&!has('Nacharbeit erforderlich'))events.push({when:order.reviewed_at,label:'Nacharbeit erforderlich',note:snapshot.review_note||''});
@@ -7722,6 +7725,75 @@ async function syncExternalRouteDocumentation(orderId,findingId,completed){
       p_completed:completed===true
     })
   });
+}
+
+// v2.20.75: Der Auftraggeber behält auch nach automatischem/manuellem Routing die fachliche Hoheit.
+// Eine externe Vergabe kann bis zum Abschluss zurückgezogen werden. Die Historie bleibt erhalten.
+function canWithdrawExternalOrder(order){
+  if(!order)return false;
+  const orgId=String(currentOrganizationId()||'');
+  if(!orgId||String(order.source_organization_id||'')!==orgId)return false;
+  if(!(hasOperationalAdminAccess()||isPropertyManagerRole()||isCustomerRole()))return false;
+  return ['requested','accepted','in_progress'].includes(String(order.status||'').toLowerCase());
+}
+
+function externalOrderWithdrawButton(order){
+  return canWithdrawExternalOrder(order)
+    ? `<button type="button" onclick="openExternalOrderWithdrawModal('${esc(order.id)}')">Auftrag zurückziehen</button>`
+    : '';
+}
+
+function openExternalOrderWithdrawModal(id){
+  const order=(cloudExternalOrders||[]).find(x=>String(x.id||'')===String(id||''));
+  if(!order)return alert('Auftrag nicht gefunden.');
+  if(!canWithdrawExternalOrder(order))return alert('Dieser Auftrag kann aktuell nicht zurückgezogen werden.');
+  const started=String(order.status||'')==='in_progress';
+  modal(`<h2>Auftrag zurückziehen</h2>
+    <p class="muted">Der Auftrag wird beim Dienstleister aus dem aktiven Arbeitsvorrat entfernt. Die bisherige Historie bleibt vollständig erhalten. Anschließend liegt die Entscheidung wieder beim Auftraggeber.</p>
+    ${started?`<div class="card" style="margin:12px 0;border-color:rgba(245,158,11,.55)"><strong>Bearbeitung wurde bereits begonnen.</strong><div class="muted" style="margin-top:4px">Der Rückzug wird deshalb ausdrücklich in der Chronik dokumentiert.</div></div>`:''}
+    <label>Grund *
+      <select id="externalOrderWithdrawReason">
+        <option value="">Bitte auswählen</option>
+        <option value="self_execution">Selbst bearbeiten</option>
+        <option value="wrong_assignment">Falsch zugeordnet / falscher Dienstleister</option>
+        <option value="scope_changed">Umfang oder Priorität geändert</option>
+        <option value="no_longer_required">Nicht mehr erforderlich</option>
+        <option value="other">Sonstiger Grund</option>
+      </select>
+    </label>
+    <label>Kommentar
+      <textarea id="externalOrderWithdrawNote" maxlength="1000" placeholder="Optionaler Hinweis an den Dienstleister"></textarea>
+    </label>
+    <div class="row" style="margin-top:14px">
+      <button class="primary" type="button" onclick="submitExternalOrderWithdraw('${esc(id)}')">Auftrag zurückziehen</button>
+      <button type="button" onclick="closeModal()">Abbrechen</button>
+    </div>`);
+}
+
+async function submitExternalOrderWithdraw(id){
+  const order=(cloudExternalOrders||[]).find(x=>String(x.id||'')===String(id||''));
+  if(!order)return alert('Auftrag nicht gefunden.');
+  if(!canWithdrawExternalOrder(order))return alert('Dieser Auftrag kann aktuell nicht zurückgezogen werden.');
+  const reason=document.getElementById('externalOrderWithdrawReason')?.value||'';
+  const note=(document.getElementById('externalOrderWithdrawNote')?.value||'').trim();
+  if(!reason)return alert('Bitte einen Grund auswählen.');
+  const labels={self_execution:'Selbst bearbeiten',wrong_assignment:'Falsch zugeordnet / falscher Dienstleister',scope_changed:'Umfang oder Priorität geändert',no_longer_required:'Nicht mehr erforderlich',other:'Sonstiger Grund'};
+  const oldSnapshot=(order.source_snapshot&&typeof order.source_snapshot==='object')?order.source_snapshot:{};
+  const now=new Date().toISOString();
+  try{
+    await cloudRequest(`shared_work_orders?id=eq.${encodeURIComponent(id)}`,{
+      method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({
+        status:'cancelled',updated_at:now,
+        source_snapshot:{...oldSnapshot,withdrawn_by_source_at:now,withdrawn_by_source_organization_id:currentOrganizationId()||null,withdrawn_by_source_user_id:currentUserId()||null,withdraw_reason:reason,withdraw_reason_label:labels[reason]||reason,withdraw_note:note||null}
+      })
+    });
+    closeModal();
+    await cloudLoadExternalOrders(false);
+    try{await cloudReloadFindings();}catch(_e){}
+    renderAll();
+  }catch(e){
+    alert('Auftrag konnte nicht zurückgezogen werden: '+(e.message||e));
+  }
 }
 
 function openExternalOrderReturnModal(id){
@@ -11842,6 +11914,7 @@ function findingCard(f){
         <div style="font-weight:700">Extern vergeben an ${esc(externalExecutor)}</div>
         <div class="muted" style="margin-top:4px"><strong>Status:</strong> ${esc(externalLifecycle||'Angenommen')}</div>
         <div class="muted" style="margin-top:4px">Aktuell keine Aktion durch ${esc(((currentOrganization&&currentOrganization.name)||organizationName(currentOrganizationId())||'diesen Mandanten'))} erforderlich.</div>
+        ${externalOrderWithdrawButton(responsibilityOrder)?`<div class="row" style="margin-top:10px">${externalOrderWithdrawButton(responsibilityOrder)}</div>`:''}
       </div>`
     : '';
   const actionHtml=(f.status==='Erledigt'||routeVerified)
@@ -11958,6 +12031,7 @@ function externalMonitoringDocumentationCard(x){
       <div style="font-weight:700">Extern vergeben an ${esc(executor)}</div>
       <div class="muted" style="margin-top:4px"><strong>Status:</strong> ${esc(statusLabel)}</div>
       <div class="muted" style="margin-top:4px">Aktuell keine Aktion durch ${esc(currentOrganization?.name||'diesen Mandanten')} erforderlich.</div>
+      ${externalOrderWithdrawButton(x)?`<div class="row" style="margin-top:10px">${externalOrderWithdrawButton(x)}</div>`:''}
     </div>
     ${description?`<p><b>Auftrag:</b> ${esc(description)}</p>`:''}
     ${ticketTimelineForExternalOrder(x)}
