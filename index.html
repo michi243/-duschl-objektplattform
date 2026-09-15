@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.78</title>
+<title>Duschl Service – Objektplattform v2.20.79</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1482,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.78</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.79</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1525,7 +1525,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.78</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.79</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1755,8 +1755,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.78</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.78</span> geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.79</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.79</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3435,7 +3435,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.78'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.79'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -5222,13 +5222,13 @@ function applyRoleUI(){
         : isPropertyManagerRole()
           ? 'Verwalter'
         : role==='object_manager'
-          ? 'Objektbetreuer'
+          ? dsTenantLabel('objectManager','Objektbetreuer')
           : role==='customer'
             ? 'Auftraggeber'
             : role==='test_user'
               ? 'Testbenutzer'
               : role==='staff'
-                ? 'Objektbetreuer'
+                ? dsTenantLabel('objectManager','Objektbetreuer')
                 : role==='employee'
                   ? 'Mitarbeiter'
                   : (roleLabel||'Benutzer');
@@ -8314,6 +8314,7 @@ async function enterPlatformTenantMode(orgId){
   platformTenantModeOrgId=org.id;
   platformTenantModeOrganization=org;
   platformTenantModeEnteredAt=new Date().toISOString();
+  setTimeout(()=>dsApplyTenantTerminology(document),0);
 
   // Synthetischer Mandantenkontext: globale Identität bleibt platform_admin,
   // die operative UI arbeitet für diesen Mandanten wie ein tenant_admin.
@@ -14184,9 +14185,112 @@ document.addEventListener('change',e=>{
   }
 });
 
+
+// v2.20.79: Mandantenspezifische Terminologie.
+// Nur sichtbare Bezeichnungen werden angepasst; technische Rollen, Tabellen,
+// RLS, Routing-Keys und Legacy-Feldnamen bleiben unverändert.
+const DS_TENANT_TERMINOLOGY=Object.freeze({
+  object_service:Object.freeze({
+    externalReporter:'Bewohner / Nutzer', externalReport:'Externe Meldung',
+    externalReportPlural:'Externe Meldungen', objectManager:'Objektbetreuer',
+    steeringRole:'Auftraggeber', object:'Kundenobjekt'
+  }),
+  property_management:Object.freeze({
+    externalReporter:'Bewohner', externalReport:'Bewohnermeldung',
+    externalReportPlural:'Bewohnermeldungen', objectManager:'Objektbetreuer',
+    steeringRole:'Hausverwaltung', object:'Objekt'
+  }),
+  property_owner:Object.freeze({
+    externalReporter:'Mieter / Nutzer', externalReport:'Nutzermeldung',
+    externalReportPlural:'Nutzermeldungen', objectManager:'Objektverantwortlicher',
+    steeringRole:'Immobilieneigentümer', object:'Immobilie'
+  }),
+  facility_management:Object.freeze({
+    externalReporter:'Nutzer', externalReport:'Nutzermeldung',
+    externalReportPlural:'Nutzermeldungen', objectManager:'Objektverantwortlicher',
+    steeringRole:'Facility Management', object:'Objekt'
+  }),
+  hospitality:Object.freeze({
+    externalReporter:'Gast', externalReport:'Gastmeldung',
+    externalReportPlural:'Gastmeldungen', objectManager:'Haustechnik',
+    steeringRole:'Hotelmanagement', object:'Hotel / Beherbergungsobjekt'
+  }),
+  hotel:Object.freeze({
+    externalReporter:'Gast', externalReport:'Gastmeldung',
+    externalReportPlural:'Gastmeldungen', objectManager:'Haustechnik',
+    steeringRole:'Hotelmanagement', object:'Hotel'
+  }),
+  airbnb:Object.freeze({
+    externalReporter:'Gast', externalReport:'Gastmeldung',
+    externalReportPlural:'Gastmeldungen', objectManager:'Objektbetreuung',
+    steeringRole:'Betreiber', object:'Ferienobjekt'
+  }),
+  municipality:Object.freeze({
+    externalReporter:'Bürger', externalReport:'Bürgermeldung',
+    externalReportPlural:'Bürgermeldungen', objectManager:'Bauhof / Objektverantwortlicher',
+    steeringRole:'Fachbereich / Verwaltung', object:'Objekt / Asset'
+  }),
+  other:Object.freeze({
+    externalReporter:'Melder', externalReport:'Externe Meldung',
+    externalReportPlural:'Externe Meldungen', objectManager:'Objektverantwortlicher',
+    steeringRole:'Auftraggeber', object:'Objekt'
+  })
+});
+function dsContextOrganization(){
+  if(typeof isPlatformTenantMode==='function'&&isPlatformTenantMode()){
+    return platformTenantModeOrganization||cloudOrganizations.find(o=>o.id===platformTenantModeOrgId)||currentOrganization||{};
+  }
+  return currentOrganization||{};
+}
+function dsTenantType(){
+  const org=dsContextOrganization();
+  return String(org.organization_type||org.type||'object_service');
+}
+function dsTenantTerminology(){
+  return DS_TENANT_TERMINOLOGY[dsTenantType()]||DS_TENANT_TERMINOLOGY.other;
+}
+function dsTenantLabel(key,fallback=''){
+  return dsTenantTerminology()?.[key]||fallback||key;
+}
+function dsApplyTenantTerminology(root=document){
+  if(!root?.querySelectorAll)return;
+  const labels=dsTenantTerminology();
+  const replacements=[
+    ['Bewohnermeldungen',labels.externalReportPlural],
+    ['Bewohnermeldung',labels.externalReport],
+    ['Objektbetreuer',labels.objectManager]
+  ];
+  root.querySelectorAll('[data-tenant-term]').forEach(el=>{
+    const key=el.getAttribute('data-tenant-term');
+    if(labels[key])el.textContent=labels[key];
+  });
+  // Text-only UI adaptation. Inputs, values, IDs, code and backend keys are never changed.
+  root.querySelectorAll('h1,h2,h3,h4,p,span,strong,label,button,option,div.muted').forEach(el=>{
+    if(el.children.length)return;
+    let s=el.textContent||'';
+    let next=s;
+    replacements.forEach(([from,to])=>{ if(to&&from!==to)next=next.split(from).join(to); });
+    if(next!==s)el.textContent=next;
+  });
+}
+let dsTenantTerminologyObserver=null;
+function dsStartTenantTerminology(){
+  if(dsTenantTerminologyObserver)dsTenantTerminologyObserver.disconnect();
+  dsApplyTenantTerminology(document);
+  dsTenantTerminologyObserver=new MutationObserver(muts=>{
+    muts.forEach(m=>m.addedNodes.forEach(n=>{
+      if(n.nodeType===1)dsApplyTenantTerminology(n);
+    }));
+  });
+  dsTenantTerminologyObserver.observe(document.body,{childList:true,subtree:true});
+}
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(dsStartTenantTerminology,0),{once:true});
+}else setTimeout(dsStartTenantTerminology,0);
+
 function dsProcessProfile(){
-  const org=(typeof currentOrganization!=='undefined'&&currentOrganization)||{};
-  const t=String(org.organization_type||org.type||'objektservice');
+  const org=dsContextOrganization();
+  const t=String(org.organization_type||org.type||'object_service');
   const map={
     object_service:{decision:true,work:true,beforeAfter:true},
     objektservice:{decision:true,work:true,beforeAfter:true}, // Legacy-Kompatibilität
@@ -14234,8 +14338,8 @@ document.addEventListener('change',e=>{
 document.addEventListener('DOMContentLoaded',()=>setTimeout(dsApplyProcessForm,0));
 
 function dsObjectProfile(){
-  const org=(typeof currentOrganization!=='undefined'&&currentOrganization)||{};
-  const t=String(org.organization_type||org.type||'objektservice');
+  const org=dsContextOrganization();
+  const t=String(org.organization_type||org.type||'object_service');
   const profiles={
     object_service:{
       objectLabel:'Kundenobjekt',
