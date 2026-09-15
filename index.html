@@ -3435,7 +3435,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.76'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.77'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -8888,7 +8888,7 @@ function openOrganizationModal(id=''){
     </div>`;
   modal(`<div class="row space"><h2>${id?'Mandant bearbeiten':'Mandant anlegen'}</h2><button onclick="closeModal()">✕</button></div>
     <label>Unternehmensname *</label><input id="orgName" value="${esc(org.name||'')}" placeholder="z. B. Muster Objektservice GmbH">
-    <label>Typ</label><select id="orgType"><option value="object_service" ${org.organization_type==='object_service'?'selected':''}>Objektservice</option><option value="property_management" ${org.organization_type==='property_management'?'selected':''}>Hausverwaltung</option><option value="facility_management" ${org.organization_type==='facility_management'?'selected':''}>Facility Management</option><option value="other" ${org.organization_type==='other'?'selected':''}>Sonstiges</option></select>
+    <label>Typ</label><select id="orgType"><option value="object_service" ${org.organization_type==='object_service'?'selected':''}>Objektservice</option><option value="property_management" ${org.organization_type==='property_management'?'selected':''}>Hausverwaltung</option><option value="facility_management" ${org.organization_type==='facility_management'?'selected':''}>Facility Management</option><option value="hotel" ${org.organization_type==='hotel'?'selected':''}>Hotel</option><option value="airbnb" ${org.organization_type==='airbnb'?'selected':''}>Ferienwohnung / Airbnb</option><option value="other" ${org.organization_type==='other'?'selected':''}>Sonstiges</option></select>
     ${id&&org.public_code?`<label>Mandanten-ID</label><div class="card" style="padding:12px;margin-top:6px"><div class="row space"><strong style="font-size:18px;letter-spacing:.08em">${esc(org.public_code)}</strong><button type="button" onclick="navigator.clipboard?.writeText('${esc(org.public_code)}')">Kopieren</button></div><div class="muted" style="margin-top:5px">Diese ID kann an Partnerunternehmen weitergegeben werden. Die interne UUID bleibt verborgen.</div></div>`:''}
     <div class="grid2">
       <label>Vertragliches Speicherlimit (GB) *
@@ -14188,11 +14188,12 @@ function dsProcessProfile(){
   const org=(typeof currentOrganization!=='undefined'&&currentOrganization)||{};
   const t=String(org.organization_type||org.type||'objektservice');
   const map={
-    objektservice:{decision:true,work:true,beforeAfter:true},
+    object_service:{decision:true,work:true,beforeAfter:true},
+    objektservice:{decision:true,work:true,beforeAfter:true}, // Legacy-Kompatibilität
     property_management:{decision:true,work:false,beforeAfter:false},
     facility_management:{decision:true,work:true,beforeAfter:true},
-    hotel:{decision:false,work:true,beforeAfter:true},
-    airbnb:{decision:false,work:true,beforeAfter:true},
+    hotel:{decision:true,work:true,beforeAfter:true},
+    airbnb:{decision:true,work:true,beforeAfter:true},
     other:{decision:true,work:true,beforeAfter:true}
   };
   return map[t]||map.other;
@@ -14233,6 +14234,12 @@ function dsObjectProfile(){
   const org=(typeof currentOrganization!=='undefined'&&currentOrganization)||{};
   const t=String(org.organization_type||org.type||'objektservice');
   const profiles={
+    object_service:{
+      objectLabel:'Kundenobjekt',
+      objectPlaceholder:'z. B. WEG Knorrstraße 7',
+      areaLabel:'Bereiche',
+      defaultAreas:['Außenanlage','Eingangsbereich','Treppenhaus','Keller','Tiefgarage','Technik','Sonstiges']
+    },
     objektservice:{
       objectLabel:'Kundenobjekt',
       objectPlaceholder:'z. B. WEG Knorrstraße 7',
@@ -14255,7 +14262,7 @@ function dsObjectProfile(){
       objectLabel:'Hotel / Standort',
       objectPlaceholder:'z. B. Hotel München Zentrum',
       areaLabel:'Hotelbereiche',
-      defaultAreas:['Zimmer / Einheit','Lobby / Empfang','Flur','Frühstück / Gastronomie','Außenbereich','Technik','Housekeeping / Lager','Sonstiges']
+      defaultAreas:['Zimmer / Einheit','Lobby / Empfang','Flur / Treppenhaus','Gastronomie / Frühstück','Spa / Wellness','Außenbereich','Technik','Housekeeping / Lager','Parken / Tiefgarage','Sonstiges']
     },
     airbnb:{
       objectLabel:'Ferienwohnung / Ferienhaus',
