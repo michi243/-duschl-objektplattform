@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.68</title>
+<title>Duschl Service – Objektplattform v2.20.69</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1469,7 +1469,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.68</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.69</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1512,7 +1512,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.68</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.69</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1708,6 +1708,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       </div>
       <div class="row" style="gap:8px;align-items:center">
         <span class="badge" id="dashboardUnreadCount" style="display:none">0 neu</span>
+        <button id="dashboardMessageArchiveBtn" class="tenant-action-btn" onclick="openMessageArchive()" style="display:none" type="button">Alle Mitteilungen</button>
         <button id="dashboardMessageComposeBtn" class="tenant-action-btn" onclick="openUserMessageComposer()" style="display:none" type="button">Mitteilung schreiben</button>
       </div>
     </div>
@@ -1727,8 +1728,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.68</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.68</span> geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.69</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.69</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3407,7 +3408,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.68'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.69'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -3498,7 +3499,7 @@ async function loadUserMessages(){
     const rows=await cloudRequest(
       `user_messages?select=id,recipient_id,created_by,title,message,object_id,created_at,read_at,active,reply_text,replied_at,sender_name,sender_role,recipient_name,recipient_role,message_group_id&or=(recipient_id.eq.${uid},created_by.eq.${uid})&active=eq.true&order=created_at.desc`
     );
-    userDashboardMessages=(Array.isArray(rows)?rows:[]).filter(m=>messageWithinRetention(m,7));
+    userDashboardMessages=(Array.isArray(rows)?rows:[]); // v2.20.69: keine 7-Tage-Ausblendung mehr
     userMessagesAvailable=true;
   }catch(e){
     userDashboardMessages=[];
@@ -3512,9 +3513,11 @@ function renderDashboardMessages(){
   const box=document.getElementById('dashboardMessages');
   const count=document.getElementById('dashboardUnreadCount');
   const compose=document.getElementById('dashboardMessageComposeBtn');
+  const archiveBtn=document.getElementById('dashboardMessageArchiveBtn');
   const context=document.getElementById('dashboardRoleContext');
   if(context)context.textContent=dashboardRoleContextText();
   if(compose)compose.style.display=currentUserId()?'':'none';
+  if(archiveBtn)archiveBtn.style.display=currentUserId()?'':'none';
   if(!wrap||!box)return;
 
   if(!userMessagesAvailable){
@@ -3595,15 +3598,62 @@ function renderDashboardMessages(){
     : '<div class="empty">Keine ungelesenen Mitteilungen.</div>';
 
   const readHtml=read.length
-    ? `<details style="margin-top:10px"><summary>Gelesene Mitteilungen (${read.length})</summary><div class="grid" style="margin-top:10px">${read.slice(0,10).map(receivedCard).join('')}</div></details>`
+    ? `<details style="margin-top:10px"><summary>Gelesene Mitteilungen (${read.length})</summary><div class="grid" style="margin-top:10px">${read.slice(0,5).map(receivedCard).join('')}</div></details>`
     : '';
 
   const sentHtml=groupedSent.length
-    ? `<details open style="margin-top:10px"><summary>Meine gesendeten Mitteilungen (${groupedSent.length})</summary><div class="grid" style="margin-top:10px">${groupedSent.slice(0,20).map(sentCard).join('')}</div></details>`
+    ? `<details open style="margin-top:10px"><summary>Meine gesendeten Mitteilungen (${groupedSent.length})</summary><div class="grid" style="margin-top:10px">${groupedSent.slice(0,5).map(sentCard).join('')}</div></details>`
     : '';
 
   box.innerHTML=unreadHtml+readHtml+sentHtml;
 }
+function openMessageArchive(){
+  if(!currentUserId())return;
+  modal(`<div class="row space"><div><h2>Mitteilungsarchiv</h2><div class="muted">Alle gespeicherten empfangenen und gesendeten Mitteilungen.</div></div><button onclick="closeModal()">✕</button></div>
+    <div class="row" style="gap:8px;flex-wrap:wrap;margin:14px 0">
+      <button id="messageArchiveInboxBtn" class="primary" type="button" onclick="setMessageArchiveMode('inbox')">Posteingang</button>
+      <button id="messageArchiveSentBtn" type="button" onclick="setMessageArchiveMode('sent')">Gesendet</button>
+    </div>
+    <input id="messageArchiveSearch" placeholder="Betreff, Nachricht oder Person suchen …" oninput="renderMessageArchive()">
+    <div id="messageArchiveList" class="grid" style="margin-top:12px"></div>`);
+  window.__messageArchiveMode='inbox';
+  renderMessageArchive();
+}
+
+function setMessageArchiveMode(mode){
+  window.__messageArchiveMode=mode==='sent'?'sent':'inbox';
+  const ib=document.getElementById('messageArchiveInboxBtn');
+  const sb=document.getElementById('messageArchiveSentBtn');
+  if(ib)ib.classList.toggle('primary',window.__messageArchiveMode==='inbox');
+  if(sb)sb.classList.toggle('primary',window.__messageArchiveMode==='sent');
+  renderMessageArchive();
+}
+
+function renderMessageArchive(){
+  const box=document.getElementById('messageArchiveList');
+  if(!box)return;
+  const mode=window.__messageArchiveMode||'inbox';
+  const q=String(document.getElementById('messageArchiveSearch')?.value||'').trim().toLowerCase();
+  const uid=currentUserId();
+  let rows=(userDashboardMessages||[]).filter(m=>m.active!==false);
+  rows=mode==='sent'?rows.filter(m=>m.created_by===uid&&m.recipient_id!==uid):rows.filter(m=>m.recipient_id===uid&&messageBelongsToCurrentTenant(m));
+  if(q)rows=rows.filter(m=>`${m.title||''} ${m.message||''} ${m.sender_name||''} ${m.recipient_name||''}`.toLowerCase().includes(q));
+  rows.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+  if(!rows.length){box.innerHTML='<div class="empty">Keine Mitteilungen gefunden.</div>';return;}
+  if(mode==='sent'){
+    const groups=new Map();
+    rows.forEach(m=>{const k=m.message_group_id||m.id;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(m)});
+    box.innerHTML=[...groups.values()].map(group=>{
+      const first=group[0]||{};
+      const readCount=group.filter(m=>m.read_at).length;
+      const recipients=group.map(m=>m.recipient_name||'Empfänger').join(', ');
+      return `<div class="dashboard-message-card"><div class="dashboard-message-title">${esc(first.title||'Mitteilung')}</div><div class="dashboard-message-meta">${esc(formatUserMessageTime(first.created_at))} · ${group.length} Empfänger · ${readCount}/${group.length} gelesen</div><div class="dashboard-message-text">${esc(first.message||'')}</div><details style="margin-top:8px"><summary>Empfänger anzeigen</summary><div class="muted" style="margin-top:6px">${esc(recipients)}</div></details></div>`;
+    }).join('');
+  }else{
+    box.innerHTML=rows.map(m=>`<div class="dashboard-message-card ${m.read_at?'':'unread'}"><div class="dashboard-message-title">${esc(m.title||'Mitteilung')}</div><div class="dashboard-message-meta"><strong>Von: ${esc(m.sender_name||'Unbekannt')}</strong> · ${esc(formatUserMessageTime(m.created_at))}${m.read_at?' · gelesen':' · ungelesen'}</div><div class="dashboard-message-text">${esc(m.message||'')}</div>${m.reply_text?`<div class="dashboard-message-reply" style="margin-top:8px">Antwort: ${esc(m.reply_text)}</div>`:''}</div>`).join('');
+  }
+}
+
 function canDeleteSentUserMessage(){
   return isPlatformOperatorRole()||isTenantAdminRole()||isAdminDelegate();
 }
@@ -7881,7 +7931,8 @@ async function cleanupExpiredPlatformMessages(){
 }
 
 async function loadPlatformSystemStatus(){
-  if(isAdminRole() && !isPlatformTenantMode()) await cleanupExpiredPlatformMessages();
+  // v2.20.69: Mitteilungen werden nicht mehr automatisch nach 7 Tagen gelöscht.
+  // Aufbewahrung erfolgt dauerhaft bis zu einer später definierten Lösch-/Archivierungsregel.
 
   if(!isPlatformOperatorRole())return;
   cloudSetStatus('Plattformstatus wird aktualisiert …','wait');
@@ -8178,7 +8229,7 @@ async function openPlatformTenantDataCleanup(orgId){
 
 let platformMessageRecipientsCache=[];
 
-// v2.20.68: Plattform-Kommunikation adressiert bewusst nur echte Mandanten-Admins.
+// v2.20.69: Plattform-Kommunikation adressiert bewusst nur echte Mandanten-Admins.
 // Admin-Vertretungen, Objektbetreuer und Auftraggeber gehören nicht zum globalen Verteiler.
 async function loadPlatformMessageRecipients(){
   if(!isPlatformOperatorRole())return [];
@@ -8216,6 +8267,7 @@ async function loadPlatformMessageRecipients(){
 }
 
 function openPlatformMessageModal(){
+  platformMessageSelectedRecipientIds=new Set();
   if(!isPlatformOperatorRole())return alert('Nur die Plattformadministration kann Plattform-Mitteilungen versenden.');
   modal(`<div class="row space"><h2>Plattform-Mitteilung</h2><button onclick="closeModal()">✕</button></div>
     <p class="muted">Die Nachricht erscheint beim Empfänger im bestehenden Mitteilungsfeld und ist als Plattform-Mitteilung gekennzeichnet.</p>
@@ -8265,12 +8317,38 @@ function renderPlatformMessageRecipientFields(){
   }
 
   box.innerHTML=`<label>Mandanten-Admins *</label>
-    <div style="max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:14px;padding:10px">
-      ${rows.map(r=>`<label class="row" style="align-items:flex-start;gap:10px;margin:0 0 10px 0">
-        <input type="checkbox" class="platformMessageRecipientCheck" value="${esc(r.user_id)}">
-        <span><b>${esc(r.full_name)}</b><br><span class="muted">${esc(r.organization_name)} · Mandanten-Admin${r.email?' · '+esc(r.email):''}</span></span>
-      </label>`).join('')}
-    </div>`;
+    <input id="platformMessageRecipientSearch" placeholder="Name oder Mandant suchen …" oninput="filterPlatformMessageRecipients()">
+    <div id="platformMessageRecipientChips" class="row" style="gap:6px;flex-wrap:wrap;margin:8px 0"></div>
+    <div id="platformMessageRecipientResults" style="max-height:210px;overflow:auto;border:1px solid var(--line);border-radius:14px;padding:8px"></div>`;
+  filterPlatformMessageRecipients();
+}
+
+let platformMessageSelectedRecipientIds=new Set();
+
+function filterPlatformMessageRecipients(){
+  const results=document.getElementById('platformMessageRecipientResults');
+  const chips=document.getElementById('platformMessageRecipientChips');
+  if(!results||!chips)return;
+  const q=String(document.getElementById('platformMessageRecipientSearch')?.value||'').trim().toLowerCase();
+  const rows=(platformMessageRecipientsCache||[]).filter(r=>{
+    if(!q)return true;
+    return `${r.full_name||''} ${r.organization_name||''}`.toLowerCase().includes(q);
+  });
+  const selectedRows=(platformMessageRecipientsCache||[]).filter(r=>platformMessageSelectedRecipientIds.has(String(r.user_id)));
+  chips.innerHTML=selectedRows.length?selectedRows.map(r=>`<button type="button" class="tenant-action-btn" onclick="togglePlatformMessageRecipient('${esc(r.user_id)}')">${esc(r.full_name)} · ${esc(r.organization_name)} ×</button>`).join(''):'<span class="muted">Noch niemand ausgewählt</span>';
+  results.innerHTML=rows.length?rows.map(r=>{
+    const id=String(r.user_id);
+    const checked=platformMessageSelectedRecipientIds.has(id);
+    return `<button type="button" onclick="togglePlatformMessageRecipient('${esc(id)}')" style="width:100%;text-align:left;padding:10px 12px;margin:0 0 6px;border:1px solid var(--line);border-radius:10px;background:${checked?'rgba(77,163,255,.12)':'transparent'}"><b>${esc(r.full_name)}</b><br><span class="muted">${esc(r.organization_name)}</span>${checked?' <span class="badge">ausgewählt</span>':''}</button>`;
+  }).join(''):'<div class="empty">Keine Treffer.</div>';
+}
+
+function togglePlatformMessageRecipient(userId){
+  const id=String(userId||'');
+  if(!id)return;
+  if(platformMessageSelectedRecipientIds.has(id))platformMessageSelectedRecipientIds.delete(id);
+  else platformMessageSelectedRecipientIds.add(id);
+  filterPlatformMessageRecipients();
 }
 
 function resolvePlatformMessageRecipients(){
@@ -8284,7 +8362,7 @@ function resolvePlatformMessageRecipients(){
     if(!orgId)return [];
     return [...new Set(rows.filter(r=>r.organization_id===orgId).map(r=>r.user_id))];
   }
-  return [...document.querySelectorAll('.platformMessageRecipientCheck:checked')].map(el=>el.value);
+  return [...platformMessageSelectedRecipientIds];
 }
 
 async function sendPlatformMessage(){
@@ -8320,6 +8398,7 @@ async function sendPlatformMessage(){
       });
     }
     closeModal();
+    try{await loadUserMessages();renderDashboardMessages();}catch(_e){}
     alert(`Plattform-Mitteilung an ${recipients.length} Empfänger gesendet.`);
   }catch(e){
     console.error(e);
@@ -13459,7 +13538,7 @@ async function saveFinding(id){
   if(type!=='Feststellung'){decisionRequired=false;decisionStatus='not_required';decisionBy='';decisionDate='';decisionImplementation='';decisionComment='';decisionAmount=''}
   if(type==='Feststellung'&&!decisionRequired){decisionStatus='not_required';decisionBy='';decisionDate='';decisionImplementation='';decisionComment='';decisionAmount=''}
   if(type==='Feststellung'&&decisionRequired&&decisionStatus==='not_required')decisionStatus='pending';
-  // v2.20.68: Eine interne Weiterbearbeitung ist aufgaben-/rollenbezogen und
+  // v2.20.69: Eine interne Weiterbearbeitung ist aufgaben-/rollenbezogen und
   // erfordert beim Anlegen bzw. Speichern der Dokumentation keine konkrete Person.
   // Auch eine Freigabe (approved) benötigt daher keine implementation_responsibility.
   // Nur bei expliziter Drittvergabe wird die Routing-Kennzeichnung gesetzt.
