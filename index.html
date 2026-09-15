@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.77</title>
+<title>Duschl Service – Objektplattform v2.20.78</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1482,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.77</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.78</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1525,7 +1525,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.77</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.78</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1755,8 +1755,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.77</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.77</span> geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.78</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.78</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3435,7 +3435,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.77'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.78'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -8888,7 +8888,7 @@ function openOrganizationModal(id=''){
     </div>`;
   modal(`<div class="row space"><h2>${id?'Mandant bearbeiten':'Mandant anlegen'}</h2><button onclick="closeModal()">✕</button></div>
     <label>Unternehmensname *</label><input id="orgName" value="${esc(org.name||'')}" placeholder="z. B. Muster Objektservice GmbH">
-    <label>Typ</label><select id="orgType"><option value="object_service" ${org.organization_type==='object_service'?'selected':''}>Objektservice</option><option value="property_management" ${org.organization_type==='property_management'?'selected':''}>Hausverwaltung</option><option value="facility_management" ${org.organization_type==='facility_management'?'selected':''}>Facility Management</option><option value="hotel" ${org.organization_type==='hotel'?'selected':''}>Hotel</option><option value="airbnb" ${org.organization_type==='airbnb'?'selected':''}>Ferienwohnung / Airbnb</option><option value="other" ${org.organization_type==='other'?'selected':''}>Sonstiges</option></select>
+    <label>Typ</label><select id="orgType"><option value="object_service" ${org.organization_type==='object_service'?'selected':''}>Objektservice</option><option value="property_management" ${org.organization_type==='property_management'?'selected':''}>Hausverwaltung</option><option value="property_owner" ${org.organization_type==='property_owner'?'selected':''}>Immobilieneigentümer</option><option value="facility_management" ${org.organization_type==='facility_management'?'selected':''}>Facility Management</option><option value="hospitality" ${['hospitality','hotel','airbnb'].includes(org.organization_type)?'selected':''}>Hotel / Beherbergung</option><option value="municipality" ${org.organization_type==='municipality'?'selected':''}>Kommune / öffentliche Verwaltung</option><option value="other" ${org.organization_type==='other'?'selected':''}>Sonstiges</option></select>
     ${id&&org.public_code?`<label>Mandanten-ID</label><div class="card" style="padding:12px;margin-top:6px"><div class="row space"><strong style="font-size:18px;letter-spacing:.08em">${esc(org.public_code)}</strong><button type="button" onclick="navigator.clipboard?.writeText('${esc(org.public_code)}')">Kopieren</button></div><div class="muted" style="margin-top:5px">Diese ID kann an Partnerunternehmen weitergegeben werden. Die interne UUID bleibt verborgen.</div></div>`:''}
     <div class="grid2">
       <label>Vertragliches Speicherlimit (GB) *
@@ -14191,9 +14191,12 @@ function dsProcessProfile(){
     object_service:{decision:true,work:true,beforeAfter:true},
     objektservice:{decision:true,work:true,beforeAfter:true}, // Legacy-Kompatibilität
     property_management:{decision:true,work:false,beforeAfter:false},
+    property_owner:{decision:true,work:true,beforeAfter:true},
     facility_management:{decision:true,work:true,beforeAfter:true},
-    hotel:{decision:true,work:true,beforeAfter:true},
-    airbnb:{decision:true,work:true,beforeAfter:true},
+    hospitality:{decision:true,work:true,beforeAfter:true},
+    hotel:{decision:true,work:true,beforeAfter:true}, // Legacy
+    airbnb:{decision:true,work:true,beforeAfter:true}, // Legacy
+    municipality:{decision:true,work:true,beforeAfter:true},
     other:{decision:true,work:true,beforeAfter:true}
   };
   return map[t]||map.other;
@@ -14257,6 +14260,24 @@ function dsObjectProfile(){
       objectPlaceholder:'z. B. Standort München Nord',
       areaLabel:'Funktionsbereiche',
       defaultAreas:['Außenbereich','Empfang','Bürofläche','Sanitär','Technik','Lager','Parkfläche','Sonstiges']
+    },
+    property_owner:{
+      objectLabel:'Immobilie / Objekt',
+      objectPlaceholder:'z. B. Mehrfamilienhaus Musterstraße 6',
+      areaLabel:'Gebäudebereiche',
+      defaultAreas:['Außenanlage','Eingangsbereich','Treppenhaus','Aufzug','Keller','Tiefgarage','Technikraum','Gemeinschaftsfläche','Wohn-/Nutzungseinheit','Sonstiges']
+    },
+    hospitality:{
+      objectLabel:'Hotel / Beherbergungsobjekt',
+      objectPlaceholder:'z. B. Hotel München Zentrum',
+      areaLabel:'Betriebsbereiche',
+      defaultAreas:['Zimmer / Einheit','Lobby / Empfang','Flur / Treppenhaus','Gastronomie / Frühstück','Spa / Wellness','Außenbereich','Technik','Housekeeping / Lager','Parken / Tiefgarage','Sonstiges']
+    },
+    municipality:{
+      objectLabel:'Objekt / Asset',
+      objectPlaceholder:'z. B. Brunnen Marienplatz oder Bushaltestelle Musterstraße',
+      areaLabel:'Bereiche / Komponenten',
+      defaultAreas:['Allgemein','Außenbereich','Zugang / Wege','Beleuchtung / Elektro','Technik','Ausstattung','Grünfläche','Verkehrsfläche','Sonstiges']
     },
     hotel:{
       objectLabel:'Hotel / Standort',
