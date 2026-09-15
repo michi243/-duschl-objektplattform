@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.72</title>
+<title>Duschl Service – Objektplattform v2.20.73</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1469,7 +1469,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.72</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.73</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1512,7 +1512,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.72</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.73</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1742,8 +1742,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.72</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.72</span> geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.73</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.73</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3422,7 +3422,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.72'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.73'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -3542,15 +3542,16 @@ function renderDashboardMessages(){
   }
 
   const active=(userDashboardMessages||[]).filter(m=>m.active!==false);
-  const received=active.filter(m=>m.recipient_id===currentUserId() && messageBelongsToCurrentTenant(m));
-  // v2.20.70: Im Platform-Admin-Mandantenmodus dürfen gesendete Mitteilungen
-  // ausschließlich erscheinen, wenn der Empfänger zum aktuell geöffneten Mandanten gehört.
-  // Der reine Absenderbezug (Platform Admin) darf keine Nachrichten anderer Mandanten hineinziehen.
-  const sent=active.filter(m=>
-    m.created_by===currentUserId() &&
-    m.recipient_id!==currentUserId() &&
-    sentMessageBelongsToCurrentTenant(m)
-  );
+  // v2.20.73: Im Platform-Admin-Mandantenmodus wird Kommunikation aus Sicht
+  // des Mandanten klassifiziert – nicht aus Sicht des eingeloggten Platform Admins.
+  // Platform Admin -> Mandant = Posteingang; Mandant -> Platform Admin = Gesendet.
+  const tenantPerspective=isPlatformOperatorRole()&&isPlatformTenantMode();
+  const received=tenantPerspective
+    ? active.filter(m=>userBelongsToCurrentTenant(m.recipient_id)&&!userBelongsToCurrentTenant(m.created_by))
+    : active.filter(m=>m.recipient_id===currentUserId() && messageBelongsToCurrentTenant(m));
+  const sent=tenantPerspective
+    ? active.filter(m=>userBelongsToCurrentTenant(m.created_by)&&!userBelongsToCurrentTenant(m.recipient_id))
+    : active.filter(m=>m.created_by===currentUserId()&&m.recipient_id!==currentUserId()&&sentMessageBelongsToCurrentTenant(m));
   const unread=received.filter(m=>!m.read_at);
   const read=received.filter(m=>!!m.read_at);
   // v2.20.48: Die Mitteilungsbox ist auch ohne vorhandene Nachrichten sichtbar.
@@ -3665,9 +3666,14 @@ function renderMessageArchive(){
   // v2.20.72: Globaler Platform Admin sieht im Archiv denselben mandantenübergreifenden
   // Datenbestand wie im Platform-Admin-Dashboard. Nur im Mandantenmodus greift der
   // Empfänger-Mandantenfilter aus v2.20.70.
+  const tenantPerspective=isPlatformOperatorRole()&&isPlatformTenantMode();
   rows=mode==='sent'
-    ? rows.filter(m=>m.created_by===uid&&m.recipient_id!==uid&&(globalPlatformArchive||sentMessageBelongsToCurrentTenant(m)))
-    : rows.filter(m=>m.recipient_id===uid&&(globalPlatformArchive||messageBelongsToCurrentTenant(m)));
+    ? (tenantPerspective
+        ? rows.filter(m=>userBelongsToCurrentTenant(m.created_by)&&!userBelongsToCurrentTenant(m.recipient_id))
+        : rows.filter(m=>m.created_by===uid&&m.recipient_id!==uid&&(globalPlatformArchive||sentMessageBelongsToCurrentTenant(m))))
+    : (tenantPerspective
+        ? rows.filter(m=>userBelongsToCurrentTenant(m.recipient_id)&&!userBelongsToCurrentTenant(m.created_by))
+        : rows.filter(m=>m.recipient_id===uid&&(globalPlatformArchive||messageBelongsToCurrentTenant(m))));
   if(q)rows=rows.filter(m=>`${m.title||''} ${m.message||''} ${m.sender_name||''} ${m.recipient_name||''}`.toLowerCase().includes(q));
   rows.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
   if(!rows.length){box.innerHTML='<div class="empty">Keine Mitteilungen gefunden.</div>';return;}
@@ -11214,6 +11220,15 @@ async function openObjectDocumentation(objectId){
   renderFindings();
 }
 
+
+function userBelongsToCurrentTenant(userId){
+  if(!isPlatformTenantMode())return false;
+  const orgId=String(currentOrganizationId()||'');
+  const uid=String(userId||'');
+  if(!orgId||!uid)return false;
+  const memberships=Array.isArray(platformOrganizationMemberships)?platformOrganizationMemberships:[];
+  return memberships.some(m=>String(m.organization_id||'')===orgId&&String(m.user_id||'')===uid);
+}
 
 function sentMessageBelongsToCurrentTenant(message){
   // Außerhalb des Platform-Admin-Mandantenmodus bleibt das bisherige Verhalten bestehen.
