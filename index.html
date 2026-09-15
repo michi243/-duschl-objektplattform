@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.73</title>
+<title>Duschl Service – Objektplattform v2.20.74</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3422,7 +3422,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.73'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.74'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -3683,11 +3683,29 @@ function renderMessageArchive(){
     box.innerHTML=[...groups.values()].map(group=>{
       const first=group[0]||{};
       const readCount=group.filter(m=>m.read_at).length;
-      const recipients=group.map(m=>m.recipient_name||'Empfänger').join(', ');
-      return `<div class="dashboard-message-card"><div class="dashboard-message-title">${esc(first.title||'Mitteilung')}</div><div class="dashboard-message-meta">${esc(formatUserMessageTime(first.created_at))} · ${group.length} Empfänger · ${readCount}/${group.length} gelesen</div><div class="dashboard-message-text">${esc(first.message||'')}</div><details style="margin-top:8px"><summary>Empfänger anzeigen</summary><div class="muted" style="margin-top:6px">${esc(recipients)}</div></details></div>`;
+      // v2.20.74: Gruppenmitteilungen bleiben im Archiv eine Nachricht, zeigen aber
+      // Lesestatus und Antwort je Empfänger. Dadurch ist jede Antwort eindeutig der
+      // ursprünglichen Sendung und dem antwortenden Empfänger zugeordnet.
+      const recipientRows=group
+        .slice()
+        .sort((a,b)=>String(a.recipient_name||'').localeCompare(String(b.recipient_name||''),'de'))
+        .map(m=>{
+          const name=m.recipient_name||'Empfänger';
+          const role=ROLE_LABELS[m.recipient_role]||m.recipient_role||'Benutzer';
+          const status=m.read_at?`✓ Gelesen ${esc(formatUserMessageTime(m.read_at))}`:'● Ungelesen';
+          const reply=m.reply_text?`<div class="dashboard-message-reply" style="margin-top:6px;padding:8px 10px;border-left:3px solid #4da3ff;background:rgba(255,255,255,.04);border-radius:8px"><div class="dashboard-message-meta"><strong>Antwort von: ${esc(name)} · ${esc(role)}</strong><br>${esc(formatUserMessageTime(m.replied_at))}</div><div class="dashboard-message-text">${esc(m.reply_text)}</div></div>`:'';
+          return `<div style="padding:8px 0;border-top:1px solid rgba(255,255,255,.08)"><div class="dashboard-message-meta"><strong>${esc(name)} · ${esc(role)}</strong><br>${status}</div>${reply}</div>`;
+        }).join('');
+      return `<div class="dashboard-message-card"><div class="dashboard-message-title">${esc(first.title||'Mitteilung')}</div><div class="dashboard-message-meta">${esc(formatUserMessageTime(first.created_at))} · ${group.length} Empfänger · ${readCount}/${group.length} gelesen</div><div class="dashboard-message-text">${esc(first.message||'')}</div><details style="margin-top:8px" ${group.length<=3?'open':''}><summary>Empfänger, Lesestatus & Antworten</summary><div style="margin-top:6px">${recipientRows}</div></details></div>`;
     }).join('');
   }else{
-    box.innerHTML=rows.map(m=>`<div class="dashboard-message-card ${m.read_at?'':'unread'}"><div class="dashboard-message-title">${esc(m.title||'Mitteilung')}</div><div class="dashboard-message-meta"><strong>Von: ${esc(m.sender_name||'Unbekannt')}</strong> · ${esc(formatUserMessageTime(m.created_at))}${m.read_at?' · gelesen':' · ungelesen'}</div><div class="dashboard-message-text">${esc(m.message||'')}</div>${m.reply_text?`<div class="dashboard-message-reply" style="margin-top:8px">Antwort: ${esc(m.reply_text)}</div>`:''}</div>`).join('');
+    box.innerHTML=rows.map(m=>{
+      const replyName=m.recipient_name||'Benutzer';
+      const replyRole=ROLE_LABELS[m.recipient_role]||m.recipient_role||'Benutzer';
+      const reply=m.reply_text?`<div class="dashboard-message-reply" style="margin-top:8px;padding:8px 10px;border-left:3px solid #4da3ff;background:rgba(255,255,255,.04);border-radius:8px"><div class="dashboard-message-meta"><strong>Antwort von: ${esc(replyName)} · ${esc(replyRole)}</strong><br>${esc(formatUserMessageTime(m.replied_at))}</div><div class="dashboard-message-text">${esc(m.reply_text)}</div></div>`:'';
+      const actions=`<div class="dashboard-message-actions">${canReplyToUserMessage(m)?`<button type="button" onclick="replyToUserMessage('${esc(m.id)}');setTimeout(renderMessageArchive,150)">Antworten</button>`:''}${m.recipient_id===currentUserId()&&!m.read_at?`<button type="button" onclick="markUserMessageRead('${esc(m.id)}');setTimeout(renderMessageArchive,150)">Als gelesen markieren</button>`:''}</div>`;
+      return `<div class="dashboard-message-card ${m.read_at?'':'unread'}"><div class="dashboard-message-title">${esc(m.title||'Mitteilung')}</div><div class="dashboard-message-meta"><strong>Von: ${esc(m.sender_name||'Unbekannt')}</strong> · ${esc(formatUserMessageTime(m.created_at))}${m.read_at?' · gelesen':' · ungelesen'}</div><div class="dashboard-message-text">${esc(m.message||'')}</div>${reply}${actions}</div>`;
+    }).join('');
   }
 }
 
