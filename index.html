@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.80</title>
+<title>Duschl Service – Objektplattform v2.20.81</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1482,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.80</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.81</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1501,6 +1501,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <button id="navUsers" onclick="showSection('users')"><span class="nav-icon">♙</span><span>Benutzer &amp; Berechtigungen</span></button>
 </nav>
 <div class="app-menu-actions">
+<button id="headerTenantSwitchBtn" class="hidden" onclick="closeAppMenu();openTenantSwitcher()">⇄ <span>Mandant wechseln</span></button>
 <button id="headerDataBtn" class="hidden" onclick="closeAppMenu();dsOpenDataManagement()">▧ <span>Daten</span></button>
 <button id="globalRefreshBtn" onclick="refreshAllCloudData();closeAppMenu()">↻ <span>Aktualisieren</span></button>
 <button id="headerPasswordBtn" onclick="closeAppMenu();showVoluntaryPasswordChange()">⌘ <span>Passwort ändern</span></button>
@@ -1525,7 +1526,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.80</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.81</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1755,8 +1756,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.80</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.80</span> geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.81</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.81</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3435,7 +3436,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.80'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.81'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -4616,6 +4617,8 @@ let currentUserProfile=null;
 let currentUserRole='';
 let currentOrganizationMembership=null;
 let currentOrganization=null;
+let currentUserMemberships=[];
+const DS_ACTIVE_ORG_KEY='ds_active_organization_id';
 let cloudOrganizations=[];
 let cloudExternalOrders=[];
 let cloudExternalOrderRouteMedia=[];
@@ -4946,9 +4949,28 @@ function formatDocumentationTimestamp(f){
   return d.toLocaleDateString('de-DE')+' · '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
 }
 
+function dsSavedActiveOrganizationId(){try{return localStorage.getItem(DS_ACTIVE_ORG_KEY)||'';}catch(_e){return '';}}
+function dsSetActiveOrganizationId(id){try{id?localStorage.setItem(DS_ACTIVE_ORG_KEY,id):localStorage.removeItem(DS_ACTIVE_ORG_KEY);}catch(_e){}}
+async function dsLoadMembershipOrganizations(memberships=currentUserMemberships){
+  const ids=[...new Set((memberships||[]).map(m=>m.organization_id).filter(Boolean))];
+  if(!ids.length)return [];
+  return await cloudRequest(`organizations?select=id,name,organization_type,public_code,active&id=in.(${ids.map(encodeURIComponent).join(',')})`)||[];
+}
+async function openTenantSwitcher(force=false){
+  if(isAdminRole()&&!force)return;
+  if((currentUserMemberships||[]).length<2&&!force)return;
+  const orgs=await dsLoadMembershipOrganizations(), activeId=currentOrganizationMembership?.organization_id||'';
+  const cards=(currentUserMemberships||[]).map(m=>{const org=orgs.find(o=>o.id===m.organization_id);if(!org)return '';const active=m.organization_id===activeId;return `<button style="width:100%;text-align:left;margin-top:8px;padding:14px" class="${active?'primary':''}" onclick="switchTenantMembership('${esc(m.organization_id)}')"><strong>${esc(org.name||'Mandant')}</strong><span class="muted" style="display:block;margin-top:4px">${esc(roleLabel(m.role))}${active?' · aktuell':''}</span></button>`;}).join('');
+  modal(`<div class="row space"><h2>Mandant auswählen</h2>${force?'':`<button onclick="closeModal()">✕</button>`}</div><p class="muted">Ein Benutzerkonto, ein Passwort. Rechte und Inhalte richten sich nach dem ausgewählten Mandanten.</p>${cards||'<div class="empty">Keine Mandantenzugehörigkeit gefunden.</div>'}`);
+}
+async function switchTenantMembership(organizationId){if(!(currentUserMemberships||[]).some(x=>x.organization_id===organizationId))return alert('Mandantenzugehörigkeit wurde nicht gefunden.');dsSetActiveOrganizationId(organizationId);location.reload();}
+async function dsTryLinkExistingUser(email,organizationId,role){
+  try{const r=await cloudRequest('rpc/link_existing_user_membership_by_email',{method:'POST',body:JSON.stringify({p_email:String(email||'').trim().toLowerCase(),p_organization_id:organizationId,p_role:role})});return (Array.isArray(r)?r[0]:r)||null;}
+  catch(e){const m=String(e?.message||e||'');if(/link_existing_user_membership_by_email|PGRST202|404/i.test(m))return null;throw e;}
+}
 async function cloudLoadCurrentProfile(){
   if(!cloudSession?.access_token){
-    currentUserProfile=null;currentUserRole='';currentOrganizationMembership=null;currentOrganization=null;return null;
+    currentUserProfile=null;currentUserRole='';currentOrganizationMembership=null;currentOrganization=null;currentUserMemberships=[];return null;
   }
   const uid=cloudSession?.user?.id;
   if(!uid)throw new Error('Benutzer-ID der Supabase-Sitzung fehlt.');
@@ -4969,15 +4991,18 @@ async function cloudLoadCurrentProfile(){
 
   try{
     const memberships=await cloudRequest(`organization_memberships?select=id,organization_id,user_id,role&user_id=eq.${encodeURIComponent(uid)}`)||[];
+    currentUserMemberships=[...memberships];
     const membershipPriority={tenant_admin:1,admin_delegate:2,property_manager:3,external_contractor:4,object_manager:5,customer:6};
-    currentOrganizationMembership=[...memberships].sort((a,b)=>
-      (membershipPriority[String(a?.role||'').toLowerCase()]||99)-
-      (membershipPriority[String(b?.role||'').toLowerCase()]||99)
-    )[0]||null;
+    const savedOrgId=dsSavedActiveOrganizationId();
+    currentOrganizationMembership=currentUserMemberships.find(m=>m.organization_id===savedOrgId)||[...currentUserMemberships].sort((a,b)=>(membershipPriority[String(a?.role||'').toLowerCase()]||99)-(membershipPriority[String(b?.role||'').toLowerCase()]||99))[0]||null;
     if(currentOrganizationMembership?.organization_id){
+      dsSetActiveOrganizationId(currentOrganizationMembership.organization_id);
       const orgRows=await cloudRequest(`organizations?select=id,name,organization_type,public_code,active&id=eq.${encodeURIComponent(currentOrganizationMembership.organization_id)}&limit=1`);
       currentOrganization=orgRows?.[0]||null;
     }
+    const switchBtn=document.getElementById('headerTenantSwitchBtn');
+    if(switchBtn)switchBtn.classList.toggle('hidden',isAdminRole()||currentUserMemberships.length<2);
+    if(!isAdminRole()&&currentUserMemberships.length>1&&!savedOrgId)setTimeout(()=>openTenantSwitcher(true),250);
   }catch(e){
     console.warn('Mandantenkontext konnte nicht geladen werden',e);
     // Plattform-Admins arbeiten global weiter. Bei Mandantenrollen ist der
@@ -9103,30 +9128,17 @@ function openTenantAdminModal(orgId){
 }
 async function createTenantAdminForOrganization(organizationId,providedName='',providedEmail=''){
   if(!isAdminRole())throw new Error('Nur der Plattformadministrator darf den initialen Mandanten-Admin anlegen.');
-  const fullName=(providedName||document.getElementById('orgAdminName')?.value||'').trim();
-  const email=(providedEmail||document.getElementById('orgAdminEmail')?.value||'').trim().toLowerCase();
+  const fullName=(providedName||document.getElementById('orgAdminName')?.value||'').trim(),email=(providedEmail||document.getElementById('orgAdminEmail')?.value||'').trim().toLowerCase();
   if(!fullName)throw new Error('Bitte einen Anzeigenamen für den Mandanten-Admin eingeben.');
-  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new Error('Bitte eine gültige E-Mail-Adresse für den Mandanten-Admin eingeben.');
-  const res=await fetch(`${SUPABASE_URL}/functions/v1/invite-user`,{
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':`Bearer ${cloudSession?.access_token||''}`,'apikey':SUPABASE_PUBLISHABLE_KEY},
-    body:JSON.stringify({fullName,email,role:'object_manager',objectIds:[]})
-  });
-  const responseText=await res.text();
-  let data={};
-  try{data=responseText?JSON.parse(responseText):{};}catch{}
-  if(!res.ok || data?.ok===false)throw new Error(data?.error||responseText||`HTTP ${res.status}`);
-  if(!data?.initialPassword)throw new Error('Initialpasswort wurde von der Benutzerfunktion nicht zurückgegeben.');
-  const profiles=await cloudRequest(`profiles?select=id,email,role&email=eq.${encodeURIComponent(email)}&limit=1`);
-  const profile=profiles?.[0];
-  if(!profile?.id)throw new Error('Benutzer wurde angelegt, das Profil konnte aber nicht gefunden werden.');
-  await cloudRequest('organization_memberships',{
-    method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},
-    body:JSON.stringify({organization_id:organizationId,user_id:profile.id,role:'tenant_admin'})
-  });
-  await cloudLoadOrganizations();
-  showInitialPasswordResult(data.email||email,data.initialPassword);
-  return profile;
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new Error('Bitte eine gültige E-Mail-Adresse für den Mandanten-Admin eingeben.');
+  const existing=await dsTryLinkExistingUser(email,organizationId,'tenant_admin');
+  if(existing?.found===true||existing?.user_id){await cloudLoadOrganizations();alert(`Bestehender Benutzer wurde als Mandanten-Admin hinzugefügt.\n\nBenutzer: ${email}\nDas bestehende Passwort bleibt unverändert.`);return {id:existing.user_id,email};}
+  const res=await fetch(`${SUPABASE_URL}/functions/v1/invite-user`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${cloudSession?.access_token||''}`,'apikey':SUPABASE_PUBLISHABLE_KEY},body:JSON.stringify({fullName,email,role:'object_manager',objectIds:[]})});
+  const responseText=await res.text();let data={};try{data=responseText?JSON.parse(responseText):{};}catch{}
+  if(!res.ok||data?.ok===false)throw new Error(data?.error||responseText||`HTTP ${res.status}`);if(!data?.initialPassword)throw new Error('Initialpasswort wurde von der Benutzerfunktion nicht zurückgegeben.');
+  const profiles=await cloudRequest(`profiles?select=id,email,role&email=eq.${encodeURIComponent(email)}&limit=1`),profile=profiles?.[0];if(!profile?.id)throw new Error('Benutzer wurde angelegt, das Profil konnte aber nicht gefunden werden.');
+  await cloudRequest('organization_memberships',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({organization_id:organizationId,user_id:profile.id,role:'tenant_admin'})});
+  await cloudLoadOrganizations();showInitialPasswordResult(data.email||email,data.initialPassword);return profile;
 }
 async function saveOrganization(id=''){
   if(!requireAdminUI(id?'Unternehmen bearbeiten':'Unternehmen anlegen'))return;
@@ -11152,42 +11164,29 @@ async function createUserAndInvite(){
   const btn=event?.currentTarget;
   if(btn){btn.disabled=true;btn.textContent='Benutzer wird angelegt…';}
   try{
-    const res=await fetch(`${SUPABASE_URL}/functions/v1/invite-user`,{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization':`Bearer ${cloudSession?.access_token||''}`,
-        'apikey':SUPABASE_PUBLISHABLE_KEY
-      },
-      body:JSON.stringify({fullName,email,role:(role==='property_manager'?'customer':(['tenant_admin','admin_delegate','external_contractor'].includes(role)?'object_manager':role)),objectIds})
-    });
-
-    const responseText=await res.text();
-    let data={};
-    try{data=responseText?JSON.parse(responseText):{};}catch{}
-    if(!res.ok || data?.ok===false)throw new Error(data?.error||responseText||`HTTP ${res.status}`);
-    if(!data?.initialPassword)throw new Error('Initialpasswort wurde von der Benutzerfunktion nicht zurückgegeben.');
-
-    // Die bestehende Edge Function kennt nur Objektbetreuer/Auftraggeber.
-    // Testbenutzer wird unmittelbar danach serverseitig im Profil gesetzt; das Profil ist für die App maßgeblich.
-    const profiles=await cloudRequest(`profiles?select=id,email,role&email=eq.${encodeURIComponent(email)}&limit=1`);
-    const profile=profiles?.[0];
-    if(!profile?.id)throw new Error('Benutzer wurde angelegt, das Profil konnte aber nicht gefunden werden.');
+    const existing=await dsTryLinkExistingUser(email,organizationId,role);
+    let data={},profile=null;
+    if(existing?.found===true||existing?.user_id){profile={id:existing.user_id,email};data={email,existingUser:true};}
+    else{
+      const res=await fetch(`${SUPABASE_URL}/functions/v1/invite-user`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${cloudSession?.access_token||''}`,'apikey':SUPABASE_PUBLISHABLE_KEY},body:JSON.stringify({fullName,email,role:(role==='property_manager'?'customer':(['tenant_admin','admin_delegate','external_contractor'].includes(role)?'object_manager':role)),objectIds})});
+      const responseText=await res.text();try{data=responseText?JSON.parse(responseText):{};}catch{}
+      if(!res.ok||data?.ok===false)throw new Error(data?.error||responseText||`HTTP ${res.status}`);
+      if(!data?.initialPassword)throw new Error('Initialpasswort wurde von der Benutzerfunktion nicht zurückgegeben.');
+      const profiles=await cloudRequest(`profiles?select=id,email,role&email=eq.${encodeURIComponent(email)}&limit=1`);profile=profiles?.[0];
+      if(!profile?.id)throw new Error('Benutzer wurde angelegt, das Profil konnte aber nicht gefunden werden.');
+    }
     if(role==='test_user'){
       await cloudRequest(`profiles?id=eq.${encodeURIComponent(profile.id)}`,{
         method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({role:'test_user'})
       });
     }
-    await cloudRequest('organization_memberships',{
-      method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},
-      body:JSON.stringify({organization_id:organizationId,user_id:profile.id,role})
-    });
+    if(!data.existingUser)await cloudRequest('organization_memberships',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({organization_id:organizationId,user_id:profile.id,role})});
 
     document.getElementById('newUserFullName').value='';
     document.getElementById('newUserEmail').value='';
 
     await loadUserAdminData();
-    showInitialPasswordResult(data.email||email,data.initialPassword);
+    if(data.existingUser)alert(`Bestehender Benutzer wurde diesem Mandanten hinzugefügt.\n\nBenutzer: ${email}\nDas bestehende Passwort bleibt unverändert.`);else showInitialPasswordResult(data.email||email,data.initialPassword);
   }catch(e){
     console.error(e);
     alert('Benutzeranlage fehlgeschlagen: '+(e?.message||e));
