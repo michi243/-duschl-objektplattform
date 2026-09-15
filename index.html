@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.75</title>
+<title>Duschl Service – Objektplattform v2.20.76</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -672,6 +672,19 @@ body.platform-menu-mode #organizationList{
 /* v2.20.39 Partnerverzeichnis – konsistentes Dark-UI */
 .partner-directory-head{align-items:flex-start;gap:16px;flex-wrap:wrap}.partner-directory-head h2{margin:0 0 6px}.partner-directory-head .muted{color:#9fb0c1}.partner-directory-own{margin:16px 0 22px;padding:18px 20px;border:1px solid #1976d2;border-radius:20px;background:linear-gradient(135deg,rgba(17,65,104,.38),rgba(8,28,42,.88));box-shadow:0 10px 28px rgba(0,0,0,.16)}.partner-directory-own strong{display:block;margin-bottom:6px;color:#f4f8fc;font-size:1.05rem;line-height:1.35}.partner-directory-own .muted{color:#9fb0c1}.partner-directory-filter{margin:18px 0 24px!important;padding:18px!important;border:1px solid #2d4d61!important;border-radius:22px!important;background:linear-gradient(160deg,#0b1d29,#071621)!important;box-shadow:0 10px 28px rgba(0,0,0,.18)!important}.partner-directory-filter label{color:#f3f7fb;font-weight:700}.partner-directory-filter input,.partner-directory-filter select{background:#071722!important;color:#f2f7fb!important;border:1px solid #33566c!important;border-radius:15px!important;box-shadow:none!important}.partner-directory-filter input::placeholder{color:#879bad!important;opacity:1}.partner-directory-filter select option{background:#071722;color:#f2f7fb}.partner-directory-filter-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px}.partner-directory-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:18px}.partner-directory-card{border:1px solid #2d4d61!important;border-radius:24px!important;background:linear-gradient(155deg,#0b1d29 0%,#07151f 100%)!important;color:#eef4f8!important;padding:22px!important;box-shadow:0 14px 34px rgba(0,0,0,.22)!important}.partner-directory-card-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.partner-directory-card h3{margin:0;color:#f7fbff!important;font-size:1.45rem;line-height:1.2}.partner-directory-card .muted{color:#9fb0c1!important;margin-top:4px}.partner-directory-badges{display:flex;gap:9px;flex-wrap:wrap;margin:16px 0 18px}.partner-directory-badge{display:inline-flex;align-items:center;border:1px solid #2d8cff;border-radius:999px;padding:7px 12px;font-size:.82rem;font-weight:750;background:rgba(34,123,255,.12);color:#f3f8ff}.partner-directory-badge.available{border-color:#22c66f;background:rgba(25,175,94,.10);color:#9df2c2}.partner-directory-badge.available:before{content:'●';margin-right:7px;color:#32db7d;font-size:.72em}.partner-directory-scope-list{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid #203a4d}.partner-directory-scope{padding:0;background:transparent!important;border-radius:0;font-size:.95rem;color:#9fb0c1}.partner-directory-scope:before{content:'🛠';margin-right:8px;filter:grayscale(1);opacity:.8}.partner-directory-meta{display:grid;gap:8px;margin-top:16px;color:#c8d5df}.partner-directory-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.partner-directory-actions button{background:#071722!important;color:#f4f8fb!important;border:1px solid #33566c!important;border-radius:14px!important;font-weight:750!important;box-shadow:none!important}.partner-directory-actions button:hover{border-color:#3f92d2!important;background:#0b2130!important}.partner-directory-disclaimer{font-size:12px;margin-top:16px;color:#899cab}.directory-scope-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:8px 0 14px}.directory-scope-picker label{display:flex;gap:8px;align-items:flex-start;padding:9px;border:1px solid var(--line,#284457);border-radius:12px}.directory-scope-picker input{width:auto;margin:3px 0 0}.directory-profile-toggle{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:13px;border:1px solid var(--line,#284457);border-radius:14px;margin:10px 0}.directory-profile-toggle input{width:auto}
 @media(max-width:720px){.partner-directory-head{display:block}.partner-directory-head #partnerDirectoryEditOwnBtn{margin-top:16px;width:auto}.partner-directory-filter-grid{grid-template-columns:1fr}.directory-scope-picker{grid-template-columns:1fr}.partner-directory-card{padding:20px!important}.partner-directory-badges{gap:8px}.partner-directory-badge{font-size:.78rem}.partner-directory-actions button{min-height:48px}}
+
+/* v2.20.76 – einheitliche Informationshierarchie für Vorgangskarten.
+   Rein visuelles Refactoring: bestehende Handler/Berechtigungsprüfungen bleiben unverändert. */
+.ticket-process{margin-top:10px;padding:10px 12px;border:1px solid rgba(148,163,184,.20);border-radius:14px;background:rgba(76,154,255,.045)}
+.ticket-process-line{font-weight:700;line-height:1.35}.ticket-process-sub{margin-top:3px;font-size:.94em}
+.ticket-origin{margin-top:10px;padding:9px 11px;border:1px solid rgba(148,163,184,.16);border-radius:12px}
+.ticket-details{margin-top:10px;padding:0;border:1px solid rgba(148,163,184,.20);border-radius:14px;overflow:hidden}
+.ticket-details>summary{cursor:pointer;font-weight:700;padding:11px 13px;list-style:none}.ticket-details>summary::-webkit-details-marker{display:none}
+.ticket-details>summary:before{content:'›';display:inline-block;margin-right:7px;transition:transform .15s}.ticket-details[open]>summary:before{transform:rotate(90deg)}
+.ticket-details-body{padding:0 13px 12px}.ticket-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.ticket-actions-more{margin-top:8px}
+.ticket-actions-more>summary{cursor:pointer;display:inline-block;padding:9px 13px;border:1px solid var(--line,#294454);border-radius:12px;font-weight:700;list-style:none}.ticket-actions-more>summary::-webkit-details-marker{display:none}
+.ticket-actions-more .row{margin-top:8px}
+@media(max-width:600px){.ticket-actions>button,.ticket-actions-more .row>button{min-height:44px}.ticket-process{padding:9px 11px}}
 </style>
 <style>
 .object-file{border:1px solid #dfe5e8;border-radius:14px;background:#fff;margin-bottom:14px;overflow:hidden}
@@ -1469,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.75</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.76</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1512,7 +1525,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.75</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.76</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1742,8 +1755,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.75</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.75</span> geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.76</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.76</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3422,7 +3435,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.75'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.76'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -3683,7 +3696,7 @@ function renderMessageArchive(){
     box.innerHTML=[...groups.values()].map(group=>{
       const first=group[0]||{};
       const readCount=group.filter(m=>m.read_at).length;
-      // v2.20.75: Gruppenmitteilungen bleiben im Archiv eine Nachricht, zeigen aber
+      // v2.20.76: Gruppenmitteilungen bleiben im Archiv eine Nachricht, zeigen aber
       // Lesestatus und Antwort je Empfänger. Dadurch ist jede Antwort eindeutig der
       // ursprünglichen Sendung und dem antwortenden Empfänger zugeordnet.
       const recipientRows=group
@@ -7432,7 +7445,7 @@ function renderExternalOrders(){
     const childContext=childOrders.length?`<div class="muted" style="margin-top:8px"><strong>Weitervergeben:</strong> ${childOrders.map(c=>`${esc(partnerName(c.executor_organization_id))} · ${esc(externalOrderStatusLabel(c.status))}`).join(' · ')}</div>`:'';
     const needKey=externalOrderWorkFilterKey(x,orgId);
     const needLabel={new:'Neu eingegangen',decision:'Entscheidung erforderlich',in_progress:'In Bearbeitung',completed_pending:'Erledigt gemeldet',rework:'Nacharbeit erforderlich',closed:'Abgeschlossen'}[needKey]||externalOrderLifecycleLabel(x);
-    return `<div class="card" data-external-order-id="${esc(x.id)}" style="margin:10px 0"><div class="row space"><div><span class="badge">${direction}</span>${routeBadge}${hierarchyBadge} ${badgeP(x.priority||'P3')}</div><span class="badge">${esc(needLabel)}</span></div><h3 style="margin:10px 0 4px">${esc(x.title||'Externer Auftrag')}</h3><div class="muted">${esc(other)} · ${esc(x.source_object_name||'Objekt')}${x.source_object_address?` · ${esc(x.source_object_address)}`:''}</div>${routeContext}${externalOrderReporterHtml(x)}${x.description?`<div style="margin-top:9px">${esc(x.description)}</div>`:''}${externalOrderResidentMediaHtml(x)}${externalOrderRouteMediaHtml(x.id)}${assignedName?`<div class="muted" style="margin-top:8px">Verantwortlich: <strong>${esc(assignedName)}</strong></div>`:''}${childContext}<div class="muted" style="margin-top:8px">Erstellt: ${esc(fmt(x.created_at))}</div>${ticketTimelineForExternalOrder(x)}${actions}</div>`;
+    return `<div class="card" data-external-order-id="${esc(x.id)}" style="margin:10px 0"><div class="row space"><div><span class="badge">${direction}</span>${routeBadge}${hierarchyBadge} ${badgeP(x.priority||'P3')}</div><span class="badge">${esc(needLabel)}</span></div><h3 style="margin:10px 0 4px">${esc(x.title||'Externer Auftrag')}</h3><div class="muted">${esc(other)} · ${esc(x.source_object_name||'Objekt')}${x.source_object_address?` · ${esc(x.source_object_address)}`:''}</div>${routeContext}${externalOrderReporterHtml(x)}${x.description?`<div style="margin-top:9px">${esc(x.description)}</div>`:''}${externalOrderResidentMediaHtml(x)}${externalOrderRouteMediaHtml(x.id)}${assignedName?`<div class="muted" style="margin-top:8px">Verantwortlich: <strong>${esc(assignedName)}</strong></div>`:''}${childContext}<details class="ticket-details"><summary>Details & Chronik</summary><div class="ticket-details-body"><div class="muted" style="margin-top:8px">Erstellt: ${esc(fmt(x.created_at))}</div>${ticketTimelineForExternalOrder(x)}</div></details>${actions?`<details class="ticket-actions-more"><summary>Weitere Aktionen</summary>${actions}</details>`:''}</div>`;
   }).join('');
   hydrateResidentReportImages(list).catch(e=>console.warn('Meldungsfotos im Dienstleisterauftrag konnten nicht geladen werden',e));
 }
@@ -7727,7 +7740,7 @@ async function syncExternalRouteDocumentation(orderId,findingId,completed){
   });
 }
 
-// v2.20.75: Der Auftraggeber behält auch nach automatischem/manuellem Routing die fachliche Hoheit.
+// v2.20.76: Der Auftraggeber behält auch nach automatischem/manuellem Routing die fachliche Hoheit.
 // Eine externe Vergabe kann bis zum Abschluss zurückgezogen werden. Die Historie bleibt erhalten.
 function canWithdrawExternalOrder(order){
   if(!order)return false;
@@ -11923,20 +11936,27 @@ function findingCard(f){
       ? (canEditFindingUI(f)?`<button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}')">Dokumentation öffnen</button>`:`<button onclick="openFindingReadOnly('${f.id}')">Dokumentation ansehen</button>`)
       : (canEditFindingUI(f)?`<button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}')">Bearbeiten</button>${!findingHasVerifiedRoute(f.id)?`<button onclick="openFindingModal('${f.objectId}','${f.inspectionId||''}','${f.id}',true)">Abschließen</button>`:''}`:`<span class="muted">Nur durch Ersteller, zugewiesenen Objektbetreuer oder Admin/GF änderbar.</span>`);
   const routeAction=(!externallyOwned && f.status!=='Erledigt'&&canRouteFindingUI(f))?`<button onclick="openRouteFindingModal('${f.id}')">Weiterleiten / routen</button>`:'';
+  const compactProcess=externallyOwned
+    ? `<div class="ticket-process"><div class="ticket-process-line">→ ${esc(externalExecutor)} · ${esc(externalLifecycle||'Extern vergeben')}</div><div class="ticket-process-sub muted">Externe Bearbeitung</div>${externalOrderWithdrawButton(responsibilityOrder)?`<div class="row" style="margin-top:8px">${externalOrderWithdrawButton(responsibilityOrder)}</div>`:''}</div>`
+    : (type==='Feststellung'&&findingHasVerifiedRoute(f.id))
+      ? `<div class="ticket-process"><div class="ticket-process-line">Vorgang abgeschlossen</div></div>`
+      : '';
+  const detailMeta=`${findingCreatorMetaHtml(f)}${type==='Feststellung'?`<div class="muted">Entscheidung: ${esc(decisionLabel(f.decisionStatus||'pending'))}</div>${decisionMetaHtml(f)}${findingRouteMetaHtml(f)}`:''}${residentRouteOriginHtmlForFinding(f,true)}`;
+  const primaryAction=actionHtml.match(/<button[\s\S]*?<\/button>/)?.[0]||'';
+  const secondaryActions=actionHtml.replace(primaryAction,'')+routeAction;
   return `<div class="card finding" data-priority="${f.priority||'P4'}">
     <div class="row space"><div><span class="badge">${esc(type)}</span> ${type==='Feststellung'?badgeP(f.priority||'P3'):''} ${statusHtml}</div><small class="muted">${fmt(f.createdAt)}</small></div>
     <h3 style="margin-bottom:5px">${esc(f.title)}</h3>
     <div class="muted">${esc(objectName(f.objectId))}${f.area?' · '+esc(f.area):''}${f.areaDetail?' · '+esc(f.areaDetail):''}</div>
-    ${findingCreatorMetaHtml(f)}
-    ${type==='Feststellung'?`<div class="muted">Entscheidung: ${esc(decisionLabel(f.decisionStatus||'pending'))}</div>${decisionMetaHtml(f)}${findingRouteMetaHtml(f)}${externalResponsibilityHtml}`:''}
-    ${(before||after)?`<div class="row" style="margin-top:10px">${before?`<div><small class="muted">${residentReportIdForFinding(f)?'Dienstleister · Arbeitsbeginn':'Vorher'}</small><br>${mediaImg(before,'Ausgangszustand','thumb')}</div>`:''}${after?`<div><small class="muted">${residentReportIdForFinding(f)?'Dienstleister · nach Ausführung':'Nachher'}</small><br>${mediaImg(after,'Nachher','thumb')}</div>`:''}</div>`:''}
+    ${compactProcess}
     ${f.description?`<p>${esc(f.description)}</p>`:''}
+    ${(before||after)?`<div class="row" style="margin-top:10px">${before?`<div><small class="muted">${residentReportIdForFinding(f)?'Dienstleister · Arbeitsbeginn':'Vorher'}</small><br>${mediaImg(before,'Ausgangszustand','thumb')}</div>`:''}${after?`<div><small class="muted">${residentReportIdForFinding(f)?'Dienstleister · nach Ausführung':'Nachher'}</small><br>${mediaImg(after,'Nachher','thumb')}</div>`:''}</div>`:''}
     ${type==='Leistung'&&f.activity?`<p><b>Durchgeführt:</b> ${esc(f.activity)}</p>`:''}
     ${type==='Feststellung'&&f.action?`<p><b>Empfehlung:</b> ${esc(f.action)}</p>`:''}
     ${f.status==='Erledigt'&&f.completionType?`<p><b>Abschluss:</b> ${esc(f.completionType)}${f.completionNote?' – '+esc(f.completionNote):''}</p>`:''}
-    ${residentRouteOriginHtmlForFinding(f,true)}
-    ${ticketTimelineForFinding(f,(db.tasks||[]).find(t=>t.findingId===f.id)||null)}
-    <div class="row">${actionHtml}${routeAction}</div>
+    <details class="ticket-details"><summary>Details & Chronik</summary><div class="ticket-details-body">${detailMeta}${ticketTimelineForFinding(f,(db.tasks||[]).find(t=>t.findingId===f.id)||null)}</div></details>
+    <div class="ticket-actions">${primaryAction}</div>
+    ${secondaryActions?`<details class="ticket-actions-more"><summary>Weitere Aktionen</summary><div class="row">${secondaryActions}</div></details>`:''}
   </div>`;
 }
 let customerCurrentObjectId='';
@@ -11996,7 +12016,7 @@ function pendingAtOwnerDocumentationCard(f){
       <div class="muted" style="margin-top:4px"><strong>Status:</strong> Entscheidung ausstehend</div>
       <div class="muted" style="margin-top:8px">Aktuell keine Aktion durch ${esc(currentOrganization?.name||organizationName(currentOrganizationId())||'diesen Mandanten')} erforderlich.</div>
     </div>
-    ${ticketTimelineHtml(f)}
+    <details class="ticket-details"><summary>Details & Chronik</summary><div class="ticket-details-body">${ticketTimelineHtml(f)}</div></details>
     <div class="row" style="margin-top:12px"><button type="button" onclick="openFindingModal('${esc(f.objectId||'')}','', '${esc(f.id)}')">Dokumentation öffnen</button></div>
   </div>`;
 }
@@ -12025,17 +12045,16 @@ function externalMonitoringDocumentationCard(x){
     </div>
     <h3 style="margin-bottom:5px">${esc(title)}</h3>
     <div class="muted">${esc(objectName)}${area?` · ${esc(area)}`:''}</div>
-    ${sourceOrg?`<div class="muted" style="margin-top:4px">Auftraggeber: <strong>${esc(sourceOrg)}</strong></div>`:''}
-    ${reporterOrg?externalOrderReporterHtml(x):''}
-    <div class="card" style="margin-top:12px;padding:12px 14px;border-color:rgba(76,154,255,.38);background:rgba(76,154,255,.07)">
+    
+    <div class="ticket-process">
       <div style="font-weight:700">Extern vergeben an ${esc(executor)}</div>
       <div class="muted" style="margin-top:4px"><strong>Status:</strong> ${esc(statusLabel)}</div>
       <div class="muted" style="margin-top:4px">Aktuell keine Aktion durch ${esc(currentOrganization?.name||'diesen Mandanten')} erforderlich.</div>
       ${externalOrderWithdrawButton(x)?`<div class="row" style="margin-top:10px">${externalOrderWithdrawButton(x)}</div>`:''}
     </div>
     ${description?`<p><b>Auftrag:</b> ${esc(description)}</p>`:''}
-    ${ticketTimelineForExternalOrder(x)}
-    <div class="row">
+    <details class="ticket-details"><summary>Details & Chronik</summary><div class="ticket-details-body">${sourceOrg?`<div class="muted" style="margin-top:4px">Auftraggeber: <strong>${esc(sourceOrg)}</strong></div>`:''}${reporterOrg?externalOrderReporterHtml(x):''}${ticketTimelineForExternalOrder(x)}</div></details>
+    <div class="ticket-actions">
       ${localFinding?`<button type="button" onclick="openFindingModal('${esc(localFinding.objectId||'')}','', '${esc(localFinding.id)}')">Dokumentation öffnen</button>`:`<button type="button" onclick="openExternalOrderById('${esc(x.id)}')">Vorgang öffnen</button>`}
     </div>
   </div>`;
