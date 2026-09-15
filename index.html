@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.79</title>
+<title>Duschl Service – Objektplattform v2.20.80</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1482,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.79</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.80</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1525,7 +1525,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.79</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.80</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1755,8 +1755,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.79</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.79</span> geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.80</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.80</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3435,7 +3435,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.79'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.80'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -4072,6 +4072,7 @@ let publicResidentObjectId='';
 let publicResidentAreaId='';
 let publicResidentAreaName='';
 let publicResidentAreas=[];
+let publicResidentObjectType='building';
 
 function validUuid(raw=''){
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test((raw||'').trim());
@@ -4099,6 +4100,22 @@ async function loadPublicResidentReportContext(){
       box.innerHTML=`<strong>${esc(ctx.object_name||'Objekt')}</strong>`;
       box.style.display='block';
     }
+    try{
+      const pr=await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_public_object_profile`,{
+        method:'POST',headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},
+        body:JSON.stringify({p_object_id:publicResidentObjectId})
+      });
+      if(pr.ok){
+        const pdata=await pr.json();
+        publicResidentObjectType=String(pdata?.object_type||'building');
+        const cp=dsObjectTypeProfile(publicResidentObjectType);
+        const cat=document.getElementById('prCategory');
+        if(cat)cat.innerHTML='<option value="">Bitte auswählen</option>'+cp.categories.map(c=>`<option>${esc(c)}</option>`).join('');
+        const loc=document.getElementById('prLocation');
+        if(loc && publicResidentObjectType==='fountain')loc.placeholder='z. B. Nordseite am Beckenrand (optional)';
+        else if(loc && publicResidentObjectType==='bus_stop')loc.placeholder='z. B. Fahrtrichtung Zentrum, linke Seite (optional)';
+      }
+    }catch(_e){}
     const ar=await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_public_report_areas`,{
       method:'POST',
       headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},
@@ -6594,6 +6611,20 @@ function renderDashboardCareRequests(){
   if(count)count.textContent=`${pending.length} offen`;
   box.innerHTML=pending.map(c=>`<div class="dashboard-message-card unread"><div class="dashboard-message-title">Betreuungsanfrage: ${esc(c.object_name||'Objekt')}</div><div class="dashboard-message-meta"><strong>Von: ${esc(c.owner_organization_name||'Mandant')}</strong>${c.owner_public_code?` · ${esc(c.owner_public_code)}`:''}<br>${c.requested_at?esc(new Date(c.requested_at).toLocaleString('de-DE')):''}</div><div class="dashboard-message-text"><strong>Leistungsumfänge:</strong><div style="margin-top:5px">${collaborationScopesHtml(c)}</div></div><div class="dashboard-message-actions"><button class="primary" onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',true)">Annehmen</button><button onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',false)">Ablehnen</button></div></div>`).join('');
 }
+
+function dsRecommendedScopeCodesForObject(o){
+  const t=dsObjectTypeOf(o);
+  const map={
+    fountain:['ELEKTRO','SANITAER','REINIGUNG','SONSTIGE'],
+    bus_stop:['REINIGUNG','ELEKTRO','ABFALL','MALER','SONSTIGE'],
+    playground:['GRUENPFLEGE','REINIGUNG','MALER','SONSTIGE'],
+    green_space:['GRUENPFLEGE','REINIGUNG','ABFALL','ELEKTRO','SONSTIGE'],
+    street:['ELEKTRO','REINIGUNG','WINTERDIENST','SONSTIGE'],
+    municipal_building:['OBJEKTBETREUUNG','REINIGUNG','ELEKTRO','SANITAER','HEIZUNG','AUFZUG','TUER_TOR','SCHLIESSANLAGE','BRANDSCHUTZ','WINTERDIENST','GRUENPFLEGE','ABFALL','SONSTIGE'],
+    hotel:['OBJEKTBETREUUNG','REINIGUNG','ELEKTRO','SANITAER','HEIZUNG','AUFZUG','TUER_TOR','SCHLIESSANLAGE','BRANDSCHUTZ','GRUENPFLEGE','ABFALL','SONSTIGE']
+  };
+  return new Set((map[t]||[]).map(canonicalServiceScopeCode));
+}
 async function openObjectCollaborationModal(preselectedObjectId=''){
   if(!hasOperationalAdminAccess())return alert('Nur Mandanten-Admin oder Admin-Vertretung können Objektbetreuungen vergeben.');
   await Promise.all([cloudLoadObjectCollaborations(false),cloudLoadServiceScopeCatalog()]);
@@ -6608,8 +6639,11 @@ async function openObjectCollaborationModal(preselectedObjectId=''){
     return (ai<0?999:ai)-(bi<0?999:bi)||a.localeCompare(b,'de');
   });
   const scopeHtml=`<div class="soc-selected-summary"><div class="soc-selected-summary-head"><strong>Ausgewählte Leistungen</strong><div class="row" style="gap:6px"><span class="soc-scope-count" id="socSelectedScopeCount">0 ausgewählt</span><button type="button" style="padding:5px 8px;font-size:11px" onclick="clearCollaborationScopeSelection()">Auswahl löschen</button></div></div><div class="soc-selected-chips" id="socSelectedScopes"><span class="muted">Noch kein Leistungsumfang ausgewählt.</span></div></div><div class="soc-scope-groups">${groups.map((group,idx)=>{
-    const rows=cloudServiceScopeCatalog.filter(x=>normalizeServiceScopeCategory(x.category)===group);
-    return `<details class="soc-scope-group" ${idx===0?'open':''}><summary><span>${esc(group)}</span><span class="soc-scope-count">${rows.length} Leistungen</span></summary><div class="soc-scope-grid">${rows.map(x=>`<label class="soc-scope-option" data-scope-code="${esc(x.code)}"><input class="soc-scope-check" type="checkbox" value="${esc(x.code)}" onchange="updateCollaborationScopeSummary()"><span class="soc-scope-option-copy"><span>${esc(x.name)}</span><span class="soc-scope-conflict" style="display:none"></span></span></label>`).join('')}</div></details>`;
+    const currentObject=(db.objects||[]).find(o=>o.id===selected);
+    const recommended=dsRecommendedScopeCodesForObject(currentObject);
+    const rows=cloudServiceScopeCatalog.filter(x=>normalizeServiceScopeCategory(x.category)===group)
+      .sort((a,b)=>(recommended.has(canonicalServiceScopeCode(b.code))?1:0)-(recommended.has(canonicalServiceScopeCode(a.code))?1:0));
+    return `<details class="soc-scope-group" ${idx===0?'open':''}><summary><span>${esc(group)}</span><span class="soc-scope-count">${rows.length} Leistungen</span></summary><div class="soc-scope-grid">${rows.map(x=>`<label class="soc-scope-option" data-scope-code="${esc(x.code)}"><input class="soc-scope-check" type="checkbox" value="${esc(x.code)}" onchange="updateCollaborationScopeSummary()"><span class="soc-scope-option-copy"><span>${esc(x.name)}${recommended.has(canonicalServiceScopeCode(x.code))?' · empfohlen':''}</span><span class="soc-scope-conflict" style="display:none"></span></span></label>`).join('')}</div></details>`;
   }).join('')}</div>`;
   document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Betreuung vergeben</h2><p class="muted">Ein Partner wird je Objekt nur einmal angebunden. Unter dieser Beziehung können mehrere Leistungsumfänge gleichzeitig hinterlegt werden.</p><label>Objekt *</label><select id="socObject" onchange="refreshObjectCollaborationHint();refreshObjectCollaborationScopeSelection()">${objs.map(o=>`<option value="${esc(o.id)}" ${o.id===selected?'selected':''}>${esc(o.name)}</option>`).join('')}</select><div id="socExistingHint" class="muted" style="margin-top:6px">${existing.length?`Bestehende Betreuung: ${existing.map(c=>`${esc(c.service_organization_name||'Partnerunternehmen')}${c.service_public_code?' · '+esc(c.service_public_code):''} · ${esc(c.status==='pending'?'Offen':c.status==='active'?'Aktiv':c.status==='cancelled'?'Beendet':c.status==='rejected'?'Abgelehnt':c.status||'—')}`).join('<br>')}`:'Noch keine Betreuung für dieses Objekt.'}</div><label>Mandanten-ID des Dienstleisters *</label><input id="socPartnerCode" autocomplete="off" autocapitalize="characters" placeholder="z. B. DS-7K4P9X" style="text-transform:uppercase" oninput="refreshObjectCollaborationScopeSelection()"><div id="socRelationState" class="muted" style="margin-top:5px">Besteht für Objekt und Dienstleister bereits eine Beziehung, werden deren aktuelle Leistungsumfänge automatisch geladen und aktualisiert statt eine zweite Partnerschaft anzulegen.</div><label>Leistungsumfänge *</label>${scopeHtml}<div class="modal-actions"><button class="primary" onclick="createObjectCollaboration()">Betreuung speichern</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
   refreshObjectCollaborationScopeSelection();
@@ -7908,6 +7942,99 @@ async function updateExternalOrderStatus(id,status){
   }catch(e){alert('Status konnte nicht geändert werden: '+(e.message||e));}
 }
 
+
+// v2.20.80 – Objekttyp steuert Bereiche und öffentliche Meldekategorien.
+// Mandantentyp = organisatorischer Kontext; Objekttyp = fachlicher Asset-Kontext.
+const DS_OBJECT_TYPE_PROFILES=Object.freeze({
+  building:Object.freeze({
+    label:'Gebäude / Immobilie',
+    areas:['Hauseingang','Treppenhaus','Aufzug','Keller','Fahrradraum','Tiefgarage','Müllplatz','Außenanlage','Technik-/Heizungsraum'],
+    categories:['Schaden / Defekt','Sauberkeit','Außenanlage','Beleuchtung','Tür / Tor / Zugang','Wasser / Feuchtigkeit','Winterdienst','Aufzug defekt','Heizung / Wärme','Schließanlage / Schlüssel','Dach / Fassade','Schädlingsbefall','Sonstiges']
+  }),
+  hotel:Object.freeze({
+    label:'Hotel / Beherbergungsobjekt',
+    areas:['Zimmer / Einheit','Bad / Sanitär','Lobby / Empfang','Flur / Treppenhaus','Aufzug','Gastronomie / Frühstück','Spa / Wellness','Housekeeping / Lager','Technik','Außenbereich','Parken / Tiefgarage'],
+    categories:['Zimmerausstattung / Defekt','Sanitär / Wasser','Sauberkeit / Housekeeping','Klima / Heizung','Beleuchtung / Elektro','Tür / Zutritt','Aufzug defekt','Gastronomie / Ausstattung','Außenbereich','Sicherheit','Sonstiges']
+  }),
+  fountain:Object.freeze({
+    label:'Brunnen',
+    areas:['Brunnenbecken','Wassertechnik / Pumpe','Wasserzulauf / Ablauf','Beleuchtung / Elektro','Einfassung / Oberfläche','Umfeld / Verkehrsfläche','Sonstiges'],
+    categories:['Wasserfluss / Pumpe','Wasserqualität / Verschmutzung','Beschädigung / Vandalismus','Beleuchtung / Elektro','Undichtigkeit / Wasserverlust','Verstopfung / Ablauf','Sicherheit / Gefahrenstelle','Umfeld / Sauberkeit','Sonstiges']
+  }),
+  bus_stop:Object.freeze({
+    label:'Bushaltestelle',
+    areas:['Wartehäuschen','Sitzbank','Fahrgastinformation','Beleuchtung','Abfallbehälter','Boden / Verkehrsfläche','Beschilderung','Umfeld','Sonstiges'],
+    categories:['Beschädigung / Vandalismus','Sauberkeit','Beleuchtung / Elektro','Fahrgastinformation','Sitzgelegenheit','Abfall','Verkehrssicherheit','Graffiti','Sonstiges']
+  }),
+  playground:Object.freeze({
+    label:'Spielplatz',
+    areas:['Spielgerät','Fallschutz / Boden','Sitzbereich','Zaun / Zugang','Abfallbehälter','Grünfläche','Beleuchtung','Sonstiges'],
+    categories:['Spielgerät defekt','Sicherheit / Gefahrenstelle','Verschmutzung','Boden / Fallschutz','Zaun / Zugang','Grünpflege','Vandalismus','Beleuchtung','Sonstiges']
+  }),
+  green_space:Object.freeze({
+    label:'Grünanlage / Park',
+    areas:['Grünfläche','Bäume / Gehölze','Wege','Sitzgelegenheiten','Abfallbehälter','Beleuchtung','Spiel- / Aufenthaltsbereich','Sonstiges'],
+    categories:['Grünpflege','Baum / Astbruch','Wege / Belag','Sauberkeit / Abfall','Sitzgelegenheit','Beleuchtung','Vandalismus','Sicherheit / Gefahrenstelle','Sonstiges']
+  }),
+  street:Object.freeze({
+    label:'Straße / Verkehrsfläche',
+    areas:['Fahrbahn','Gehweg','Radweg','Beschilderung','Beleuchtung','Entwässerung','Straßenmobiliar','Sonstiges'],
+    categories:['Fahrbahnschaden','Gehweg / Radweg','Beleuchtung','Beschilderung','Entwässerung','Verschmutzung','Verkehrssicherheit','Straßenmobiliar','Sonstiges']
+  }),
+  municipal_building:Object.freeze({
+    label:'Kommunales Gebäude',
+    areas:['Eingang','Flur / Treppenhaus','Büro / Nutzfläche','Sanitär','Aufzug','Technik','Außenanlage','Parkfläche','Sonstiges'],
+    categories:['Schaden / Defekt','Sauberkeit','Sanitär / Wasser','Beleuchtung / Elektro','Tür / Zutritt','Heizung / Klima','Aufzug defekt','Außenanlage','Sicherheit','Sonstiges']
+  }),
+  other:Object.freeze({
+    label:'Sonstiges Objekt / Asset',
+    areas:['Allgemein','Zugang / Umfeld','Technik','Ausstattung','Oberfläche / Konstruktion','Sonstiges'],
+    categories:['Schaden / Defekt','Sauberkeit','Technik','Beleuchtung / Elektro','Sicherheit / Gefahrenstelle','Vandalismus','Sonstiges']
+  })
+});
+function dsObjectTypeProfile(type=''){
+  return DS_OBJECT_TYPE_PROFILES[String(type||'building')]||DS_OBJECT_TYPE_PROFILES.other;
+}
+function dsObjectTypeOptionsForTenant(tenantType=dsTenantType()){
+  const common=[['building','Gebäude / Immobilie'],['other','Sonstiges Objekt / Asset']];
+  if(['hospitality','hotel','airbnb'].includes(tenantType))return [['hotel','Hotel / Beherbergungsobjekt'],['building','Gebäude / Immobilie'],['other','Sonstiges Objekt / Asset']];
+  if(tenantType==='municipality')return [
+    ['fountain','Brunnen'],['bus_stop','Bushaltestelle'],['playground','Spielplatz'],
+    ['green_space','Grünanlage / Park'],['street','Straße / Verkehrsfläche'],
+    ['municipal_building','Kommunales Gebäude'],['building','Gebäude / Immobilie'],['other','Sonstiges Objekt / Asset']
+  ];
+  return common;
+}
+function dsDefaultObjectTypeForTenant(tenantType=dsTenantType()){
+  if(['hospitality','hotel','airbnb'].includes(tenantType))return 'hotel';
+  return 'building';
+}
+function dsObjectTypeOf(o){
+  return String(o?.objectType||o?.object_type||dsDefaultObjectTypeForTenant());
+}
+function dsObjectTypeSelectHtml(selected=''){
+  const value=selected||dsDefaultObjectTypeForTenant();
+  return dsObjectTypeOptionsForTenant().map(([code,label])=>`<option value="${esc(code)}" ${code===value?'selected':''}>${esc(label)}</option>`).join('');
+}
+function dsRefreshObjectTypePreview(){
+  const type=document.getElementById('oObjectType')?.value||dsDefaultObjectTypeForTenant();
+  const p=dsObjectTypeProfile(type);
+  const box=document.getElementById('oObjectTypePreview');
+  if(box)box.innerHTML=`<strong>Standardbereiche</strong><div class="muted" style="margin-top:5px">${p.areas.map(esc).join(', ')}</div><strong style="display:block;margin-top:10px">Meldekategorien</strong><div class="muted" style="margin-top:5px">${p.categories.map(esc).join(', ')}</div>`;
+}
+async function dsReplaceObjectAreas(objectId,type){
+  const p=dsObjectTypeProfile(type);
+  const existing=objectAreasFor(objectId,{includeInactive:true});
+  // Bestehende Bereiche bleiben als Historie erhalten, werden aber aus aktiven Auswahlen entfernt.
+  for(const a of existing){ if(a.active!==false) await cloudSetObjectAreaActive(a.id,false); }
+  for(let i=0;i<p.areas.length;i++){
+    const name=p.areas[i];
+    const same=existing.find(a=>String(a.name||'').trim().toLowerCase()===name.toLowerCase());
+    if(same) await cloudSaveObjectArea(objectId,same.id,name,i+1);
+    else await cloudSaveObjectArea(objectId,'',name,i+1);
+  }
+  await cloudLoadObjectAreas();
+}
 let cloudObjectAreas=[];
 
 const DEFAULT_OBJECT_AREAS=[
@@ -9094,7 +9221,7 @@ async function cloudReloadObjects(){
     // Mandantenrollen laden ausschließlich die per RLS freigegebenen Objekte.
     let rows=[];
     if(isPlatformTenantMode()){
-      const objectPath=`objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(platformTenantModeOrgId)}&order=name.asc`;
+      const objectPath=`objects?select=id,organization_id,name,object_type,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(platformTenantModeOrgId)}&order=name.asc`;
       rows=await cloudRequest(objectPath);
     }else{
       // v2.19.42: Mandantenobjekte nicht mehr von einer möglicherweise zu restriktiven
@@ -9129,7 +9256,7 @@ async function cloudReloadObjects(){
           const canSeeAllOwn=isTenantAdminRole() || isAdminDelegate();
           if(orgId && canSeeAllOwn){
             rows=await cloudRequest(
-              `objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(orgId)}&order=name.asc`
+              `objects?select=id,organization_id,name,object_type,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(orgId)}&order=name.asc`
             );
           }
         }
@@ -9138,8 +9265,8 @@ async function cloudReloadObjects(){
         const orgId=(typeof currentOrganizationId==='function'&&currentOrganizationId())||'';
         const canSeeAllOwn=isTenantAdminRole() || isAdminDelegate();
         const path=(orgId&&canSeeAllOwn)
-          ? `objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(orgId)}&order=name.asc`
-          : 'objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&order=name.asc';
+          ? `objects?select=id,organization_id,name,object_type,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(orgId)}&order=name.asc`
+          : 'objects?select=id,organization_id,name,object_type,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&order=name.asc';
         rows=await cloudRequest(path);
       }
     }
@@ -9232,6 +9359,7 @@ async function cloudSaveObject(id,data){
   const payload={
     name:data.name,
     organization_id:data.organizationId||null,
+    object_type:data.objectType||dsDefaultObjectTypeForTenant(),
     street:addr.street||null,
     postal_code:addr.postal_code,
     city:addr.city,
@@ -9264,7 +9392,13 @@ async function cloudSaveObject(id,data){
   });
   const objectId=typeof result==='string'?result:(Array.isArray(result)?result[0]:result);
   if(!objectId)throw new Error('Objekt wurde serverseitig nicht angelegt.');
-  const rows=await cloudRequest(`objects?id=eq.${encodeURIComponent(objectId)}&select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at`);
+  await cloudRequest(`objects?id=eq.${encodeURIComponent(objectId)}`,{
+    method:'PATCH',headers:{'Prefer':'return=minimal'},
+    body:JSON.stringify({object_type:payload.object_type,updated_at:new Date().toISOString()})
+  });
+  await cloudLoadObjectAreas();
+  await dsReplaceObjectAreas(objectId,payload.object_type);
+  const rows=await cloudRequest(`objects?id=eq.${encodeURIComponent(objectId)}&select=id,organization_id,name,object_type,street,postal_code,city,notes,is_test,created_at,updated_at`);
   return rows?.[0];
 }
 async function cloudDeleteObject(id){
@@ -13219,13 +13353,16 @@ function openObjectModal(id=''){
     : `<div class="card" style="margin-top:12px;padding:12px"><span class="muted">Unternehmen / Mandant</span><div style="font-weight:800;margin-top:4px">${esc(organizationName(fixedOrgId)||currentOrganization?.name||'—')}</div><input id="oOrganization" type="hidden" value="${esc(fixedOrgId)}"></div>`;
   modal(`<div class="row space"><h2>${id?'Objekt bearbeiten':'Objekt anlegen'}</h2><button onclick="closeModal()">✕</button></div>
   ${orgControl}
-  <label>Objektbezeichnung *</label><input id="oName" value="${esc(o.name)}" placeholder="z. B. WEG Musterstraße 12">
+  <label>Objekttyp *</label><select id="oObjectType" onchange="dsRefreshObjectTypePreview()">${dsObjectTypeSelectHtml(dsObjectTypeOf(o))}</select>
+  <div id="oObjectTypePreview" class="card" style="margin-top:10px;padding:12px"></div>
+  <label>Objektbezeichnung *</label><input id="oName" value="${esc(o.name)}" placeholder="${esc(dsObjectTypeProfile(dsObjectTypeOf(o)).label)}">
   <label>Adresse</label><input id="oAddress" value="${esc(o.address)}" placeholder="Straße, PLZ Ort">
   <label>Notizen</label><textarea id="oNotes">${esc(o.notes)}</textarea>
-  ${!id?`<div class="card" style="margin-top:14px;padding:12px"><strong>Standardbereiche</strong><div class="muted" style="margin-top:5px">Beim Anlegen werden automatisch folgende Bereiche erzeugt: ${DEFAULT_OBJECT_AREAS.map(esc).join(', ')}. Sie können anschließend objektbezogen umbenannt, deaktiviert oder ergänzt werden.</div></div>`:''}
+
   <label class="row" style="gap:10px;align-items:center;margin-top:14px"><input id="oIsTest" type="checkbox" ${o.isTest?'checked':''}><span><strong>Testobjekt</strong><br><span class="muted"></span></span></label>
   ${id&&hasOperationalAdminAccess()?`<div class="card" style="margin-top:14px;padding:12px"><div class="row space"><div><strong>Betreuung / Dienstleister</strong><div class="muted" style="margin-top:4px">Dieses Objekt einem Dienstleister zur dauerhaften Betreuung mit mehreren Leistungsumfängen zuordnen.</div></div><button type="button" onclick="openObjectCollaborationModal('${id}')">Betreuung vergeben</button></div></div>`:''}
   <div class="row" style="margin-top:14px"><button class="primary" onclick="saveObject('${id}')">Speichern</button>${id?`<button class="danger" onclick="deleteObject('${id}')">Löschen</button>`:''}</div>`);
+  setTimeout(dsRefreshObjectTypePreview,0);
 }
 async function saveObject(id){
   if(!canManageObjectsUI())return alert('Objektverwaltung ist für diese Rolle nicht freigegeben.');
@@ -13233,8 +13370,11 @@ async function saveObject(id){
   if(!name)return alert('Bitte Objektbezeichnung eingeben.');
   const organizationId=document.getElementById('oOrganization')?.value||currentOrganizationId();
   if(!organizationId)return alert('Bitte ein Unternehmen / einen Mandanten auswählen.');
+  const objectType=document.getElementById('oObjectType')?.value||dsDefaultObjectTypeForTenant();
+  const previousType=id?dsObjectTypeOf((db.objects||[]).find(o=>o.id===id)):objectType;
   const data={
     organizationId,
+    objectType,
     name,
     address:document.getElementById('oAddress').value.trim(),
     notes:document.getElementById('oNotes').value.trim(),
@@ -13243,6 +13383,10 @@ async function saveObject(id){
   try{
     const row=await cloudSaveObject(id,data);
     if(!row)throw new Error('Keine Rückgabe aus Supabase.');
+    if(id && previousType!==objectType){
+      const reset=confirm('Der Objekttyp wurde geändert. Sollen die aktiven Bereiche auf das neue Profil umgestellt werden? Bestehende Bereiche werden nur deaktiviert und bleiben historisch erhalten.');
+      if(reset)await dsReplaceObjectAreas(id,objectType);
+    }
 
     // v2.18.82: Bei Neuanlage wurden die Standardbereiche bereits
     // innerhalb derselben serverseitigen Transaktion erzeugt.
