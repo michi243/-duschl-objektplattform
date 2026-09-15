@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.70</title>
+<title>Duschl Service – Objektplattform v2.20.71</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1469,7 +1469,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.70</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.71</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1512,7 +1512,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.70</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.71</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1536,6 +1536,20 @@ body.public-report-mode>#photoViewer{display:none!important}
       <div class="pa-kpi-value" id="sysStoragePercent">—</div>
       <div class="pa-kpi-sub" id="sysStorageHeadline">wird geladen</div>
     </div>
+  </div>
+
+  <div class="pa-panel" id="globalPlatformMessagesPanel">
+    <div class="pa-panel-head">
+      <div>
+        <div class="pa-panel-title"><span class="pa-panel-icon">✉</span>Plattform-Mitteilungen <span class="badge" id="globalPlatformUnreadBadge" style="display:none">0 neu</span></div>
+        <div class="pa-panel-sub">Mandantenübergreifende Kommunikation der Plattformadministration.</div>
+      </div>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <button class="pa-refresh-btn" type="button" onclick="openMessageArchive()">Alle Mitteilungen</button>
+        <button class="primary" type="button" onclick="openPlatformMessageModal()">+ Mitteilung</button>
+      </div>
+    </div>
+    <div id="globalPlatformMessagesList" style="margin-top:14px"><div class="empty">Mitteilungen werden geladen …</div></div>
   </div>
 
   <div class="pa-panel">
@@ -1728,8 +1742,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.70</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.70</span> geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.71</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.71</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3408,7 +3422,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.70'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.71'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -3715,6 +3729,7 @@ async function replyToUserMessage(id){
     m.replied_at=new Date().toISOString();
     if(!m.read_at)m.read_at=m.replied_at;
     renderDashboardMessages();
+    renderGlobalPlatformMessages();
   }catch(e){
     alert('Antwort konnte nicht gespeichert werden: '+(e.message||e));
   }
@@ -3731,6 +3746,7 @@ async function markUserMessageRead(id){
     const m=userDashboardMessages.find(x=>x.id===id);
     if(m)m.read_at=new Date().toISOString();
     renderDashboardMessages();
+    renderGlobalPlatformMessages();
   }catch(e){
     alert('Mitteilung konnte nicht als gelesen markiert werden: '+(e.message||e));
   }
@@ -8407,7 +8423,7 @@ async function sendPlatformMessage(){
       });
     }
     closeModal();
-    try{await loadUserMessages();renderDashboardMessages();}catch(_e){}
+    try{await loadUserMessages();renderDashboardMessages();renderGlobalPlatformMessages();}catch(_e){}
     alert(`Plattform-Mitteilung an ${recipients.length} Empfänger gesendet.`);
   }catch(e){
     console.error(e);
@@ -11396,6 +11412,69 @@ function openDashboardResidentReports(){
   try{renderResidentReports();}catch(e){console.error('Meldungen konnten nicht dargestellt werden',e);}
 }
 
+function renderGlobalPlatformMessages(){
+  const panel=document.getElementById('globalPlatformMessagesPanel');
+  const box=document.getElementById('globalPlatformMessagesList');
+  const badge=document.getElementById('globalPlatformUnreadBadge');
+  if(!panel||!box)return;
+
+  const globalMode=isPlatformOperatorRole()&&!isPlatformTenantMode();
+  panel.style.display=globalMode?'':'none';
+  if(!globalMode)return;
+
+  if(!userMessagesAvailable){
+    box.innerHTML='<div class="empty">Mitteilungsfunktion ist noch nicht in Supabase eingerichtet.</div>';
+    if(badge)badge.style.display='none';
+    return;
+  }
+
+  const uid=String(currentUserId()||'');
+  const active=(userDashboardMessages||[]).filter(m=>m.active!==false);
+  const received=active.filter(m=>String(m.recipient_id||'')===uid);
+  const sent=active.filter(m=>String(m.created_by||'')===uid&&String(m.recipient_id||'')!==uid);
+  const unread=received.filter(m=>!m.read_at);
+
+  if(badge){
+    badge.textContent=`${unread.length} neu`;
+    badge.style.display=unread.length?'inline-flex':'none';
+  }
+
+  const sentGroups=new Map();
+  sent.forEach(m=>{
+    const key=m.message_group_id||m.id;
+    if(!sentGroups.has(key))sentGroups.set(key,[]);
+    sentGroups.get(key).push(m);
+  });
+  const latestSent=[...sentGroups.values()]
+    .sort((a,b)=>new Date(b[0]?.created_at||0)-new Date(a[0]?.created_at||0))
+    .slice(0,3);
+
+  const unreadHtml=unread.slice(0,3).map(m=>`<div class="dashboard-message-card unread" style="margin-top:10px">
+    <div class="dashboard-message-title">${esc(m.title||'Mitteilung')}</div>
+    <div class="dashboard-message-meta"><strong>Von: ${esc(m.sender_name||'Unbekannt')}</strong> · ${esc(formatUserMessageTime(m.created_at))} · ungelesen</div>
+    <div class="dashboard-message-text">${esc(m.message||'')}</div>
+    <div class="dashboard-message-actions"><button type="button" onclick="markUserMessageRead('${esc(m.id)}')">Als gelesen markieren</button>${canReplyToUserMessage(m)?`<button type="button" onclick="replyToUserMessage('${esc(m.id)}')">Antworten</button>`:''}</div>
+  </div>`).join('');
+
+  const sentHtml=latestSent.map(group=>{
+    const first=group[0]||{};
+    const readCount=group.filter(m=>!!m.read_at).length;
+    const names=group.map(m=>m.recipient_name||'Empfänger').filter(Boolean);
+    const recipientText=names.length<=2?names.join(', '):`${names.slice(0,2).join(', ')} +${names.length-2}`;
+    return `<div class="dashboard-message-card" style="margin-top:10px">
+      <div class="dashboard-message-title">${esc(first.title||'Mitteilung')}</div>
+      <div class="dashboard-message-meta"><strong>Gesendet an: ${esc(recipientText||'Empfänger')}</strong><br>${esc(formatUserMessageTime(first.created_at))} · ${readCount}/${group.length} gelesen</div>
+      <div class="dashboard-message-text">${esc(first.message||'')}</div>
+    </div>`;
+  }).join('');
+
+  if(!unreadHtml&&!sentHtml){
+    box.innerHTML='<div class="empty">Noch keine Plattform-Mitteilungen vorhanden.</div>';
+    return;
+  }
+  box.innerHTML=`${unreadHtml?`<div style="font-weight:800;margin-top:4px">Ungelesen (${unread.length})</div>${unreadHtml}`:''}${sentHtml?`<div style="font-weight:800;margin-top:16px">Zuletzt gesendet</div>${sentHtml}`:''}`;
+}
+
 function renderDashboard(){
   const greetingName=document.getElementById('dashboardGreetingName');
   if(greetingName){
@@ -11403,6 +11482,7 @@ function renderDashboard(){
     const firstName=rawName.includes('@')?rawName:rawName.split(/\s+/)[0];
     greetingName.textContent=firstName||'Benutzer';
   }
+  renderGlobalPlatformMessages();
   renderDashboardMessages();
   renderDashboardCareRequests();
   document.getElementById('kpiObjects').textContent=db.objects.length;
