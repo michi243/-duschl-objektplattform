@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.85</title>
+<title>Duschl Service – Objektplattform v2.20.86</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1482,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.85</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.86</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1526,7 +1526,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.85</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.86</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1756,8 +1756,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.85</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.85</span> geladen</div>
+<div class="row space"><div><h2>${(currentUserMemberships||[]).length>1&&!hasOperationalAdminAccess()?'Meine Objekte':'Objekte'}</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.86</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.86</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3436,7 +3436,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.85'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.86'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -5018,11 +5018,8 @@ async function cloudLoadCurrentProfile(){
     }
     const switchBtn=document.getElementById('headerTenantSwitchBtn');
     if(switchBtn)switchBtn.classList.toggle('hidden',isAdminRole()||currentUserMemberships.length<2);
-    if(!isAdminRole()&&currentUserMemberships.length>1&&!currentOrganizationMembership){
-      applyRoleUI();
-      await openTenantSwitcher(true);
-      return p;
-    }
+    // Mehrere Memberships sind zulässig. Die Objektübersicht zeigt "Meine Objekte"
+    // mandantenübergreifend; beim Öffnen eines Objekts wird dessen Mandantenkontext aktiviert.
   }catch(e){
     console.warn('Mandantenkontext konnte nicht geladen werden',e);
     // Plattform-Admins arbeiten global weiter. Bei Mandantenrollen ist der
@@ -9267,6 +9264,40 @@ async function cloudLoadCurrentUserObjectAssignments(){
 }
 
 
+
+async function dsLoadMyAssignedObjectsAcrossTenants(){
+  const uid=currentUserId();
+  if(!uid)return [];
+  const assignments=await cloudRequest(`object_user_assignments?select=object_id,user_id,active&user_id=eq.${encodeURIComponent(uid)}&active=eq.true`)||[];
+  const ids=[...new Set(assignments.map(a=>a.object_id).filter(Boolean))];
+  if(!ids.length)return [];
+  const rows=await cloudRequest(`objects?select=id,organization_id,name,object_type,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&id=in.(${ids.map(encodeURIComponent).join(',')})&order=name.asc`)||[];
+  const allowedOrgIds=new Set((currentUserMemberships||[]).map(m=>String(m.organization_id||'')).filter(Boolean));
+  return rows.filter(o=>allowedOrgIds.has(String(o.organization_id||'')));
+}
+function dsMembershipForObject(o){
+  const orgId=String(o?.organizationId||o?.organization_id||'');
+  return (currentUserMemberships||[]).find(m=>String(m.organization_id||'')===orgId)||null;
+}
+function dsOrganizationNameForObject(o){
+  const orgId=o?.organizationId||o?.organization_id||'';
+  const org=(platformOrganizations||[]).find(x=>String(x.id||'')===String(orgId||''));
+  return org?.name||organizationName(orgId)||'Mandant';
+}
+async function dsActivateObjectTenant(objectId){
+  const o=(db.objects||[]).find(x=>String(x.id)===String(objectId));
+  const m=dsMembershipForObject(o);
+  if(!m)return false;
+  if(String(currentOrganizationMembership?.organization_id||'')!==String(m.organization_id||'')){
+    currentOrganizationMembership=m;
+    dsSetActiveOrganizationId(m.organization_id);
+    try{
+      const orgRows=await dsLoadMembershipOrganizations([m]);
+      currentOrganization=orgRows?.[0]||currentOrganization;
+    }catch(_e){}
+  }
+  return true;
+}
 async function dsLoadAssignedOwnObjectsForActiveTenant(){
   const orgId=currentOrganizationId(),uid=currentUserId();
   if(!orgId||!uid)return [];
@@ -9278,11 +9309,8 @@ async function dsLoadAssignedOwnObjectsForActiveTenant(){
 }
 async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
-  if(!isPlatformOperatorRole()&&currentUserMemberships.length>1&&!currentOrganizationMembership){
-    cloudSetStatus('Mandant auswählen …','wait');
-    await openTenantSwitcher(true);
-    return;
-  }
+  // v2.20.86: operative Benutzer mit mehreren Mandanten dürfen ihre zugewiesenen
+  // Objekte mandantenübergreifend sehen. Mandantenwahl ist dafür kein vorgeschaltetes Gate.
   cloudSetStatus('Supabase wird geladen …','wait');
   try{
     // v2.18.82: Reine Plattform-Admins arbeiten im Systemkontext und laden
@@ -9318,8 +9346,8 @@ async function cloudReloadObjects(){
             method:'POST',
             body:JSON.stringify({p_organization_id:tenantOrgId})
           });
-        }else if((isObjectManagerRole()||isCustomerRole()||isTestUserRole()) && tenantOrgId){
-          rows=await dsLoadAssignedOwnObjectsForActiveTenant();
+        }else if(isObjectManagerRole()||isCustomerRole()||isTestUserRole()){
+          rows=await dsLoadMyAssignedObjectsAcrossTenants();
         }else{
           rows=await cloudRequest('rpc/tenant_get_accessible_objects',{
             method:'POST',
