@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.87</title>
+<title>Duschl Service – Objektplattform v2.20.88</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1482,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.87</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.88</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1526,7 +1526,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.87</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.88</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1756,8 +1756,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.87</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.87</span> geladen</div>
+<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.88</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.88</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3436,7 +3436,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.87'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.88'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -9277,6 +9277,9 @@ async function dsLoadMyAssignedObjectsAcrossTenants(){
   });
   return Array.isArray(rows)?rows:[];
 }
+function dsIsCrossTenantPersonalPortfolio(){
+  return !isPlatformOperatorRole()&&!hasOperationalAdminAccess()&&(currentUserMemberships||[]).length>1;
+}
 function dsMembershipForObject(o){
   const orgId=String(o?.organizationId||o?.organization_id||'');
   return (currentUserMemberships||[]).find(m=>String(m.organization_id||'')===orgId)||null;
@@ -9300,6 +9303,15 @@ async function dsActivateObjectTenant(objectId){
   }
   return true;
 }
+async function dsRunInObjectTenant(objectId,action){
+  const ok=await dsActivateObjectTenant(objectId);
+  if(!ok)return alert('Für dieses Objekt wurde keine gültige Mandantenzugehörigkeit gefunden.');
+  applyRoleUI();
+  return action();
+}
+function dsOpenFindingForObject(objectId){return dsRunInObjectTenant(objectId,()=>openFindingModal(objectId,''));}
+function dsOpenReportForObject(objectId){return dsRunInObjectTenant(objectId,()=>showObjectReport(objectId));}
+function dsOpenQrForObject(objectId){return dsRunInObjectTenant(objectId,()=>openObjectQrCode(objectId));}
 async function dsLoadAssignedOwnObjectsForActiveTenant(){
   const orgId=currentOrganizationId(),uid=currentUserId();
   if(!orgId||!uid)return [];
@@ -9338,7 +9350,12 @@ async function cloudReloadObjects(){
       // Customer = bestehende can_access_object-Logik.
       try{
         const tenantOrgId=currentOrganizationId();
-        if((isTenantAdminRole()||isAdminDelegate()) && tenantOrgId){
+        if(dsIsCrossTenantPersonalPortfolio()){
+          // v2.20.88: Bei mehreren Memberships ist "Meine Objekte" die führende Sicht.
+          // Die aktuell aktive Rolle (z.B. property_manager in Clean und Weg) darf die
+          // Objektabfrage nicht vorab auf genau diesen einen Mandanten begrenzen.
+          rows=await dsLoadMyAssignedObjectsAcrossTenants();
+        }else if((isTenantAdminRole()||isAdminDelegate()) && tenantOrgId){
           rows=await cloudRequest('rpc/tenant_get_own_objects',{
             method:'POST',
             body:JSON.stringify({p_organization_id:tenantOrgId})
@@ -12008,7 +12025,7 @@ function renderObjects(){
   if(!el)return;
   const sectionTitle=document.getElementById('objectsSectionTitle');
   if(sectionTitle){
-    const personalPortfolio=(currentUserMemberships||[]).length>1&&!hasOperationalAdminAccess();
+    const personalPortfolio=dsIsCrossTenantPersonalPortfolio();
     sectionTitle.textContent=personalPortfolio?'Meine Objekte':'Objekte';
   }
 
@@ -12016,6 +12033,41 @@ function renderObjects(){
   if(status){
     status.textContent=`${objects.length} Objekt${objects.length===1?'':'e'} geladen`;
     status.style.display='block';
+  }
+
+  // v2.20.88: Mandantenübergreifende persönliche Objektübersicht bewusst ohne
+  // mandantenspezifische KPI-/Collaboration-Helfer rendern. Diese Helfer gelten
+  // erst nach Aktivierung des jeweiligen Objekt-Mandanten.
+  if(dsIsCrossTenantPersonalPortfolio()){
+    el.style.setProperty('display','grid','important');
+    el.style.setProperty('visibility','visible','important');
+    el.style.setProperty('opacity','1','important');
+    if(!objects.length){
+      el.innerHTML='<div class="empty">Dir sind derzeit keine Objekte zugewiesen.</div>';
+      return;
+    }
+    el.innerHTML=objects.map(o=>{
+      const m=dsMembershipForObject(o);
+      const role=String(m?.role||'').toLowerCase();
+      const roleLabel=ROLE_LABELS[role]||role||'Benutzer';
+      return `<div class="card">
+        <div class="row space">
+          <div>
+            <h3 style="margin:0">${esc(o.name||'Objekt')}</h3>
+            <div class="muted" style="margin-top:4px"><strong>${esc(dsOrganizationNameForObject(o))}</strong> · ${esc(roleLabel)}</div>
+            ${o.address?`<div class="muted">${esc(o.address)}</div>`:''}
+          </div>
+        </div>
+        ${o.notes?`<p>${esc(o.notes)}</p>`:''}
+        <div class="row" style="margin-top:10px">
+          <button onclick="dsOpenFindingForObject('${esc(o.id)}')">Dokumentation erfassen</button>
+          ${role!=='customer'?`<button onclick="dsOpenQrForObject('${esc(o.id)}')">Objekt-QR</button>`:''}
+          <button onclick="dsOpenReportForObject('${esc(o.id)}')">Bericht</button>
+        </div>
+      </div>`;
+    }).join('');
+    console.info('Mandantenübergreifende Objektansicht gerendert',{count:objects.length,names:objects.map(o=>o?.name||'Objekt')});
+    return;
   }
   el.style.setProperty('display','grid','important');
   el.style.setProperty('visibility','visible','important');
