@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.82</title>
+<title>Duschl Service – Objektplattform v2.20.84</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1482,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.82</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.84</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1526,7 +1526,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.82</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.84</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1756,8 +1756,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.82</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.82</span> geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.84</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.84</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3436,7 +3436,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.82'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.84'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -8057,14 +8057,44 @@ function dsRefreshObjectTypePreview(){
 }
 async function dsReplaceObjectAreas(objectId,type){
   const p=dsObjectTypeProfile(type);
-  const existing=objectAreasFor(objectId,{includeInactive:true});
-  // Bestehende Bereiche bleiben als Historie erhalten, werden aber aus aktiven Auswahlen entfernt.
-  for(const a of existing){ if(a.active!==false) await cloudSetObjectAreaActive(a.id,false); }
+  await cloudLoadObjectAreas();
+  let existing=objectAreasFor(objectId,{includeInactive:true});
+  const keyOf=v=>String(v||'').trim().toLocaleLowerCase('de-DE');
+  const byName=new Map();
+  existing.forEach(a=>{const k=keyOf(a.name);if(k&&!byName.has(k))byName.set(k,a);});
+  const desired=new Set(p.areas.map(keyOf));
+
+  // Nicht mehr passende aktive Bereiche nur deaktivieren – Historie bleibt erhalten.
+  for(const a of existing){
+    if(a.active!==false&&!desired.has(keyOf(a.name)))await cloudSetObjectAreaActive(a.id,false);
+  }
+
+  // Server/RPC kann Standardbereiche bereits erzeugt haben: vorhandene Zeilen wiederverwenden.
   for(let i=0;i<p.areas.length;i++){
-    const name=p.areas[i];
-    const same=existing.find(a=>String(a.name||'').trim().toLowerCase()===name.toLowerCase());
-    if(same) await cloudSaveObjectArea(objectId,same.id,name,i+1);
-    else await cloudSaveObjectArea(objectId,'',name,i+1);
+    const name=p.areas[i],key=keyOf(name);
+    let same=byName.get(key);
+    if(same){
+      await cloudSaveObjectArea(objectId,same.id,name,i+1);
+      if(same.active===false)await cloudSetObjectAreaActive(same.id,true);
+      continue;
+    }
+    try{
+      await cloudSaveObjectArea(objectId,'',name,i+1);
+    }catch(e){
+      const msg=String(e?.message||e||'');
+      if(!/uq_object_areas_object_name_ci|duplicate key/i.test(msg))throw e;
+      // Race/Trigger: erneut laden und die inzwischen vorhandene Zeile verwenden.
+      await cloudLoadObjectAreas();
+      existing=objectAreasFor(objectId,{includeInactive:true});
+      same=existing.find(a=>keyOf(a.name)===key);
+      if(!same)throw e;
+      await cloudSaveObjectArea(objectId,same.id,name,i+1);
+      if(same.active===false)await cloudSetObjectAreaActive(same.id,true);
+    }
+    await cloudLoadObjectAreas();
+    existing=objectAreasFor(objectId,{includeInactive:true});
+    same=existing.find(a=>keyOf(a.name)===key);
+    if(same)byName.set(key,same);
   }
   await cloudLoadObjectAreas();
 }
@@ -11047,6 +11077,7 @@ async function saveWorkItem(id){
 
 let userAdminProfiles=[];
 let userAdminAssignments=[];
+let userAdminTenantObjects=[];
 
 async function loadUserAdminData(){
   if(!canManageUsersUI())return;
@@ -11058,6 +11089,25 @@ async function loadUserAdminData(){
     userAdminProfiles=(userAdminProfiles||[]).filter(p=>!p.deleted_at);
     userAdminMemberships=await cloudRequest('organization_memberships?select=id,organization_id,user_id,role')||[];
     userAdminAssignments=await cloudRequest('object_user_assignments?select=id,object_id,user_id,active')||[];
+
+    const adminOrgId=currentOrganizationId();
+    userAdminTenantObjects=[];
+    if(adminOrgId){
+      try{
+        if(isPlatformTenantMode()){
+          userAdminTenantObjects=await cloudRequest(`objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,active&organization_id=eq.${encodeURIComponent(adminOrgId)}&active=eq.true&order=name.asc`)||[];
+        }else if(isTenantAdminRole()||isAdminDelegate()){
+          userAdminTenantObjects=await cloudRequest('rpc/tenant_get_own_objects',{
+            method:'POST',body:JSON.stringify({p_organization_id:adminOrgId})
+          })||[];
+        }else{
+          userAdminTenantObjects=(db.objects||[]).filter(o=>String(o.organizationId||o.organization_id||'')===String(adminOrgId));
+        }
+      }catch(_e){
+        console.warn('Mandantenobjekte konnten für die Benutzerverwaltung nicht separat geladen werden.',_e);
+        userAdminTenantObjects=(db.objects||[]).filter(o=>String(o.organizationId||o.organization_id||'')===String(adminOrgId));
+      }
+    }
     try{
       await cloudLoadSharedObjects();
       await cloudLoadObjectCollaborations(false);
@@ -11071,7 +11121,8 @@ async function loadUserAdminData(){
     }
     const keep=sel.value;
     sel.innerHTML='<option value="">Benutzer auswählen …</option>'+userAdminProfiles.map(p=>{
-      const m=userAdminMemberships.find(x=>x.user_id===p.id);
+      const activeOrgId=currentOrganizationId();
+      const m=userAdminMemberships.find(x=>x.user_id===p.id&&String(x.organization_id||'')===String(activeOrgId||''));
       const label=ROLE_LABELS[m?.role]||ROLE_LABELS[p.role]||m?.role||p.role;
       return `<option value="${esc(p.id)}">${esc(p.email||p.full_name||p.id)}${p.full_name&&p.email?' · '+esc(p.full_name):''} · ${esc(label)}${p.active===false?' · inaktiv':''}</option>`;
     }).join('');
@@ -11084,13 +11135,17 @@ function loadUserAdminEditor(){
   const uid=document.getElementById('userAdminSelect')?.value,ed=document.getElementById('userAdminEditor');
   if(!ed)return;if(!uid){ed.innerHTML='';return}
   const p=userAdminProfiles.find(x=>x.id===uid);if(!p){ed.innerHTML='';return}
-  const membership=userAdminMemberships.find(m=>m.user_id===uid)||null;
-  const orgId=membership?.organization_id||currentOrganizationId();
+  const orgId=currentOrganizationId();
+  const membership=userAdminMemberships.find(m=>m.user_id===uid&&String(m.organization_id||'')===String(orgId||''))||null;
   const assigned=new Set(userAdminAssignments.filter(a=>a.user_id===uid&&a.active!==false).map(a=>a.object_id));
   const roles=[['tenant_admin','Mandanten-Admin'],['admin_delegate','Admin-Vertretung'],['property_manager','Verwalter'],['object_manager','Objektbetreuer'],['external_contractor','Externer Auftragnehmer'],['customer','Auftraggeber']];
   const allowedRoles=isAdminDelegate()?roles.filter(([v])=>!['tenant_admin','admin_delegate'].includes(v)):roles;
   const roleOptions=allowedRoles.map(([v,l])=>`<option value="${v}" ${membership?.role===v?'selected':''}>${l}</option>`).join('');
-  const ownObjects=(db.objects||[]).filter(o=>!o.externalManaged&&(!orgId||o.organizationId===orgId));
+  const ownObjects=(userAdminTenantObjects||[]).map(o=>({
+    ...o,
+    organizationId:o.organizationId||o.organization_id||orgId,
+    address:o.address||[o.street,[o.postal_code,o.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+  })).filter(o=>!o.externalManaged&&String(o.organizationId||'')===String(orgId||''));
   const sharedRows=(cloudObjectCollaborations||[])
     .filter(c=>
       String(c.service_organization_id||'')===String(orgId||'') &&
@@ -11148,8 +11203,9 @@ function loadUserAdminEditor(){
       </span>
     </label>`;
   }).join('')||'<p class="muted">Keine eigenen oder extern betreuten Objekte vorhanden.</p>';
-  const orgName=organizationName(orgId)||currentOrganization?.name||'—';
-  ed.innerHTML=`<div class="card"><h3>${esc(p.email||p.full_name||'Benutzer')}</h3><div class="muted" style="margin-bottom:12px">Unternehmen: <strong>${esc(orgName)}</strong></div><div class="grid2"><label>Anzeigename<input id="userAdminFullName" value="${esc(p.full_name||'')}" placeholder="z. B. Hans Müller"></label><label>Mandantenrolle<select id="userAdminRole">${roleOptions}</select></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminActive" type="checkbox" ${p.active!==false?'checked':''}><span>Benutzer aktiv</span></label></div><p class="muted">Berechtigungen gelten ausschließlich innerhalb des zugeordneten Unternehmens. Plattformadministrator-Rechte können hier nicht vergeben werden.</p><h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px">
+  const orgName=organizationName(orgId)||platformTenantModeOrganization?.name||currentOrganization?.name||'—';
+  const membershipCount=new Set(dsMembershipsForUser(uid).map(m=>m.organization_id).filter(Boolean)).size;
+  ed.innerHTML=`<div class="card"><h3>${esc(p.email||p.full_name||'Benutzer')}</h3><div class="muted" style="margin-bottom:12px">Aktueller Mandant: <strong>${esc(orgName)}</strong>${membershipCount>1?` · Benutzerkonto in ${membershipCount} Mandanten`:''}</div><div class="grid2"><label>Anzeigename<input id="userAdminFullName" value="${esc(p.full_name||'')}" placeholder="z. B. Hans Müller"></label><label>Mandantenrolle<select id="userAdminRole">${roleOptions}</select></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminActive" type="checkbox" ${p.active!==false?'checked':''}><span>Benutzer aktiv</span></label></div><p class="muted">Berechtigungen gelten ausschließlich innerhalb des zugeordneten Unternehmens. Plattformadministrator-Rechte können hier nicht vergeben werden.</p><h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px">
   <button onclick="saveUserAdminPermissions()">Speichern</button>
   ${dsCanGenerateInitialPasswordForUser(uid)?'<button onclick="resetSelectedUserInitialPassword()">Zugang wiederherstellen</button>':''}
   ${!dsCanGenerateInitialPasswordForUser(uid)?`<div class="card" style="width:100%;margin-top:8px;padding:12px"><strong>Zugangsdaten</strong><div class="muted" style="margin-top:5px">${dsUserHasMultipleTenantMemberships(uid)?'Dieser Benutzer verwendet ein gemeinsames Benutzerkonto für mehrere Mandanten. Das Passwort darf hier nicht verändert werden. Der Benutzer nutzt seine bestehenden Zugangsdaten bzw. die Funktion „Passwort vergessen“.':'Passwörter bestehender Benutzer werden nicht durch den Mandanten geändert. Der Benutzer nutzt seine bestehenden Zugangsdaten bzw. die Funktion „Passwort vergessen“.'}</div></div>`:''}
@@ -11353,9 +11409,10 @@ async function saveUserAdminPermissions(){
   if(!uid||!organizationRole)return alert('Benutzer und Mandantenrolle fehlen.');
   if(!fullName)return alert('Bitte einen Anzeigenamen eingeben.');
   if(isAdminDelegate()&&['tenant_admin','admin_delegate'].includes(organizationRole))return alert('Admin-Vertretungen dürfen keine administrativen Mandantenrollen vergeben.');
-  const membership=userAdminMemberships.find(m=>m.user_id===uid);
-  const orgId=membership?.organization_id||currentOrganizationId();
-  if(!orgId)return alert('Für den Benutzer fehlt die Mandantenzuordnung.');
+  const orgId=currentOrganizationId();
+  const membership=userAdminMemberships.find(m=>m.user_id===uid&&String(m.organization_id||'')===String(orgId||''));
+  if(!orgId)return alert('Aktueller Mandant konnte nicht bestimmt werden.');
+  if(!membership)return alert('Der Benutzer besitzt keine Mitgliedschaft im aktuell geöffneten Mandanten.');
   if(!isAdminRole()&&orgId!==currentOrganizationId())return alert('Benutzer eines anderen Mandanten dürfen nicht bearbeitet werden.');
   if(uid===currentUserProfile?.id&&!active)return alert('Der aktuell angemeldete Benutzer kann sich nicht selbst deaktivieren.');
   const checked=[...document.querySelectorAll('.userObjectAssignment:checked')].map(x=>x.value);
@@ -11363,10 +11420,11 @@ async function saveUserAdminPermissions(){
   try{
     await cloudRequest('profiles?id=eq.'+encodeURIComponent(uid),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({full_name:fullName,role:globalRole,active})});
     await cloudRequest(`organization_memberships?organization_id=eq.${encodeURIComponent(orgId)}&user_id=eq.${encodeURIComponent(uid)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({role:organizationRole})});
-    const existing=userAdminAssignments.filter(a=>a.user_id===uid && (db.objects||[]).some(o=>o.id===a.object_id&&!o.externalManaged&&o.organizationId===orgId));
+    const ownObjectIds=new Set((userAdminTenantObjects||[]).map(o=>String(o.id||'')));
+    const existing=userAdminAssignments.filter(a=>a.user_id===uid && ownObjectIds.has(String(a.object_id||'')));
     if(isAdminRole()&&isPlatformTenantMode()){
       // Interne Objektzuweisungen werden objektweise gespeichert, damit andere Mitarbeiterzuweisungen unangetastet bleiben.
-      const allOwnObjects=(db.objects||[]).filter(o=>!o.externalManaged&&o.organizationId===orgId);
+      const allOwnObjects=(userAdminTenantObjects||[]).filter(o=>!o.externalManaged&&String(o.organizationId||o.organization_id||orgId)===String(orgId));
       for(const o of allOwnObjects){
         const currentUsers=userAdminAssignments
           .filter(a=>a.object_id===o.id&&a.active!==false&&a.user_id!==uid)
