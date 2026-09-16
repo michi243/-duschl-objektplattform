@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.84</title>
+<title>Duschl Service – Objektplattform v2.20.85</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1482,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.84</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.85</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1526,7 +1526,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.84</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.85</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1756,8 +1756,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.84</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.84</span> geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.85</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.85</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3436,7 +3436,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.84'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.85'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -4691,10 +4691,10 @@ function dsCanGenerateInitialPasswordForUser(userId){
   // Der Plattform-Admin darf Recovery nur für Konten mit genau einem Mandanten auslösen.
   return isAdminRole()&&isPlatformTenantMode()&&!dsUserHasMultipleTenantMemberships(userId);
 }
-function isObjectManagerRole(){return !hasOperationalAdminAccess()&&!isPropertyManagerRole()&&['object_manager','staff'].includes(effectiveUserRole())}
+function isObjectManagerRole(){return !hasOperationalAdminAccess()&&!isPropertyManagerRole()&&['object_manager','staff'].includes(effectiveOrganizationRole())}
 function isExternalContractorRole(){return effectiveOrganizationRole()==='external_contractor'&&!hasOperationalAdminAccess()}
-function isCustomerRole(){return effectiveUserRole()==='customer'&&!hasOperationalAdminAccess()&&!isPropertyManagerRole()}
-function isTestUserRole(){return effectiveUserRole()==='test_user'&&!hasOperationalAdminAccess()}
+function isCustomerRole(){return effectiveOrganizationRole()==='customer'&&!hasOperationalAdminAccess()&&!isPropertyManagerRole()}
+function isTestUserRole(){return effectiveOrganizationRole()==='test_user'&&!hasOperationalAdminAccess()}
 function canManageObjectsUI(){return (isAdminRole()&&isPlatformTenantMode())||hasOperationalAdminAccess()}
 function canUseDecisionsUI(){return (isAdminRole()&&isPlatformTenantMode())||hasOperationalAdminAccess()||isPropertyManagerRole()||isCustomerRole()||isTestUserRole()}
 function canUseDecisionsForObject(objectId){
@@ -4971,7 +4971,12 @@ async function openTenantSwitcher(force=false){
   const cards=(currentUserMemberships||[]).map(m=>{const org=orgs.find(o=>o.id===m.organization_id);if(!org)return '';const active=m.organization_id===activeId;return `<button style="width:100%;text-align:left;margin-top:8px;padding:14px" class="${active?'primary':''}" onclick="switchTenantMembership('${esc(m.organization_id)}')"><strong>${esc(org.name||'Mandant')}</strong><span class="muted" style="display:block;margin-top:4px">${esc(roleLabel(m.role))}${active?' · aktuell':''}</span></button>`;}).join('');
   modal(`<div class="row space"><h2>Mandant auswählen</h2>${force?'':`<button onclick="closeModal()">✕</button>`}</div><p class="muted">Ein Benutzerkonto, ein Passwort. Rechte und Inhalte richten sich nach dem ausgewählten Mandanten.</p>${cards||'<div class="empty">Keine Mandantenzugehörigkeit gefunden.</div>'}`);
 }
-async function switchTenantMembership(organizationId){if(!(currentUserMemberships||[]).some(x=>x.organization_id===organizationId))return alert('Mandantenzugehörigkeit wurde nicht gefunden.');dsSetActiveOrganizationId(organizationId);location.reload();}
+async function switchTenantMembership(organizationId){
+  if(!(currentUserMemberships||[]).some(x=>x.organization_id===organizationId))return alert('Mandantenzugehörigkeit wurde nicht gefunden.');
+  dsSetActiveOrganizationId(organizationId);
+  try{localStorage.removeItem(KEY);}catch(_e){}
+  location.reload();
+}
 async function dsTryLinkExistingUser(email,organizationId,role){
   try{const r=await cloudRequest('rpc/link_existing_user_membership_by_email',{method:'POST',body:JSON.stringify({p_email:String(email||'').trim().toLowerCase(),p_organization_id:organizationId,p_role:role})});return (Array.isArray(r)?r[0]:r)||null;}
   catch(e){const m=String(e?.message||e||'');if(/link_existing_user_membership_by_email|PGRST202|404/i.test(m))return null;throw e;}
@@ -5002,7 +5007,10 @@ async function cloudLoadCurrentProfile(){
     currentUserMemberships=[...memberships];
     const membershipPriority={tenant_admin:1,admin_delegate:2,property_manager:3,external_contractor:4,object_manager:5,customer:6};
     const savedOrgId=dsSavedActiveOrganizationId();
-    currentOrganizationMembership=currentUserMemberships.find(m=>m.organization_id===savedOrgId)||[...currentUserMemberships].sort((a,b)=>(membershipPriority[String(a?.role||'').toLowerCase()]||99)-(membershipPriority[String(b?.role||'').toLowerCase()]||99))[0]||null;
+    const savedMembership=currentUserMemberships.find(m=>m.organization_id===savedOrgId)||null;
+    currentOrganizationMembership=savedMembership
+      ||(currentUserMemberships.length===1?currentUserMemberships[0]:null)
+      ||null;
     if(currentOrganizationMembership?.organization_id){
       dsSetActiveOrganizationId(currentOrganizationMembership.organization_id);
       const orgRows=await cloudRequest(`organizations?select=id,name,organization_type,public_code,active&id=eq.${encodeURIComponent(currentOrganizationMembership.organization_id)}&limit=1`);
@@ -5010,7 +5018,11 @@ async function cloudLoadCurrentProfile(){
     }
     const switchBtn=document.getElementById('headerTenantSwitchBtn');
     if(switchBtn)switchBtn.classList.toggle('hidden',isAdminRole()||currentUserMemberships.length<2);
-    if(!isAdminRole()&&currentUserMemberships.length>1&&!savedOrgId)setTimeout(()=>openTenantSwitcher(true),250);
+    if(!isAdminRole()&&currentUserMemberships.length>1&&!currentOrganizationMembership){
+      applyRoleUI();
+      await openTenantSwitcher(true);
+      return p;
+    }
   }catch(e){
     console.warn('Mandantenkontext konnte nicht geladen werden',e);
     // Plattform-Admins arbeiten global weiter. Bei Mandantenrollen ist der
@@ -9254,8 +9266,23 @@ async function cloudLoadCurrentUserObjectAssignments(){
   }
 }
 
+
+async function dsLoadAssignedOwnObjectsForActiveTenant(){
+  const orgId=currentOrganizationId(),uid=currentUserId();
+  if(!orgId||!uid)return [];
+  const assignments=await cloudRequest(`object_user_assignments?select=object_id,user_id,active&user_id=eq.${encodeURIComponent(uid)}&active=eq.true`)||[];
+  const ids=[...new Set(assignments.map(a=>a.object_id).filter(Boolean))];
+  if(!ids.length)return [];
+  const rows=await cloudRequest(`objects?select=id,organization_id,name,object_type,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&id=in.(${ids.map(encodeURIComponent).join(',')})&organization_id=eq.${encodeURIComponent(orgId)}&order=name.asc`)||[];
+  return rows;
+}
 async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
+  if(!isPlatformOperatorRole()&&currentUserMemberships.length>1&&!currentOrganizationMembership){
+    cloudSetStatus('Mandant auswählen …','wait');
+    await openTenantSwitcher(true);
+    return;
+  }
   cloudSetStatus('Supabase wird geladen …','wait');
   try{
     // v2.18.82: Reine Plattform-Admins arbeiten im Systemkontext und laden
@@ -9291,6 +9318,8 @@ async function cloudReloadObjects(){
             method:'POST',
             body:JSON.stringify({p_organization_id:tenantOrgId})
           });
+        }else if((isObjectManagerRole()||isCustomerRole()||isTestUserRole()) && tenantOrgId){
+          rows=await dsLoadAssignedOwnObjectsForActiveTenant();
         }else{
           rows=await cloudRequest('rpc/tenant_get_accessible_objects',{
             method:'POST',
