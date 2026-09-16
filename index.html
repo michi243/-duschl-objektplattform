@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.96</title>
+<title>Duschl Service – Objektplattform v2.20.97</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1482,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.96</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.97</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1526,7 +1526,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.96</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.97</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1756,8 +1756,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.96</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.96</span> geladen</div>
+<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.97</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.97</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3436,7 +3436,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.96'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.97'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -9314,6 +9314,11 @@ async function dsLoadMyAssignedObjectsAcrossTenants(){
 function dsIsCrossTenantPersonalPortfolio(){
   return !isPlatformOperatorRole()&&!hasOperationalAdminAccess()&&(currentUserMemberships||[]).length>1;
 }
+function dsPersonalObjectSource(){
+  return dsIsCrossTenantPersonalPortfolio()
+    ?(Array.isArray(myCrossTenantObjects)?myCrossTenantObjects:[])
+    :(Array.isArray(db.objects)?db.objects:[]);
+}
 function dsMembershipForObject(o){
   const orgId=String(o?.organizationId||o?.organization_id||'');
   return (currentUserMemberships||[]).find(m=>String(m.organization_id||'')===orgId)||null;
@@ -11611,8 +11616,9 @@ if(canUseDecisionsUI())renderDecisions();if(canUseWorkQueueUI())renderWorkQueue(
   const ro=document.getElementById('reportObject');
   if(ro){
     const rv=ro.value;
-    ro.innerHTML='<option value="">Bitte wählen</option>'+db.objects.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
-    ro.value=rv;
+    const reportObjects=dsPersonalObjectSource();
+    ro.innerHTML='<option value="">Bitte wählen</option>'+reportObjects.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
+    ro.value=reportObjects.some(o=>String(o.id)===String(rv))?rv:'';
   }
 showRecoveryStatus();setTimeout(()=>{hydrateMediaImages();hydrateResidentReportImages();},0);
   dsScheduleAuthoritativeObjectRender();
@@ -12330,12 +12336,20 @@ function toggleObjectHistory(objectId,count){
   btn.textContent=hidden?'Historie einklappen':`Gesamte Historie anzeigen (${count} weitere)`;
 }
 function renderSelects(){
-  const opts=db.objects.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
-  ['filterObject','reportObject'].forEach(id=>{
-    const el=document.getElementById(id), cur=el.value;
-    el.innerHTML=(id==='filterObject'?'<option value="">Alle</option>':'<option value="">Bitte wählen</option>')+opts;
-    el.value=cur;
-  });
+  const filterObjects=Array.isArray(db.objects)?db.objects:[];
+  const reportObjects=dsPersonalObjectSource();
+  const filter=document.getElementById('filterObject');
+  if(filter){
+    const cur=filter.value;
+    filter.innerHTML='<option value="">Alle</option>'+filterObjects.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
+    filter.value=filterObjects.some(o=>String(o.id)===String(cur))?cur:'';
+  }
+  const report=document.getElementById('reportObject');
+  if(report){
+    const cur=report.value;
+    report.innerHTML='<option value="">Bitte wählen</option>'+reportObjects.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
+    report.value=reportObjects.some(o=>String(o.id)===String(cur))?cur:'';
+  }
 }
 function findingCard(f){
   const type=f.type||'Feststellung';
@@ -13102,7 +13116,8 @@ function renderReport(){
   const decision=document.getElementById('reportDecision')?.value||'';
   const area=(document.getElementById('reportArea')?.value||'').trim().toLowerCase();
 
-  const o=db.objects.find(x=>x.id===objectId);
+  const reportObjects=dsPersonalObjectSource();
+  const o=reportObjects.find(x=>String(x.id)===String(objectId));
   if(!o){
     el.innerHTML='<div class="empty">Objekt nicht gefunden.</div>';
     return;
@@ -13186,8 +13201,9 @@ function resetReportFilters(){
 function showObjectReport(id){
   showSection('reports');
   setTimeout(()=>{
+    renderSelects();
     const e=document.getElementById('reportObject');
-    if(e)e.value=id;
+    if(e)e.value=String(id);
     renderReport();
   },0);
 }
