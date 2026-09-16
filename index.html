@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.03</title>
+<title>Duschl Service – Objektplattform v2.21.04</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1482,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.21.03</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.21.04</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1526,7 +1526,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.21.03</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.21.04</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1756,8 +1756,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.21.03</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.21.03</span> geladen</div>
+<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.21.04</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.21.04</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3436,7 +3436,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.21.03'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.04'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -3446,6 +3446,13 @@ if(document.readyState==='loading'){
 const dsObjectListObserver=new MutationObserver(()=>{
   if(dsIsCrossTenantPersonalPortfolio()&&document.getElementById('objectList')){
     dsScheduleAuthoritativeObjectRender();
+  }
+});
+
+document.addEventListener('click',function(e){
+  const t=e.target?.closest?.('button,a');
+  if(t&&/menü|menu|☰/i.test((t.textContent||'')+' '+(t.getAttribute('aria-label')||''))){
+    setTimeout(dsInjectDirectTenantSwitch,20);
   }
 });
 
@@ -4993,6 +5000,50 @@ async function dsLoadMembershipOrganizations(memberships=currentUserMemberships)
   if(!ids.length)return [];
   return await cloudRequest(`organizations?select=id,name,organization_type,public_code,active&id=in.(${ids.map(encodeURIComponent).join(',')})`)||[];
 }
+
+function dsDirectTenantSwitchHtml(){
+  const memberships=(currentUserMemberships||[]).filter(m=>m&&m.organization_id);
+  if(memberships.length<2)return '';
+  const activeId=String(currentOrganizationMembership?.organization_id||dsSavedActiveOrganizationId()||'');
+  const objects=Array.isArray(myCrossTenantObjects)?myCrossTenantObjects:[];
+  const nameFor=(m)=>{
+    const id=String(m.organization_id||'');
+    const org=(cloudOrganizations||[]).find(o=>String(o.id||'')===id);
+    if(org?.name)return org.name;
+    const obj=objects.find(o=>String(o.organizationId||o.organization_id||'')===id);
+    return obj?.organization_name||obj?.mandant||obj?.tenant_name||`Mandant ${id.slice(0,8)}`;
+  };
+  return `<div id="directTenantSwitch" style="margin:10px 0 14px;padding:10px;border:1px solid var(--line);border-radius:12px">
+    <div class="muted" style="font-size:12px;margin-bottom:6px">Mandant wechseln</div>
+    ${memberships.map(m=>{
+      const id=String(m.organization_id||'');
+      const active=id===activeId;
+      return `<button type="button" onclick="switchTenantMembership('${esc(id)}')" style="display:block;width:100%;text-align:left;margin:6px 0;padding:10px" class="${active?'primary':''}">
+        <strong>${esc(nameFor(m))}</strong>
+        <span class="muted" style="display:block;font-size:12px">${esc(roleLabel(m.role))}${active?' · aktuell':''}</span>
+      </button>`;
+    }).join('')}
+  </div>`;
+}
+function dsInjectDirectTenantSwitch(){
+  const html=dsDirectTenantSwitchHtml();
+  if(!html)return;
+  const existing=document.getElementById('directTenantSwitch');
+  if(existing)existing.remove();
+
+  // Prefer the actual hamburger/menu container identified by the existing switch button.
+  const switchBtn=document.getElementById('headerTenantSwitchBtn');
+  let host=switchBtn?.parentElement||null;
+  if(host){
+    switchBtn.insertAdjacentHTML('afterend',html);
+    return;
+  }
+
+  // Fallback: find a visible menu/nav containing the existing "Mandant wechseln" text.
+  const candidates=[...document.querySelectorAll('nav,aside,.menu,.drawer,.sidebar,[role="navigation"]')];
+  host=candidates.find(x=>/Mandant wechseln/i.test(x.textContent||''))||candidates.find(x=>x.offsetParent!==null);
+  if(host)host.insertAdjacentHTML('beforeend',html);
+}
 async function openTenantSwitcher(force=false){
   const memberships=(currentUserMemberships||[]).filter(m=>m&&m.organization_id);
   if(memberships.length<2){
@@ -5510,6 +5561,8 @@ function applyRoleUI(){
   }
 
   renderAll();
+
+  setTimeout(dsInjectDirectTenantSwitch,0);
 }
 
 function requireAdminUI(action='Diese Funktion'){
