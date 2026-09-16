@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.97</title>
+<title>Duschl Service – Objektplattform v2.20.98</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1482,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.97</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.98</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1526,7 +1526,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.97</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.98</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1756,8 +1756,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.97</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.97</span> geladen</div>
+<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.98</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.98</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3436,7 +3436,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.97'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.98'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -6103,7 +6103,7 @@ function findingCreatorMetaHtml(f){
 async function cloudReloadFindings(){
   if(!cloudSession?.access_token)return;
   const rowsRaw=await cloudRequest('findings?select=id,object_id,inspection_id,source_resident_report_id,type,area_id,area,area_detail,title,category,priority,description,recommended_action,activity,status,completion_type,completion_note,work_required,created_by,creator_name_snapshot,creator_organization_id_snapshot,creator_organization_name_snapshot,created_at,updated_at&order=created_at.desc');
-  const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
+  const accessibleObjectIds=new Set(dsPersonalObjectSource().map(o=>o.id));
   let rows=(rowsRaw||[]).filter(f=>accessibleObjectIds.has(f.object_id));
 
   // v2.19.42: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
@@ -9319,6 +9319,23 @@ function dsPersonalObjectSource(){
     ?(Array.isArray(myCrossTenantObjects)?myCrossTenantObjects:[])
     :(Array.isArray(db.objects)?db.objects:[]);
 }
+function dsObjectById(objectId){
+  const oid=String(objectId||'');
+  return dsPersonalObjectSource().find(o=>String(o?.id||'')===oid)
+    ||(db.objects||[]).find(o=>String(o?.id||'')===oid)
+    ||null;
+}
+function dsObjectOrganizationId(objectId){
+  const o=dsObjectById(objectId);
+  return String(o?.organizationId||o?.organization_id||'');
+}
+function dsMembershipForObjectId(objectId){
+  const orgId=dsObjectOrganizationId(objectId);
+  return (currentUserMemberships||[]).find(m=>String(m.organization_id||'')===orgId)||null;
+}
+function dsRoleForObjectId(objectId){
+  return String(dsMembershipForObjectId(objectId)?.role||'').toLowerCase();
+}
 function dsMembershipForObject(o){
   const orgId=String(o?.organizationId||o?.organization_id||'');
   return (currentUserMemberships||[]).find(m=>String(m.organization_id||'')===orgId)||null;
@@ -10080,7 +10097,7 @@ function toggleAppMenu(){
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAppMenu();});
 function fmt(ts){if(!ts)return'';return new Date(ts).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-function objectName(id){return db.objects.find(x=>x.id===id)?.name||'—'}
+function objectName(id){return dsObjectById(id)?.name||'—'}
 function inspectionName(id){const i=db.inspections.find(x=>x.id===id);return i?`${objectName(i.objectId)} · ${fmt(i.startedAt)}`:'—'}
 
 function openPlatformUsers(){
@@ -10193,7 +10210,7 @@ function renderDecisions(){
   const incomingOrderDecisions=pendingIncomingExternalOrderDecisions();
   const returnedOrderDecisions=returnedExternalOrderDecisions();
 
-  const objectMap=new Map((db.objects||[]).map(o=>[o.id,o.name||o.id]));
+  const objectMap=new Map(dsPersonalObjectSource().map(o=>[o.id,o.name||o.id]));
   (db.findings||[]).filter(f=>findingVisibleInCurrentTenantUI(f)).forEach(f=>{
     if(f.objectId&&!objectMap.has(f.objectId))objectMap.set(f.objectId,`Nicht zugeordnet (${f.objectId})`);
   });
@@ -10584,10 +10601,11 @@ function currentUserOwnsOperationalObject(objectId){
   if(!objectId)return false;
 
   const oid=String(objectId||'');
-  const object=(db.objects||[]).find(o=>String(o.id||'')===oid);
+  const object=dsObjectById(oid);
   if(!object)return false;
 
-  if(isObjectManagerRole()||isExternalContractorRole()||isTestUserRole()){
+  const objectRole=dsIsCrossTenantPersonalPortfolio()?dsRoleForObjectId(oid):String(currentRole()||'').toLowerCase();
+  if(['object_manager','external_contractor','test_user'].includes(objectRole)){
     // v2.20.48: Extern geteilte Objekte werden mandantenweit geladen, damit
     // Admins/Monitoring die Zusammenarbeit sehen können. Für einen operativen
     // Benutzer bedeutet diese Sichtbarkeit aber noch keine Zuständigkeit.
@@ -10764,6 +10782,20 @@ function incomingRoutedFindingIdsForCurrentTenant(){
 
 function findingVisibleInCurrentTenantUI(f){
   if(!f)return false;
+  if(dsIsCrossTenantPersonalPortfolio()){
+    const object=dsObjectById(f.objectId);
+    if(!object)return false;
+    const membership=dsMembershipForObjectId(f.objectId);
+    if(!membership)return false;
+    const role=String(membership.role||'').toLowerCase();
+    // Persönliche Cross-Tenant-Sicht: nur Inhalte zu tatsächlich zugewiesenen
+    // Objekten. Die bestehende RLS bleibt die serverseitige Sicherheitsgrenze.
+    if(['object_manager','external_contractor','test_user'].includes(role) &&
+       !currentUserAssignedObjectIds.has(String(f.objectId||''))){
+      return false;
+    }
+    return true;
+  }
   const orgId=String(currentOrganizationId()||'');
 
   // v2.20.47: Eine execution_finding_id ist immer die operative
@@ -11000,7 +11032,7 @@ function renderWorkQueue(){
   const consolidatedOpenCount=k.open+incomingExternal.length;
   const workNavCount=document.getElementById('workqueueNavCount');
   if(workNavCount)workNavCount.textContent=consolidatedOpenCount;
-  const objects=(db.objects||[]).slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'','de'));
+  const objects=dsPersonalObjectSource().slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'','de'));
 
   const openDecisionStates=new Set(['pending','quote_requested','quote_sent','approved','deferred','question']);
 
@@ -11088,7 +11120,7 @@ function renderWorkQueue(){
       ${incomingExternal.map(externalWorkQueueItemHtml).join('')}
       ${filtered.length ? filtered.map(t=>{
         const f=(db.findings||[]).find(x=>x.id===t.findingId)||{};
-        const o=(db.objects||[]).find(x=>x.id===t.objectId)||{};
+        const o=dsObjectById(t.objectId)||{};
         const due=t.dueDate?new Date(t.dueDate+'T00:00:00').toLocaleDateString('de-DE'):'Ohne Termin';
         const workStatus=t.hasTask
           ? (TASK_STATUS_LABELS[t.status]||t.status||'Geplant')
@@ -12252,7 +12284,7 @@ function renderObjectFiles(){
   const objFilter=document.getElementById('historyObjectFilter');
   if(objFilter){
     const cur=objFilter.value;
-    objFilter.innerHTML='<option value="">Alle Objekte</option>'+db.objects.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
+    objFilter.innerHTML='<option value="">Alle Objekte</option>'+dsPersonalObjectSource().map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
     objFilter.value=cur;
   }
 
@@ -12261,7 +12293,7 @@ function renderObjectFiles(){
   const type=document.getElementById('historyTypeFilter')?.value||'';
   const status=document.getElementById('historyStatusFilter')?.value||'';
 
-  let objects=[...db.objects];
+  let objects=[...dsPersonalObjectSource()];
   if(selectedObject)objects=objects.filter(o=>o.id===selectedObject);
 
   const cutoff=days==='all'?0:Date.now()-Number(days)*86400000;
@@ -12336,7 +12368,7 @@ function toggleObjectHistory(objectId,count){
   btn.textContent=hidden?'Historie einklappen':`Gesamte Historie anzeigen (${count} weitere)`;
 }
 function renderSelects(){
-  const filterObjects=Array.isArray(db.objects)?db.objects:[];
+  const filterObjects=dsPersonalObjectSource();
   const reportObjects=dsPersonalObjectSource();
   const filter=document.getElementById('filterObject');
   if(filter){
@@ -12473,7 +12505,7 @@ function externalMonitoringDocumentationCard(x){
   const fid=String(x.source_finding_id||'');
   const localFinding=fid?(db.findings||[]).find(f=>String(f.id||'')===fid):null;
   const reporterOrg=externalOrderReporterLabel(x);
-  const objectName=x.source_object_name||((db.objects||[]).find(o=>String(o.id||'')===String(x.source_object_id||''))?.name)||'Objekt';
+  const objectName=x.source_object_name||(dsObjectById(x.source_object_id)?.name)||'Objekt';
   const area=snapshot.area||localFinding?.area||'';
   const priority=String(x.priority||localFinding?.priority||'P3');
   const statusLabel=externalOrderLifecycleLabel(x);
