@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.91</title>
+<title>Duschl Service – Objektplattform v2.20.92</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1482,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.91</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.92</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1526,7 +1526,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.91</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.92</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1756,8 +1756,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.91</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.91</span> geladen</div>
+<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.92</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.92</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3436,7 +3436,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.91'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.92'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -9516,7 +9516,7 @@ async function cloudReloadObjects(){
   }catch(e){
     console.error('Objekte laden fehlgeschlagen',e);
     cloudSetStatus('Verbindungsfehler: '+(e.message||e),'bad');
-    alert('Supabase-Verbindung fehlgeschlagen. Technische Diagnose im Plattform-Dashboard prüfen.');
+    console.error('Supabase-Reload fehlgeschlagen; Diagnose bleibt im Plattform-Dashboard verfügbar.');
   }
 }
 async function cloudSaveObject(id,data){
@@ -12085,31 +12085,40 @@ function renderObjects(){
     el.style.setProperty('display','grid','important');
     el.style.setProperty('visibility','visible','important');
     el.style.setProperty('opacity','1','important');
-    if(!objects.length){
+    const portfolio=[...myCrossTenantObjects];
+    if(!portfolio.length){
       el.innerHTML='<div class="empty">Dir sind derzeit keine Objekte zugewiesen.</div>';
       return;
     }
-    el.innerHTML=objects.map(o=>{
+    const cards=[];
+    for(const o of portfolio){
+      if(!o||!o.id)continue;
       const m=dsMembershipForObject(o);
       const role=String(m?.role||'').toLowerCase();
       const roleLabel=ROLE_LABELS[role]||role||'Benutzer';
-      return `<div class="card">
+      const tenantName=dsOrganizationNameForObject(o);
+      cards.push(`<article class="card" data-object-id="${esc(String(o.id))}">
         <div class="row space">
           <div>
             <h3 style="margin:0">${esc(o.name||'Objekt')}</h3>
-            <div class="muted" style="margin-top:4px"><strong>${esc(dsOrganizationNameForObject(o))}</strong> · ${esc(roleLabel)}</div>
+            <div class="muted" style="margin-top:4px"><strong>${esc(tenantName)}</strong> · ${esc(roleLabel)}</div>
             ${o.address?`<div class="muted">${esc(o.address)}</div>`:''}
           </div>
         </div>
         ${o.notes?`<p>${esc(o.notes)}</p>`:''}
         <div class="row" style="margin-top:10px">
-          <button onclick="dsOpenFindingForObject('${esc(o.id)}')">Dokumentation erfassen</button>
-          ${role!=='customer'?`<button onclick="dsOpenQrForObject('${esc(o.id)}')">Objekt-QR</button>`:''}
-          <button onclick="dsOpenReportForObject('${esc(o.id)}')">Bericht</button>
+          <button onclick="dsOpenFindingForObject('${esc(String(o.id))}')">Dokumentation erfassen</button>
+          ${role!=='customer'?`<button onclick="dsOpenQrForObject('${esc(String(o.id))}')">Objekt-QR</button>`:''}
+          <button onclick="dsOpenReportForObject('${esc(String(o.id))}')">Bericht</button>
         </div>
-      </div>`;
-    }).join('');
-    console.info('Mandantenübergreifende Objektansicht gerendert',{count:objects.length,names:objects.map(o=>o?.name||'Objekt')});
+      </article>`);
+    }
+    el.innerHTML=cards.join('');
+    console.info('Mandantenübergreifende Objektansicht gerendert',{
+      loaded:portfolio.length,
+      rendered:cards.length,
+      objects:portfolio.map(o=>({id:o?.id,name:o?.name,organizationId:o?.organizationId}))
+    });
     return;
   }
   el.style.setProperty('display','grid','important');
