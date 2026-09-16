@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.90</title>
+<title>Duschl Service – Objektplattform v2.20.91</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1482,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.90</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.91</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1526,7 +1526,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.90</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.91</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1756,8 +1756,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.90</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.90</span> geladen</div>
+<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.91</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.91</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3436,7 +3436,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.90'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.91'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -5004,8 +5004,21 @@ async function cloudLoadCurrentProfile(){
   applyRoleUI();
 
   try{
-    const memberships=await cloudRequest(`organization_memberships?select=id,organization_id,user_id,role&user_id=eq.${encodeURIComponent(uid)}`)||[];
+    let memberships=[];
+    try{
+      memberships=await cloudRequest('rpc/get_my_memberships_across_tenants',{
+        method:'POST',
+        body:JSON.stringify({})
+      })||[];
+    }catch(membershipRpcError){
+      console.warn('Cross-Tenant-Membership-RPC nicht verfügbar, Fallback auf Tabellen-RLS',membershipRpcError);
+      memberships=await cloudRequest(`organization_memberships?select=id,organization_id,user_id,role&user_id=eq.${encodeURIComponent(uid)}`)||[];
+    }
     currentUserMemberships=[...memberships];
+    console.info('Memberships des angemeldeten Benutzers',{
+      count:currentUserMemberships.length,
+      memberships:currentUserMemberships.map(m=>({organization_id:m.organization_id,role:m.role}))
+    });
     const membershipPriority={tenant_admin:1,admin_delegate:2,property_manager:3,external_contractor:4,object_manager:5,customer:6};
     const savedOrgId=dsSavedActiveOrganizationId();
     const savedMembership=currentUserMemberships.find(m=>m.organization_id===savedOrgId)||null;
@@ -9341,10 +9354,11 @@ async function cloudReloadObjects(){
       // Keine tenant-spezifischen Shared-/Collaboration-Abfragen dürfen diesen Bestand überschreiben.
       await dsLoadMyAssignedObjectsAcrossTenants();
       try{await cloudReloadFindings();}catch(e){console.warn('Dokumentationen teilweise nicht geladen',e);}
-      try{await cloudReloadTasks();}catch(e){console.warn('Aufgaben teilweise nicht geladen',e);}
-      try{await cloudReloadMessages();}catch(e){console.warn('Mitteilungen teilweise nicht geladen',e);}
+      try{await loadUserMessages();}catch(e){console.warn('Mitteilungen teilweise nicht geladen',e);}
       renderObjects();
       try{renderAll();}catch(e){console.warn('Teilrendering fehlgeschlagen',e);}
+      // renderAll() enthält Dashboard und Objektmodul; beide lesen im Cross-Tenant-Modus
+      // denselben myCrossTenantObjects-Bestand.
       cloudSetStatus(`Verbunden · ${myCrossTenantObjects.length} Objekt(e) im persönlichen Zugriff`,'ok');
       return;
     }
@@ -11917,7 +11931,9 @@ function renderDashboard(){
   renderGlobalPlatformMessages();
   renderDashboardMessages();
   renderDashboardCareRequests();
-  document.getElementById('kpiObjects').textContent=db.objects.length;
+  document.getElementById('kpiObjects').textContent=dsIsCrossTenantPersonalPortfolio()
+    ?myCrossTenantObjects.length
+    :db.objects.length;
   // v2.20.23: Dashboard-KPI bildet die vollständige Dokumentation ab, nicht nur offene Punkte.
   const visibleDocumentation=(db.findings||[]).filter(f=>findingVisibleInCurrentTenantUI(f));
   const open=visibleDocumentation.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt');
