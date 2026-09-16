@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.99</title>
+<title>Duschl Service – Objektplattform v2.21.00</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1482,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.99</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.21.00</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1526,7 +1526,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.99</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.21.00</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1756,8 +1756,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.99</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.99</span> geladen</div>
+<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.21.00</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.21.00</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3436,7 +3436,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.99'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.00'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -9336,6 +9336,27 @@ function dsMembershipForObjectId(objectId){
 function dsRoleForObjectId(objectId){
   return String(dsMembershipForObjectId(objectId)?.role||'').toLowerCase();
 }
+function dsEffectiveRoleForObject(objectId){
+  const objectRole=dsRoleForObjectId(objectId);
+  return dsIsCrossTenantPersonalPortfolio()&&objectRole
+    ?objectRole
+    :String(currentRole()||'').toLowerCase();
+}
+function dsObjectRoleIs(objectId,...roles){
+  return roles.map(r=>String(r||'').toLowerCase()).includes(dsEffectiveRoleForObject(objectId));
+}
+function dsCanOperateObjectByMembership(objectId){
+  const role=dsEffectiveRoleForObject(objectId);
+  if(['platform_admin','platform_admin_delegate','tenant_admin','admin_delegate','property_manager'].includes(role))return true;
+  if(['object_manager','external_contractor','test_user'].includes(role)){
+    return currentUserAssignedObjectIds.has(String(objectId||''));
+  }
+  return false;
+}
+function dsCanDecideForObjectByMembership(objectId){
+  const role=dsEffectiveRoleForObject(objectId);
+  return ['platform_admin','platform_admin_delegate','tenant_admin','admin_delegate','property_manager','customer'].includes(role);
+}
 function dsMembershipForObject(o){
   const orgId=String(o?.organizationId||o?.organization_id||'');
   return (currentUserMemberships||[]).find(m=>String(m.organization_id||'')===orgId)||null;
@@ -10604,7 +10625,7 @@ function currentUserOwnsOperationalObject(objectId){
   const object=dsObjectById(oid);
   if(!object)return false;
 
-  const objectRole=dsIsCrossTenantPersonalPortfolio()?dsRoleForObjectId(oid):String(currentRole()||'').toLowerCase();
+  const objectRole=dsEffectiveRoleForObject(oid);
   if(['object_manager','external_contractor','test_user'].includes(objectRole)){
     // v2.20.48: Extern geteilte Objekte werden mandantenweit geladen, damit
     // Admins/Monitoring die Zusammenarbeit sehen können. Für einen operativen
@@ -10787,7 +10808,7 @@ function findingVisibleInCurrentTenantUI(f){
     if(!object)return false;
     const membership=dsMembershipForObjectId(f.objectId);
     if(!membership)return false;
-    const role=String(membership.role||'').toLowerCase();
+    const role=dsEffectiveRoleForObject(f.objectId);
     // Persönliche Cross-Tenant-Sicht: nur Inhalte zu tatsächlich zugewiesenen
     // Objekten. Die bestehende RLS bleibt die serverseitige Sicherheitsgrenze.
     if(['object_manager','external_contractor','test_user'].includes(role) &&
@@ -12186,7 +12207,7 @@ function renderObjects(){
     for(const o of portfolio){
       if(!o||!o.id)continue;
       const m=dsMembershipForObject(o);
-      const role=String(m?.role||'').toLowerCase();
+      const role=dsEffectiveRoleForObject(o.id);
       const roleLabel=ROLE_LABELS[role]||role||'Benutzer';
       const tenantName=dsOrganizationNameForObject(o);
       cards.push(`<article class="card" data-object-id="${esc(String(o.id))}">
