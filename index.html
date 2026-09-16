@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.04</title>
+<title>Duschl Service – Objektplattform v2.21.05</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1482,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.21.04</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.21.05</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1526,7 +1526,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.21.04</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.21.05</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1756,8 +1756,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.21.04</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.21.04</span> geladen</div>
+<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.21.05</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.21.05</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3436,7 +3436,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.21.04'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.05'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -5082,7 +5082,6 @@ async function switchTenantMembership(organizationId){
   dsSetActiveOrganizationId(organizationId);
   currentOrganizationMembership=membership;
   if(!isPlatformOperatorRole())currentUserRole=String(membership.role||currentUserRole||'').toLowerCase();
-  try{localStorage.removeItem(KEY);}catch(_e){}
   window.location.reload();
 }
 async function dsTryLinkExistingUser(email,organizationId,role){
@@ -5112,16 +5111,33 @@ async function cloudLoadCurrentProfile(){
 
   try{
     let memberships=[];
+    let rpcMemberships=[];
+    let tableMemberships=[];
     try{
-      memberships=await cloudRequest('rpc/get_my_memberships_across_tenants',{
+      rpcMemberships=await cloudRequest('rpc/get_my_memberships_across_tenants',{
         method:'POST',
         body:JSON.stringify({})
       })||[];
     }catch(membershipRpcError){
-      console.warn('Cross-Tenant-Membership-RPC nicht verfügbar, Fallback auf Tabellen-RLS',membershipRpcError);
-      memberships=await cloudRequest(`organization_memberships?select=id,organization_id,user_id,role&user_id=eq.${encodeURIComponent(uid)}`)||[];
+      console.warn('Cross-Tenant-Membership-RPC nicht verfügbar',membershipRpcError);
     }
-    currentUserMemberships=[...memberships];
+    try{
+      tableMemberships=await cloudRequest(`organization_memberships?select=id,organization_id,user_id,role&user_id=eq.${encodeURIComponent(uid)}`)||[];
+    }catch(membershipTableError){
+      console.warn('Membership-Tabellenfallback nicht verfügbar',membershipTableError);
+    }
+
+    // Single Source of Truth: Memberships gehören zur Auth-Identität und werden
+    // unabhängig vom aktuell gewählten Mandanten zusammengeführt.
+    const membershipMap=new Map();
+    for(const m of [...rpcMemberships,...tableMemberships]){
+      const orgId=String(m?.organization_id||'').trim();
+      if(!orgId)continue;
+      const previous=membershipMap.get(orgId)||{};
+      membershipMap.set(orgId,{...previous,...m,organization_id:orgId});
+    }
+    memberships=[...membershipMap.values()];
+    currentUserMemberships=memberships;
     try{
       const membershipOrganizations=await dsLoadMembershipOrganizations(currentUserMemberships);
       for(const org of (membershipOrganizations||[])){
@@ -5130,8 +5146,15 @@ async function cloudLoadCurrentProfile(){
     }catch(e){console.warn('Mandantennamen konnten nicht vollständig geladen werden',e);}
     console.info('Memberships des angemeldeten Benutzers',{
       count:currentUserMemberships.length,
+      active_organization_id:dsSavedActiveOrganizationId(),
       memberships:currentUserMemberships.map(m=>({organization_id:m.organization_id,role:m.role}))
     });
+    if(currentUserMemberships.length<2){
+      console.warn('Multi-Tenant-Hinweis: Für diese Auth-Identität wurde aktuell nur eine Membership geladen.',{
+        user_id:uid,
+        memberships:currentUserMemberships
+      });
+    }
     const membershipPriority={tenant_admin:1,admin_delegate:2,property_manager:3,external_contractor:4,object_manager:5,customer:6};
     const savedOrgId=dsSavedActiveOrganizationId();
     const savedMembership=currentUserMemberships.find(m=>m.organization_id===savedOrgId)||null;
