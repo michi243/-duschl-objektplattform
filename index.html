@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.05</title>
+<title>Duschl Service – Objektplattform v2.21.06</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1482,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.21.05</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.21.06</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1526,7 +1526,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.21.05</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.21.06</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1607,13 +1607,13 @@ body.public-report-mode>#photoViewer{display:none!important}
     <div class="pa-panel-head">
       <div>
         <div class="pa-panel-title"><span class="pa-panel-icon">▦</span>Mandantenübersicht</div>
-        <div class="pa-panel-sub">Benutzerzahl, Mandanten-Admin und vertragliche Speicherauslastung.</div>
+        <div class="pa-panel-sub">Benutzerzahl, letzte Mandantenaktivität und vertragliche Speicherauslastung.</div>
       </div>
       <button class="pa-refresh-btn" type="button" onclick="showSection('organizations')">Alle Mandanten ›</button>
     </div>
     <div class="pa-table-wrap">
       <div class="pa-table-head">
-        <div>Name</div><div>Status</div><div>Benutzer</div><div>Mandanten-Admin</div><div>Speicher</div><div></div>
+        <div>Name</div><div>Status</div><div>Benutzer</div><div>Zuletzt aktiv</div><div>Speicher</div><div></div>
       </div>
       <div id="sysTenantStorageList"><div class="empty">Mandantendaten werden geladen …</div></div>
     </div>
@@ -1756,8 +1756,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.21.05</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.21.05</span> geladen</div>
+<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.21.06</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.21.06</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3436,7 +3436,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.21.05'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.06'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -8344,6 +8344,32 @@ async function cloudLoadPlatformStorage(){
   renderOrganizations();
   return platformStorageRows;
 }
+function platformOrganizationLastSeenAt(organizationId){
+  const orgId=String(organizationId||'');
+  const memberships=(platformOrganizationMemberships||[]).filter(m=>String(m.organization_id||'')===orgId);
+  const userIds=new Set(memberships.map(m=>String(m.user_id||'')).filter(Boolean));
+  let latest=0;
+  for(const p of (platformOrganizationProfiles||[])){
+    if(p?.active===false||p?.deleted_at)continue;
+    if(!userIds.has(String(p.id||p.user_id||'')))continue;
+    const ts=Date.parse(p.last_seen_at||'');
+    if(Number.isFinite(ts)&&ts>latest)latest=ts;
+  }
+  return latest?new Date(latest):null;
+}
+function formatTenantLastSeen(value){
+  if(!value)return 'Noch nie';
+  const d=value instanceof Date?value:new Date(value);
+  if(Number.isNaN(d.getTime()))return 'Noch nie';
+  const now=new Date();
+  const sameDay=d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&d.getDate()===now.getDate();
+  const yesterday=new Date(now); yesterday.setDate(now.getDate()-1);
+  const isYesterday=d.getFullYear()===yesterday.getFullYear()&&d.getMonth()===yesterday.getMonth()&&d.getDate()===yesterday.getDate();
+  const time=d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+  if(sameDay)return `Heute, ${time}`;
+  if(isYesterday)return `Gestern, ${time}`;
+  return `${d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:d.getFullYear()===now.getFullYear()?undefined:'numeric'})}, ${time}`;
+}
 function renderPlatformSystemStatus(){
   if(!isPlatformOperatorRole())return;
   const activeOrgs=(cloudOrganizations||[]).filter(o=>o.active!==false);
@@ -8381,14 +8407,12 @@ function renderPlatformSystemStatus(){
       const limit=Number(org.storage_limit_bytes||0);
       const percent=limit>0?Math.round((usedBytes/limit)*100):0;
       const summary=platformOrganizationUserSummary(org.id);
-      const adminText=summary.admins.length
-        ? summary.admins.map(p=>esc(p.full_name||p.email||'Mandanten-Admin')).join(', ')
-        : 'Nicht festgelegt';
+      const lastSeen=formatTenantLastSeen(platformOrganizationLastSeenAt(org.id));
       return `<div class="pa-tenant-line">
         <div class="pa-tenant-name">${esc(org.name)}</div>
         <div><span class="pa-active-pill">${org.active===false?'Inaktiv':'Aktiv'}</span></div>
         <div>${summary.count}</div>
-        <div>${adminText}</div>
+        <div><strong>${esc(lastSeen)}</strong></div>
         <div>
           <strong>${formatBytes(usedBytes)} / ${limit>0?formatBytes(limit):'—'}</strong>
           <div class="pa-storage-mini"><span style="width:${Math.min(Math.max(percent,0),100)}%"></span></div>
@@ -8732,7 +8756,7 @@ async function loadPlatformMessageRecipients(){
   if(!isPlatformOperatorRole())return [];
   try{
     const [profiles,memberships,orgs]=await Promise.all([
-      cloudRequest('profiles?select=id,full_name,email,role,active,deleted_at'),
+      cloudRequest('profiles?select=id,full_name,email,role,active,deleted_at,last_seen_at'),
       cloudRequest('organization_memberships?select=user_id,organization_id,role'),
       cloudRequest('organizations?select=id,name,active')
     ]);
@@ -8908,7 +8932,7 @@ let platformAccessProfiles=[];
 async function loadPlatformAccessProfiles(){
   if(!isAdminRole()){platformAccessProfiles=[];renderPlatformAccessProfiles();return;}
   try{
-    const rows=await cloudRequest('profiles?select=id,full_name,email,role,active,deleted_at,created_at&role=in.(platform_admin,platform_admin_delegate)&order=full_name.asc');
+    const rows=await cloudRequest('profiles?select=id,full_name,email,role,active,deleted_at,last_seen_at,created_at&role=in.(platform_admin,platform_admin_delegate)&order=full_name.asc');
     platformAccessProfiles=Array.isArray(rows)?rows:[];
   }catch(e){
     platformAccessProfiles=[];
