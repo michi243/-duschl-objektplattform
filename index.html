@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.98</title>
+<title>Duschl Service – Objektplattform v2.20.99</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1482,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.98</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.99</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1526,7 +1526,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.98</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.99</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1756,8 +1756,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.98</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.98</span> geladen</div>
+<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.99</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.99</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -2031,9 +2031,9 @@ body.public-report-mode>#photoViewer{display:none!important}
       <select id="newUserRole">
 <option value="tenant_admin">Mandanten-Admin</option>
 <option value="admin_delegate">Admin-Vertretung</option>
-<option value="property_manager">Verwalter</option>
+<option value="property_manager">Verwalter / Objektsteuerung</option>
 <option value="object_manager">Objektbetreuer</option>
-<option value="customer">Auftraggeber</option>
+<option value="customer">Auftraggeber / Eigentümer</option>
 <option value="external_contractor">Externer Auftragnehmer</option>
 </select>
 </label>
@@ -3436,7 +3436,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.98'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.99'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -4659,11 +4659,11 @@ const ROLE_LABELS={
   staff:'Objektbetreuer (Legacy)',
   object_manager:'Objektbetreuer',
   employee:'Mitarbeiter (Alt)',
-  customer:'Auftraggeber',
+  customer:'Auftraggeber / Eigentümer',
   test_user:'Testbenutzer (Legacy)',
   external_contractor:'Externer Auftragnehmer',
   tenant_admin:'Mandanten-Admin',
-  property_manager:'Verwalter',
+  property_manager:'Verwalter / Objektsteuerung',
   admin_delegate:'Admin-Vertretung'
 };
 
@@ -11305,7 +11305,7 @@ function loadUserAdminEditor(){
   const orgId=currentOrganizationId();
   const membership=userAdminMemberships.find(m=>m.user_id===uid&&String(m.organization_id||'')===String(orgId||''))||null;
   const assigned=new Set(userAdminAssignments.filter(a=>a.user_id===uid&&a.active!==false).map(a=>a.object_id));
-  const roles=[['tenant_admin','Mandanten-Admin'],['admin_delegate','Admin-Vertretung'],['property_manager','Verwalter'],['object_manager','Objektbetreuer'],['external_contractor','Externer Auftragnehmer'],['customer','Auftraggeber']];
+  const roles=[['tenant_admin','Mandanten-Admin'],['admin_delegate','Admin-Vertretung'],['property_manager','Verwalter / Objektsteuerung'],['object_manager','Objektbetreuer'],['external_contractor','Externer Auftragnehmer'],['customer','Auftraggeber / Eigentümer']];
   const allowedRoles=isAdminDelegate()?roles.filter(([v])=>!['tenant_admin','admin_delegate'].includes(v)):roles;
   const roleOptions=allowedRoles.map(([v,l])=>`<option value="${v}" ${membership?.role===v?'selected':''}>${l}</option>`).join('');
   const ownObjects=(userAdminTenantObjects||[]).map(o=>({
