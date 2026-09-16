@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.88</title>
+<title>Duschl Service – Objektplattform v2.20.89</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1482,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.88</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.89</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1526,7 +1526,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.88</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.89</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1756,8 +1756,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.88</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.88</span> geladen</div>
+<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.89</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.89</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3436,7 +3436,7 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.88'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.89'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -4618,6 +4618,7 @@ let currentUserRole='';
 let currentOrganizationMembership=null;
 let currentOrganization=null;
 let currentUserMemberships=[];
+let myCrossTenantObjects=[];
 const DS_ACTIVE_ORG_KEY='ds_active_organization_id';
 let cloudOrganizations=[];
 let cloudExternalOrders=[];
@@ -9267,15 +9268,17 @@ async function cloudLoadCurrentUserObjectAssignments(){
 
 async function dsLoadMyAssignedObjectsAcrossTenants(){
   const uid=currentUserId();
-  if(!uid)return [];
-  // v2.20.87: serverseitige, benutzergebundene Sicht. Die Funktion liefert nur
-  // aktive Objektzuweisungen des angemeldeten Benutzers in Mandanten, in denen
-  // derselbe Benutzer eine aktive Membership besitzt.
+  if(!uid){myCrossTenantObjects=[];return [];}
   const rows=await cloudRequest('rpc/get_my_assigned_objects_across_tenants',{
     method:'POST',
     body:JSON.stringify({})
   });
-  return Array.isArray(rows)?rows:[];
+  myCrossTenantObjects=(Array.isArray(rows)?rows:[]).map(cloudObjectToLocal);
+  console.info('Meine Objekte geladen',{
+    count:myCrossTenantObjects.length,
+    objects:myCrossTenantObjects.map(o=>({id:o.id,name:o.name,organizationId:o.organizationId}))
+  });
+  return myCrossTenantObjects;
 }
 function dsIsCrossTenantPersonalPortfolio(){
   return !isPlatformOperatorRole()&&!hasOperationalAdminAccess()&&(currentUserMemberships||[]).length>1;
@@ -9290,7 +9293,8 @@ function dsOrganizationNameForObject(o){
   return org?.name||organizationName(orgId)||'Mandant';
 }
 async function dsActivateObjectTenant(objectId){
-  const o=(db.objects||[]).find(x=>String(x.id)===String(objectId));
+  const pool=dsIsCrossTenantPersonalPortfolio()?myCrossTenantObjects:(db.objects||[]);
+  const o=(pool||[]).find(x=>String(x.id)===String(objectId));
   const m=dsMembershipForObject(o);
   if(!m)return false;
   if(String(currentOrganizationMembership?.organization_id||'')!==String(m.organization_id||'')){
@@ -9354,7 +9358,8 @@ async function cloudReloadObjects(){
           // v2.20.88: Bei mehreren Memberships ist "Meine Objekte" die führende Sicht.
           // Die aktuell aktive Rolle (z.B. property_manager in Clean und Weg) darf die
           // Objektabfrage nicht vorab auf genau diesen einen Mandanten begrenzen.
-          rows=await dsLoadMyAssignedObjectsAcrossTenants();
+          await dsLoadMyAssignedObjectsAcrossTenants();
+          rows=[];
         }else if((isTenantAdminRole()||isAdminDelegate()) && tenantOrgId){
           rows=await cloudRequest('rpc/tenant_get_own_objects',{
             method:'POST',
@@ -9401,7 +9406,7 @@ async function cloudReloadObjects(){
       organization_role:effectiveOrganizationRole(),
       rows:Array.isArray(rows)?rows.length:null
     });
-    const ownObjects=(rows||[]).map(cloudObjectToLocal);
+    const ownObjects=dsIsCrossTenantPersonalPortfolio()?[]:(rows||[]).map(cloudObjectToLocal);
     await cloudLoadCurrentUserObjectAssignments();
     await cloudLoadSharedObjects();
     // v2.18.82: Betreuungsanfragen bei jedem Mandanten-Reload laden.
@@ -9409,7 +9414,9 @@ async function cloudReloadObjects(){
     if(hasOperationalAdminAccess()||isPropertyManagerRole()||isObjectManagerRole()||isExternalContractorRole()) await cloudLoadObjectCollaborations(false);
     else cloudObjectCollaborations=[];
     const ownIds=new Set(ownObjects.map(o=>o.id));
-    db.objects=ownObjects.concat(cloudSharedObjects.filter(o=>!ownIds.has(o.id)));
+    if(!dsIsCrossTenantPersonalPortfolio()){
+      db.objects=ownObjects.concat(cloudSharedObjects.filter(o=>!ownIds.has(o.id)));
+    }
 
     // v2.19.42: Objekte sind ein eigenständiger Kernbestand.
     // Sobald sie geladen sind, werden sie sofort sichtbar gemacht.
@@ -9473,7 +9480,8 @@ async function cloudReloadObjects(){
     }
 
     renderAll();
-    cloudSetStatus(`Verbunden · ${db.objects.length} Objekt(e) inkl. extern betreuter · ${db.findings.filter(f=>f.cloud).length} Dokumentation(en) · ${(db.tasks||[]).length} Aufgabe(n) zentral`,'ok');
+    const visibleObjectCount=dsIsCrossTenantPersonalPortfolio()?myCrossTenantObjects.length:db.objects.length;
+    cloudSetStatus(`Verbunden · ${visibleObjectCount} Objekt(e) · ${db.findings.filter(f=>f.cloud).length} Dokumentation(en) · ${(db.tasks||[]).length} Aufgabe(n) zentral`,'ok');
   }catch(e){
     console.error('Objekte laden fehlgeschlagen',e);
     cloudSetStatus('Verbindungsfehler: '+(e.message||e),'bad');
@@ -12029,7 +12037,9 @@ function renderObjects(){
     sectionTitle.textContent=personalPortfolio?'Meine Objekte':'Objekte';
   }
 
-  const objects=Array.isArray(db.objects)?db.objects:[];
+  const objects=dsIsCrossTenantPersonalPortfolio()
+    ?(Array.isArray(myCrossTenantObjects)?myCrossTenantObjects:[])
+    :(Array.isArray(db.objects)?db.objects:[]);
   if(status){
     status.textContent=`${objects.length} Objekt${objects.length===1?'':'e'} geladen`;
     status.style.display='block';
