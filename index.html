@@ -1482,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.78</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.79</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1501,6 +1501,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <button id="navUsers" onclick="showSection('users')"><span class="nav-icon">♙</span><span>Benutzer &amp; Berechtigungen</span></button>
 </nav>
 <div class="app-menu-actions">
+<button id="headerTenantSwitchBtn" class="hidden" onclick="closeAppMenu();openTenantMembershipSwitcher()">⇄ <span>Mandant wechseln</span></button>
 <button id="headerDataBtn" class="hidden" onclick="closeAppMenu();dsOpenDataManagement()">▧ <span>Daten</span></button>
 <button id="globalRefreshBtn" onclick="refreshAllCloudData();closeAppMenu()">↻ <span>Aktualisieren</span></button>
 <button id="headerPasswordBtn" onclick="closeAppMenu();showVoluntaryPasswordChange()">⌘ <span>Passwort ändern</span></button>
@@ -1525,7 +1526,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.78</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.79</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1755,8 +1756,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.78</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.78</span> geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.79</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.79</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3440,7 +3441,15 @@ module.exports = QRCode;
    Backend: neue Tabelle organization_activity + RPCs touch_tenant_last_seen / platform_get_tenant_activity.
    Unverändert: Rollenmodell, Objektzugriffe, Findings, Entscheidungen, Messaging, Routing, Objektzuweisungen.
 */
-const APP_VERSION='2.20.78'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.79'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
+   - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
+   - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
+   - Operative Rolle stammt ausschließlich aus organization_memberships des aktiven Mandanten.
+   - Mandantenwechsel im Hamburger-Menü bei mehreren Memberships.
+   - Platform-Admin/Platform-Admin-Vertretung bleiben globale Sonderrollen.
+   - Keine SQL-, RLS-, Tabellen- oder RPC-Änderung.
+*/
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -4602,6 +4611,7 @@ async function copyResidentReportPhotosToFinding(reportId,findingId,objectId){
 
 let currentUserProfile=null;
 let currentUserRole='';
+let currentUserMemberships=[]; // v2.20.79 – alle Mandantenzuordnungen der angemeldeten Identität
 let currentOrganizationMembership=null;
 let currentOrganization=null;
 let cloudOrganizations=[];
@@ -4645,16 +4655,63 @@ const ROLE_LABELS={
   admin_delegate:'Admin-Vertretung'
 };
 
+// v2.20.79 – Rollenquelle:
+// Nur Plattformrollen sind global. Alle operativen Rollen stammen ausschließlich
+// aus der Membership des aktuell aktiven Mandanten.
+function globalPlatformRole(){
+  const role=String(currentUserProfile?.role||currentUserRole||cloudSession?.user?.user_metadata?.app_role||'').trim().toLowerCase();
+  return ['platform_admin','platform_admin_delegate'].includes(role)?role:'';
+}
 function effectiveUserRole(){
-  return String(
-    currentUserProfile?.role ||
-    currentUserRole ||
-    cloudSession?.user?.user_metadata?.app_role ||
-    ''
-  ).trim().toLowerCase();
+  return globalPlatformRole() || String(currentOrganizationMembership?.role||'').trim().toLowerCase();
 }
 function effectiveOrganizationRole(){
   return String(currentOrganizationMembership?.role||'').trim().toLowerCase();
+}
+const DS_ACTIVE_ORG_KEY='duschl_active_organization_v1';
+function dsActiveOrgStorageKey(){
+  const uid=String(currentUserProfile?.id||cloudSession?.user?.id||'').trim();
+  return uid?`${DS_ACTIVE_ORG_KEY}:${uid}`:DS_ACTIVE_ORG_KEY;
+}
+function dsSavedActiveOrganizationId(){
+  try{return String(localStorage.getItem(dsActiveOrgStorageKey())||'').trim()}catch(_e){return ''}
+}
+function dsSetActiveOrganizationId(orgId){
+  try{
+    const id=String(orgId||'').trim();
+    if(id)localStorage.setItem(dsActiveOrgStorageKey(),id);
+    else localStorage.removeItem(dsActiveOrgStorageKey());
+  }catch(_e){}
+}
+function dsMembershipForOrganization(orgId){
+  const id=String(orgId||'');
+  return (currentUserMemberships||[]).find(m=>String(m?.organization_id||'')===id)||null;
+}
+async function switchTenantMembership(orgId){
+  const membership=dsMembershipForOrganization(orgId);
+  if(!membership)return alert('Für diesen Mandanten besteht keine aktive Benutzerzuordnung.');
+  dsSetActiveOrganizationId(membership.organization_id);
+  currentOrganizationMembership=membership;
+  window.location.reload();
+}
+async function openTenantMembershipSwitcher(){
+  const memberships=(currentUserMemberships||[]).filter(m=>m?.organization_id);
+  if(memberships.length<2)return alert('Für diesen Benutzer ist nur ein Mandant zugeordnet.');
+  const rows=await Promise.all(memberships.map(async m=>{
+    try{
+      const r=await cloudRequest(`organizations?select=id,name,active&id=eq.${encodeURIComponent(m.organization_id)}&limit=1`);
+      return {membership:m,organization:r?.[0]||null};
+    }catch(_e){return {membership:m,organization:null}}
+  }));
+  const activeId=String(currentOrganizationId()||'');
+  modal(`<h2>Mandant wechseln</h2><p class="muted">Dein Login bleibt gleich. Rolle und Berechtigungen werden aus der Zuordnung des gewählten Mandanten geladen.</p>
+    <div style="display:grid;gap:10px;margin-top:14px">${rows.map(x=>{
+      const id=String(x.membership.organization_id||'');
+      const name=x.organization?.name||`Mandant ${id.slice(0,8)}`;
+      const roleLabel=ROLE_LABELS[String(x.membership.role||'').toLowerCase()]||x.membership.role||'Benutzer';
+      const active=id===activeId;
+      return `<button type="button" class="${active?'primary':''}" style="width:100%;text-align:left" onclick="switchTenantMembership('${esc(id)}')"><strong>${esc(name)}</strong><br><span class="muted">${esc(roleLabel)}${active?' · aktuell':''}</span></button>`;
+    }).join('')}</div><div class="row" style="margin-top:14px"><button type="button" onclick="closeModal()">Abbrechen</button></div>`);
 }
 function currentOrganizationId(){return isPlatformTenantMode()?platformTenantModeOrgId:(currentOrganizationMembership?.organization_id||'')}
 function currentOrganizationName(){return (currentOrganization?.name||organizationName(currentOrganizationId())||'').trim()}
@@ -4957,13 +5014,14 @@ async function cloudLoadCurrentProfile(){
   applyRoleUI();
 
   try{
+    // v2.20.79: Identität zuerst, danach ALLE Memberships. Kein Rollen-Prioritätsmodell mehr.
+    // Der aktive Mandant bestimmt die operative Rolle.
     const memberships=await cloudRequest(`organization_memberships?select=id,organization_id,user_id,role&user_id=eq.${encodeURIComponent(uid)}`)||[];
-    const membershipPriority={tenant_admin:1,admin_delegate:2,property_manager:3,external_contractor:4,object_manager:5,customer:6};
-    currentOrganizationMembership=[...memberships].sort((a,b)=>
-      (membershipPriority[String(a?.role||'').toLowerCase()]||99)-
-      (membershipPriority[String(b?.role||'').toLowerCase()]||99)
-    )[0]||null;
+    currentUserMemberships=(Array.isArray(memberships)?memberships:[]).filter(m=>m?.organization_id);
+    const savedOrgId=dsSavedActiveOrganizationId();
+    currentOrganizationMembership=dsMembershipForOrganization(savedOrgId)||currentUserMemberships[0]||null;
     if(currentOrganizationMembership?.organization_id){
+      dsSetActiveOrganizationId(currentOrganizationMembership.organization_id);
       const orgRows=await cloudRequest(`organizations?select=id,name,organization_type,public_code,active&id=eq.${encodeURIComponent(currentOrganizationMembership.organization_id)}&limit=1`);
       currentOrganization=orgRows?.[0]||null;
     }
@@ -5276,6 +5334,7 @@ function applyRoleUI(){
   show('navOrganizations',hasAppRole && platformMode);
   show('navUsers',hasAppRole && !platformMode && canManageUsersUI());
   show('navSettings',false);
+  show('headerTenantSwitchBtn',hasAppRole && !platformMode && (currentUserMemberships||[]).length>1);
   show('headerDataBtn',hasAppRole && !platformMode && dsCanManageTenantData());
   show('orphanUserCleanupBtn',isAdminRole() && platformMode);
   show('platformOrphanUserCard',isAdminRole() && platformMode);
@@ -5431,6 +5490,7 @@ function cloudHandleSessionLoss(message='Sitzung abgelaufen. Bitte erneut anmeld
   cloudStoreSession(null);
   currentUserProfile=null;
   currentUserRole='';
+  currentUserMemberships=[];
   currentOrganizationMembership=null;
   currentOrganization=null;
   applyRoleUI();
@@ -5515,6 +5575,7 @@ async function cloudLogout(){
   cloudStoreSession(null);
   currentUserProfile=null;
   currentUserRole='';
+  currentUserMemberships=[];
   currentOrganizationMembership=null;
   currentOrganization=null;
   applyRoleUI();
