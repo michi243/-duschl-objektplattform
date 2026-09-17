@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.77</title>
+<title>Duschl Service – Objektplattform v2.20.78</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1482,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.77</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.78</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1525,7 +1525,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.77</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.78</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1755,8 +1755,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.77</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.77</span> geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.78</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.78</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3435,12 +3435,12 @@ module.exports = QRCode;
 </script>
 <script>
 
-/* RELEASE 2.20.77 | BASIS 2.20.76 | 17.09.2026
+/* RELEASE 2.20.78 | BASIS 2.20.77 | 17.09.2026
    Änderung: Mandantenbezogene letzte Aktivität für Platform-Administration.
    Backend: neue Tabelle organization_activity + RPCs touch_tenant_last_seen / platform_get_tenant_activity.
    Unverändert: Rollenmodell, Objektzugriffe, Findings, Entscheidungen, Messaging, Routing, Objektzuweisungen.
 */
-const APP_VERSION='2.20.77'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.78'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -4618,7 +4618,7 @@ let cloudServiceScopeCatalog=[];
 let cloudSharedObjectAssignees=[];
 let platformOrganizationMemberships=[];
 let platformOrganizationProfiles=[];
-let platformTenantActivity=[]; // v2.20.77 – letzte Aktivität je Mandant
+let platformTenantActivity=[]; // v2.20.78 – letzte Aktivität je Mandant
 let userAdminMemberships=[];
 
 // v2.18.82: Platform-Admin kann einen Mandanten bewusst administrieren.
@@ -6239,7 +6239,7 @@ async function touchUserActivity(){
       headers:{Prefer:'return=minimal'},
       body:JSON.stringify({})
     });
-    // v2.20.77: Aktivität wird zusätzlich mandantenbezogen erfasst. Die RPC
+    // v2.20.78: Aktivität wird zusätzlich mandantenbezogen erfasst. Die RPC
     // validiert serverseitig, dass der Benutzer Mitglied des Mandanten ist.
     // Platform-Administratoren im Mandantenmodus zählen nicht als Mandantenaktivität.
     const activeOrgId=currentOrganizationId();
@@ -8051,9 +8051,14 @@ function renderPlatformSystemStatus(){
       const adminText=summary.admins.length
         ? summary.admins.map(p=>esc(p.full_name||p.email||'Mandanten-Admin')).join(', ')
         : 'Nicht festgelegt';
+      const activity=platformTenantActivityFor(org.id);
+      const activityText=activity.lastSeen?formatLastSeen(activity.lastSeen):'Noch keine Aktivität';
       return `<div class="pa-tenant-line">
         <div class="pa-tenant-name">${esc(org.name)}</div>
-        <div><span class="pa-active-pill">${org.active===false?'Inaktiv':'Aktiv'}</span></div>
+        <div>
+          <span class="pa-active-pill">${org.active===false?'Inaktiv':'Aktiv'}</span>
+          <div class="muted" style="font-size:10px;line-height:1.25;margin-top:5px;white-space:normal">Zuletzt aktiv: ${esc(activityText)}</div>
+        </div>
         <div>${summary.count}</div>
         <div>${adminText}</div>
         <div>
