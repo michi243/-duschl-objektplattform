@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.76</title>
+<title>Duschl Service – Objektplattform v2.20.77</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3435,7 +3435,12 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.20.76'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.20.77 | BASIS 2.20.76 | 17.09.2026
+   Änderung: Mandantenbezogene letzte Aktivität für Platform-Administration.
+   Backend: neue Tabelle organization_activity + RPCs touch_tenant_last_seen / platform_get_tenant_activity.
+   Unverändert: Rollenmodell, Objektzugriffe, Findings, Entscheidungen, Messaging, Routing, Objektzuweisungen.
+*/
+const APP_VERSION='2.20.77'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
@@ -4613,6 +4618,7 @@ let cloudServiceScopeCatalog=[];
 let cloudSharedObjectAssignees=[];
 let platformOrganizationMemberships=[];
 let platformOrganizationProfiles=[];
+let platformTenantActivity=[]; // v2.20.77 – letzte Aktivität je Mandant
 let userAdminMemberships=[];
 
 // v2.18.82: Platform-Admin kann einen Mandanten bewusst administrieren.
@@ -6233,6 +6239,21 @@ async function touchUserActivity(){
       headers:{Prefer:'return=minimal'},
       body:JSON.stringify({})
     });
+    // v2.20.77: Aktivität wird zusätzlich mandantenbezogen erfasst. Die RPC
+    // validiert serverseitig, dass der Benutzer Mitglied des Mandanten ist.
+    // Platform-Administratoren im Mandantenmodus zählen nicht als Mandantenaktivität.
+    const activeOrgId=currentOrganizationId();
+    if(activeOrgId&&!isPlatformOperatorRole()){
+      try{
+        await cloudRequest('rpc/touch_tenant_last_seen',{
+          method:'POST',
+          headers:{Prefer:'return=minimal'},
+          body:JSON.stringify({p_organization_id:activeOrgId})
+        });
+      }catch(tenantActivityError){
+        console.warn('Mandantenaktivität konnte nicht aktualisiert werden',tenantActivityError);
+      }
+    }
     if(currentUserProfile)currentUserProfile.last_seen_at=new Date().toISOString();
   }catch(e){
     console.warn('Benutzeraktivität konnte nicht aktualisiert werden',e);
@@ -8152,6 +8173,7 @@ async function cloudLoadOrganizations(){
     cloudOrganizations=[];
     platformOrganizationMemberships=[];
     platformOrganizationProfiles=[];
+    platformTenantActivity=[];
     return cloudOrganizations;
   }
   const rows=await cloudRequest('organizations?select=id,name,organization_type,public_code,active,storage_limit_bytes,storage_warning_percent,created_at&order=name.asc');
@@ -8161,10 +8183,17 @@ async function cloudLoadOrganizations(){
       platformOrganizationMemberships=await cloudRequest('organization_memberships?select=id,organization_id,user_id,role')||[];
       platformOrganizationProfiles=await cloudRequest('profiles?select=id,full_name,email,active,deleted_at')||[];
       platformOrganizationProfiles=(platformOrganizationProfiles||[]).filter(p=>!p.deleted_at);
+      try{
+        platformTenantActivity=await cloudRequest('rpc/platform_get_tenant_activity',{method:'POST',body:JSON.stringify({})})||[];
+      }catch(activityError){
+        console.warn('Mandantenaktivität konnte nicht geladen werden',activityError);
+        platformTenantActivity=[];
+      }
     }catch(e){
       console.warn('Mandanten-Benutzerkennzahlen konnten nicht geladen werden',e);
       platformOrganizationMemberships=[];
       platformOrganizationProfiles=[];
+      platformTenantActivity=[];
     }
   }
   renderOrganizations();
@@ -8197,6 +8226,11 @@ function platformOrganizationUserSummary(orgId){
     .map(m=>profileById.get(m.user_id))
     .filter(Boolean);
   return {count:activeMemberships.length,admins};
+}
+function platformTenantActivityFor(orgId){
+  const row=(platformTenantActivity||[]).find(r=>String(r.organization_id||'')===String(orgId||''));
+  const lastSeen=row?.last_seen_at||null;
+  return {lastSeen,state:userActivityState(lastSeen)};
 }
 function renderPlatformCleanupTenantSelector(){
   const select=document.getElementById('platformCleanupTenantSelect');
@@ -8272,6 +8306,7 @@ function renderOrganizations(){
       <div class="tenant-admin-details" hidden style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
         <div class="row space"><span class="muted">Mandantentyp</span><strong>${esc(org.organization_type||'Unternehmen')}</strong></div>
         <div class="row space" style="margin-top:8px"><span class="muted">Status</span><strong>${org.active===false?'Inaktiv':'Aktiv'}</strong></div>
+        ${(()=>{const a=platformTenantActivityFor(org.id);return `<div class="row space" style="margin-top:8px"><span class="muted">Mandant zuletzt aktiv</span><strong style="text-align:right"><span class="badge ${a.state.cls}">${esc(a.state.label)}</span><br><span class="muted" style="font-size:12px">${esc(formatLastSeen(a.lastSeen))}</span></strong></div>`})()}
         <div class="row space" style="margin-top:8px"><span class="muted">Benutzer</span><strong>${summary.count}</strong></div>
         <div class="row space" style="margin-top:8px"><span class="muted">Mandanten-Admin</span><strong style="text-align:right">${adminText}</strong></div>
         <div class="row space" style="margin-top:8px"><span class="muted">Vertraglicher Speicher</span><strong class="${storageClass}" style="text-align:right">${storageText}</strong></div>
