@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.06</title>
+<title>Duschl Service – Objektplattform v2.20.76</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1482,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.21.06</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.76</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1501,7 +1501,6 @@ body.public-report-mode>#photoViewer{display:none!important}
 <button id="navUsers" onclick="showSection('users')"><span class="nav-icon">♙</span><span>Benutzer &amp; Berechtigungen</span></button>
 </nav>
 <div class="app-menu-actions">
-<button id="headerTenantSwitchBtn" class="hidden" onclick="closeAppMenu();openTenantSwitcher()">⇄ <span>Mandant wechseln</span></button>
 <button id="headerDataBtn" class="hidden" onclick="closeAppMenu();dsOpenDataManagement()">▧ <span>Daten</span></button>
 <button id="globalRefreshBtn" onclick="refreshAllCloudData();closeAppMenu()">↻ <span>Aktualisieren</span></button>
 <button id="headerPasswordBtn" onclick="closeAppMenu();showVoluntaryPasswordChange()">⌘ <span>Passwort ändern</span></button>
@@ -1526,7 +1525,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.21.06</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.76</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1607,13 +1606,13 @@ body.public-report-mode>#photoViewer{display:none!important}
     <div class="pa-panel-head">
       <div>
         <div class="pa-panel-title"><span class="pa-panel-icon">▦</span>Mandantenübersicht</div>
-        <div class="pa-panel-sub">Benutzerzahl, letzte Mandantenaktivität und vertragliche Speicherauslastung.</div>
+        <div class="pa-panel-sub">Benutzerzahl, Mandanten-Admin und vertragliche Speicherauslastung.</div>
       </div>
       <button class="pa-refresh-btn" type="button" onclick="showSection('organizations')">Alle Mandanten ›</button>
     </div>
     <div class="pa-table-wrap">
       <div class="pa-table-head">
-        <div>Name</div><div>Status</div><div>Benutzer</div><div>Zuletzt aktiv</div><div>Speicher</div><div></div>
+        <div>Name</div><div>Status</div><div>Benutzer</div><div>Mandanten-Admin</div><div>Speicher</div><div></div>
       </div>
       <div id="sysTenantStorageList"><div class="empty">Mandantendaten werden geladen …</div></div>
     </div>
@@ -1756,8 +1755,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2 id="objectsSectionTitle">Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.21.06</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.21.06</span> geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.76</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.76</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -2031,9 +2030,9 @@ body.public-report-mode>#photoViewer{display:none!important}
       <select id="newUserRole">
 <option value="tenant_admin">Mandanten-Admin</option>
 <option value="admin_delegate">Admin-Vertretung</option>
-<option value="property_manager">Verwalter / Objektsteuerung</option>
+<option value="property_manager">Verwalter</option>
 <option value="object_manager">Objektbetreuer</option>
-<option value="customer">Auftraggeber / Eigentümer</option>
+<option value="customer">Auftraggeber</option>
 <option value="external_contractor">Externer Auftragnehmer</option>
 </select>
 </label>
@@ -3436,27 +3435,13 @@ module.exports = QRCode;
 </script>
 <script>
 
-const APP_VERSION='2.21.06'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.76'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
 }
 if(document.readyState==='loading'){
-  
-const dsObjectListObserver=new MutationObserver(()=>{
-  if(dsIsCrossTenantPersonalPortfolio()&&document.getElementById('objectList')){
-    dsScheduleAuthoritativeObjectRender();
-  }
-});
-
-document.addEventListener('click',function(e){
-  const t=e.target?.closest?.('button,a');
-  if(t&&/menü|menu|☰/i.test((t.textContent||'')+' '+(t.getAttribute('aria-label')||''))){
-    setTimeout(dsInjectDirectTenantSwitch,20);
-  }
-});
-
-document.addEventListener('DOMContentLoaded',syncAppVersionMarkers,{once:true});
+  document.addEventListener('DOMContentLoaded',syncAppVersionMarkers,{once:true});
 }else{
   syncAppVersionMarkers();
 }
@@ -4087,7 +4072,6 @@ let publicResidentObjectId='';
 let publicResidentAreaId='';
 let publicResidentAreaName='';
 let publicResidentAreas=[];
-let publicResidentObjectType='building';
 
 function validUuid(raw=''){
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test((raw||'').trim());
@@ -4115,22 +4099,6 @@ async function loadPublicResidentReportContext(){
       box.innerHTML=`<strong>${esc(ctx.object_name||'Objekt')}</strong>`;
       box.style.display='block';
     }
-    try{
-      const pr=await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_public_object_profile`,{
-        method:'POST',headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},
-        body:JSON.stringify({p_object_id:publicResidentObjectId})
-      });
-      if(pr.ok){
-        const pdata=await pr.json();
-        publicResidentObjectType=String(pdata?.object_type||'building');
-        const cp=dsObjectTypeProfile(publicResidentObjectType);
-        const cat=document.getElementById('prCategory');
-        if(cat)cat.innerHTML='<option value="">Bitte auswählen</option>'+cp.categories.map(c=>`<option>${esc(c)}</option>`).join('');
-        const loc=document.getElementById('prLocation');
-        if(loc && publicResidentObjectType==='fountain')loc.placeholder='z. B. Nordseite am Beckenrand (optional)';
-        else if(loc && publicResidentObjectType==='bus_stop')loc.placeholder='z. B. Fahrtrichtung Zentrum, linke Seite (optional)';
-      }
-    }catch(_e){}
     const ar=await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_public_report_areas`,{
       method:'POST',
       headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},
@@ -4631,9 +4599,6 @@ let currentUserProfile=null;
 let currentUserRole='';
 let currentOrganizationMembership=null;
 let currentOrganization=null;
-let currentUserMemberships=[];
-let myCrossTenantObjects=[];
-const DS_ACTIVE_ORG_KEY='ds_active_organization_id';
 let cloudOrganizations=[];
 let cloudExternalOrders=[];
 let cloudExternalOrderRouteMedia=[];
@@ -4666,11 +4631,11 @@ const ROLE_LABELS={
   staff:'Objektbetreuer (Legacy)',
   object_manager:'Objektbetreuer',
   employee:'Mitarbeiter (Alt)',
-  customer:'Auftraggeber / Eigentümer',
+  customer:'Auftraggeber',
   test_user:'Testbenutzer (Legacy)',
   external_contractor:'Externer Auftragnehmer',
   tenant_admin:'Mandanten-Admin',
-  property_manager:'Verwalter / Objektsteuerung',
+  property_manager:'Verwalter',
   admin_delegate:'Admin-Vertretung'
 };
 
@@ -4697,19 +4662,11 @@ function isPropertyManagerRole(){return effectiveOrganizationRole()==='property_
 function isAdminDelegate(){return effectiveOrganizationRole()==='admin_delegate'&&!isPlatformTenantMode()&&!isPlatformOperatorRole()}
 function hasOperationalAdminAccess(){return (isAdminRole()&&isPlatformTenantMode())||isTenantAdminRole()||isAdminDelegate()}
 function canManageUsersUI(){return (isAdminRole()&&isPlatformTenantMode())||isTenantAdminRole()||isAdminDelegate()}
-function canResetUserPasswordUI(){return isAdminRole()&&isPlatformTenantMode()}
-function dsMembershipsForUser(userId){return (userAdminMemberships||[]).filter(m=>String(m.user_id||'')===String(userId||''));}
-function dsUserHasMultipleTenantMemberships(userId){return new Set(dsMembershipsForUser(userId).map(m=>m.organization_id).filter(Boolean)).size>1;}
-function dsCanGenerateInitialPasswordForUser(userId){
-  // Passwortänderungen wirken auf die globale Auth-Identität.
-  // Mandanten-Admins dürfen daher keine Passwörter bestehender Konten verändern.
-  // Der Plattform-Admin darf Recovery nur für Konten mit genau einem Mandanten auslösen.
-  return isAdminRole()&&isPlatformTenantMode()&&!dsUserHasMultipleTenantMemberships(userId);
-}
-function isObjectManagerRole(){return !hasOperationalAdminAccess()&&!isPropertyManagerRole()&&['object_manager','staff'].includes(effectiveOrganizationRole())}
+function canResetUserPasswordUI(){return (isAdminRole()&&isPlatformTenantMode())||isTenantAdminRole()}
+function isObjectManagerRole(){return !hasOperationalAdminAccess()&&!isPropertyManagerRole()&&['object_manager','staff'].includes(effectiveUserRole())}
 function isExternalContractorRole(){return effectiveOrganizationRole()==='external_contractor'&&!hasOperationalAdminAccess()}
-function isCustomerRole(){return effectiveOrganizationRole()==='customer'&&!hasOperationalAdminAccess()&&!isPropertyManagerRole()}
-function isTestUserRole(){return effectiveOrganizationRole()==='test_user'&&!hasOperationalAdminAccess()}
+function isCustomerRole(){return effectiveUserRole()==='customer'&&!hasOperationalAdminAccess()&&!isPropertyManagerRole()}
+function isTestUserRole(){return effectiveUserRole()==='test_user'&&!hasOperationalAdminAccess()}
 function canManageObjectsUI(){return (isAdminRole()&&isPlatformTenantMode())||hasOperationalAdminAccess()}
 function canUseDecisionsUI(){return (isAdminRole()&&isPlatformTenantMode())||hasOperationalAdminAccess()||isPropertyManagerRole()||isCustomerRole()||isTestUserRole()}
 function canUseDecisionsForObject(objectId){
@@ -4972,125 +4929,9 @@ function formatDocumentationTimestamp(f){
   return d.toLocaleDateString('de-DE')+' · '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
 }
 
-function dsActiveOrgStorageKey(){
-  const uid=String(currentUserProfile?.id||cloudSession?.user?.id||'').trim();
-  return uid?`${DS_ACTIVE_ORG_KEY}:${uid}`:DS_ACTIVE_ORG_KEY;
-}
-function dsSavedActiveOrganizationId(){
-  try{
-    const scoped=localStorage.getItem(dsActiveOrgStorageKey())||'';
-    if(scoped)return scoped;
-    const legacy=localStorage.getItem(DS_ACTIVE_ORG_KEY)||'';
-    const valid=(currentUserMemberships||[]).some(m=>String(m.organization_id||'')===String(legacy));
-    if(valid&&currentUserProfile?.id){
-      localStorage.setItem(dsActiveOrgStorageKey(),legacy);
-      return legacy;
-    }
-    return '';
-  }catch(_e){return '';}
-}
-function dsSetActiveOrganizationId(id){
-  try{
-    const key=dsActiveOrgStorageKey();
-    id?localStorage.setItem(key,String(id)):localStorage.removeItem(key);
-  }catch(_e){}
-}
-async function dsLoadMembershipOrganizations(memberships=currentUserMemberships){
-  const ids=[...new Set((memberships||[]).map(m=>m.organization_id).filter(Boolean))];
-  if(!ids.length)return [];
-  return await cloudRequest(`organizations?select=id,name,organization_type,public_code,active&id=in.(${ids.map(encodeURIComponent).join(',')})`)||[];
-}
-
-function dsDirectTenantSwitchHtml(){
-  const memberships=(currentUserMemberships||[]).filter(m=>m&&m.organization_id);
-  if(memberships.length<2)return '';
-  const activeId=String(currentOrganizationMembership?.organization_id||dsSavedActiveOrganizationId()||'');
-  const objects=Array.isArray(myCrossTenantObjects)?myCrossTenantObjects:[];
-  const nameFor=(m)=>{
-    const id=String(m.organization_id||'');
-    const org=(cloudOrganizations||[]).find(o=>String(o.id||'')===id);
-    if(org?.name)return org.name;
-    const obj=objects.find(o=>String(o.organizationId||o.organization_id||'')===id);
-    return obj?.organization_name||obj?.mandant||obj?.tenant_name||`Mandant ${id.slice(0,8)}`;
-  };
-  return `<div id="directTenantSwitch" style="margin:10px 0 14px;padding:10px;border:1px solid var(--line);border-radius:12px">
-    <div class="muted" style="font-size:12px;margin-bottom:6px">Mandant wechseln</div>
-    ${memberships.map(m=>{
-      const id=String(m.organization_id||'');
-      const active=id===activeId;
-      return `<button type="button" onclick="switchTenantMembership('${esc(id)}')" style="display:block;width:100%;text-align:left;margin:6px 0;padding:10px" class="${active?'primary':''}">
-        <strong>${esc(nameFor(m))}</strong>
-        <span class="muted" style="display:block;font-size:12px">${esc(roleLabel(m.role))}${active?' · aktuell':''}</span>
-      </button>`;
-    }).join('')}
-  </div>`;
-}
-function dsInjectDirectTenantSwitch(){
-  const html=dsDirectTenantSwitchHtml();
-  if(!html)return;
-  const existing=document.getElementById('directTenantSwitch');
-  if(existing)existing.remove();
-
-  // Prefer the actual hamburger/menu container identified by the existing switch button.
-  const switchBtn=document.getElementById('headerTenantSwitchBtn');
-  let host=switchBtn?.parentElement||null;
-  if(host){
-    switchBtn.insertAdjacentHTML('afterend',html);
-    return;
-  }
-
-  // Fallback: find a visible menu/nav containing the existing "Mandant wechseln" text.
-  const candidates=[...document.querySelectorAll('nav,aside,.menu,.drawer,.sidebar,[role="navigation"]')];
-  host=candidates.find(x=>/Mandant wechseln/i.test(x.textContent||''))||candidates.find(x=>x.offsetParent!==null);
-  if(host)host.insertAdjacentHTML('beforeend',html);
-}
-async function openTenantSwitcher(force=false){
-  const memberships=(currentUserMemberships||[]).filter(m=>m&&m.organization_id);
-  if(memberships.length<2){
-    return alert(`Für dieses Benutzerkonto wurden ${memberships.length} Mandantenzugehörigkeiten geladen. Zum Wechseln werden mindestens zwei benötigt.`);
-  }
-
-  const activeId=String(currentOrganizationMembership?.organization_id||dsSavedActiveOrganizationId()||'');
-  let orgs=[];
-  try{orgs=await dsLoadMembershipOrganizations(memberships)||[];}
-  catch(e){console.warn('Mandantennamen konnten im Wechsel-Dialog nicht zentral geladen werden',e);}
-
-  const crossObjects=Array.isArray(myCrossTenantObjects)?myCrossTenantObjects:[];
-  const orgNameFor=(m)=>{
-    const id=String(m.organization_id||'');
-    const direct=orgs.find(o=>String(o.id||'')===id);
-    if(direct?.name)return direct.name;
-    const fromMembership=m.organization_name||m.organization?.name||m.mandant||m.tenant_name;
-    if(fromMembership)return fromMembership;
-    const fromObject=crossObjects.find(o=>String(o.organization_id||'')===id);
-    return fromObject?.organization_name||fromObject?.mandant||fromObject?.tenant_name||`Mandant ${id.slice(0,8)}`;
-  };
-
-  const cards=memberships.map(m=>{
-    const id=String(m.organization_id||'');
-    const active=id===activeId;
-    return `<button type="button" style="width:100%;text-align:left;margin-top:8px;padding:14px" class="${active?'primary':''}" onclick="switchTenantMembership('${esc(id)}')"><strong>${esc(orgNameFor(m))}</strong><span class="muted" style="display:block;margin-top:4px">${esc(roleLabel(m.role))}${active?' · aktuell':''}</span></button>`;
-  }).join('');
-
-  modal(`<div class="row space"><h2>Mandant wechseln</h2><button onclick="closeModal()">✕</button></div>
-    <p class="muted">Wähle den Mandanten, in dessen operativem Rollen- und Datenkontext du arbeiten möchtest.</p>
-    ${cards}`);
-}
-async function switchTenantMembership(organizationId){
-  const membership=(currentUserMemberships||[]).find(x=>String(x.organization_id||'')===String(organizationId||''));
-  if(!membership)return alert('Mandantenzugehörigkeit wurde nicht gefunden.');
-  dsSetActiveOrganizationId(organizationId);
-  currentOrganizationMembership=membership;
-  if(!isPlatformOperatorRole())currentUserRole=String(membership.role||currentUserRole||'').toLowerCase();
-  window.location.reload();
-}
-async function dsTryLinkExistingUser(email,organizationId,role){
-  try{const r=await cloudRequest('rpc/link_existing_user_membership_by_email',{method:'POST',body:JSON.stringify({p_email:String(email||'').trim().toLowerCase(),p_organization_id:organizationId,p_role:role})});return (Array.isArray(r)?r[0]:r)||null;}
-  catch(e){const m=String(e?.message||e||'');if(/link_existing_user_membership_by_email|PGRST202|404/i.test(m))return null;throw e;}
-}
 async function cloudLoadCurrentProfile(){
   if(!cloudSession?.access_token){
-    currentUserProfile=null;currentUserRole='';currentOrganizationMembership=null;currentOrganization=null;currentUserMemberships=[];return null;
+    currentUserProfile=null;currentUserRole='';currentOrganizationMembership=null;currentOrganization=null;return null;
   }
   const uid=cloudSession?.user?.id;
   if(!uid)throw new Error('Benutzer-ID der Supabase-Sitzung fehlt.');
@@ -5110,69 +4951,16 @@ async function cloudLoadCurrentProfile(){
   applyRoleUI();
 
   try{
-    let memberships=[];
-    let rpcMemberships=[];
-    let tableMemberships=[];
-    try{
-      rpcMemberships=await cloudRequest('rpc/get_my_memberships_across_tenants',{
-        method:'POST',
-        body:JSON.stringify({})
-      })||[];
-    }catch(membershipRpcError){
-      console.warn('Cross-Tenant-Membership-RPC nicht verfügbar',membershipRpcError);
-    }
-    try{
-      tableMemberships=await cloudRequest(`organization_memberships?select=id,organization_id,user_id,role&user_id=eq.${encodeURIComponent(uid)}`)||[];
-    }catch(membershipTableError){
-      console.warn('Membership-Tabellenfallback nicht verfügbar',membershipTableError);
-    }
-
-    // Single Source of Truth: Memberships gehören zur Auth-Identität und werden
-    // unabhängig vom aktuell gewählten Mandanten zusammengeführt.
-    const membershipMap=new Map();
-    for(const m of [...rpcMemberships,...tableMemberships]){
-      const orgId=String(m?.organization_id||'').trim();
-      if(!orgId)continue;
-      const previous=membershipMap.get(orgId)||{};
-      membershipMap.set(orgId,{...previous,...m,organization_id:orgId});
-    }
-    memberships=[...membershipMap.values()];
-    currentUserMemberships=memberships;
-    try{
-      const membershipOrganizations=await dsLoadMembershipOrganizations(currentUserMemberships);
-      for(const org of (membershipOrganizations||[])){
-        if(!(cloudOrganizations||[]).some(x=>String(x.id)===String(org.id)))cloudOrganizations.push(org);
-      }
-    }catch(e){console.warn('Mandantennamen konnten nicht vollständig geladen werden',e);}
-    console.info('Memberships des angemeldeten Benutzers',{
-      count:currentUserMemberships.length,
-      active_organization_id:dsSavedActiveOrganizationId(),
-      memberships:currentUserMemberships.map(m=>({organization_id:m.organization_id,role:m.role}))
-    });
-    if(currentUserMemberships.length<2){
-      console.warn('Multi-Tenant-Hinweis: Für diese Auth-Identität wurde aktuell nur eine Membership geladen.',{
-        user_id:uid,
-        memberships:currentUserMemberships
-      });
-    }
+    const memberships=await cloudRequest(`organization_memberships?select=id,organization_id,user_id,role&user_id=eq.${encodeURIComponent(uid)}`)||[];
     const membershipPriority={tenant_admin:1,admin_delegate:2,property_manager:3,external_contractor:4,object_manager:5,customer:6};
-    const savedOrgId=dsSavedActiveOrganizationId();
-    const savedMembership=currentUserMemberships.find(m=>m.organization_id===savedOrgId)||null;
-    currentOrganizationMembership=savedMembership
-      ||(currentUserMemberships.length===1?currentUserMemberships[0]:null)
-      ||null;
+    currentOrganizationMembership=[...memberships].sort((a,b)=>
+      (membershipPriority[String(a?.role||'').toLowerCase()]||99)-
+      (membershipPriority[String(b?.role||'').toLowerCase()]||99)
+    )[0]||null;
     if(currentOrganizationMembership?.organization_id){
-      dsSetActiveOrganizationId(currentOrganizationMembership.organization_id);
-      if(!isPlatformOperatorRole()){
-        currentUserRole=String(currentOrganizationMembership.role||currentUserRole||'').toLowerCase();
-      }
       const orgRows=await cloudRequest(`organizations?select=id,name,organization_type,public_code,active&id=eq.${encodeURIComponent(currentOrganizationMembership.organization_id)}&limit=1`);
       currentOrganization=orgRows?.[0]||null;
     }
-    const switchBtn=document.getElementById('headerTenantSwitchBtn');
-    if(switchBtn)switchBtn.classList.toggle('hidden',isPlatformOperatorRole()||currentUserMemberships.length<2);
-    // Mehrere Memberships sind zulässig. Die Objektübersicht zeigt "Meine Objekte"
-    // mandantenübergreifend; beim Öffnen eines Objekts wird dessen Mandantenkontext aktiviert.
   }catch(e){
     console.warn('Mandantenkontext konnte nicht geladen werden',e);
     // Plattform-Admins arbeiten global weiter. Bei Mandantenrollen ist der
@@ -5434,13 +5222,13 @@ function applyRoleUI(){
         : isPropertyManagerRole()
           ? 'Verwalter'
         : role==='object_manager'
-          ? dsTenantLabel('objectManager','Objektbetreuer')
+          ? 'Objektbetreuer'
           : role==='customer'
             ? 'Auftraggeber'
             : role==='test_user'
               ? 'Testbenutzer'
               : role==='staff'
-                ? dsTenantLabel('objectManager','Objektbetreuer')
+                ? 'Objektbetreuer'
                 : role==='employee'
                   ? 'Mitarbeiter'
                   : (roleLabel||'Benutzer');
@@ -5584,8 +5372,6 @@ function applyRoleUI(){
   }
 
   renderAll();
-
-  setTimeout(dsInjectDirectTenantSwitch,0);
 }
 
 function requireAdminUI(action='Diese Funktion'){
@@ -6231,7 +6017,7 @@ function findingCreatorMetaHtml(f){
 async function cloudReloadFindings(){
   if(!cloudSession?.access_token)return;
   const rowsRaw=await cloudRequest('findings?select=id,object_id,inspection_id,source_resident_report_id,type,area_id,area,area_detail,title,category,priority,description,recommended_action,activity,status,completion_type,completion_note,work_required,created_by,creator_name_snapshot,creator_organization_id_snapshot,creator_organization_name_snapshot,created_at,updated_at&order=created_at.desc');
-  const accessibleObjectIds=new Set(dsPersonalObjectSource().map(o=>o.id));
+  const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
   let rows=(rowsRaw||[]).filter(f=>accessibleObjectIds.has(f.object_id));
 
   // v2.19.42: Der Platform-Admin muss im Mandantenmodus exakt die fachliche
@@ -6808,20 +6594,6 @@ function renderDashboardCareRequests(){
   if(count)count.textContent=`${pending.length} offen`;
   box.innerHTML=pending.map(c=>`<div class="dashboard-message-card unread"><div class="dashboard-message-title">Betreuungsanfrage: ${esc(c.object_name||'Objekt')}</div><div class="dashboard-message-meta"><strong>Von: ${esc(c.owner_organization_name||'Mandant')}</strong>${c.owner_public_code?` · ${esc(c.owner_public_code)}`:''}<br>${c.requested_at?esc(new Date(c.requested_at).toLocaleString('de-DE')):''}</div><div class="dashboard-message-text"><strong>Leistungsumfänge:</strong><div style="margin-top:5px">${collaborationScopesHtml(c)}</div></div><div class="dashboard-message-actions"><button class="primary" onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',true)">Annehmen</button><button onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',false)">Ablehnen</button></div></div>`).join('');
 }
-
-function dsRecommendedScopeCodesForObject(o){
-  const t=dsObjectTypeOf(o);
-  const map={
-    fountain:['ELEKTRO','SANITAER','REINIGUNG','SONSTIGE'],
-    bus_stop:['REINIGUNG','ELEKTRO','ABFALL','MALER','SONSTIGE'],
-    playground:['GRUENPFLEGE','REINIGUNG','MALER','SONSTIGE'],
-    green_space:['GRUENPFLEGE','REINIGUNG','ABFALL','ELEKTRO','SONSTIGE'],
-    street:['ELEKTRO','REINIGUNG','WINTERDIENST','SONSTIGE'],
-    municipal_building:['OBJEKTBETREUUNG','REINIGUNG','ELEKTRO','SANITAER','HEIZUNG','AUFZUG','TUER_TOR','SCHLIESSANLAGE','BRANDSCHUTZ','WINTERDIENST','GRUENPFLEGE','ABFALL','SONSTIGE'],
-    hotel:['OBJEKTBETREUUNG','REINIGUNG','ELEKTRO','SANITAER','HEIZUNG','AUFZUG','TUER_TOR','SCHLIESSANLAGE','BRANDSCHUTZ','GRUENPFLEGE','ABFALL','SONSTIGE']
-  };
-  return new Set((map[t]||[]).map(canonicalServiceScopeCode));
-}
 async function openObjectCollaborationModal(preselectedObjectId=''){
   if(!hasOperationalAdminAccess())return alert('Nur Mandanten-Admin oder Admin-Vertretung können Objektbetreuungen vergeben.');
   await Promise.all([cloudLoadObjectCollaborations(false),cloudLoadServiceScopeCatalog()]);
@@ -6836,11 +6608,8 @@ async function openObjectCollaborationModal(preselectedObjectId=''){
     return (ai<0?999:ai)-(bi<0?999:bi)||a.localeCompare(b,'de');
   });
   const scopeHtml=`<div class="soc-selected-summary"><div class="soc-selected-summary-head"><strong>Ausgewählte Leistungen</strong><div class="row" style="gap:6px"><span class="soc-scope-count" id="socSelectedScopeCount">0 ausgewählt</span><button type="button" style="padding:5px 8px;font-size:11px" onclick="clearCollaborationScopeSelection()">Auswahl löschen</button></div></div><div class="soc-selected-chips" id="socSelectedScopes"><span class="muted">Noch kein Leistungsumfang ausgewählt.</span></div></div><div class="soc-scope-groups">${groups.map((group,idx)=>{
-    const currentObject=(db.objects||[]).find(o=>o.id===selected);
-    const recommended=dsRecommendedScopeCodesForObject(currentObject);
-    const rows=cloudServiceScopeCatalog.filter(x=>normalizeServiceScopeCategory(x.category)===group)
-      .sort((a,b)=>(recommended.has(canonicalServiceScopeCode(b.code))?1:0)-(recommended.has(canonicalServiceScopeCode(a.code))?1:0));
-    return `<details class="soc-scope-group" ${idx===0?'open':''}><summary><span>${esc(group)}</span><span class="soc-scope-count">${rows.length} Leistungen</span></summary><div class="soc-scope-grid">${rows.map(x=>`<label class="soc-scope-option" data-scope-code="${esc(x.code)}"><input class="soc-scope-check" type="checkbox" value="${esc(x.code)}" onchange="updateCollaborationScopeSummary()"><span class="soc-scope-option-copy"><span>${esc(x.name)}${recommended.has(canonicalServiceScopeCode(x.code))?' · empfohlen':''}</span><span class="soc-scope-conflict" style="display:none"></span></span></label>`).join('')}</div></details>`;
+    const rows=cloudServiceScopeCatalog.filter(x=>normalizeServiceScopeCategory(x.category)===group);
+    return `<details class="soc-scope-group" ${idx===0?'open':''}><summary><span>${esc(group)}</span><span class="soc-scope-count">${rows.length} Leistungen</span></summary><div class="soc-scope-grid">${rows.map(x=>`<label class="soc-scope-option" data-scope-code="${esc(x.code)}"><input class="soc-scope-check" type="checkbox" value="${esc(x.code)}" onchange="updateCollaborationScopeSummary()"><span class="soc-scope-option-copy"><span>${esc(x.name)}</span><span class="soc-scope-conflict" style="display:none"></span></span></label>`).join('')}</div></details>`;
   }).join('')}</div>`;
   document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Betreuung vergeben</h2><p class="muted">Ein Partner wird je Objekt nur einmal angebunden. Unter dieser Beziehung können mehrere Leistungsumfänge gleichzeitig hinterlegt werden.</p><label>Objekt *</label><select id="socObject" onchange="refreshObjectCollaborationHint();refreshObjectCollaborationScopeSelection()">${objs.map(o=>`<option value="${esc(o.id)}" ${o.id===selected?'selected':''}>${esc(o.name)}</option>`).join('')}</select><div id="socExistingHint" class="muted" style="margin-top:6px">${existing.length?`Bestehende Betreuung: ${existing.map(c=>`${esc(c.service_organization_name||'Partnerunternehmen')}${c.service_public_code?' · '+esc(c.service_public_code):''} · ${esc(c.status==='pending'?'Offen':c.status==='active'?'Aktiv':c.status==='cancelled'?'Beendet':c.status==='rejected'?'Abgelehnt':c.status||'—')}`).join('<br>')}`:'Noch keine Betreuung für dieses Objekt.'}</div><label>Mandanten-ID des Dienstleisters *</label><input id="socPartnerCode" autocomplete="off" autocapitalize="characters" placeholder="z. B. DS-7K4P9X" style="text-transform:uppercase" oninput="refreshObjectCollaborationScopeSelection()"><div id="socRelationState" class="muted" style="margin-top:5px">Besteht für Objekt und Dienstleister bereits eine Beziehung, werden deren aktuelle Leistungsumfänge automatisch geladen und aktualisiert statt eine zweite Partnerschaft anzulegen.</div><label>Leistungsumfänge *</label>${scopeHtml}<div class="modal-actions"><button class="primary" onclick="createObjectCollaboration()">Betreuung speichern</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
   refreshObjectCollaborationScopeSelection();
@@ -8139,129 +7908,6 @@ async function updateExternalOrderStatus(id,status){
   }catch(e){alert('Status konnte nicht geändert werden: '+(e.message||e));}
 }
 
-
-// v2.20.80 – Objekttyp steuert Bereiche und öffentliche Meldekategorien.
-// Mandantentyp = organisatorischer Kontext; Objekttyp = fachlicher Asset-Kontext.
-const DS_OBJECT_TYPE_PROFILES=Object.freeze({
-  building:Object.freeze({
-    label:'Gebäude / Immobilie',
-    areas:['Hauseingang','Treppenhaus','Aufzug','Keller','Fahrradraum','Tiefgarage','Müllplatz','Außenanlage','Technik-/Heizungsraum'],
-    categories:['Schaden / Defekt','Sauberkeit','Außenanlage','Beleuchtung','Tür / Tor / Zugang','Wasser / Feuchtigkeit','Winterdienst','Aufzug defekt','Heizung / Wärme','Schließanlage / Schlüssel','Dach / Fassade','Schädlingsbefall','Sonstiges']
-  }),
-  hotel:Object.freeze({
-    label:'Hotel / Beherbergungsobjekt',
-    areas:['Zimmer / Einheit','Bad / Sanitär','Lobby / Empfang','Flur / Treppenhaus','Aufzug','Gastronomie / Frühstück','Spa / Wellness','Housekeeping / Lager','Technik','Außenbereich','Parken / Tiefgarage'],
-    categories:['Zimmerausstattung / Defekt','Sanitär / Wasser','Sauberkeit / Housekeeping','Klima / Heizung','Beleuchtung / Elektro','Tür / Zutritt','Aufzug defekt','Gastronomie / Ausstattung','Außenbereich','Sicherheit','Sonstiges']
-  }),
-  fountain:Object.freeze({
-    label:'Brunnen',
-    areas:['Brunnenbecken','Wassertechnik / Pumpe','Wasserzulauf / Ablauf','Beleuchtung / Elektro','Einfassung / Oberfläche','Umfeld / Verkehrsfläche','Sonstiges'],
-    categories:['Wasserfluss / Pumpe','Wasserqualität / Verschmutzung','Beschädigung / Vandalismus','Beleuchtung / Elektro','Undichtigkeit / Wasserverlust','Verstopfung / Ablauf','Sicherheit / Gefahrenstelle','Umfeld / Sauberkeit','Sonstiges']
-  }),
-  bus_stop:Object.freeze({
-    label:'Bushaltestelle',
-    areas:['Wartehäuschen','Sitzbank','Fahrgastinformation','Beleuchtung','Abfallbehälter','Boden / Verkehrsfläche','Beschilderung','Umfeld','Sonstiges'],
-    categories:['Beschädigung / Vandalismus','Sauberkeit','Beleuchtung / Elektro','Fahrgastinformation','Sitzgelegenheit','Abfall','Verkehrssicherheit','Graffiti','Sonstiges']
-  }),
-  playground:Object.freeze({
-    label:'Spielplatz',
-    areas:['Spielgerät','Fallschutz / Boden','Sitzbereich','Zaun / Zugang','Abfallbehälter','Grünfläche','Beleuchtung','Sonstiges'],
-    categories:['Spielgerät defekt','Sicherheit / Gefahrenstelle','Verschmutzung','Boden / Fallschutz','Zaun / Zugang','Grünpflege','Vandalismus','Beleuchtung','Sonstiges']
-  }),
-  green_space:Object.freeze({
-    label:'Grünanlage / Park',
-    areas:['Grünfläche','Bäume / Gehölze','Wege','Sitzgelegenheiten','Abfallbehälter','Beleuchtung','Spiel- / Aufenthaltsbereich','Sonstiges'],
-    categories:['Grünpflege','Baum / Astbruch','Wege / Belag','Sauberkeit / Abfall','Sitzgelegenheit','Beleuchtung','Vandalismus','Sicherheit / Gefahrenstelle','Sonstiges']
-  }),
-  street:Object.freeze({
-    label:'Straße / Verkehrsfläche',
-    areas:['Fahrbahn','Gehweg','Radweg','Beschilderung','Beleuchtung','Entwässerung','Straßenmobiliar','Sonstiges'],
-    categories:['Fahrbahnschaden','Gehweg / Radweg','Beleuchtung','Beschilderung','Entwässerung','Verschmutzung','Verkehrssicherheit','Straßenmobiliar','Sonstiges']
-  }),
-  municipal_building:Object.freeze({
-    label:'Kommunales Gebäude',
-    areas:['Eingang','Flur / Treppenhaus','Büro / Nutzfläche','Sanitär','Aufzug','Technik','Außenanlage','Parkfläche','Sonstiges'],
-    categories:['Schaden / Defekt','Sauberkeit','Sanitär / Wasser','Beleuchtung / Elektro','Tür / Zutritt','Heizung / Klima','Aufzug defekt','Außenanlage','Sicherheit','Sonstiges']
-  }),
-  other:Object.freeze({
-    label:'Sonstiges Objekt / Asset',
-    areas:['Allgemein','Zugang / Umfeld','Technik','Ausstattung','Oberfläche / Konstruktion','Sonstiges'],
-    categories:['Schaden / Defekt','Sauberkeit','Technik','Beleuchtung / Elektro','Sicherheit / Gefahrenstelle','Vandalismus','Sonstiges']
-  })
-});
-function dsObjectTypeProfile(type=''){
-  return DS_OBJECT_TYPE_PROFILES[String(type||'building')]||DS_OBJECT_TYPE_PROFILES.other;
-}
-function dsObjectTypeOptionsForTenant(tenantType=dsTenantType()){
-  const common=[['building','Gebäude / Immobilie'],['other','Sonstiges Objekt / Asset']];
-  if(['hospitality','hotel','airbnb'].includes(tenantType))return [['hotel','Hotel / Beherbergungsobjekt'],['building','Gebäude / Immobilie'],['other','Sonstiges Objekt / Asset']];
-  if(tenantType==='municipality')return [
-    ['fountain','Brunnen'],['bus_stop','Bushaltestelle'],['playground','Spielplatz'],
-    ['green_space','Grünanlage / Park'],['street','Straße / Verkehrsfläche'],
-    ['municipal_building','Kommunales Gebäude'],['building','Gebäude / Immobilie'],['other','Sonstiges Objekt / Asset']
-  ];
-  return common;
-}
-function dsDefaultObjectTypeForTenant(tenantType=dsTenantType()){
-  if(['hospitality','hotel','airbnb'].includes(tenantType))return 'hotel';
-  return 'building';
-}
-function dsObjectTypeOf(o){
-  return String(o?.objectType||o?.object_type||dsDefaultObjectTypeForTenant());
-}
-function dsObjectTypeSelectHtml(selected=''){
-  const value=selected||dsDefaultObjectTypeForTenant();
-  return dsObjectTypeOptionsForTenant().map(([code,label])=>`<option value="${esc(code)}" ${code===value?'selected':''}>${esc(label)}</option>`).join('');
-}
-function dsRefreshObjectTypePreview(){
-  const type=document.getElementById('oObjectType')?.value||dsDefaultObjectTypeForTenant();
-  const p=dsObjectTypeProfile(type);
-  const box=document.getElementById('oObjectTypePreview');
-  if(box)box.innerHTML=`<strong>Standardbereiche</strong><div class="muted" style="margin-top:5px">${p.areas.map(esc).join(', ')}</div><strong style="display:block;margin-top:10px">Meldekategorien</strong><div class="muted" style="margin-top:5px">${p.categories.map(esc).join(', ')}</div>`;
-}
-async function dsReplaceObjectAreas(objectId,type){
-  const p=dsObjectTypeProfile(type);
-  await cloudLoadObjectAreas();
-  let existing=objectAreasFor(objectId,{includeInactive:true});
-  const keyOf=v=>String(v||'').trim().toLocaleLowerCase('de-DE');
-  const byName=new Map();
-  existing.forEach(a=>{const k=keyOf(a.name);if(k&&!byName.has(k))byName.set(k,a);});
-  const desired=new Set(p.areas.map(keyOf));
-
-  // Nicht mehr passende aktive Bereiche nur deaktivieren – Historie bleibt erhalten.
-  for(const a of existing){
-    if(a.active!==false&&!desired.has(keyOf(a.name)))await cloudSetObjectAreaActive(a.id,false);
-  }
-
-  // Server/RPC kann Standardbereiche bereits erzeugt haben: vorhandene Zeilen wiederverwenden.
-  for(let i=0;i<p.areas.length;i++){
-    const name=p.areas[i],key=keyOf(name);
-    let same=byName.get(key);
-    if(same){
-      await cloudSaveObjectArea(objectId,same.id,name,i+1);
-      if(same.active===false)await cloudSetObjectAreaActive(same.id,true);
-      continue;
-    }
-    try{
-      await cloudSaveObjectArea(objectId,'',name,i+1);
-    }catch(e){
-      const msg=String(e?.message||e||'');
-      if(!/uq_object_areas_object_name_ci|duplicate key/i.test(msg))throw e;
-      // Race/Trigger: erneut laden und die inzwischen vorhandene Zeile verwenden.
-      await cloudLoadObjectAreas();
-      existing=objectAreasFor(objectId,{includeInactive:true});
-      same=existing.find(a=>keyOf(a.name)===key);
-      if(!same)throw e;
-      await cloudSaveObjectArea(objectId,same.id,name,i+1);
-      if(same.active===false)await cloudSetObjectAreaActive(same.id,true);
-    }
-    await cloudLoadObjectAreas();
-    existing=objectAreasFor(objectId,{includeInactive:true});
-    same=existing.find(a=>keyOf(a.name)===key);
-    if(same)byName.set(key,same);
-  }
-  await cloudLoadObjectAreas();
-}
 let cloudObjectAreas=[];
 
 const DEFAULT_OBJECT_AREAS=[
@@ -8344,32 +7990,6 @@ async function cloudLoadPlatformStorage(){
   renderOrganizations();
   return platformStorageRows;
 }
-function platformOrganizationLastSeenAt(organizationId){
-  const orgId=String(organizationId||'');
-  const memberships=(platformOrganizationMemberships||[]).filter(m=>String(m.organization_id||'')===orgId);
-  const userIds=new Set(memberships.map(m=>String(m.user_id||'')).filter(Boolean));
-  let latest=0;
-  for(const p of (platformOrganizationProfiles||[])){
-    if(p?.active===false||p?.deleted_at)continue;
-    if(!userIds.has(String(p.id||p.user_id||'')))continue;
-    const ts=Date.parse(p.last_seen_at||'');
-    if(Number.isFinite(ts)&&ts>latest)latest=ts;
-  }
-  return latest?new Date(latest):null;
-}
-function formatTenantLastSeen(value){
-  if(!value)return 'Noch nie';
-  const d=value instanceof Date?value:new Date(value);
-  if(Number.isNaN(d.getTime()))return 'Noch nie';
-  const now=new Date();
-  const sameDay=d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&d.getDate()===now.getDate();
-  const yesterday=new Date(now); yesterday.setDate(now.getDate()-1);
-  const isYesterday=d.getFullYear()===yesterday.getFullYear()&&d.getMonth()===yesterday.getMonth()&&d.getDate()===yesterday.getDate();
-  const time=d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-  if(sameDay)return `Heute, ${time}`;
-  if(isYesterday)return `Gestern, ${time}`;
-  return `${d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:d.getFullYear()===now.getFullYear()?undefined:'numeric'})}, ${time}`;
-}
 function renderPlatformSystemStatus(){
   if(!isPlatformOperatorRole())return;
   const activeOrgs=(cloudOrganizations||[]).filter(o=>o.active!==false);
@@ -8407,12 +8027,14 @@ function renderPlatformSystemStatus(){
       const limit=Number(org.storage_limit_bytes||0);
       const percent=limit>0?Math.round((usedBytes/limit)*100):0;
       const summary=platformOrganizationUserSummary(org.id);
-      const lastSeen=formatTenantLastSeen(platformOrganizationLastSeenAt(org.id));
+      const adminText=summary.admins.length
+        ? summary.admins.map(p=>esc(p.full_name||p.email||'Mandanten-Admin')).join(', ')
+        : 'Nicht festgelegt';
       return `<div class="pa-tenant-line">
         <div class="pa-tenant-name">${esc(org.name)}</div>
         <div><span class="pa-active-pill">${org.active===false?'Inaktiv':'Aktiv'}</span></div>
         <div>${summary.count}</div>
-        <div><strong>${esc(lastSeen)}</strong></div>
+        <div>${adminText}</div>
         <div>
           <strong>${formatBytes(usedBytes)} / ${limit>0?formatBytes(limit):'—'}</strong>
           <div class="pa-storage-mini"><span style="width:${Math.min(Math.max(percent,0),100)}%"></span></div>
@@ -8692,7 +8314,6 @@ async function enterPlatformTenantMode(orgId){
   platformTenantModeOrgId=org.id;
   platformTenantModeOrganization=org;
   platformTenantModeEnteredAt=new Date().toISOString();
-  setTimeout(()=>dsApplyTenantTerminology(document),0);
 
   // Synthetischer Mandantenkontext: globale Identität bleibt platform_admin,
   // die operative UI arbeitet für diesen Mandanten wie ein tenant_admin.
@@ -8756,7 +8377,7 @@ async function loadPlatformMessageRecipients(){
   if(!isPlatformOperatorRole())return [];
   try{
     const [profiles,memberships,orgs]=await Promise.all([
-      cloudRequest('profiles?select=id,full_name,email,role,active,deleted_at,last_seen_at'),
+      cloudRequest('profiles?select=id,full_name,email,role,active,deleted_at'),
       cloudRequest('organization_memberships?select=user_id,organization_id,role'),
       cloudRequest('organizations?select=id,name,active')
     ]);
@@ -8932,7 +8553,7 @@ let platformAccessProfiles=[];
 async function loadPlatformAccessProfiles(){
   if(!isAdminRole()){platformAccessProfiles=[];renderPlatformAccessProfiles();return;}
   try{
-    const rows=await cloudRequest('profiles?select=id,full_name,email,role,active,deleted_at,last_seen_at,created_at&role=in.(platform_admin,platform_admin_delegate)&order=full_name.asc');
+    const rows=await cloudRequest('profiles?select=id,full_name,email,role,active,deleted_at,created_at&role=in.(platform_admin,platform_admin_delegate)&order=full_name.asc');
     platformAccessProfiles=Array.isArray(rows)?rows:[];
   }catch(e){
     platformAccessProfiles=[];
@@ -9267,7 +8888,7 @@ function openOrganizationModal(id=''){
     </div>`;
   modal(`<div class="row space"><h2>${id?'Mandant bearbeiten':'Mandant anlegen'}</h2><button onclick="closeModal()">✕</button></div>
     <label>Unternehmensname *</label><input id="orgName" value="${esc(org.name||'')}" placeholder="z. B. Muster Objektservice GmbH">
-    <label>Typ</label><select id="orgType"><option value="object_service" ${org.organization_type==='object_service'?'selected':''}>Objektservice</option><option value="property_management" ${org.organization_type==='property_management'?'selected':''}>Hausverwaltung</option><option value="property_owner" ${org.organization_type==='property_owner'?'selected':''}>Immobilieneigentümer</option><option value="facility_management" ${org.organization_type==='facility_management'?'selected':''}>Facility Management</option><option value="hospitality" ${['hospitality','hotel','airbnb'].includes(org.organization_type)?'selected':''}>Hotel / Beherbergung</option><option value="municipality" ${org.organization_type==='municipality'?'selected':''}>Kommune / öffentliche Verwaltung</option><option value="other" ${org.organization_type==='other'?'selected':''}>Sonstiges</option></select>
+    <label>Typ</label><select id="orgType"><option value="object_service" ${org.organization_type==='object_service'?'selected':''}>Objektservice</option><option value="property_management" ${org.organization_type==='property_management'?'selected':''}>Hausverwaltung</option><option value="facility_management" ${org.organization_type==='facility_management'?'selected':''}>Facility Management</option><option value="other" ${org.organization_type==='other'?'selected':''}>Sonstiges</option></select>
     ${id&&org.public_code?`<label>Mandanten-ID</label><div class="card" style="padding:12px;margin-top:6px"><div class="row space"><strong style="font-size:18px;letter-spacing:.08em">${esc(org.public_code)}</strong><button type="button" onclick="navigator.clipboard?.writeText('${esc(org.public_code)}')">Kopieren</button></div><div class="muted" style="margin-top:5px">Diese ID kann an Partnerunternehmen weitergegeben werden. Die interne UUID bleibt verborgen.</div></div>`:''}
     <div class="grid2">
       <label>Vertragliches Speicherlimit (GB) *
@@ -9354,17 +8975,30 @@ function openTenantAdminModal(orgId){
 }
 async function createTenantAdminForOrganization(organizationId,providedName='',providedEmail=''){
   if(!isAdminRole())throw new Error('Nur der Plattformadministrator darf den initialen Mandanten-Admin anlegen.');
-  const fullName=(providedName||document.getElementById('orgAdminName')?.value||'').trim(),email=(providedEmail||document.getElementById('orgAdminEmail')?.value||'').trim().toLowerCase();
+  const fullName=(providedName||document.getElementById('orgAdminName')?.value||'').trim();
+  const email=(providedEmail||document.getElementById('orgAdminEmail')?.value||'').trim().toLowerCase();
   if(!fullName)throw new Error('Bitte einen Anzeigenamen für den Mandanten-Admin eingeben.');
-  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new Error('Bitte eine gültige E-Mail-Adresse für den Mandanten-Admin eingeben.');
-  const existing=await dsTryLinkExistingUser(email,organizationId,'tenant_admin');
-  if(existing?.found===true||existing?.user_id){await cloudLoadOrganizations();alert(`Bestehender Benutzer wurde als Mandanten-Admin hinzugefügt.\n\nBenutzer: ${email}\nDas bestehende Passwort bleibt unverändert.`);return {id:existing.user_id,email};}
-  const res=await fetch(`${SUPABASE_URL}/functions/v1/invite-user`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${cloudSession?.access_token||''}`,'apikey':SUPABASE_PUBLISHABLE_KEY},body:JSON.stringify({fullName,email,role:'object_manager',objectIds:[]})});
-  const responseText=await res.text();let data={};try{data=responseText?JSON.parse(responseText):{};}catch{}
-  if(!res.ok||data?.ok===false)throw new Error(data?.error||responseText||`HTTP ${res.status}`);if(!data?.initialPassword)throw new Error('Initialpasswort wurde von der Benutzerfunktion nicht zurückgegeben.');
-  const profiles=await cloudRequest(`profiles?select=id,email,role&email=eq.${encodeURIComponent(email)}&limit=1`),profile=profiles?.[0];if(!profile?.id)throw new Error('Benutzer wurde angelegt, das Profil konnte aber nicht gefunden werden.');
-  await cloudRequest('organization_memberships',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({organization_id:organizationId,user_id:profile.id,role:'tenant_admin'})});
-  await cloudLoadOrganizations();showInitialPasswordResult(data.email||email,data.initialPassword);return profile;
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new Error('Bitte eine gültige E-Mail-Adresse für den Mandanten-Admin eingeben.');
+  const res=await fetch(`${SUPABASE_URL}/functions/v1/invite-user`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':`Bearer ${cloudSession?.access_token||''}`,'apikey':SUPABASE_PUBLISHABLE_KEY},
+    body:JSON.stringify({fullName,email,role:'object_manager',objectIds:[]})
+  });
+  const responseText=await res.text();
+  let data={};
+  try{data=responseText?JSON.parse(responseText):{};}catch{}
+  if(!res.ok || data?.ok===false)throw new Error(data?.error||responseText||`HTTP ${res.status}`);
+  if(!data?.initialPassword)throw new Error('Initialpasswort wurde von der Benutzerfunktion nicht zurückgegeben.');
+  const profiles=await cloudRequest(`profiles?select=id,email,role&email=eq.${encodeURIComponent(email)}&limit=1`);
+  const profile=profiles?.[0];
+  if(!profile?.id)throw new Error('Benutzer wurde angelegt, das Profil konnte aber nicht gefunden werden.');
+  await cloudRequest('organization_memberships',{
+    method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},
+    body:JSON.stringify({organization_id:organizationId,user_id:profile.id,role:'tenant_admin'})
+  });
+  await cloudLoadOrganizations();
+  showInitialPasswordResult(data.email||email,data.initialPassword);
+  return profile;
 }
 async function saveOrganization(id=''){
   if(!requireAdminUI(id?'Unternehmen bearbeiten':'Unternehmen anlegen'))return;
@@ -9442,148 +9076,10 @@ async function cloudLoadCurrentUserObjectAssignments(){
   }
 }
 
-
-
-async function dsLoadMyAssignedObjectsAcrossTenants(){
-  const uid=currentUserId();
-  if(!uid){myCrossTenantObjects=[];return [];}
-  try{
-    const rows=await cloudRequest('rpc/get_my_assigned_objects_across_tenants',{
-      method:'POST',
-      body:JSON.stringify({})
-    });
-    myCrossTenantObjects=(Array.isArray(rows)?rows:[]).map(cloudObjectToLocal);
-    console.info('Meine Objekte geladen',{
-      count:myCrossTenantObjects.length,
-      objects:myCrossTenantObjects.map(o=>({id:o.id,name:o.name,organizationId:o.organizationId}))
-    });
-  }catch(err){
-    console.error('Meine Objekte: RPC fehlgeschlagen',err);
-    myCrossTenantObjects=[];
-  }
-  return myCrossTenantObjects;
-}
-function dsIsCrossTenantPersonalPortfolio(){
-  return !isPlatformOperatorRole()&&!hasOperationalAdminAccess()&&(currentUserMemberships||[]).length>1;
-}
-function dsPersonalObjectSource(){
-  return dsIsCrossTenantPersonalPortfolio()
-    ?(Array.isArray(myCrossTenantObjects)?myCrossTenantObjects:[])
-    :(Array.isArray(db.objects)?db.objects:[]);
-}
-function dsObjectById(objectId){
-  const oid=String(objectId||'');
-  return dsPersonalObjectSource().find(o=>String(o?.id||'')===oid)
-    ||(db.objects||[]).find(o=>String(o?.id||'')===oid)
-    ||null;
-}
-function dsObjectOrganizationId(objectId){
-  const o=dsObjectById(objectId);
-  return String(o?.organizationId||o?.organization_id||'');
-}
-function dsMembershipForObjectId(objectId){
-  const orgId=dsObjectOrganizationId(objectId);
-  return (currentUserMemberships||[]).find(m=>String(m.organization_id||'')===orgId)||null;
-}
-function dsRoleForObjectId(objectId){
-  return String(dsMembershipForObjectId(objectId)?.role||'').toLowerCase();
-}
-function dsEffectiveRoleForObject(objectId){
-  const objectRole=dsRoleForObjectId(objectId);
-  return dsIsCrossTenantPersonalPortfolio()&&objectRole
-    ?objectRole
-    :String(currentRole()||'').toLowerCase();
-}
-function dsActiveTenantMembership(){
-  const orgId=String(currentOrganizationId()||'');
-  return (currentUserMemberships||[]).find(m=>String(m.organization_id||'')===orgId)||null;
-}
-function dsActiveTenantRole(){
-  if(isPlatformOperatorRole())return String(currentRole()||'').toLowerCase();
-  return String(dsActiveTenantMembership()?.role||currentRole()||'').toLowerCase();
-}
-function dsHasActiveTenantRole(...roles){
-  const role=dsActiveTenantRole();
-  return roles.map(r=>String(r||'').toLowerCase()).includes(role);
-}
-function dsObjectRoleIs(objectId,...roles){
-  return roles.map(r=>String(r||'').toLowerCase()).includes(dsEffectiveRoleForObject(objectId));
-}
-function dsCanOperateObjectByMembership(objectId){
-  const role=dsEffectiveRoleForObject(objectId);
-  if(['platform_admin','platform_admin_delegate','tenant_admin','admin_delegate','property_manager'].includes(role))return true;
-  if(['object_manager','external_contractor','test_user'].includes(role)){
-    return currentUserAssignedObjectIds.has(String(objectId||''));
-  }
-  return false;
-}
-function dsCanDecideForObjectByMembership(objectId){
-  const role=dsEffectiveRoleForObject(objectId);
-  return ['platform_admin','platform_admin_delegate','tenant_admin','admin_delegate','property_manager','customer'].includes(role);
-}
-function dsMembershipForObject(o){
-  const orgId=String(o?.organizationId||o?.organization_id||'');
-  return (currentUserMemberships||[]).find(m=>String(m.organization_id||'')===orgId)||null;
-}
-function dsOrganizationNameForObject(o){
-  const orgId=o?.organizationId||o?.organization_id||'';
-  const org=(cloudOrganizations||[]).find(x=>String(x.id||'')===String(orgId||''));
-  if(org?.name)return org.name;
-  if(String(currentOrganization?.id||'')===String(orgId||''))return currentOrganization?.name||'Mandant';
-  return organizationName(orgId)||'Mandant';
-}
-async function dsActivateObjectTenant(objectId){
-  const pool=dsIsCrossTenantPersonalPortfolio()?myCrossTenantObjects:(db.objects||[]);
-  const o=(pool||[]).find(x=>String(x.id)===String(objectId));
-  const m=dsMembershipForObject(o);
-  if(!m)return false;
-  if(String(currentOrganizationMembership?.organization_id||'')!==String(m.organization_id||'')){
-    currentOrganizationMembership=m;
-    dsSetActiveOrganizationId(m.organization_id);
-    try{
-      const orgRows=await dsLoadMembershipOrganizations([m]);
-      currentOrganization=orgRows?.[0]||currentOrganization;
-    }catch(_e){}
-  }
-  return true;
-}
-async function dsRunInObjectTenant(objectId,action){
-  const ok=await dsActivateObjectTenant(objectId);
-  if(!ok)return alert('Für dieses Objekt wurde keine gültige Mandantenzugehörigkeit gefunden.');
-  applyRoleUI();
-  return action();
-}
-function dsOpenFindingForObject(objectId){return dsRunInObjectTenant(objectId,()=>openFindingModal(objectId,''));}
-function dsOpenReportForObject(objectId){return dsRunInObjectTenant(objectId,()=>showObjectReport(objectId));}
-function dsOpenQrForObject(objectId){return dsRunInObjectTenant(objectId,()=>openObjectQrCode(objectId));}
-async function dsLoadAssignedOwnObjectsForActiveTenant(){
-  const orgId=currentOrganizationId(),uid=currentUserId();
-  if(!orgId||!uid)return [];
-  const assignments=await cloudRequest(`object_user_assignments?select=object_id,user_id,active&user_id=eq.${encodeURIComponent(uid)}&active=eq.true`)||[];
-  const ids=[...new Set(assignments.map(a=>a.object_id).filter(Boolean))];
-  if(!ids.length)return [];
-  const rows=await cloudRequest(`objects?select=id,organization_id,name,object_type,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&id=in.(${ids.map(encodeURIComponent).join(',')})&organization_id=eq.${encodeURIComponent(orgId)}&order=name.asc`)||[];
-  return rows;
-}
 async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
-  // v2.20.86: operative Benutzer mit mehreren Mandanten dürfen ihre zugewiesenen
-  // Objekte mandantenübergreifend sehen. Mandantenwahl ist dafür kein vorgeschaltetes Gate.
   cloudSetStatus('Supabase wird geladen …','wait');
   try{
-    if(dsIsCrossTenantPersonalPortfolio()){
-      // v2.20.90: Cross-Tenant-Benutzer erhalten einen isolierten Objektpfad.
-      // Keine tenant-spezifischen Shared-/Collaboration-Abfragen dürfen diesen Bestand überschreiben.
-      await dsLoadMyAssignedObjectsAcrossTenants();
-      try{await cloudReloadFindings();}catch(e){console.warn('Dokumentationen teilweise nicht geladen',e);}
-      try{await loadUserMessages();}catch(e){console.warn('Mitteilungen teilweise nicht geladen',e);}
-      try{renderAll();}catch(e){console.warn('Teilrendering fehlgeschlagen',e);}
-      // v2.20.93: Cross-Tenant-Objekte werden bewusst zuletzt gerendert.
-      // Damit kann kein Legacy-Renderer die persönliche Objektübersicht danach überschreiben.
-      renderObjects();
-      cloudSetStatus(`Verbunden · ${myCrossTenantObjects.length} Objekt(e) im persönlichen Zugriff`,'ok');
-      return;
-    }
     // v2.18.82: Reine Plattform-Admins arbeiten im Systemkontext und laden
     // standardmäßig keine operativen Objekt-/Vorgangsdaten.
     if(isPlatformOperatorRole()&&!isPlatformTenantMode()){
@@ -9597,7 +9093,7 @@ async function cloudReloadObjects(){
     // Mandantenrollen laden ausschließlich die per RLS freigegebenen Objekte.
     let rows=[];
     if(isPlatformTenantMode()){
-      const objectPath=`objects?select=id,organization_id,name,object_type,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(platformTenantModeOrgId)}&order=name.asc`;
+      const objectPath=`objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(platformTenantModeOrgId)}&order=name.asc`;
       rows=await cloudRequest(objectPath);
     }else{
       // v2.19.42: Mandantenobjekte nicht mehr von einer möglicherweise zu restriktiven
@@ -9607,13 +9103,7 @@ async function cloudReloadObjects(){
       // Customer = bestehende can_access_object-Logik.
       try{
         const tenantOrgId=currentOrganizationId();
-        if(dsIsCrossTenantPersonalPortfolio()){
-          // v2.20.88: Bei mehreren Memberships ist "Meine Objekte" die führende Sicht.
-          // Die aktuell aktive Rolle (z.B. property_manager in Clean und Weg) darf die
-          // Objektabfrage nicht vorab auf genau diesen einen Mandanten begrenzen.
-          await dsLoadMyAssignedObjectsAcrossTenants();
-          rows=[];
-        }else if((isTenantAdminRole()||isAdminDelegate()) && tenantOrgId){
+        if((isTenantAdminRole()||isAdminDelegate()) && tenantOrgId){
           rows=await cloudRequest('rpc/tenant_get_own_objects',{
             method:'POST',
             body:JSON.stringify({p_organization_id:tenantOrgId})
@@ -9623,8 +9113,6 @@ async function cloudReloadObjects(){
             method:'POST',
             body:JSON.stringify({p_organization_id:tenantOrgId})
           });
-        }else if(isObjectManagerRole()||isCustomerRole()||isTestUserRole()){
-          rows=await dsLoadMyAssignedObjectsAcrossTenants();
         }else{
           rows=await cloudRequest('rpc/tenant_get_accessible_objects',{
             method:'POST',
@@ -9640,7 +9128,7 @@ async function cloudReloadObjects(){
           const canSeeAllOwn=isTenantAdminRole() || isAdminDelegate();
           if(orgId && canSeeAllOwn){
             rows=await cloudRequest(
-              `objects?select=id,organization_id,name,object_type,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(orgId)}&order=name.asc`
+              `objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(orgId)}&order=name.asc`
             );
           }
         }
@@ -9649,8 +9137,8 @@ async function cloudReloadObjects(){
         const orgId=(typeof currentOrganizationId==='function'&&currentOrganizationId())||'';
         const canSeeAllOwn=isTenantAdminRole() || isAdminDelegate();
         const path=(orgId&&canSeeAllOwn)
-          ? `objects?select=id,organization_id,name,object_type,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(orgId)}&order=name.asc`
-          : 'objects?select=id,organization_id,name,object_type,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&order=name.asc';
+          ? `objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(orgId)}&order=name.asc`
+          : 'objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&order=name.asc';
         rows=await cloudRequest(path);
       }
     }
@@ -9659,7 +9147,7 @@ async function cloudReloadObjects(){
       organization_role:effectiveOrganizationRole(),
       rows:Array.isArray(rows)?rows.length:null
     });
-    const ownObjects=dsIsCrossTenantPersonalPortfolio()?[]:(rows||[]).map(cloudObjectToLocal);
+    const ownObjects=(rows||[]).map(cloudObjectToLocal);
     await cloudLoadCurrentUserObjectAssignments();
     await cloudLoadSharedObjects();
     // v2.18.82: Betreuungsanfragen bei jedem Mandanten-Reload laden.
@@ -9667,9 +9155,7 @@ async function cloudReloadObjects(){
     if(hasOperationalAdminAccess()||isPropertyManagerRole()||isObjectManagerRole()||isExternalContractorRole()) await cloudLoadObjectCollaborations(false);
     else cloudObjectCollaborations=[];
     const ownIds=new Set(ownObjects.map(o=>o.id));
-    if(!dsIsCrossTenantPersonalPortfolio()){
-      db.objects=ownObjects.concat(cloudSharedObjects.filter(o=>!ownIds.has(o.id)));
-    }
+    db.objects=ownObjects.concat(cloudSharedObjects.filter(o=>!ownIds.has(o.id)));
 
     // v2.19.42: Objekte sind ein eigenständiger Kernbestand.
     // Sobald sie geladen sind, werden sie sofort sichtbar gemacht.
@@ -9733,12 +9219,11 @@ async function cloudReloadObjects(){
     }
 
     renderAll();
-    const visibleObjectCount=dsIsCrossTenantPersonalPortfolio()?myCrossTenantObjects.length:db.objects.length;
-    cloudSetStatus(`Verbunden · ${visibleObjectCount} Objekt(e) · ${db.findings.filter(f=>f.cloud).length} Dokumentation(en) · ${(db.tasks||[]).length} Aufgabe(n) zentral`,'ok');
+    cloudSetStatus(`Verbunden · ${db.objects.length} Objekt(e) inkl. extern betreuter · ${db.findings.filter(f=>f.cloud).length} Dokumentation(en) · ${(db.tasks||[]).length} Aufgabe(n) zentral`,'ok');
   }catch(e){
     console.error('Objekte laden fehlgeschlagen',e);
     cloudSetStatus('Verbindungsfehler: '+(e.message||e),'bad');
-    console.error('Supabase-Reload fehlgeschlagen; Diagnose bleibt im Plattform-Dashboard verfügbar.');
+    alert('Supabase-Verbindung fehlgeschlagen. Technische Diagnose im Plattform-Dashboard prüfen.');
   }
 }
 async function cloudSaveObject(id,data){
@@ -9746,7 +9231,6 @@ async function cloudSaveObject(id,data){
   const payload={
     name:data.name,
     organization_id:data.organizationId||null,
-    object_type:data.objectType||dsDefaultObjectTypeForTenant(),
     street:addr.street||null,
     postal_code:addr.postal_code,
     city:addr.city,
@@ -9779,13 +9263,7 @@ async function cloudSaveObject(id,data){
   });
   const objectId=typeof result==='string'?result:(Array.isArray(result)?result[0]:result);
   if(!objectId)throw new Error('Objekt wurde serverseitig nicht angelegt.');
-  await cloudRequest(`objects?id=eq.${encodeURIComponent(objectId)}`,{
-    method:'PATCH',headers:{'Prefer':'return=minimal'},
-    body:JSON.stringify({object_type:payload.object_type,updated_at:new Date().toISOString()})
-  });
-  await cloudLoadObjectAreas();
-  await dsReplaceObjectAreas(objectId,payload.object_type);
-  const rows=await cloudRequest(`objects?id=eq.${encodeURIComponent(objectId)}&select=id,organization_id,name,object_type,street,postal_code,city,notes,is_test,created_at,updated_at`);
+  const rows=await cloudRequest(`objects?id=eq.${encodeURIComponent(objectId)}&select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at`);
   return rows?.[0];
 }
 async function cloudDeleteObject(id){
@@ -10282,7 +9760,7 @@ function toggleAppMenu(){
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAppMenu();});
 function fmt(ts){if(!ts)return'';return new Date(ts).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-function objectName(id){return dsObjectById(id)?.name||'—'}
+function objectName(id){return db.objects.find(x=>x.id===id)?.name||'—'}
 function inspectionName(id){const i=db.inspections.find(x=>x.id===id);return i?`${objectName(i.objectId)} · ${fmt(i.startedAt)}`:'—'}
 
 function openPlatformUsers(){
@@ -10395,7 +9873,7 @@ function renderDecisions(){
   const incomingOrderDecisions=pendingIncomingExternalOrderDecisions();
   const returnedOrderDecisions=returnedExternalOrderDecisions();
 
-  const objectMap=new Map(dsPersonalObjectSource().map(o=>[o.id,o.name||o.id]));
+  const objectMap=new Map((db.objects||[]).map(o=>[o.id,o.name||o.id]));
   (db.findings||[]).filter(f=>findingVisibleInCurrentTenantUI(f)).forEach(f=>{
     if(f.objectId&&!objectMap.has(f.objectId))objectMap.set(f.objectId,`Nicht zugeordnet (${f.objectId})`);
   });
@@ -10786,11 +10264,10 @@ function currentUserOwnsOperationalObject(objectId){
   if(!objectId)return false;
 
   const oid=String(objectId||'');
-  const object=dsObjectById(oid);
+  const object=(db.objects||[]).find(o=>String(o.id||'')===oid);
   if(!object)return false;
 
-  const objectRole=dsEffectiveRoleForObject(oid);
-  if(['object_manager','external_contractor','test_user'].includes(objectRole)){
+  if(isObjectManagerRole()||isExternalContractorRole()||isTestUserRole()){
     // v2.20.48: Extern geteilte Objekte werden mandantenweit geladen, damit
     // Admins/Monitoring die Zusammenarbeit sehen können. Für einen operativen
     // Benutzer bedeutet diese Sichtbarkeit aber noch keine Zuständigkeit.
@@ -10967,20 +10444,6 @@ function incomingRoutedFindingIdsForCurrentTenant(){
 
 function findingVisibleInCurrentTenantUI(f){
   if(!f)return false;
-  if(dsIsCrossTenantPersonalPortfolio()){
-    const object=dsObjectById(f.objectId);
-    if(!object)return false;
-    const membership=dsMembershipForObjectId(f.objectId);
-    if(!membership)return false;
-    const role=dsEffectiveRoleForObject(f.objectId);
-    // Persönliche Cross-Tenant-Sicht: nur Inhalte zu tatsächlich zugewiesenen
-    // Objekten. Die bestehende RLS bleibt die serverseitige Sicherheitsgrenze.
-    if(['object_manager','external_contractor','test_user'].includes(role) &&
-       !currentUserAssignedObjectIds.has(String(f.objectId||''))){
-      return false;
-    }
-    return true;
-  }
   const orgId=String(currentOrganizationId()||'');
 
   // v2.20.47: Eine execution_finding_id ist immer die operative
@@ -11217,7 +10680,7 @@ function renderWorkQueue(){
   const consolidatedOpenCount=k.open+incomingExternal.length;
   const workNavCount=document.getElementById('workqueueNavCount');
   if(workNavCount)workNavCount.textContent=consolidatedOpenCount;
-  const objects=dsPersonalObjectSource().slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'','de'));
+  const objects=(db.objects||[]).slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'','de'));
 
   const openDecisionStates=new Set(['pending','quote_requested','quote_sent','approved','deferred','question']);
 
@@ -11305,7 +10768,7 @@ function renderWorkQueue(){
       ${incomingExternal.map(externalWorkQueueItemHtml).join('')}
       ${filtered.length ? filtered.map(t=>{
         const f=(db.findings||[]).find(x=>x.id===t.findingId)||{};
-        const o=dsObjectById(t.objectId)||{};
+        const o=(db.objects||[]).find(x=>x.id===t.objectId)||{};
         const due=t.dueDate?new Date(t.dueDate+'T00:00:00').toLocaleDateString('de-DE'):'Ohne Termin';
         const workStatus=t.hasTask
           ? (TASK_STATUS_LABELS[t.status]||t.status||'Geplant')
@@ -11429,7 +10892,6 @@ async function saveWorkItem(id){
 
 let userAdminProfiles=[];
 let userAdminAssignments=[];
-let userAdminTenantObjects=[];
 
 async function loadUserAdminData(){
   if(!canManageUsersUI())return;
@@ -11441,25 +10903,6 @@ async function loadUserAdminData(){
     userAdminProfiles=(userAdminProfiles||[]).filter(p=>!p.deleted_at);
     userAdminMemberships=await cloudRequest('organization_memberships?select=id,organization_id,user_id,role')||[];
     userAdminAssignments=await cloudRequest('object_user_assignments?select=id,object_id,user_id,active')||[];
-
-    const adminOrgId=currentOrganizationId();
-    userAdminTenantObjects=[];
-    if(adminOrgId){
-      try{
-        if(isPlatformTenantMode()){
-          userAdminTenantObjects=await cloudRequest(`objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,active&organization_id=eq.${encodeURIComponent(adminOrgId)}&active=eq.true&order=name.asc`)||[];
-        }else if(isTenantAdminRole()||isAdminDelegate()){
-          userAdminTenantObjects=await cloudRequest('rpc/tenant_get_own_objects',{
-            method:'POST',body:JSON.stringify({p_organization_id:adminOrgId})
-          })||[];
-        }else{
-          userAdminTenantObjects=(db.objects||[]).filter(o=>String(o.organizationId||o.organization_id||'')===String(adminOrgId));
-        }
-      }catch(_e){
-        console.warn('Mandantenobjekte konnten für die Benutzerverwaltung nicht separat geladen werden.',_e);
-        userAdminTenantObjects=(db.objects||[]).filter(o=>String(o.organizationId||o.organization_id||'')===String(adminOrgId));
-      }
-    }
     try{
       await cloudLoadSharedObjects();
       await cloudLoadObjectCollaborations(false);
@@ -11473,8 +10916,7 @@ async function loadUserAdminData(){
     }
     const keep=sel.value;
     sel.innerHTML='<option value="">Benutzer auswählen …</option>'+userAdminProfiles.map(p=>{
-      const activeOrgId=currentOrganizationId();
-      const m=userAdminMemberships.find(x=>x.user_id===p.id&&String(x.organization_id||'')===String(activeOrgId||''));
+      const m=userAdminMemberships.find(x=>x.user_id===p.id);
       const label=ROLE_LABELS[m?.role]||ROLE_LABELS[p.role]||m?.role||p.role;
       return `<option value="${esc(p.id)}">${esc(p.email||p.full_name||p.id)}${p.full_name&&p.email?' · '+esc(p.full_name):''} · ${esc(label)}${p.active===false?' · inaktiv':''}</option>`;
     }).join('');
@@ -11487,17 +10929,13 @@ function loadUserAdminEditor(){
   const uid=document.getElementById('userAdminSelect')?.value,ed=document.getElementById('userAdminEditor');
   if(!ed)return;if(!uid){ed.innerHTML='';return}
   const p=userAdminProfiles.find(x=>x.id===uid);if(!p){ed.innerHTML='';return}
-  const orgId=currentOrganizationId();
-  const membership=userAdminMemberships.find(m=>m.user_id===uid&&String(m.organization_id||'')===String(orgId||''))||null;
+  const membership=userAdminMemberships.find(m=>m.user_id===uid)||null;
+  const orgId=membership?.organization_id||currentOrganizationId();
   const assigned=new Set(userAdminAssignments.filter(a=>a.user_id===uid&&a.active!==false).map(a=>a.object_id));
-  const roles=[['tenant_admin','Mandanten-Admin'],['admin_delegate','Admin-Vertretung'],['property_manager','Verwalter / Objektsteuerung'],['object_manager','Objektbetreuer'],['external_contractor','Externer Auftragnehmer'],['customer','Auftraggeber / Eigentümer']];
+  const roles=[['tenant_admin','Mandanten-Admin'],['admin_delegate','Admin-Vertretung'],['property_manager','Verwalter'],['object_manager','Objektbetreuer'],['external_contractor','Externer Auftragnehmer'],['customer','Auftraggeber']];
   const allowedRoles=isAdminDelegate()?roles.filter(([v])=>!['tenant_admin','admin_delegate'].includes(v)):roles;
   const roleOptions=allowedRoles.map(([v,l])=>`<option value="${v}" ${membership?.role===v?'selected':''}>${l}</option>`).join('');
-  const ownObjects=(userAdminTenantObjects||[]).map(o=>({
-    ...o,
-    organizationId:o.organizationId||o.organization_id||orgId,
-    address:o.address||[o.street,[o.postal_code,o.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
-  })).filter(o=>!o.externalManaged&&String(o.organizationId||'')===String(orgId||''));
+  const ownObjects=(db.objects||[]).filter(o=>!o.externalManaged&&(!orgId||o.organizationId===orgId));
   const sharedRows=(cloudObjectCollaborations||[])
     .filter(c=>
       String(c.service_organization_id||'')===String(orgId||'') &&
@@ -11555,12 +10993,10 @@ function loadUserAdminEditor(){
       </span>
     </label>`;
   }).join('')||'<p class="muted">Keine eigenen oder extern betreuten Objekte vorhanden.</p>';
-  const orgName=organizationName(orgId)||platformTenantModeOrganization?.name||currentOrganization?.name||'—';
-  const membershipCount=new Set(dsMembershipsForUser(uid).map(m=>m.organization_id).filter(Boolean)).size;
-  ed.innerHTML=`<div class="card"><h3>${esc(p.email||p.full_name||'Benutzer')}</h3><div class="muted" style="margin-bottom:12px">Aktueller Mandant: <strong>${esc(orgName)}</strong>${membershipCount>1?` · Benutzerkonto in ${membershipCount} Mandanten`:''}</div><div class="grid2"><label>Anzeigename<input id="userAdminFullName" value="${esc(p.full_name||'')}" placeholder="z. B. Hans Müller"></label><label>Mandantenrolle<select id="userAdminRole">${roleOptions}</select></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminActive" type="checkbox" ${p.active!==false?'checked':''}><span>Benutzer aktiv</span></label></div><p class="muted">Berechtigungen gelten ausschließlich innerhalb des zugeordneten Unternehmens. Plattformadministrator-Rechte können hier nicht vergeben werden.</p><h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px">
+  const orgName=organizationName(orgId)||currentOrganization?.name||'—';
+  ed.innerHTML=`<div class="card"><h3>${esc(p.email||p.full_name||'Benutzer')}</h3><div class="muted" style="margin-bottom:12px">Unternehmen: <strong>${esc(orgName)}</strong></div><div class="grid2"><label>Anzeigename<input id="userAdminFullName" value="${esc(p.full_name||'')}" placeholder="z. B. Hans Müller"></label><label>Mandantenrolle<select id="userAdminRole">${roleOptions}</select></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminActive" type="checkbox" ${p.active!==false?'checked':''}><span>Benutzer aktiv</span></label></div><p class="muted">Berechtigungen gelten ausschließlich innerhalb des zugeordneten Unternehmens. Plattformadministrator-Rechte können hier nicht vergeben werden.</p><h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px">
   <button onclick="saveUserAdminPermissions()">Speichern</button>
-  ${dsCanGenerateInitialPasswordForUser(uid)?'<button onclick="resetSelectedUserInitialPassword()">Zugang wiederherstellen</button>':''}
-  ${!dsCanGenerateInitialPasswordForUser(uid)?`<div class="card" style="width:100%;margin-top:8px;padding:12px"><strong>Zugangsdaten</strong><div class="muted" style="margin-top:5px">${dsUserHasMultipleTenantMemberships(uid)?'Dieser Benutzer verwendet ein gemeinsames Benutzerkonto für mehrere Mandanten. Das Passwort darf hier nicht verändert werden. Der Benutzer nutzt seine bestehenden Zugangsdaten bzw. die Funktion „Passwort vergessen“.':'Passwörter bestehender Benutzer werden nicht durch den Mandanten geändert. Der Benutzer nutzt seine bestehenden Zugangsdaten bzw. die Funktion „Passwort vergessen“.'}</div></div>`:''}
+  ${canResetUserPasswordUI()?'<button onclick="resetSelectedUserInitialPassword()">Initialpasswort erzeugen</button>':''}
   ${isAdminRole()?'<button class="danger" onclick="deleteSelectedUser()">Benutzer löschen</button>':''}
 </div></div>`;
 }
@@ -11581,29 +11017,42 @@ async function createUserAndInvite(){
   const btn=event?.currentTarget;
   if(btn){btn.disabled=true;btn.textContent='Benutzer wird angelegt…';}
   try{
-    const existing=await dsTryLinkExistingUser(email,organizationId,role);
-    let data={},profile=null;
-    if(existing?.found===true||existing?.user_id){profile={id:existing.user_id,email};data={email,existingUser:true};}
-    else{
-      const res=await fetch(`${SUPABASE_URL}/functions/v1/invite-user`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${cloudSession?.access_token||''}`,'apikey':SUPABASE_PUBLISHABLE_KEY},body:JSON.stringify({fullName,email,role:(role==='property_manager'?'customer':(['tenant_admin','admin_delegate','external_contractor'].includes(role)?'object_manager':role)),objectIds})});
-      const responseText=await res.text();try{data=responseText?JSON.parse(responseText):{};}catch{}
-      if(!res.ok||data?.ok===false)throw new Error(data?.error||responseText||`HTTP ${res.status}`);
-      if(!data?.initialPassword)throw new Error('Initialpasswort wurde von der Benutzerfunktion nicht zurückgegeben.');
-      const profiles=await cloudRequest(`profiles?select=id,email,role&email=eq.${encodeURIComponent(email)}&limit=1`);profile=profiles?.[0];
-      if(!profile?.id)throw new Error('Benutzer wurde angelegt, das Profil konnte aber nicht gefunden werden.');
-    }
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/invite-user`,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':`Bearer ${cloudSession?.access_token||''}`,
+        'apikey':SUPABASE_PUBLISHABLE_KEY
+      },
+      body:JSON.stringify({fullName,email,role:(role==='property_manager'?'customer':(['tenant_admin','admin_delegate','external_contractor'].includes(role)?'object_manager':role)),objectIds})
+    });
+
+    const responseText=await res.text();
+    let data={};
+    try{data=responseText?JSON.parse(responseText):{};}catch{}
+    if(!res.ok || data?.ok===false)throw new Error(data?.error||responseText||`HTTP ${res.status}`);
+    if(!data?.initialPassword)throw new Error('Initialpasswort wurde von der Benutzerfunktion nicht zurückgegeben.');
+
+    // Die bestehende Edge Function kennt nur Objektbetreuer/Auftraggeber.
+    // Testbenutzer wird unmittelbar danach serverseitig im Profil gesetzt; das Profil ist für die App maßgeblich.
+    const profiles=await cloudRequest(`profiles?select=id,email,role&email=eq.${encodeURIComponent(email)}&limit=1`);
+    const profile=profiles?.[0];
+    if(!profile?.id)throw new Error('Benutzer wurde angelegt, das Profil konnte aber nicht gefunden werden.');
     if(role==='test_user'){
       await cloudRequest(`profiles?id=eq.${encodeURIComponent(profile.id)}`,{
         method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({role:'test_user'})
       });
     }
-    if(!data.existingUser)await cloudRequest('organization_memberships',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({organization_id:organizationId,user_id:profile.id,role})});
+    await cloudRequest('organization_memberships',{
+      method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify({organization_id:organizationId,user_id:profile.id,role})
+    });
 
     document.getElementById('newUserFullName').value='';
     document.getElementById('newUserEmail').value='';
 
     await loadUserAdminData();
-    if(data.existingUser)alert(`Bestehender Benutzer wurde diesem Mandanten hinzugefügt.\n\nBenutzer: ${email}\nDas bestehende Passwort bleibt unverändert.`);else showInitialPasswordResult(data.email||email,data.initialPassword);
+    showInitialPasswordResult(data.email||email,data.initialPassword);
   }catch(e){
     console.error(e);
     alert('Benutzeranlage fehlgeschlagen: '+(e?.message||e));
@@ -11644,19 +11093,15 @@ function showResetInitialPasswordResult(email,password){
 }
 
 async function resetSelectedUserInitialPassword(){
+  if(!canResetUserPasswordUI())return alert('Nur der Mandanten-Admin oder der Plattform-Admin im Mandantenmodus darf Initialpasswörter erzeugen.');
   const uid=document.getElementById('userAdminSelect')?.value;
   if(!uid)return alert('Bitte zuerst einen Benutzer auswählen.');
-  if(!dsCanGenerateInitialPasswordForUser(uid)){
-    return alert(dsUserHasMultipleTenantMemberships(uid)
-      ? 'Dieser Benutzer gehört mehreren Mandanten an. Sein Passwort ist mandantenübergreifend und kann hier nicht geändert werden. Bitte „Passwort vergessen“ verwenden.'
-      : 'Passwörter bestehender Benutzer können durch den Mandanten nicht geändert werden. Bitte „Passwort vergessen“ verwenden.');
-  }
   if(uid===currentUserProfile?.id)return alert('Für den aktuell angemeldeten Administrator kann hier kein Initialpasswort erzeugt werden. Nutze dafür „Passwort ändern“.');
 
   const p=(userAdminProfiles||[]).find(x=>x.id===uid);
   if(!p)return alert('Benutzerprofil wurde nicht gefunden.');
 
-  // v2.20.82: Passwort-Recovery ist eine globale Account-Funktion. Plattform-Admin prüft zusätzlich den eigenen
+  // v2.20.65: Mandanten-Admins dürfen ausschließlich Benutzer ihres eigenen
   // Mandanten zurücksetzen. Die UI-Liste ist bereits gefiltert; diese Prüfung
   // schützt zusätzlich vor manipulierten Benutzer-IDs im Browser.
   const orgId=currentOrganizationId();
@@ -11667,8 +11112,8 @@ async function resetSelectedUserInitialPassword(){
   const label=p.full_name||p.email||'diesen Benutzer';
 
   const ok=confirm(
-    `Zugang für „${label}“ wiederherstellen?\n\n`+
-    `Das bisherige Passwort wird sofort ungültig. Diese Funktion ist nur für ein Benutzerkonto mit genau einem Mandanten vorgesehen.`
+    `Neues Initialpasswort für „${label}“ erzeugen?\n\n`+
+    `Das bisherige Passwort wird sofort ungültig. Der Benutzer muss das neue Initialpasswort beim nächsten Login zwingend ändern.`
   );
   if(!ok)return;
 
@@ -11761,10 +11206,9 @@ async function saveUserAdminPermissions(){
   if(!uid||!organizationRole)return alert('Benutzer und Mandantenrolle fehlen.');
   if(!fullName)return alert('Bitte einen Anzeigenamen eingeben.');
   if(isAdminDelegate()&&['tenant_admin','admin_delegate'].includes(organizationRole))return alert('Admin-Vertretungen dürfen keine administrativen Mandantenrollen vergeben.');
-  const orgId=currentOrganizationId();
-  const membership=userAdminMemberships.find(m=>m.user_id===uid&&String(m.organization_id||'')===String(orgId||''));
-  if(!orgId)return alert('Aktueller Mandant konnte nicht bestimmt werden.');
-  if(!membership)return alert('Der Benutzer besitzt keine Mitgliedschaft im aktuell geöffneten Mandanten.');
+  const membership=userAdminMemberships.find(m=>m.user_id===uid);
+  const orgId=membership?.organization_id||currentOrganizationId();
+  if(!orgId)return alert('Für den Benutzer fehlt die Mandantenzuordnung.');
   if(!isAdminRole()&&orgId!==currentOrganizationId())return alert('Benutzer eines anderen Mandanten dürfen nicht bearbeitet werden.');
   if(uid===currentUserProfile?.id&&!active)return alert('Der aktuell angemeldete Benutzer kann sich nicht selbst deaktivieren.');
   const checked=[...document.querySelectorAll('.userObjectAssignment:checked')].map(x=>x.value);
@@ -11772,11 +11216,10 @@ async function saveUserAdminPermissions(){
   try{
     await cloudRequest('profiles?id=eq.'+encodeURIComponent(uid),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({full_name:fullName,role:globalRole,active})});
     await cloudRequest(`organization_memberships?organization_id=eq.${encodeURIComponent(orgId)}&user_id=eq.${encodeURIComponent(uid)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({role:organizationRole})});
-    const ownObjectIds=new Set((userAdminTenantObjects||[]).map(o=>String(o.id||'')));
-    const existing=userAdminAssignments.filter(a=>a.user_id===uid && ownObjectIds.has(String(a.object_id||'')));
+    const existing=userAdminAssignments.filter(a=>a.user_id===uid && (db.objects||[]).some(o=>o.id===a.object_id&&!o.externalManaged&&o.organizationId===orgId));
     if(isAdminRole()&&isPlatformTenantMode()){
       // Interne Objektzuweisungen werden objektweise gespeichert, damit andere Mitarbeiterzuweisungen unangetastet bleiben.
-      const allOwnObjects=(userAdminTenantObjects||[]).filter(o=>!o.externalManaged&&String(o.organizationId||o.organization_id||orgId)===String(orgId));
+      const allOwnObjects=(db.objects||[]).filter(o=>!o.externalManaged&&o.organizationId===orgId);
       for(const o of allOwnObjects){
         const currentUsers=userAdminAssignments
           .filter(a=>a.object_id===o.id&&a.active!==false&&a.user_id!==uid)
@@ -11833,13 +11276,10 @@ if(canUseDecisionsUI())renderDecisions();if(canUseWorkQueueUI())renderWorkQueue(
   const ro=document.getElementById('reportObject');
   if(ro){
     const rv=ro.value;
-    const reportObjects=dsPersonalObjectSource();
-    ro.innerHTML='<option value="">Bitte wählen</option>'+reportObjects.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
-    ro.value=reportObjects.some(o=>String(o.id)===String(rv))?rv:'';
+    ro.innerHTML='<option value="">Bitte wählen</option>'+db.objects.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
+    ro.value=rv;
   }
-showRecoveryStatus();setTimeout(()=>{hydrateMediaImages();hydrateResidentReportImages();},0);
-  dsScheduleAuthoritativeObjectRender();
-}
+showRecoveryStatus();setTimeout(()=>{hydrateMediaImages();hydrateResidentReportImages();},0);}
 function openCriticalFindings(){
   const count=Number(document.getElementById('kpiCritical')?.textContent||0);
   if(count<=0)return;
@@ -12171,9 +11611,7 @@ function renderDashboard(){
   renderGlobalPlatformMessages();
   renderDashboardMessages();
   renderDashboardCareRequests();
-  document.getElementById('kpiObjects').textContent=dsIsCrossTenantPersonalPortfolio()
-    ?myCrossTenantObjects.length
-    :db.objects.length;
+  document.getElementById('kpiObjects').textContent=db.objects.length;
   // v2.20.23: Dashboard-KPI bildet die vollständige Dokumentation ab, nicht nur offene Punkte.
   const visibleDocumentation=(db.findings||[]).filter(f=>findingVisibleInCurrentTenantUI(f));
   const open=visibleDocumentation.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt');
@@ -12300,103 +11738,15 @@ function renderObjectsDirect(){
   }).join('');
 }
 
-
-function dsRenderAuthoritativeCrossTenantObjects(){
-  if(!dsIsCrossTenantPersonalPortfolio())return false;
-  const el=document.getElementById('objectList');
-  if(!el)return false;
-  const portfolio=Array.isArray(myCrossTenantObjects)?myCrossTenantObjects:[];
-  const status=document.getElementById('objectListStatus');
-  if(status)status.textContent=`${portfolio.length} Objekt${portfolio.length===1?'':'e'} geladen`;
-  const cards=portfolio.filter(o=>o&&o.id).map(o=>{
-    const m=dsMembershipForObject(o);
-    const role=String(m?.role||'').toLowerCase();
-    const roleLabel=ROLE_LABELS[role]||role||'Benutzer';
-    const tenantName=dsOrganizationNameForObject(o);
-    return `<article class="card" data-cross-tenant-object="${esc(String(o.id))}">
-      <div class="row space"><div>
-        <h3 style="margin:0">${esc(o.name||'Objekt')}</h3>
-        <div class="muted" style="margin-top:4px"><strong>${esc(tenantName)}</strong> · ${esc(roleLabel)}</div>
-        ${o.address?`<div class="muted">${esc(o.address)}</div>`:''}
-      </div></div>
-      <div class="row" style="margin-top:10px">
-        <button onclick="dsOpenFindingForObject('${esc(String(o.id))}')">Dokumentation erfassen</button>
-        ${role!=='customer'?`<button onclick="dsOpenQrForObject('${esc(String(o.id))}')">Objekt-QR</button>`:''}
-        <button onclick="dsOpenReportForObject('${esc(String(o.id))}')">Bericht</button>
-      </div>
-    </article>`;
-  });
-  el.innerHTML=cards.join('');
-  el.style.setProperty('display','grid','important');
-  el.style.setProperty('visibility','visible','important');
-  console.info('Autoritative Cross-Tenant-Objektansicht aktiv',{loaded:portfolio.length,rendered:cards.length});
-  return true;
-}
-function dsScheduleAuthoritativeObjectRender(){
-  if(!dsIsCrossTenantPersonalPortfolio())return;
-  requestAnimationFrame(()=>requestAnimationFrame(()=>dsRenderAuthoritativeCrossTenantObjects()));
-  setTimeout(()=>dsRenderAuthoritativeCrossTenantObjects(),100);
-}
 function renderObjects(){
   const el=document.getElementById('objectList');
   const status=document.getElementById('objectListStatus');
   if(!el)return;
-  const sectionTitle=document.getElementById('objectsSectionTitle');
-  if(sectionTitle){
-    const personalPortfolio=dsIsCrossTenantPersonalPortfolio();
-    sectionTitle.textContent=personalPortfolio?'Meine Objekte':'Objekte';
-  }
 
-  const objects=dsIsCrossTenantPersonalPortfolio()
-    ?(Array.isArray(myCrossTenantObjects)?myCrossTenantObjects:[])
-    :(Array.isArray(db.objects)?db.objects:[]);
+  const objects=Array.isArray(db.objects)?db.objects:[];
   if(status){
     status.textContent=`${objects.length} Objekt${objects.length===1?'':'e'} geladen`;
     status.style.display='block';
-  }
-
-  // v2.20.88: Mandantenübergreifende persönliche Objektübersicht bewusst ohne
-  // mandantenspezifische KPI-/Collaboration-Helfer rendern. Diese Helfer gelten
-  // erst nach Aktivierung des jeweiligen Objekt-Mandanten.
-  if(dsIsCrossTenantPersonalPortfolio()){
-    el.style.setProperty('display','grid','important');
-    el.style.setProperty('visibility','visible','important');
-    el.style.setProperty('opacity','1','important');
-    const portfolio=[...myCrossTenantObjects];
-    if(!portfolio.length){
-      el.innerHTML='<div class="empty">Dir sind derzeit keine Objekte zugewiesen.</div>';
-      return;
-    }
-    const cards=[];
-    for(const o of portfolio){
-      if(!o||!o.id)continue;
-      const m=dsMembershipForObject(o);
-      const role=dsEffectiveRoleForObject(o.id);
-      const roleLabel=ROLE_LABELS[role]||role||'Benutzer';
-      const tenantName=dsOrganizationNameForObject(o);
-      cards.push(`<article class="card" data-object-id="${esc(String(o.id))}">
-        <div class="row space">
-          <div>
-            <h3 style="margin:0">${esc(o.name||'Objekt')}</h3>
-            <div class="muted" style="margin-top:4px"><strong>${esc(tenantName)}</strong> · ${esc(roleLabel)}</div>
-            ${o.address?`<div class="muted">${esc(o.address)}</div>`:''}
-          </div>
-        </div>
-        ${o.notes?`<p>${esc(o.notes)}</p>`:''}
-        <div class="row" style="margin-top:10px">
-          <button onclick="dsOpenFindingForObject('${esc(String(o.id))}')">Dokumentation erfassen</button>
-          ${role!=='customer'?`<button onclick="dsOpenQrForObject('${esc(String(o.id))}')">Objekt-QR</button>`:''}
-          <button onclick="dsOpenReportForObject('${esc(String(o.id))}')">Bericht</button>
-        </div>
-      </article>`);
-    }
-    el.innerHTML=cards.join('');
-    console.info('Mandantenübergreifende Objektansicht gerendert',{
-      loaded:portfolio.length,
-      rendered:cards.length,
-      objects:portfolio.map(o=>({id:o?.id,name:o?.name,organizationId:o?.organizationId}))
-    });
-    return;
   }
   el.style.setProperty('display','grid','important');
   el.style.setProperty('visibility','visible','important');
@@ -12433,7 +11783,6 @@ function renderObjects(){
         <div class="row space">
           <div>
             <h3 style="margin:0">${esc(o.name||'Objekt')} ${o.externalManaged?'<span class="badge" style="margin-left:6px">EXTERN BETREUT</span>':''}</h3>
-            ${(currentUserMemberships||[]).length>1&&!hasOperationalAdminAccess()?`<div class="muted" style="margin-top:3px"><strong>${esc(dsOrganizationNameForObject(o))}</strong></div>`:''}
             <div class="muted">${esc(o.address||'')}</div>
             ${o.externalManaged?`<div class="muted" style="margin-top:4px">Auftraggeber: ${esc(o.ownerOrganizationName||'Partnerunternehmen')}</div>`:''}
           </div>
@@ -12469,7 +11818,7 @@ function renderObjectFiles(){
   const objFilter=document.getElementById('historyObjectFilter');
   if(objFilter){
     const cur=objFilter.value;
-    objFilter.innerHTML='<option value="">Alle Objekte</option>'+dsPersonalObjectSource().map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
+    objFilter.innerHTML='<option value="">Alle Objekte</option>'+db.objects.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
     objFilter.value=cur;
   }
 
@@ -12478,7 +11827,7 @@ function renderObjectFiles(){
   const type=document.getElementById('historyTypeFilter')?.value||'';
   const status=document.getElementById('historyStatusFilter')?.value||'';
 
-  let objects=[...dsPersonalObjectSource()];
+  let objects=[...db.objects];
   if(selectedObject)objects=objects.filter(o=>o.id===selectedObject);
 
   const cutoff=days==='all'?0:Date.now()-Number(days)*86400000;
@@ -12553,20 +11902,12 @@ function toggleObjectHistory(objectId,count){
   btn.textContent=hidden?'Historie einklappen':`Gesamte Historie anzeigen (${count} weitere)`;
 }
 function renderSelects(){
-  const filterObjects=dsPersonalObjectSource();
-  const reportObjects=dsPersonalObjectSource();
-  const filter=document.getElementById('filterObject');
-  if(filter){
-    const cur=filter.value;
-    filter.innerHTML='<option value="">Alle</option>'+filterObjects.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
-    filter.value=filterObjects.some(o=>String(o.id)===String(cur))?cur:'';
-  }
-  const report=document.getElementById('reportObject');
-  if(report){
-    const cur=report.value;
-    report.innerHTML='<option value="">Bitte wählen</option>'+reportObjects.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
-    report.value=reportObjects.some(o=>String(o.id)===String(cur))?cur:'';
-  }
+  const opts=db.objects.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join('');
+  ['filterObject','reportObject'].forEach(id=>{
+    const el=document.getElementById(id), cur=el.value;
+    el.innerHTML=(id==='filterObject'?'<option value="">Alle</option>':'<option value="">Bitte wählen</option>')+opts;
+    el.value=cur;
+  });
 }
 function findingCard(f){
   const type=f.type||'Feststellung';
@@ -12690,7 +12031,7 @@ function externalMonitoringDocumentationCard(x){
   const fid=String(x.source_finding_id||'');
   const localFinding=fid?(db.findings||[]).find(f=>String(f.id||'')===fid):null;
   const reporterOrg=externalOrderReporterLabel(x);
-  const objectName=x.source_object_name||(dsObjectById(x.source_object_id)?.name)||'Objekt';
+  const objectName=x.source_object_name||((db.objects||[]).find(o=>String(o.id||'')===String(x.source_object_id||''))?.name)||'Objekt';
   const area=snapshot.area||localFinding?.area||'';
   const priority=String(x.priority||localFinding?.priority||'P3');
   const statusLabel=externalOrderLifecycleLabel(x);
@@ -13333,8 +12674,7 @@ function renderReport(){
   const decision=document.getElementById('reportDecision')?.value||'';
   const area=(document.getElementById('reportArea')?.value||'').trim().toLowerCase();
 
-  const reportObjects=dsPersonalObjectSource();
-  const o=reportObjects.find(x=>String(x.id)===String(objectId));
+  const o=db.objects.find(x=>x.id===objectId);
   if(!o){
     el.innerHTML='<div class="empty">Objekt nicht gefunden.</div>';
     return;
@@ -13418,9 +12758,8 @@ function resetReportFilters(){
 function showObjectReport(id){
   showSection('reports');
   setTimeout(()=>{
-    renderSelects();
     const e=document.getElementById('reportObject');
-    if(e)e.value=String(id);
+    if(e)e.value=id;
     renderReport();
   },0);
 }
@@ -13879,16 +13218,13 @@ function openObjectModal(id=''){
     : `<div class="card" style="margin-top:12px;padding:12px"><span class="muted">Unternehmen / Mandant</span><div style="font-weight:800;margin-top:4px">${esc(organizationName(fixedOrgId)||currentOrganization?.name||'—')}</div><input id="oOrganization" type="hidden" value="${esc(fixedOrgId)}"></div>`;
   modal(`<div class="row space"><h2>${id?'Objekt bearbeiten':'Objekt anlegen'}</h2><button onclick="closeModal()">✕</button></div>
   ${orgControl}
-  <label>Objekttyp *</label><select id="oObjectType" onchange="dsRefreshObjectTypePreview()">${dsObjectTypeSelectHtml(dsObjectTypeOf(o))}</select>
-  <div id="oObjectTypePreview" class="card" style="margin-top:10px;padding:12px"></div>
-  <label>Objektbezeichnung *</label><input id="oName" value="${esc(o.name)}" placeholder="${esc(dsObjectTypeProfile(dsObjectTypeOf(o)).label)}">
+  <label>Objektbezeichnung *</label><input id="oName" value="${esc(o.name)}" placeholder="z. B. WEG Musterstraße 12">
   <label>Adresse</label><input id="oAddress" value="${esc(o.address)}" placeholder="Straße, PLZ Ort">
   <label>Notizen</label><textarea id="oNotes">${esc(o.notes)}</textarea>
-
+  ${!id?`<div class="card" style="margin-top:14px;padding:12px"><strong>Standardbereiche</strong><div class="muted" style="margin-top:5px">Beim Anlegen werden automatisch folgende Bereiche erzeugt: ${DEFAULT_OBJECT_AREAS.map(esc).join(', ')}. Sie können anschließend objektbezogen umbenannt, deaktiviert oder ergänzt werden.</div></div>`:''}
   <label class="row" style="gap:10px;align-items:center;margin-top:14px"><input id="oIsTest" type="checkbox" ${o.isTest?'checked':''}><span><strong>Testobjekt</strong><br><span class="muted"></span></span></label>
   ${id&&hasOperationalAdminAccess()?`<div class="card" style="margin-top:14px;padding:12px"><div class="row space"><div><strong>Betreuung / Dienstleister</strong><div class="muted" style="margin-top:4px">Dieses Objekt einem Dienstleister zur dauerhaften Betreuung mit mehreren Leistungsumfängen zuordnen.</div></div><button type="button" onclick="openObjectCollaborationModal('${id}')">Betreuung vergeben</button></div></div>`:''}
   <div class="row" style="margin-top:14px"><button class="primary" onclick="saveObject('${id}')">Speichern</button>${id?`<button class="danger" onclick="deleteObject('${id}')">Löschen</button>`:''}</div>`);
-  setTimeout(dsRefreshObjectTypePreview,0);
 }
 async function saveObject(id){
   if(!canManageObjectsUI())return alert('Objektverwaltung ist für diese Rolle nicht freigegeben.');
@@ -13896,11 +13232,8 @@ async function saveObject(id){
   if(!name)return alert('Bitte Objektbezeichnung eingeben.');
   const organizationId=document.getElementById('oOrganization')?.value||currentOrganizationId();
   if(!organizationId)return alert('Bitte ein Unternehmen / einen Mandanten auswählen.');
-  const objectType=document.getElementById('oObjectType')?.value||dsDefaultObjectTypeForTenant();
-  const previousType=id?dsObjectTypeOf((db.objects||[]).find(o=>o.id===id)):objectType;
   const data={
     organizationId,
-    objectType,
     name,
     address:document.getElementById('oAddress').value.trim(),
     notes:document.getElementById('oNotes').value.trim(),
@@ -13909,10 +13242,6 @@ async function saveObject(id){
   try{
     const row=await cloudSaveObject(id,data);
     if(!row)throw new Error('Keine Rückgabe aus Supabase.');
-    if(id && previousType!==objectType){
-      const reset=confirm('Der Objekttyp wurde geändert. Sollen die aktiven Bereiche auf das neue Profil umgestellt werden? Bestehende Bereiche werden nur deaktiviert und bleiben historisch erhalten.');
-      if(reset)await dsReplaceObjectAreas(id,objectType);
-    }
 
     // v2.18.82: Bei Neuanlage wurden die Standardbereiche bereits
     // innerhalb derselben serverseitigen Transaktion erzeugt.
@@ -14855,122 +14184,15 @@ document.addEventListener('change',e=>{
   }
 });
 
-
-// v2.20.79: Mandantenspezifische Terminologie.
-// Nur sichtbare Bezeichnungen werden angepasst; technische Rollen, Tabellen,
-// RLS, Routing-Keys und Legacy-Feldnamen bleiben unverändert.
-const DS_TENANT_TERMINOLOGY=Object.freeze({
-  object_service:Object.freeze({
-    externalReporter:'Bewohner / Nutzer', externalReport:'Externe Meldung',
-    externalReportPlural:'Externe Meldungen', objectManager:'Objektbetreuer',
-    steeringRole:'Auftraggeber', object:'Kundenobjekt'
-  }),
-  property_management:Object.freeze({
-    externalReporter:'Bewohner', externalReport:'Bewohnermeldung',
-    externalReportPlural:'Bewohnermeldungen', objectManager:'Objektbetreuer',
-    steeringRole:'Hausverwaltung', object:'Objekt'
-  }),
-  property_owner:Object.freeze({
-    externalReporter:'Mieter / Nutzer', externalReport:'Nutzermeldung',
-    externalReportPlural:'Nutzermeldungen', objectManager:'Objektverantwortlicher',
-    steeringRole:'Immobilieneigentümer', object:'Immobilie'
-  }),
-  facility_management:Object.freeze({
-    externalReporter:'Nutzer', externalReport:'Nutzermeldung',
-    externalReportPlural:'Nutzermeldungen', objectManager:'Objektverantwortlicher',
-    steeringRole:'Facility Management', object:'Objekt'
-  }),
-  hospitality:Object.freeze({
-    externalReporter:'Gast', externalReport:'Gastmeldung',
-    externalReportPlural:'Gastmeldungen', objectManager:'Haustechnik',
-    steeringRole:'Hotelmanagement', object:'Hotel / Beherbergungsobjekt'
-  }),
-  hotel:Object.freeze({
-    externalReporter:'Gast', externalReport:'Gastmeldung',
-    externalReportPlural:'Gastmeldungen', objectManager:'Haustechnik',
-    steeringRole:'Hotelmanagement', object:'Hotel'
-  }),
-  airbnb:Object.freeze({
-    externalReporter:'Gast', externalReport:'Gastmeldung',
-    externalReportPlural:'Gastmeldungen', objectManager:'Objektbetreuung',
-    steeringRole:'Betreiber', object:'Ferienobjekt'
-  }),
-  municipality:Object.freeze({
-    externalReporter:'Bürger', externalReport:'Bürgermeldung',
-    externalReportPlural:'Bürgermeldungen', objectManager:'Bauhof / Objektverantwortlicher',
-    steeringRole:'Fachbereich / Verwaltung', object:'Objekt / Asset'
-  }),
-  other:Object.freeze({
-    externalReporter:'Melder', externalReport:'Externe Meldung',
-    externalReportPlural:'Externe Meldungen', objectManager:'Objektverantwortlicher',
-    steeringRole:'Auftraggeber', object:'Objekt'
-  })
-});
-function dsContextOrganization(){
-  if(typeof isPlatformTenantMode==='function'&&isPlatformTenantMode()){
-    return platformTenantModeOrganization||cloudOrganizations.find(o=>o.id===platformTenantModeOrgId)||currentOrganization||{};
-  }
-  return currentOrganization||{};
-}
-function dsTenantType(){
-  const org=dsContextOrganization();
-  return String(org.organization_type||org.type||'object_service');
-}
-function dsTenantTerminology(){
-  return DS_TENANT_TERMINOLOGY[dsTenantType()]||DS_TENANT_TERMINOLOGY.other;
-}
-function dsTenantLabel(key,fallback=''){
-  return dsTenantTerminology()?.[key]||fallback||key;
-}
-function dsApplyTenantTerminology(root=document){
-  if(!root?.querySelectorAll)return;
-  const labels=dsTenantTerminology();
-  const replacements=[
-    ['Bewohnermeldungen',labels.externalReportPlural],
-    ['Bewohnermeldung',labels.externalReport],
-    ['Objektbetreuer',labels.objectManager]
-  ];
-  root.querySelectorAll('[data-tenant-term]').forEach(el=>{
-    const key=el.getAttribute('data-tenant-term');
-    if(labels[key])el.textContent=labels[key];
-  });
-  // Text-only UI adaptation. Inputs, values, IDs, code and backend keys are never changed.
-  root.querySelectorAll('h1,h2,h3,h4,p,span,strong,label,button,option,div.muted').forEach(el=>{
-    if(el.children.length)return;
-    let s=el.textContent||'';
-    let next=s;
-    replacements.forEach(([from,to])=>{ if(to&&from!==to)next=next.split(from).join(to); });
-    if(next!==s)el.textContent=next;
-  });
-}
-let dsTenantTerminologyObserver=null;
-function dsStartTenantTerminology(){
-  if(dsTenantTerminologyObserver)dsTenantTerminologyObserver.disconnect();
-  dsApplyTenantTerminology(document);
-  dsTenantTerminologyObserver=new MutationObserver(muts=>{
-    muts.forEach(m=>m.addedNodes.forEach(n=>{
-      if(n.nodeType===1)dsApplyTenantTerminology(n);
-    }));
-  });
-  dsTenantTerminologyObserver.observe(document.body,{childList:true,subtree:true});
-}
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded',()=>setTimeout(dsStartTenantTerminology,0),{once:true});
-}else setTimeout(dsStartTenantTerminology,0);
-
 function dsProcessProfile(){
-  const org=dsContextOrganization();
-  const t=String(org.organization_type||org.type||'object_service');
+  const org=(typeof currentOrganization!=='undefined'&&currentOrganization)||{};
+  const t=String(org.organization_type||org.type||'objektservice');
   const map={
-    object_service:{decision:true,work:true,beforeAfter:true},
-    objektservice:{decision:true,work:true,beforeAfter:true}, // Legacy-Kompatibilität
+    objektservice:{decision:true,work:true,beforeAfter:true},
     property_management:{decision:true,work:false,beforeAfter:false},
-    property_owner:{decision:true,work:true,beforeAfter:true},
     facility_management:{decision:true,work:true,beforeAfter:true},
-    hospitality:{decision:true,work:true,beforeAfter:true},
-    hotel:{decision:true,work:true,beforeAfter:true}, // Legacy
-    airbnb:{decision:true,work:true,beforeAfter:true}, // Legacy
-    municipality:{decision:true,work:true,beforeAfter:true},
+    hotel:{decision:false,work:true,beforeAfter:true},
+    airbnb:{decision:false,work:true,beforeAfter:true},
     other:{decision:true,work:true,beforeAfter:true}
   };
   return map[t]||map.other;
@@ -15008,15 +14230,9 @@ document.addEventListener('change',e=>{
 document.addEventListener('DOMContentLoaded',()=>setTimeout(dsApplyProcessForm,0));
 
 function dsObjectProfile(){
-  const org=dsContextOrganization();
-  const t=String(org.organization_type||org.type||'object_service');
+  const org=(typeof currentOrganization!=='undefined'&&currentOrganization)||{};
+  const t=String(org.organization_type||org.type||'objektservice');
   const profiles={
-    object_service:{
-      objectLabel:'Kundenobjekt',
-      objectPlaceholder:'z. B. WEG Knorrstraße 7',
-      areaLabel:'Bereiche',
-      defaultAreas:['Außenanlage','Eingangsbereich','Treppenhaus','Keller','Tiefgarage','Technik','Sonstiges']
-    },
     objektservice:{
       objectLabel:'Kundenobjekt',
       objectPlaceholder:'z. B. WEG Knorrstraße 7',
@@ -15035,29 +14251,11 @@ function dsObjectProfile(){
       areaLabel:'Funktionsbereiche',
       defaultAreas:['Außenbereich','Empfang','Bürofläche','Sanitär','Technik','Lager','Parkfläche','Sonstiges']
     },
-    property_owner:{
-      objectLabel:'Immobilie / Objekt',
-      objectPlaceholder:'z. B. Mehrfamilienhaus Musterstraße 6',
-      areaLabel:'Gebäudebereiche',
-      defaultAreas:['Außenanlage','Eingangsbereich','Treppenhaus','Aufzug','Keller','Tiefgarage','Technikraum','Gemeinschaftsfläche','Wohn-/Nutzungseinheit','Sonstiges']
-    },
-    hospitality:{
-      objectLabel:'Hotel / Beherbergungsobjekt',
-      objectPlaceholder:'z. B. Hotel München Zentrum',
-      areaLabel:'Betriebsbereiche',
-      defaultAreas:['Zimmer / Einheit','Lobby / Empfang','Flur / Treppenhaus','Gastronomie / Frühstück','Spa / Wellness','Außenbereich','Technik','Housekeeping / Lager','Parken / Tiefgarage','Sonstiges']
-    },
-    municipality:{
-      objectLabel:'Objekt / Asset',
-      objectPlaceholder:'z. B. Brunnen Marienplatz oder Bushaltestelle Musterstraße',
-      areaLabel:'Bereiche / Komponenten',
-      defaultAreas:['Allgemein','Außenbereich','Zugang / Wege','Beleuchtung / Elektro','Technik','Ausstattung','Grünfläche','Verkehrsfläche','Sonstiges']
-    },
     hotel:{
       objectLabel:'Hotel / Standort',
       objectPlaceholder:'z. B. Hotel München Zentrum',
       areaLabel:'Hotelbereiche',
-      defaultAreas:['Zimmer / Einheit','Lobby / Empfang','Flur / Treppenhaus','Gastronomie / Frühstück','Spa / Wellness','Außenbereich','Technik','Housekeeping / Lager','Parken / Tiefgarage','Sonstiges']
+      defaultAreas:['Zimmer / Einheit','Lobby / Empfang','Flur','Frühstück / Gastronomie','Außenbereich','Technik','Housekeeping / Lager','Sonstiges']
     },
     airbnb:{
       objectLabel:'Ferienwohnung / Ferienhaus',
