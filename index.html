@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.80</title>
+<title>Duschl Service – Objektplattform v2.20.82</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1482,7 +1482,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.80</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.82</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -1526,7 +1526,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.80</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.82</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -1756,8 +1756,8 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.80</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.80</span> geladen</div>
+<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.82</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
+<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.82</span> geladen</div>
 <div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
@@ -3441,7 +3441,7 @@ module.exports = QRCode;
    Backend: organization_activity + RPCs touch_my_organization_activity / platform_get_tenant_activity_v2.
    Unverändert: Rollenmodell, Objektzugriffe, Findings, Entscheidungen, Messaging, Routing, Objektzuweisungen.
 */
-const APP_VERSION='2.20.81'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.82'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -3454,7 +3454,7 @@ const APP_VERSION='2.20.81'; // Q-Gate Versionierung: alle aktuellen sichtbaren 
    - Plattformadministration zeigt je Mandant zusätzlich den Benutzer der letzten Mandantenaktivität.
    - Platform-Admin-Aktivität bleibt von der Mandantenaktivität ausgeschlossen.
    - Backend: neue additive RPC platform_get_tenant_activity_v2; bestehende Tabelle/RPC bleiben unverändert.
-   - v2.20.81: Frontend-Heartbeat auf touch_my_organization_activity umgestellt; aktive Membership bestimmt den Mandanten.
+   - v2.20.82: Frontend-Heartbeat auf touch_my_organization_activity umgestellt; aktive Membership bestimmt den Mandanten.
    - Keine RLS-, Rollen-, Objekt-, Findings-, Entscheidungs-, Messaging- oder Routingänderung.
 */
 function syncAppVersionMarkers(){
@@ -6301,30 +6301,39 @@ let userActivityHeartbeatTimer=null;
 
 async function touchUserActivity(){
   if(!cloudSession?.access_token||!currentUserProfile?.id)return;
+
+  // v2.20.82: Benutzer- und Mandantenaktivität sind bewusst entkoppelt.
+  // Ein Fehler der Legacy-RPC touch_last_seen darf die Mandantenaktivität
+  // nicht mehr verhindern.
   try{
     await cloudRequest('rpc/touch_last_seen',{
       method:'POST',
       headers:{Prefer:'return=minimal'},
       body:JSON.stringify({})
     });
-    // v2.20.81: Aktivität wird zusätzlich mandantenbezogen erfasst. Die RPC
-    // validiert serverseitig, dass der Benutzer Mitglied des Mandanten ist.
-    // Platform-Administratoren im Mandantenmodus zählen nicht als Mandantenaktivität.
-    const activeOrgId=currentOrganizationId();
-    if(activeOrgId&&!isPlatformOperatorRole()){
-      try{
-        await cloudRequest('rpc/touch_my_organization_activity',{
-          method:'POST',
-          headers:{Prefer:'return=minimal'},
-          body:JSON.stringify({p_organization_id:activeOrgId})
-        });
-      }catch(tenantActivityError){
-        console.warn('Mandantenaktivität konnte nicht aktualisiert werden',tenantActivityError);
-      }
-    }
     if(currentUserProfile)currentUserProfile.last_seen_at=new Date().toISOString();
   }catch(e){
     console.warn('Benutzeraktivität konnte nicht aktualisiert werden',e);
+  }
+
+  const membership=currentOrganizationMembership;
+  const activeOrgId=String(membership?.organization_id||'').trim();
+  const platformRole=globalPlatformRole();
+  if(!activeOrgId||platformRole)return;
+
+  try{
+    await cloudRequest('rpc/touch_my_organization_activity',{
+      method:'POST',
+      headers:{Prefer:'return=minimal'},
+      body:JSON.stringify({p_organization_id:activeOrgId})
+    });
+    console.info('Mandantenaktivität aktualisiert',{organization_id:activeOrgId,role:membership?.role||''});
+  }catch(e){
+    console.error('Mandantenaktivität konnte nicht aktualisiert werden',{
+      organization_id:activeOrgId,
+      role:membership?.role||'',
+      error:e?.message||String(e)
+    });
   }
 }
 
