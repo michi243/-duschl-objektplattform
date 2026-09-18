@@ -3441,7 +3441,7 @@ module.exports = QRCode;
    Backend: organization_activity + RPCs touch_my_organization_activity / platform_get_tenant_activity_v2.
    Unverändert: Rollenmodell, Objektzugriffe, Findings, Entscheidungen, Messaging, Routing, Objektzuweisungen.
 */
-const APP_VERSION='2.20.86'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.87'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -3449,6 +3449,13 @@ const APP_VERSION='2.20.86'; // Q-Gate Versionierung: alle aktuellen sichtbaren 
    - Mandantenwechsel im Hamburger-Menü bei mehreren Memberships.
    - Platform-Admin/Platform-Admin-Vertretung bleiben globale Sonderrollen.
    - Keine SQL-, RLS-, Tabellen- oder RPC-Änderung.
+*/
+/* RELEASE 2.20.87 | Basis 2.20.86 | 18.09.2026
+   - Diagnose-Build für Findings-INSERT an extern betreuten Objekten.
+   - Vor neuem Finding: serverseitige Prüfung von auth.uid(), object_id, created_by und can_operate_shared_object().
+   - Diagnose wird sichtbar angezeigt und zusätzlich in der Konsole protokolliert.
+   - Keine Änderung an RLS, Rollen-, Objekt-, Findings-, Entscheidungs-, Messaging- oder Routinglogik.
+   - Backend: additive Diagnose-RPC diagnose_finding_insert_access erforderlich; keine Policy-/RLS-Änderung.
 */
 /* RELEASE 2.20.86 | Basis 2.20.85 | 18.09.2026
    - Platform-Admin-Anzeige der Mandantenaktivität: Lesepfad über platform_get_tenant_activity_v2 bestätigt.
@@ -6223,6 +6230,31 @@ async function cloudSaveFinding(id,data){
       row=rows?.[0];
     }
   }else{
+    // v2.20.87: Temporäres Q-Gate für den RLS-Fehler bei extern betreuten Objekten.
+    // Ausschließlich Diagnose: keine Berechtigung wird verändert oder umgangen.
+    try{
+      const diagRaw=await cloudRequest('rpc/diagnose_finding_insert_access',{
+        method:'POST',
+        body:JSON.stringify({
+          p_object_id:payload.object_id,
+          p_created_by:payload.created_by||null
+        })
+      });
+      const diag=Array.isArray(diagRaw)?diagRaw[0]:diagRaw;
+      console.info('v2.20.87 Findings-INSERT Diagnose',diag);
+      const diagText=[
+        'DIAGNOSE v2.20.87',
+        'auth.uid(): '+String(diag?.session_user_id||'NULL'),
+        'object_id: '+String(diag?.object_id||payload.object_id||'NULL'),
+        'created_by: '+String(diag?.created_by||payload.created_by||'NULL'),
+        'created_by = auth.uid(): '+String(diag?.created_by_matches_session),
+        'can_operate_shared_object(): '+String(diag?.can_operate_shared_object)
+      ].join('\n');
+      alert(diagText);
+    }catch(diagError){
+      console.error('v2.20.87 Findings-INSERT Diagnose fehlgeschlagen',diagError);
+      alert('DIAGNOSE v2.20.87 konnte nicht ausgeführt werden:\n'+(diagError?.message||diagError));
+    }
     const rows=await cloudRequest('findings',{
       method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)
     });
