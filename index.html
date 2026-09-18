@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.82</title>
+<title>Duschl Service – Objektplattform v2.20.83</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3441,7 +3441,7 @@ module.exports = QRCode;
    Backend: organization_activity + RPCs touch_my_organization_activity / platform_get_tenant_activity_v2.
    Unverändert: Rollenmodell, Objektzugriffe, Findings, Entscheidungen, Messaging, Routing, Objektzuweisungen.
 */
-const APP_VERSION='2.20.82'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.83'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -3454,7 +3454,7 @@ const APP_VERSION='2.20.82'; // Q-Gate Versionierung: alle aktuellen sichtbaren 
    - Plattformadministration zeigt je Mandant zusätzlich den Benutzer der letzten Mandantenaktivität.
    - Platform-Admin-Aktivität bleibt von der Mandantenaktivität ausgeschlossen.
    - Backend: neue additive RPC platform_get_tenant_activity_v2; bestehende Tabelle/RPC bleiben unverändert.
-   - v2.20.82: Frontend-Heartbeat auf touch_my_organization_activity umgestellt; aktive Membership bestimmt den Mandanten.
+   - v2.20.83: Frontend-Heartbeat auf touch_my_organization_activity umgestellt; aktive Membership bestimmt den Mandanten.
    - Keine RLS-, Rollen-, Objekt-, Findings-, Entscheidungs-, Messaging- oder Routingänderung.
 */
 function syncAppVersionMarkers(){
@@ -5023,7 +5023,16 @@ async function cloudLoadCurrentProfile(){
   try{
     // v2.20.79: Identität zuerst, danach ALLE Memberships. Kein Rollen-Prioritätsmodell mehr.
     // Der aktive Mandant bestimmt die operative Rolle.
-    const memberships=await cloudRequest(`organization_memberships?select=id,organization_id,user_id,role&user_id=eq.${encodeURIComponent(uid)}`)||[];
+    let memberships=[];
+    try{
+      memberships=await cloudRequest('rpc/get_my_memberships_across_tenants',{
+        method:'POST',
+        body:JSON.stringify({})
+      })||[];
+    }catch(membershipRpcError){
+      console.warn('Globale Membership-RPC nicht verfügbar; Tabellenabfrage wird verwendet.',membershipRpcError);
+      memberships=await cloudRequest(`organization_memberships?select=id,organization_id,user_id,role&user_id=eq.${encodeURIComponent(uid)}`)||[];
+    }
     currentUserMemberships=(Array.isArray(memberships)?memberships:[]).filter(m=>m?.organization_id);
     const savedOrgId=dsSavedActiveOrganizationId();
     currentOrganizationMembership=dsMembershipForOrganization(savedOrgId)||currentUserMemberships[0]||null;
@@ -5031,6 +5040,20 @@ async function cloudLoadCurrentProfile(){
       dsSetActiveOrganizationId(currentOrganizationMembership.organization_id);
       const orgRows=await cloudRequest(`organizations?select=id,name,organization_type,public_code,active&id=eq.${encodeURIComponent(currentOrganizationMembership.organization_id)}&limit=1`);
       currentOrganization=orgRows?.[0]||null;
+      // v2.20.83: Aktivität erst erfassen, wenn die Membership und der aktive Mandant sicher feststehen.
+      // Der Aufruf ist unabhängig vom Legacy-Heartbeat und blockiert den Login bei einem Fehler nicht.
+      if(!globalPlatformRole()){
+        try{
+          await cloudRequest('rpc/touch_my_organization_activity',{
+            method:'POST',
+            headers:{Prefer:'return=minimal'},
+            body:JSON.stringify({p_organization_id:String(currentOrganizationMembership.organization_id)})
+          });
+          console.info('Mandantenaktivität beim Profilaufbau aktualisiert',{organization_id:currentOrganizationMembership.organization_id,role:currentOrganizationMembership.role||''});
+        }catch(activityError){
+          console.error('Mandantenaktivität beim Profilaufbau fehlgeschlagen',activityError);
+        }
+      }
     }
   }catch(e){
     console.warn('Mandantenkontext konnte nicht geladen werden',e);
@@ -6302,7 +6325,7 @@ let userActivityHeartbeatTimer=null;
 async function touchUserActivity(){
   if(!cloudSession?.access_token||!currentUserProfile?.id)return;
 
-  // v2.20.82: Benutzer- und Mandantenaktivität sind bewusst entkoppelt.
+  // v2.20.83: Benutzer- und Mandantenaktivität sind bewusst entkoppelt.
   // Ein Fehler der Legacy-RPC touch_last_seen darf die Mandantenaktivität
   // nicht mehr verhindern.
   try{
