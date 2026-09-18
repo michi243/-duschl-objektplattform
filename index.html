@@ -3438,10 +3438,10 @@ module.exports = QRCode;
 
 /* RELEASE 2.20.78 | BASIS 2.20.77 | 17.09.2026
    Änderung: Mandantenbezogene letzte Aktivität für Platform-Administration.
-   Backend: neue Tabelle organization_activity + RPCs touch_tenant_last_seen / platform_get_tenant_activity.
+   Backend: organization_activity + RPCs touch_my_organization_activity / platform_get_tenant_activity_v2.
    Unverändert: Rollenmodell, Objektzugriffe, Findings, Entscheidungen, Messaging, Routing, Objektzuweisungen.
 */
-const APP_VERSION='2.20.80'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.81'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -3454,6 +3454,7 @@ const APP_VERSION='2.20.80'; // Q-Gate Versionierung: alle aktuellen sichtbaren 
    - Plattformadministration zeigt je Mandant zusätzlich den Benutzer der letzten Mandantenaktivität.
    - Platform-Admin-Aktivität bleibt von der Mandantenaktivität ausgeschlossen.
    - Backend: neue additive RPC platform_get_tenant_activity_v2; bestehende Tabelle/RPC bleiben unverändert.
+   - v2.20.81: Frontend-Heartbeat auf touch_my_organization_activity umgestellt; aktive Membership bestimmt den Mandanten.
    - Keine RLS-, Rollen-, Objekt-, Findings-, Entscheidungs-, Messaging- oder Routingänderung.
 */
 function syncAppVersionMarkers(){
@@ -6306,13 +6307,13 @@ async function touchUserActivity(){
       headers:{Prefer:'return=minimal'},
       body:JSON.stringify({})
     });
-    // v2.20.78: Aktivität wird zusätzlich mandantenbezogen erfasst. Die RPC
+    // v2.20.81: Aktivität wird zusätzlich mandantenbezogen erfasst. Die RPC
     // validiert serverseitig, dass der Benutzer Mitglied des Mandanten ist.
     // Platform-Administratoren im Mandantenmodus zählen nicht als Mandantenaktivität.
     const activeOrgId=currentOrganizationId();
     if(activeOrgId&&!isPlatformOperatorRole()){
       try{
-        await cloudRequest('rpc/touch_tenant_last_seen',{
+        await cloudRequest('rpc/touch_my_organization_activity',{
           method:'POST',
           headers:{Prefer:'return=minimal'},
           body:JSON.stringify({p_organization_id:activeOrgId})
