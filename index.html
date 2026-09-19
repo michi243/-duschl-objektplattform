@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.00</title>
+<title>Duschl Service – Objektplattform v2.21.01</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3513,7 +3513,12 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    UNVERÄNDERT: Erstellung/Upload der Bewohnermeldung, Routingentscheidung, Datenschutz, Rollen/RLS, Findings, Entscheidungen, Messaging und Notifications.
    BACKEND: Frontend benötigt für konkrete Organisationsnamen zusätzliche Rückgabefelder des bestehenden Public-Report-RPC; keine SQL-/RLS-Änderung in dieser Datei.
 */
-const APP_VERSION='2.21.00'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.21.01 | BASIS 2.21.00 | DATUM 19.09.2026
+   ÄNDERUNG: Fehlende globale roleLabel-Hilfsfunktion ergänzt. Der bestehende Benutzerpfad kann Rollenbezeichnungen nun sicher in Bestätigungs- und Erfolgsmeldungen verwenden.
+   UNVERÄNDERT: Auth-Identität, Passwort, Membership-Logik, Rollenmodell, Objektzugriffe, RLS, RPCs, Routing, Messaging und Notifications.
+   BACKEND: keine SQL-/RLS-/RPC-Änderung.
+*/
+const APP_VERSION='2.21.01'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -4758,6 +4763,10 @@ const ROLE_LABELS={
   property_manager:'Verwalter',
   admin_delegate:'Admin-Vertretung'
 };
+function roleLabel(role){
+  const key=String(role||'').toLowerCase();
+  return ROLE_LABELS[key]||role||'Benutzer';
+}
 
 // v2.20.79 – Rollenquelle:
 // Nur Plattformrollen sind global. Alle operativen Rollen stammen ausschließlich
