@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.96</title>
+<title>Duschl Service – Objektplattform v2.20.97</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3503,7 +3503,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    UNVERÄNDERT: Rollen/RLS, Findings-INSERT, Routing, Messaging, Notification-Outbox und Mailversand.
    BACKEND: keine SQL-/RLS-/RPC-Änderung. Edge Function unverändert gegenüber 2.20.94.
 */
-const APP_VERSION='2.20.96'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.97'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -11427,8 +11427,47 @@ async function createUserAndInvite(){
   if(!['tenant_admin','admin_delegate','property_manager','object_manager','external_contractor','customer'].includes(role))return alert('Ungültige Rolle.');
 
   const btn=event?.currentTarget;
-  if(btn){btn.disabled=true;btn.textContent='Benutzer wird angelegt…';}
+  if(btn){btn.disabled=true;btn.textContent='Benutzer wird geprüft…';}
   try{
+    // v2.20.97: E-Mail zuerst gegen bestehende Profile prüfen. Eine E-Mail entspricht genau einer Auth-Identität.
+    const existingProfiles=await cloudRequest(`profiles?select=id,email,full_name,role&email=eq.${encodeURIComponent(email)}&limit=1`);
+    const existingProfile=existingProfiles?.[0];
+
+    if(existingProfile?.id){
+      const memberships=await cloudRequest(`organization_memberships?select=id,role&organization_id=eq.${encodeURIComponent(organizationId)}&user_id=eq.${encodeURIComponent(existingProfile.id)}&limit=1`);
+      const existingMembership=memberships?.[0];
+      const orgName=organizationName(organizationId)||currentOrganization?.name||'diesem Mandanten';
+
+      if(existingMembership?.id){
+        if(existingMembership.role===role){
+          alert(`Der Benutzer ${email} ist ${orgName} bereits mit der Rolle „${roleLabel(role)}“ zugeordnet.`);
+          return;
+        }
+        const changeRole=confirm(`Der Benutzer ${email} ist ${orgName} bereits zugeordnet.\n\nAktuelle Rolle: ${roleLabel(existingMembership.role)}\nNeue Rolle: ${roleLabel(role)}\n\nSoll die Mandantenrolle geändert werden?`);
+        if(!changeRole)return;
+        await cloudRequest(`organization_memberships?id=eq.${encodeURIComponent(existingMembership.id)}`,{
+          method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({role})
+        });
+        await loadUserAdminData();
+        alert(`Die Mandantenrolle von ${email} wurde auf „${roleLabel(role)}“ geändert.`);
+        return;
+      }
+
+      const addExisting=confirm(`Für ${email} existiert bereits ein Benutzerkonto.\n\nEs wird kein zweites Konto und kein neues Passwort erzeugt.\nSoll der vorhandene Benutzer ${orgName} mit der Rolle „${roleLabel(role)}“ zugeordnet werden?`);
+      if(!addExisting)return;
+
+      await cloudRequest('organization_memberships',{
+        method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},
+        body:JSON.stringify({organization_id:organizationId,user_id:existingProfile.id,role})
+      });
+      document.getElementById('newUserFullName').value='';
+      document.getElementById('newUserEmail').value='';
+      await loadUserAdminData();
+      alert(`${email} wurde ${orgName} mit der Rolle „${roleLabel(role)}“ zugeordnet. Das bestehende Passwort bleibt unverändert.`);
+      return;
+    }
+
+    if(btn)btn.textContent='Benutzer wird angelegt…';
     const res=await fetch(`${SUPABASE_URL}/functions/v1/invite-user`,{
       method:'POST',
       headers:{
@@ -11445,16 +11484,9 @@ async function createUserAndInvite(){
     if(!res.ok || data?.ok===false)throw new Error(data?.error||responseText||`HTTP ${res.status}`);
     if(!data?.initialPassword)throw new Error('Initialpasswort wurde von der Benutzerfunktion nicht zurückgegeben.');
 
-    // Die bestehende Edge Function kennt nur Objektbetreuer/Auftraggeber.
-    // Testbenutzer wird unmittelbar danach serverseitig im Profil gesetzt; das Profil ist für die App maßgeblich.
     const profiles=await cloudRequest(`profiles?select=id,email,role&email=eq.${encodeURIComponent(email)}&limit=1`);
     const profile=profiles?.[0];
     if(!profile?.id)throw new Error('Benutzer wurde angelegt, das Profil konnte aber nicht gefunden werden.');
-    if(role==='test_user'){
-      await cloudRequest(`profiles?id=eq.${encodeURIComponent(profile.id)}`,{
-        method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({role:'test_user'})
-      });
-    }
     await cloudRequest('organization_memberships',{
       method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},
       body:JSON.stringify({organization_id:organizationId,user_id:profile.id,role})
@@ -11462,7 +11494,6 @@ async function createUserAndInvite(){
 
     document.getElementById('newUserFullName').value='';
     document.getElementById('newUserEmail').value='';
-
     await loadUserAdminData();
     showInitialPasswordResult(data.email||email,data.initialPassword);
   }catch(e){
@@ -11472,7 +11503,6 @@ async function createUserAndInvite(){
     if(btn){btn.disabled=false;btn.textContent='Benutzer anlegen';}
   }
 }
-
 
 function showResetInitialPasswordResult(email,password){
   const root=document.getElementById('modalRoot');
