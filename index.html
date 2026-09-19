@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.05</title>
+<title>Duschl Service – Objektplattform v2.21.06</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3528,7 +3528,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Globale endgültige Löschung bleibt ausschließlich der separaten Platform-Admin-Bereinigung vorbehalten.
    - BACKEND: keine SQL-/RLS-/RPC-Änderung.
 */
-const APP_VERSION='2.21.05'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.06'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -7239,6 +7239,60 @@ async function syncRoutedWorkOrdersForFinding(findingId,completed){
   }
 }
 
+// v2.21.06: Ein vom Dienstleister zurückgegebener Auftrag ist eine echte Entscheidung
+// des ursprünglichen Auftraggebers. Der Entscheidungsdialog bietet direkt die zwei
+// fachlich relevanten Folgewege: intern übernehmen oder erneut extern vergeben.
+function openReturnedExternalOrderDecision(id){
+  const order=(cloudExternalOrders||[]).find(x=>String(x.id||'')===String(id||''));
+  if(!order)return alert('Vorgang nicht gefunden.');
+  const snap=order.source_snapshot||{};
+  const orgId=String(currentOrganizationId()||'');
+  if(String(order.source_organization_id||'')!==orgId || !(hasOperationalAdminAccess()||isPropertyManagerRole())){
+    return alert('Für diesen Vorgang besteht in diesem Mandanten keine Entscheidungsberechtigung.');
+  }
+  const findingId=String(order.source_finding_id||'');
+  const finding=(db.findings||[]).find(f=>String(f.id||'')===findingId);
+  const reason=snap.return_reason_label||snap.return_reason||'Keine Begründung angegeben';
+  const note=snap.return_note||'';
+  const executor=partnerName(order.executor_organization_id);
+  modal(`<h2>Zurückgegebenen Vorgang entscheiden</h2>
+    <div class="card" style="margin:10px 0">
+      <strong>${esc(order.title||'Vorgang')}</strong>
+      <div class="muted" style="margin-top:4px">${esc(order.source_object_name||'Objekt')} · zurückgegeben von ${esc(executor)}</div>
+      <div style="margin-top:10px"><strong>Grund:</strong> ${esc(reason)}</div>
+      ${note?`<div style="margin-top:6px"><strong>Kommentar:</strong> ${esc(note)}</div>`:''}
+    </div>
+    ${finding?`<p>Wie soll der Vorgang weiterbearbeitet werden?</p>
+    <div class="row" style="margin-top:14px;gap:8px;flex-wrap:wrap">
+      <button class="primary" type="button" onclick="takeReturnedOrderInternal('${esc(id)}')">Intern übernehmen</button>
+      <button type="button" onclick="rerouteReturnedOrder('${esc(id)}')">Neu vergeben</button>
+      <button type="button" onclick="openExternalOrderById('${esc(id)}')">Historie ansehen</button>
+      <button type="button" onclick="closeModal()">Abbrechen</button>
+    </div>`:`<div class="card" style="margin-top:12px;border-color:rgba(245,158,11,.55)"><strong>Quelldokumentation nicht verfügbar.</strong><div class="muted" style="margin-top:4px">Eine interne Übernahme oder Neuvergabe ist erst möglich, wenn die ursprüngliche Feststellung geladen werden kann.</div></div><div class="row" style="margin-top:14px"><button type="button" onclick="openExternalOrderById('${esc(id)}')">Historie ansehen</button><button type="button" onclick="closeModal()">Schließen</button></div>`}`);
+}
+
+function takeReturnedOrderInternal(id){
+  const order=(cloudExternalOrders||[]).find(x=>String(x.id||'')===String(id||''));
+  if(!order)return alert('Vorgang nicht gefunden.');
+  const findingId=String(order.source_finding_id||'');
+  const finding=(db.findings||[]).find(f=>String(f.id||'')===findingId);
+  if(!finding)return alert('Die ursprüngliche Dokumentation konnte nicht geladen werden.');
+  closeModal();
+  // Die bestehende Arbeitsvorratslogik bleibt führend. Es wird kein zweiter
+  // Parallelprozess erzeugt, sondern die Aufgabe direkt an der Feststellung geplant.
+  openWorkItem(finding.id);
+}
+
+async function rerouteReturnedOrder(id){
+  const order=(cloudExternalOrders||[]).find(x=>String(x.id||'')===String(id||''));
+  if(!order)return alert('Vorgang nicht gefunden.');
+  const findingId=String(order.source_finding_id||'');
+  const finding=(db.findings||[]).find(f=>String(f.id||'')===findingId);
+  if(!finding)return alert('Die ursprüngliche Dokumentation konnte nicht geladen werden.');
+  closeModal();
+  await openRouteFindingModal(finding.id);
+}
+
 function openExternalOrderById(id){
   const target=(cloudExternalOrders||[]).find(x=>String(x.id||'')===String(id||''));
   const filter=document.getElementById('externalWorkFilter');
@@ -10448,7 +10502,7 @@ function renderDecisions(){
       <div style="margin-top:8px"><strong>Grund:</strong> ${esc(reason)}</div>
       ${snap.return_note?`<div style="margin-top:6px"><strong>Kommentar:</strong> ${esc(snap.return_note)}</div>`:''}
       <div style="margin-top:8px"><strong>Entscheidung erforderlich:</strong> Vorgang prüfen und neu zuordnen oder intern übernehmen.</div>
-      <div class="row" style="margin-top:12px"><button class="primary" onclick="openExternalOrderById('${esc(x.id)}')">Vorgang prüfen</button></div>
+      <div class="row" style="margin-top:12px"><button class="primary" onclick="openReturnedExternalOrderDecision('${esc(x.id)}')">Vorgang prüfen</button></div>
     </div>`;
   }).join('');
 
@@ -11362,6 +11416,13 @@ async function saveWorkItem(id){
   }
 }
 
+
+/* RELEASE 2.21.06 | BASIS 2.21.05 | DATUM 19.09.2026
+   RÜCKGABEPROZESS: „Vorgang prüfen“ öffnet jetzt einen echten Entscheidungsdialog.
+   Neu: „Intern übernehmen“ führt direkt in die bestehende Aufgabenplanung der Quelldokumentation.
+   Neu: „Neu vergeben“ öffnet das bestehende Routing der Quelldokumentation; Historie bleibt einsehbar.
+   UNVERÄNDERT: SQL/RLS/RPC, Mailversand, Rollenmodell, Datenmodell und bestehende Routing-/Arbeitsvorratslogik.
+*/
 
 /* RELEASE 2.21.05 | BASIS 2.21.04 | DATUM 19.09.2026
    BENACHRICHTIGUNGEN: Frontend auf das produktive differenzierte notification_preferences-Schema umgestellt.
