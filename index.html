@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.04</title>
+<title>Duschl Service – Objektplattform v2.21.05</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -2081,19 +2081,20 @@ body.public-report-mode>#photoViewer{display:none!important}
   <div class="grid g2" style="margin-top:14px">
     <div class="card">
       <h3>Sofortbenachrichtigungen</h3>
-      <p class="muted">E-Mail bei einem neuen Vorgang mit unmittelbarem Handlungsbedarf, z. B. Auftrag, Rückgabe oder Entscheidung.</p>
-      <label class="row" style="margin-top:14px;align-items:center">
-        <input id="notificationImmediateEnabled" type="checkbox" style="width:auto" checked/>
-        <span>Sofort-E-Mails aktiv</span>
-      </label>
+      <p class="muted">Lege je Mandant fest, bei welchen Ereignissen du sofort per E-Mail informiert wirst.</p>
+      <label class="row" style="margin-top:14px;align-items:center"><input id="notificationTaskCreated" type="checkbox" style="width:auto" checked/><span>Neue interne Arbeitsvorgänge</span></label>
+      <label class="row" style="align-items:center"><input id="notificationWorkOrderCreated" type="checkbox" style="width:auto" checked/><span>Neue externe Aufträge</span></label>
+      <label class="row" style="align-items:center"><input id="notificationDecisionRequired" type="checkbox" style="width:auto" checked/><span>Entscheidung / Freigabe erforderlich</span></label>
+      <label class="row" style="align-items:center"><input id="notificationWorkOrderReturned" type="checkbox" style="width:auto" checked/><span>Auftrag zurückgegeben</span></label>
+      <label class="row" style="align-items:center"><input id="notificationResidentUnroutable" type="checkbox" style="width:auto" checked/><span>Bewohnermeldung ohne Routing</span></label>
+      <label class="row" style="align-items:center"><input id="notificationResidentRouted" type="checkbox" style="width:auto" checked/><span>Geroutete Bewohnermeldung</span></label>
     </div>
     <div class="card">
-      <h3>4-Tage-Zusammenfassung</h3>
+      <h3>Zusammenfassung</h3>
       <p class="muted">Gebündelte Übersicht der aktuell offenen Aufgaben. Bei null offenen Aufgaben wird keine E-Mail versendet.</p>
-      <label class="row" style="margin-top:14px;align-items:center">
-        <input id="notificationDigestEnabled" type="checkbox" style="width:auto" checked/>
-        <span>Zusammenfassung aktiv</span>
-      </label>
+      <label class="row" style="margin-top:14px;align-items:center"><input id="notificationDigestEnabled" type="checkbox" style="width:auto" checked/><span>Zusammenfassung aktiv</span></label>
+      <label for="notificationDigestInterval">Intervall</label>
+      <select id="notificationDigestInterval"><option value="1">täglich</option><option value="2">alle 2 Tage</option><option value="4" selected>alle 4 Tage</option><option value="7">alle 7 Tage</option></select>
     </div>
   </div>
   <div class="card" style="margin-top:14px">
@@ -3527,7 +3528,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Globale endgültige Löschung bleibt ausschließlich der separaten Platform-Admin-Bereinigung vorbehalten.
    - BACKEND: keine SQL-/RLS-/RPC-Änderung.
 */
-const APP_VERSION='2.21.04'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.05'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -10164,8 +10165,6 @@ function openPlatformUsers(){
 
 async function loadNotificationPreferences(){
   const tenant=document.getElementById('notificationSettingsTenant');
-  const immediate=document.getElementById('notificationImmediateEnabled');
-  const digest=document.getElementById('notificationDigestEnabled');
   const status=document.getElementById('notificationSettingsStatus');
   const saveBtn=document.getElementById('notificationSettingsSaveBtn');
   const userId=currentUserProfile?.id||cloudSession?.user?.id||null;
@@ -10178,22 +10177,37 @@ async function loadNotificationPreferences(){
   }
   if(saveBtn)saveBtn.disabled=true;
   if(status)status.textContent='Einstellungen werden geladen …';
-  const rows=await cloudRequest(`notification_preferences?user_id=eq.${encodeURIComponent(userId)}&organization_id=eq.${encodeURIComponent(organizationId)}&select=immediate_enabled,digest_enabled&limit=1`);
-  const pref=Array.isArray(rows)&&rows.length?rows[0]:null;
-  if(immediate)immediate.checked=pref?.immediate_enabled!==false;
-  if(digest)digest.checked=pref?.digest_enabled!==false;
-  if(status)status.textContent=pref?'Gespeicherte Einstellungen geladen.':'Standard aktiv: Sofort-E-Mails und 4-Tage-Zusammenfassung.';
-  if(saveBtn)saveBtn.disabled=false;
+  try{
+    const select='email_task_created,email_work_order_created,email_decision_required,email_work_order_returned,email_resident_unroutable,email_resident_routed,digest_enabled,digest_interval_days';
+    const rows=await cloudRequest(`notification_preferences?user_id=eq.${encodeURIComponent(userId)}&organization_id=eq.${encodeURIComponent(organizationId)}&select=${select}&limit=1`);
+    const pref=Array.isArray(rows)&&rows.length?rows[0]:null;
+    const setCheck=(id,val)=>{const el=document.getElementById(id);if(el)el.checked=val!==false;};
+    setCheck('notificationTaskCreated',pref?.email_task_created);
+    setCheck('notificationWorkOrderCreated',pref?.email_work_order_created);
+    setCheck('notificationDecisionRequired',pref?.email_decision_required);
+    setCheck('notificationWorkOrderReturned',pref?.email_work_order_returned);
+    setCheck('notificationResidentUnroutable',pref?.email_resident_unroutable);
+    setCheck('notificationResidentRouted',pref?.email_resident_routed);
+    setCheck('notificationDigestEnabled',pref?.digest_enabled);
+    const interval=document.getElementById('notificationDigestInterval');
+    if(interval)interval.value=String([1,2,4,7].includes(Number(pref?.digest_interval_days))?Number(pref.digest_interval_days):4);
+    if(status)status.textContent=pref?'Gespeicherte Einstellungen geladen.':'Standard aktiv: alle E-Mail-Arten und 4-Tage-Zusammenfassung.';
+  }catch(err){
+    console.error('Benachrichtigungseinstellungen laden fehlgeschlagen',err);
+    if(status)status.textContent='Einstellungen konnten nicht geladen werden.';
+  }finally{
+    if(saveBtn)saveBtn.disabled=false;
+  }
 }
 
 async function saveNotificationPreferences(){
   const userId=currentUserProfile?.id||cloudSession?.user?.id||null;
   const organizationId=currentOrganization?.id||null;
-  const immediate=document.getElementById('notificationImmediateEnabled');
-  const digest=document.getElementById('notificationDigestEnabled');
   const status=document.getElementById('notificationSettingsStatus');
   const saveBtn=document.getElementById('notificationSettingsSaveBtn');
   if(!userId||!organizationId){alert('Kein aktiver Mandant verfügbar.');return;}
+  const checked=id=>document.getElementById(id)?.checked!==false;
+  const digestInterval=Number(document.getElementById('notificationDigestInterval')?.value||4);
   if(saveBtn)saveBtn.disabled=true;
   if(status)status.textContent='Einstellungen werden gespeichert …';
   try{
@@ -10203,12 +10217,18 @@ async function saveNotificationPreferences(){
       body:JSON.stringify({
         user_id:userId,
         organization_id:organizationId,
-        immediate_enabled:!!immediate?.checked,
-        digest_enabled:!!digest?.checked,
+        email_task_created:checked('notificationTaskCreated'),
+        email_work_order_created:checked('notificationWorkOrderCreated'),
+        email_decision_required:checked('notificationDecisionRequired'),
+        email_work_order_returned:checked('notificationWorkOrderReturned'),
+        email_resident_unroutable:checked('notificationResidentUnroutable'),
+        email_resident_routed:checked('notificationResidentRouted'),
+        digest_enabled:checked('notificationDigestEnabled'),
+        digest_interval_days:[1,2,4,7].includes(digestInterval)?digestInterval:4,
         updated_at:new Date().toISOString()
       })
     });
-    if(status)status.textContent='Gespeichert. Die Einstellung gilt ab dem nächsten Benachrichtigungsereignis.';
+    if(status)status.textContent='Gespeichert. Die Einstellungen gelten ab dem nächsten Benachrichtigungsereignis.';
   }catch(err){
     console.error(err);
     if(status)status.textContent='Speichern fehlgeschlagen.';
@@ -11343,6 +11363,12 @@ async function saveWorkItem(id){
 }
 
 
+/* RELEASE 2.21.05 | BASIS 2.21.04 | DATUM 19.09.2026
+   BENACHRICHTIGUNGEN: Frontend auf das produktive differenzierte notification_preferences-Schema umgestellt.
+   Neu: Schalter „Neue interne Arbeitsvorgänge“ (email_task_created) sowie Einzelsteuerung aller bestehenden Sofort-E-Mail-Ereignisse.
+   Digest-Intervall 1/2/4/7 Tage im UI auswählbar. Falsche Altverwendung von immediate_enabled entfernt.
+   UNVERÄNDERT: Rollen, RLS, Objektzugriffe, Arbeitsvorrat, shared_work_orders, Routing und Benutzerverwaltung.
+   BACKEND: erwartet email_task_created boolean default true; notification_email_enabled() und Resolver müssen task.created berücksichtigen. */
 /* RELEASE 2.21.04 | BASIS 2.21.03 | DATUM 19.09.2026
    KORREKTUR: Reaktivierung berücksichtigt neben active=false auch soft-gelöschte Profile (deleted_at).
    Bei bewusster Reaktivierung werden active=true und deleted_at=null gesetzt; bestehende Auth-Identität bleibt erhalten.
