@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.95</title>
+<title>Duschl Service – Objektplattform v2.20.96</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1499,6 +1499,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <button id="navPartnerDirectory" onclick="showSection('partnerDirectory')"><span class="nav-icon">⌘</span><span>Partnerverzeichnis</span></button>
 <button id="navOrganizations" onclick="showSection('organizations')"><span class="nav-icon">▣</span><span>Unternehmen / Mandanten</span></button>
 <button id="navUsers" onclick="showSection('users')"><span class="nav-icon">♙</span><span>Benutzer &amp; Berechtigungen</span></button>
+<button id="navNotifications" onclick="showSection('notificationSettings')"><span class="nav-icon">✉</span><span>Benachrichtigungen</span></button>
 </nav>
 <div class="app-menu-actions">
 <button id="headerTenantSwitchBtn" class="hidden" onclick="closeAppMenu();openTenantMembershipSwitcher()">⇄ <span>Mandant wechseln</span></button>
@@ -2068,6 +2069,43 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 
+
+<section class="section" id="notificationSettings">
+  <div class="row space">
+    <div>
+      <h2>Benachrichtigungen</h2>
+      <div class="muted">Persönliche Einstellungen für den aktuell gewählten Mandanten.</div>
+    </div>
+    <span class="badge" id="notificationSettingsTenant">—</span>
+  </div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card">
+      <h3>Sofortbenachrichtigungen</h3>
+      <p class="muted">E-Mail bei einem neuen Vorgang mit unmittelbarem Handlungsbedarf, z. B. Auftrag, Rückgabe oder Entscheidung.</p>
+      <label class="row" style="margin-top:14px;align-items:center">
+        <input id="notificationImmediateEnabled" type="checkbox" style="width:auto" checked/>
+        <span>Sofort-E-Mails aktiv</span>
+      </label>
+    </div>
+    <div class="card">
+      <h3>4-Tage-Zusammenfassung</h3>
+      <p class="muted">Gebündelte Übersicht der aktuell offenen Aufgaben. Bei null offenen Aufgaben wird keine E-Mail versendet.</p>
+      <label class="row" style="margin-top:14px;align-items:center">
+        <input id="notificationDigestEnabled" type="checkbox" style="width:auto" checked/>
+        <span>Zusammenfassung aktiv</span>
+      </label>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="row space">
+      <div>
+        <strong id="notificationSettingsStatus">Einstellungen werden beim Öffnen geladen.</strong>
+        <div class="muted" style="margin-top:4px">Die Einstellung gilt nur für deine Mitgliedschaft im angezeigten Mandanten.</div>
+      </div>
+      <button class="primary" id="notificationSettingsSaveBtn" type="button" onclick="saveNotificationPreferences()">Speichern</button>
+    </div>
+  </div>
+</section>
 
 <section class="section" id="externalOrders"><span id="externalOrdersNavCount" class="hidden">0</span>
   <div class="row space"><div><h2>Externe Aufträge</h2><div class="muted">Mandantenübergreifende Beauftragungen – ohne den eigenen Mandanten zu verlassen.</div></div><button id="createExternalOrderBtn" class="primary" type="button" onclick="openExternalOrderModal()">Extern beauftragen</button></div>
@@ -3465,7 +3503,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    UNVERÄNDERT: Rollen/RLS, Findings-INSERT, Routing, Messaging, Notification-Outbox und Mailversand.
    BACKEND: keine SQL-/RLS-/RPC-Änderung. Edge Function unverändert gegenüber 2.20.94.
 */
-const APP_VERSION='2.20.95'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.96'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -5399,6 +5437,7 @@ function applyRoleUI(){
   show('navDecisions',hasAppRole && !platformMode && canUseDecisionsUI());
   show('navOrganizations',hasAppRole && platformMode);
   show('navUsers',hasAppRole && !platformMode && canManageUsersUI());
+  show('navNotifications',hasAppRole && !platformMode && !!currentOrganization && !isPlatformOperatorRole());
   show('navSettings',false);
   show('headerTenantSwitchBtn',hasAppRole && !platformMode && (currentUserMemberships||[]).length>1);
   show('headerDataBtn',hasAppRole && !platformMode && dsCanManageTenantData());
@@ -10081,6 +10120,63 @@ function openPlatformUsers(){
   showSection('platformUsers');
 }
 
+
+async function loadNotificationPreferences(){
+  const tenant=document.getElementById('notificationSettingsTenant');
+  const immediate=document.getElementById('notificationImmediateEnabled');
+  const digest=document.getElementById('notificationDigestEnabled');
+  const status=document.getElementById('notificationSettingsStatus');
+  const saveBtn=document.getElementById('notificationSettingsSaveBtn');
+  const userId=currentUserProfile?.id||cloudSession?.user?.id||null;
+  const organizationId=currentOrganization?.id||null;
+  if(tenant)tenant.textContent=currentOrganization?.name||'Kein Mandant';
+  if(!userId||!organizationId){
+    if(status)status.textContent='Kein aktiver Mandant verfügbar.';
+    if(saveBtn)saveBtn.disabled=true;
+    return;
+  }
+  if(saveBtn)saveBtn.disabled=true;
+  if(status)status.textContent='Einstellungen werden geladen …';
+  const rows=await cloudRequest(`notification_preferences?user_id=eq.${encodeURIComponent(userId)}&organization_id=eq.${encodeURIComponent(organizationId)}&select=immediate_enabled,digest_enabled&limit=1`);
+  const pref=Array.isArray(rows)&&rows.length?rows[0]:null;
+  if(immediate)immediate.checked=pref?.immediate_enabled!==false;
+  if(digest)digest.checked=pref?.digest_enabled!==false;
+  if(status)status.textContent=pref?'Gespeicherte Einstellungen geladen.':'Standard aktiv: Sofort-E-Mails und 4-Tage-Zusammenfassung.';
+  if(saveBtn)saveBtn.disabled=false;
+}
+
+async function saveNotificationPreferences(){
+  const userId=currentUserProfile?.id||cloudSession?.user?.id||null;
+  const organizationId=currentOrganization?.id||null;
+  const immediate=document.getElementById('notificationImmediateEnabled');
+  const digest=document.getElementById('notificationDigestEnabled');
+  const status=document.getElementById('notificationSettingsStatus');
+  const saveBtn=document.getElementById('notificationSettingsSaveBtn');
+  if(!userId||!organizationId){alert('Kein aktiver Mandant verfügbar.');return;}
+  if(saveBtn)saveBtn.disabled=true;
+  if(status)status.textContent='Einstellungen werden gespeichert …';
+  try{
+    await cloudRequest('notification_preferences?on_conflict=user_id,organization_id',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify({
+        user_id:userId,
+        organization_id:organizationId,
+        immediate_enabled:!!immediate?.checked,
+        digest_enabled:!!digest?.checked,
+        updated_at:new Date().toISOString()
+      })
+    });
+    if(status)status.textContent='Gespeichert. Die Einstellung gilt ab dem nächsten Benachrichtigungsereignis.';
+  }catch(err){
+    console.error(err);
+    if(status)status.textContent='Speichern fehlgeschlagen.';
+    alert(`Benachrichtigungseinstellungen konnten nicht gespeichert werden: ${err.message||err}`);
+  }finally{
+    if(saveBtn)saveBtn.disabled=false;
+  }
+}
+
 function showSection(id){
   if(id==='inspections')id='findings';
   if(id==='decisions'&&!canUseDecisionsUI())return requireDecisionUI();
@@ -10110,6 +10206,13 @@ function showSection(id){
   targetSection.style.setProperty('display','block','important');
   targetSection.style.setProperty('visibility','visible','important');
   targetSection.style.setProperty('opacity','1','important');
+  if(id==='notificationSettings'){
+    loadNotificationPreferences().catch(err=>{
+      console.error('Benachrichtigungseinstellungen konnten nicht geladen werden',err);
+      const status=document.getElementById('notificationSettingsStatus');
+      if(status)status.textContent='Einstellungen konnten nicht geladen werden.';
+    });
+  }
   console.info('Section geöffnet',{
     id,
     className:targetSection.className,
