@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.90</title>
+<title>Duschl Service – Objektplattform v2.20.91</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3446,12 +3446,21 @@ BACKEND: keine neue SQL-/RLS-Änderung.
 -->
 <script>
 
+/* RELEASE 2.20.91 | BASIS 2.20.90 | DATUM 19.09.2026
+   ÄNDERUNGEN: Bei extern betreuten Objekten kann der operative Dienstleister unter „Weitere Bearbeitung“
+   eine Entscheidung/Freigabe beim Eigentümermandanten anfordern. Die Anforderung wird nach dem
+   Speichern über die SECURITY-DEFINER-RPC request_owner_decision_for_finding als offene Entscheidung angelegt.
+   UNVERÄNDERT: Findings-INSERT v2.20.88, Routing, Rollen-/Mandantenwechsel, Fotos, Arbeitsvorrat,
+   Messaging sowie bestehende Notification-Outbox-Logik.
+   BACKEND: additive RPC request_owner_decision_for_finding(uuid) erforderlich; keine RLS-Policy wird erweitert.
+*/
+
 /* RELEASE 2.20.78 | BASIS 2.20.77 | 17.09.2026
    Änderung: Mandantenbezogene letzte Aktivität für Platform-Administration.
    Backend: organization_activity + RPCs touch_my_organization_activity / platform_get_tenant_activity_v2.
    Unverändert: Rollenmodell, Objektzugriffe, Findings, Entscheidungen, Messaging, Routing, Objektzuweisungen.
 */
-const APP_VERSION='2.20.90'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.91'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -13707,13 +13716,16 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
 
     <div id="internalWorkCard" class="card" style="margin-top:12px;background:#101f2a">
       <h3 style="margin-top:0">Weitere Bearbeitung</h3>
-      <label>Ist eine weitere interne Bearbeitung erforderlich?</label>
+      <label>Nächster Prozessschritt</label>
       <select id="fWorkRequired">
         <option value="no" ${f.workRequired===true?'':'selected'}>Dokumentieren – keine weitere Aktion</option>
-        <option value="yes" ${f.workRequired===true?'selected':''}>Intern bearbeiten</option>
+        <option value="yes" ${f.workRequired===true?'selected':''}>Operative Bearbeitung erforderlich</option>
+        ${canUseDecisionsForObject(f.objectId)?'':`<option value="owner_decision">Entscheidung/Freigabe durch Eigentümermandant erforderlich</option>`}
       </select>
       <div class="muted" style="margin-top:6px">
-        Bei „Ja“ erscheint die Feststellung im objektbezogenen Arbeitsvorrat. Dort werden Fälligkeit und Arbeitsstatus gesteuert; wer die Leistung ausgeführt hat, wird erst beim Abschluss dokumentiert.
+        ${canUseDecisionsForObject(f.objectId)
+          ? 'Bei operativer Bearbeitung erscheint die Feststellung im objektbezogenen Arbeitsvorrat.'
+          : 'Bei operativer Bearbeitung erscheint die Feststellung im Arbeitsvorrat. Bei „Entscheidung/Freigabe“ wird eine offene Entscheidung beim Eigentümermandanten erzeugt.'}
       </div>
     </div>
   </div>
@@ -13968,7 +13980,9 @@ async function saveFinding(id){
   if(decisionStatus==='thirdparty')decisionImplementation='third_party';
   if(!['approved','thirdparty'].includes(decisionStatus))decisionImplementation='';
   const activity=document.getElementById('fActivity')?.value.trim()||'';
-  let workRequired=type==='Feststellung' && (document.getElementById('fWorkRequired')?.value==='yes');
+  const workNextStep=type==='Feststellung' ? (document.getElementById('fWorkRequired')?.value||'no') : 'no';
+  const requestOwnerDecision=type==='Feststellung' && !mayEditDecision && workNextStep==='owner_decision';
+  let workRequired=type==='Feststellung' && workNextStep==='yes';
   if(type!=='Feststellung' || status==='Erledigt')workRequired=false;
   // v2.19.99: Den zugehörigen externen Arbeitsauftrag robust ermitteln.
   // Für automatisch geroutete Bewohnermeldungen und klassische finding_route-Aufträge
@@ -14013,6 +14027,16 @@ async function saveFinding(id){
     if(!cloudSession?.access_token)throw new Error('Nicht angemeldet.');
     cloudSetStatus('Dokumentation und Fotos werden gespeichert …','wait');
     const row=await cloudSaveFinding(id,data);
+
+    // v2.20.91: Externer Dienstleister darf die Entscheidung nicht selbst treffen,
+    // aber eine offene Entscheidung beim Eigentümermandanten anfordern.
+    // Die RPC validiert serverseitig die operative Berechtigung am geteilten Objekt.
+    if(requestOwnerDecision){
+      await cloudRequest('rpc/request_owner_decision_for_finding',{
+        method:'POST',
+        body:JSON.stringify({p_finding_id:row.id})
+      });
+    }
 
     // v2.19.99: Auftrag-ID vor asynchronen Operationen stabil halten.
     let externalRouteOrderIdAfterSave=externalRouteOrderIdForSave;
