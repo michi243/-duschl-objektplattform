@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.03</title>
+<title>Duschl Service – Objektplattform v2.21.04</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3527,7 +3527,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Globale endgültige Löschung bleibt ausschließlich der separaten Platform-Admin-Bereinigung vorbehalten.
    - BACKEND: keine SQL-/RLS-/RPC-Änderung.
 */
-const APP_VERSION='2.21.03'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.04'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -11343,6 +11343,11 @@ async function saveWorkItem(id){
 }
 
 
+/* RELEASE 2.21.04 | BASIS 2.21.03 | DATUM 19.09.2026
+   KORREKTUR: Reaktivierung berücksichtigt neben active=false auch soft-gelöschte Profile (deleted_at).
+   Bei bewusster Reaktivierung werden active=true und deleted_at=null gesetzt; bestehende Auth-Identität bleibt erhalten.
+   Benutzerliste bleibt auf get_tenant_users(p_organization_id); Membership-/Rollenlogik unverändert.
+   BACKEND: keine neue RPC/RLS-Änderung; einmalige Datenbereinigung für bereits reaktivierte Altprofile erforderlich. */
 /* RELEASE 2.21.03 | BASIS 2.21.02 | DATUM 19.09.2026
    Benutzerverwaltung liest Mandantenbenutzer über get_tenant_users(p_organization_id).
    Damit ist die Liste unabhängig von direkten profiles-/membership-SELECT-RLS.
@@ -11489,19 +11494,20 @@ async function createUserAndInvite(){
   if(btn){btn.disabled=true;btn.textContent='Benutzer wird geprüft…';}
   try{
     // v2.20.97: E-Mail zuerst gegen bestehende Profile prüfen. Eine E-Mail entspricht genau einer Auth-Identität.
-    const existingProfiles=await cloudRequest(`profiles?select=id,email,full_name,role,active&email=ilike.${encodeURIComponent(email)}&limit=1`);
+    const existingProfiles=await cloudRequest(`profiles?select=id,email,full_name,role,active,deleted_at&email=ilike.${encodeURIComponent(email)}&limit=1`);
     const existingProfile=existingProfiles?.[0];
 
     if(existingProfile?.id){
       // v2.21.02: Ein früher deaktiviertes Profil ist weiterhin dieselbe Auth-Identität.
       // Bei erneuter bewusster Zuordnung wird es reaktiviert; kein zweiter Auth-User wird erzeugt.
-      if(existingProfile.active===false){
+      if(existingProfile.active===false || existingProfile.deleted_at){
         const reactivate=confirm(`Für ${email} existiert ein deaktiviertes Benutzerkonto.\n\nEs wird kein neues Konto erzeugt. Soll der Benutzer reaktiviert und ${organizationName(organizationId)||'diesem Mandanten'} zugeordnet werden?`);
         if(!reactivate)return;
         await cloudRequest(`profiles?id=eq.${encodeURIComponent(existingProfile.id)}`,{
-          method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({active:true,full_name:fullName})
+          method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({active:true,deleted_at:null,full_name:fullName})
         });
         existingProfile.active=true;
+        existingProfile.deleted_at=null;
         existingProfile.full_name=fullName;
       }
       const memberships=await cloudRequest(`organization_memberships?select=id,role&organization_id=eq.${encodeURIComponent(organizationId)}&user_id=eq.${encodeURIComponent(existingProfile.id)}&limit=1`);
