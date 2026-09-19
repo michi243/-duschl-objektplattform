@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.97</title>
+<title>Duschl Service – Objektplattform v2.20.99</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3503,7 +3503,17 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    UNVERÄNDERT: Rollen/RLS, Findings-INSERT, Routing, Messaging, Notification-Outbox und Mailversand.
    BACKEND: keine SQL-/RLS-/RPC-Änderung. Edge Function unverändert gegenüber 2.20.94.
 */
-const APP_VERSION='2.20.97'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.20.98 | BASIS 2.20.97 | 19.09.2026
+   ÄNDERUNG: Mandanten-Administration kennzeichnet Dokumentationen eindeutig als eigene Daten des ausgewählten Mandanten.
+   UNVERÄNDERT: Löschlogik, RPCs, RLS, Rollen, Dashboard, Routing, Messaging und Notifications.
+   BACKEND: keine SQL-/RLS-/RPC-Änderung.
+*/
+/* RELEASE 2.20.99 | BASIS 2.20.98 | 19.09.2026
+   ÄNDERUNG: Bestätigungsseite der Bewohnermeldung trennt transparent zwischen informierter Hausverwaltung/Objektsteuerung und ausführendem Dienstleister. Namen werden angezeigt, sobald der bestehende Public-Report-RPC sie im Ergebnis liefert; ohne Namensdaten erfolgt eine rollenbasierte, wahrheitsgemäße Fallback-Anzeige.
+   UNVERÄNDERT: Erstellung/Upload der Bewohnermeldung, Routingentscheidung, Datenschutz, Rollen/RLS, Findings, Entscheidungen, Messaging und Notifications.
+   BACKEND: Frontend benötigt für konkrete Organisationsnamen zusätzliche Rückgabefelder des bestehenden Public-Report-RPC; keine SQL-/RLS-Änderung in dieser Datei.
+*/
+const APP_VERSION='2.20.99'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -4465,12 +4475,25 @@ async function submitPublicResidentReport(){
       const routingState=String(result?.routing_status||result?.route_status||'').toLowerCase();
       const routed=Boolean(result?.routed_work_order_id||result?.auto_routed||['routed','assigned','forwarded'].includes(routingState));
       const needsReview=Boolean(result?.needs_internal_review||['review','triage','unassigned','no_match'].includes(routingState));
+      const ownerName=String(result?.owner_organization_name||result?.property_management_name||result?.management_organization_name||result?.informed_organization_name||'').trim();
+      const providerName=String(result?.service_organization_name||result?.service_provider_name||result?.routed_organization_name||result?.executor_organization_name||'').trim();
+      const serviceScope=String(result?.service_scope_name||result?.service_scope_label||result?.routed_scope_name||'').trim();
+      const informedLabel=ownerName?esc(ownerName):'Hausverwaltung / zuständige Objektsteuerung';
+      let routingRows=`<div style="margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:12px;background:rgba(47,143,255,.05);text-align:left"><div><span class="muted">Informiert:</span><br><strong>${informedLabel}</strong></div>`;
+      if(routed){
+        routingRows+=`<div style="margin-top:12px"><span class="muted">Zur Bearbeitung weitergeleitet an:</span><br><strong>${providerName?esc(providerName):'Zuständiger Dienstleister'}</strong>${serviceScope?`<div class="muted" style="margin-top:3px">Leistungsbereich: ${esc(serviceScope)}</div>`:''}</div>`;
+      }else if(needsReview){
+        routingRows+=`<div style="margin-top:12px"><span class="muted">Bearbeitung:</span><br><strong>Die zuständige Stelle wird noch festgelegt.</strong></div>`;
+      }else{
+        routingRows+=`<div style="margin-top:12px"><span class="muted">Bearbeitung:</span><br><strong>Die weitere Bearbeitung wird durch die zuständige Stelle veranlasst.</strong></div>`;
+      }
+      routingRows+='</div>';
       const nextStep=routed
-        ? 'Die Meldung wurde automatisch an den zuständigen Dienstleister weitergeleitet. Dort wird geprüft, welche Maßnahme erforderlich ist, und die weitere Bearbeitung veranlasst.'
+        ? 'Die Hausverwaltung / Objektsteuerung ist informiert. Der zuständige Dienstleister erhält den sachlichen Vorgang zur weiteren Bearbeitung.'
         : needsReview
-          ? 'Die Meldung wird durch die zuständige Objektbetreuung geprüft. Dort wird die weitere Bearbeitung veranlasst.'
-          : 'Die Meldung wird automatisch an die zuständige Stelle weitergegeben. Dort wird geprüft, welche Maßnahme erforderlich ist, und die weitere Bearbeitung veranlasst.';
-      wrap.innerHTML=`<div class="public-report-success"><strong>Vielen Dank. Ihre Meldung wurde übermittelt.</strong><div class="muted" style="margin-top:12px">${hadPhotos?'Ihre Meldung und die Fotos wurden erfolgreich gespeichert.':'Ihre Meldung wurde erfolgreich gespeichert.'}</div><div style="margin-top:18px;font-weight:800">Wie geht es weiter?</div><div class="muted" style="margin-top:6px">${nextStep}</div><div style="margin-top:18px;font-weight:800">Sie müssen nichts weiter tun.</div><button class="primary public-report-submit" type="button" style="margin-top:20px" onclick="startAnotherPublicResidentReport()">Weiteres Anliegen melden</button><div class="muted" style="margin-top:14px;font-size:.92em">Ihre Kontaktdaten werden nicht an den Dienstleister weitergegeben.</div></div>`;
+          ? 'Die Hausverwaltung / Objektsteuerung ist informiert. Die Meldung wird geprüft und anschließend der zuständigen Stelle zugeordnet.'
+          : 'Die Hausverwaltung / Objektsteuerung ist informiert und veranlasst die weitere Bearbeitung.';
+      wrap.innerHTML=`<div class="public-report-success"><strong>Vielen Dank. Ihre Meldung wurde übermittelt.</strong><div class="muted" style="margin-top:12px">${hadPhotos?'Ihre Meldung und die Fotos wurden erfolgreich gespeichert.':'Ihre Meldung wurde erfolgreich gespeichert.'}</div>${routingRows}<div style="margin-top:18px;font-weight:800">Wie geht es weiter?</div><div class="muted" style="margin-top:6px">${nextStep}</div><div style="margin-top:18px;font-weight:800">Sie müssen nichts weiter tun.</div><button class="primary public-report-submit" type="button" style="margin-top:20px" onclick="startAnotherPublicResidentReport()">Weiteres Anliegen melden</button><div class="muted" style="margin-top:14px;font-size:.92em">Ihre Kontaktdaten werden nicht an den Dienstleister weitergegeben.</div></div>`;
     }
   }catch(e){
     console.error('Öffentliche Meldung fehlgeschlagen',e);
@@ -15311,7 +15334,7 @@ function dsOpenDataManagement(){
               <input class="ds-cleanup-check" type="checkbox" data-tenant-cleanup value="reports" onchange="dsSyncTenantCleanupAll();dsUpdateTenantCleanupActionState()">
             </label>
             <label class="ds-cleanup-row">
-              <span class="ds-cleanup-row-copy"><span class="ds-cleanup-row-title">Dokumentationen</span><span id="tenantCleanupStatFindings" class="ds-cleanup-row-stat">–</span></span>
+              <span class="ds-cleanup-row-copy"><span class="ds-cleanup-row-title">Eigene Dokumentationen des Mandanten</span><span id="tenantCleanupStatFindings" class="ds-cleanup-row-stat">–</span></span>
               <input class="ds-cleanup-check" type="checkbox" data-tenant-cleanup value="findings" onchange="dsSyncTenantCleanupAll();dsUpdateTenantCleanupActionState()">
             </label>
             <label class="ds-cleanup-row">
@@ -15319,7 +15342,7 @@ function dsOpenDataManagement(){
               <input class="ds-cleanup-check" type="checkbox" data-tenant-cleanup value="objects" onchange="dsSyncTenantCleanupAll();dsUpdateTenantCleanupActionState()">
             </label>
           </div>
-          <div class="ds-cleanup-note">Zugehörige Bilder und Dateien werden zusammen mit den ausgewählten Daten entfernt. Mandant, Benutzer, Rollen und Zugänge bleiben bestehen.</div>
+          <div class="ds-cleanup-note">Es werden ausschließlich Daten gelöscht, die dem ausgewählten Mandanten gehören. Nur sichtbare Daten anderer Mandanten bleiben unberührt. Zugehörige Bilder und Dateien werden zusammen mit den ausgewählten Daten entfernt. Mandant, Benutzer, Rollen und Zugänge bleiben bestehen.</div>
         </div>
         <div class="ds-cleanup-actions">
           <button class="secondary" onclick="document.getElementById('dsDataManagementModal').style.display='none'">Abbrechen</button>
