@@ -3518,7 +3518,16 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    UNVERÄNDERT: Auth-Identität, Passwort, Membership-Logik, Rollenmodell, Objektzugriffe, RLS, RPCs, Routing, Messaging und Notifications.
    BACKEND: keine SQL-/RLS-/RPC-Änderung.
 */
-const APP_VERSION='2.21.01'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.21.02 | Basis 2.21.01 | 19.09.2026
+   - Benutzerverwaltung mandantensicher: Membership wird immer im aktuell administrierten Mandanten ermittelt.
+   - "Benutzer löschen" im Mandantenmodus ersetzt durch "Aus Mandant entfernen": Auth/Profile anderer Mandanten bleiben erhalten.
+   - Beim Entfernen werden nur Objektzuordnungen des betroffenen Mandanten entfernt; fremde Mandanten bleiben unangetastet.
+   - Bereits vorhandene, global inaktive Benutzer werden bei erneuter Zuordnung bewusst reaktiviert; der eingegebene Anzeigename wird dabei übernommen.
+   - Nach Zuordnung/Entfernung wird die Benutzerliste neu geladen.
+   - Globale endgültige Löschung bleibt ausschließlich der separaten Platform-Admin-Bereinigung vorbehalten.
+   - BACKEND: keine SQL-/RLS-/RPC-Änderung.
+*/
+const APP_VERSION='2.21.02'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -11360,7 +11369,8 @@ async function loadUserAdminData(){
     }
     const keep=sel.value;
     sel.innerHTML='<option value="">Benutzer auswählen …</option>'+userAdminProfiles.map(p=>{
-      const m=userAdminMemberships.find(x=>x.user_id===p.id);
+      const activeOrgId=currentOrganizationId();
+      const m=userAdminMemberships.find(x=>x.user_id===p.id && (!activeOrgId||x.organization_id===activeOrgId));
       const label=ROLE_LABELS[m?.role]||ROLE_LABELS[p.role]||m?.role||p.role;
       return `<option value="${esc(p.id)}">${esc(p.email||p.full_name||p.id)}${p.full_name&&p.email?' · '+esc(p.full_name):''} · ${esc(label)}${p.active===false?' · inaktiv':''}</option>`;
     }).join('');
@@ -11373,8 +11383,9 @@ function loadUserAdminEditor(){
   const uid=document.getElementById('userAdminSelect')?.value,ed=document.getElementById('userAdminEditor');
   if(!ed)return;if(!uid){ed.innerHTML='';return}
   const p=userAdminProfiles.find(x=>x.id===uid);if(!p){ed.innerHTML='';return}
-  const membership=userAdminMemberships.find(m=>m.user_id===uid)||null;
-  const orgId=membership?.organization_id||currentOrganizationId();
+  const activeOrgId=currentOrganizationId();
+  const membership=userAdminMemberships.find(m=>m.user_id===uid && (!activeOrgId||m.organization_id===activeOrgId))||null;
+  const orgId=activeOrgId||membership?.organization_id||'';
   const assigned=new Set(userAdminAssignments.filter(a=>a.user_id===uid&&a.active!==false).map(a=>a.object_id));
   const roles=[['tenant_admin','Mandanten-Admin'],['admin_delegate','Admin-Vertretung'],['property_manager','Verwalter'],['object_manager','Objektbetreuer'],['external_contractor','Externer Auftragnehmer'],['customer','Auftraggeber']];
   const allowedRoles=isAdminDelegate()?roles.filter(([v])=>!['tenant_admin','admin_delegate'].includes(v)):roles;
@@ -11441,7 +11452,7 @@ function loadUserAdminEditor(){
   ed.innerHTML=`<div class="card"><h3>${esc(p.email||p.full_name||'Benutzer')}</h3><div class="muted" style="margin-bottom:12px">Unternehmen: <strong>${esc(orgName)}</strong></div><div class="grid2"><label>Anzeigename<input id="userAdminFullName" value="${esc(p.full_name||'')}" placeholder="z. B. Hans Müller"></label><label>Mandantenrolle<select id="userAdminRole">${roleOptions}</select></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminActive" type="checkbox" ${p.active!==false?'checked':''}><span>Benutzer aktiv</span></label></div><p class="muted">Berechtigungen gelten ausschließlich innerhalb des zugeordneten Unternehmens. Plattformadministrator-Rechte können hier nicht vergeben werden.</p><h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px">
   <button onclick="saveUserAdminPermissions()">Speichern</button>
   ${canResetUserPasswordUI()?'<button onclick="resetSelectedUserInitialPassword()">Initialpasswort erzeugen</button>':''}
-  ${isAdminRole()?'<button class="danger" onclick="deleteSelectedUser()">Benutzer löschen</button>':''}
+  ${isAdminRole()?'<button class="danger" onclick="removeSelectedUserFromTenant()">Aus Mandant entfernen</button>':''}
 </div></div>`;
 }
 
@@ -11465,10 +11476,21 @@ async function createUserAndInvite(){
   if(btn){btn.disabled=true;btn.textContent='Benutzer wird geprüft…';}
   try{
     // v2.20.97: E-Mail zuerst gegen bestehende Profile prüfen. Eine E-Mail entspricht genau einer Auth-Identität.
-    const existingProfiles=await cloudRequest(`profiles?select=id,email,full_name,role&email=ilike.${encodeURIComponent(email)}&limit=1`);
+    const existingProfiles=await cloudRequest(`profiles?select=id,email,full_name,role,active&email=ilike.${encodeURIComponent(email)}&limit=1`);
     const existingProfile=existingProfiles?.[0];
 
     if(existingProfile?.id){
+      // v2.21.02: Ein früher deaktiviertes Profil ist weiterhin dieselbe Auth-Identität.
+      // Bei erneuter bewusster Zuordnung wird es reaktiviert; kein zweiter Auth-User wird erzeugt.
+      if(existingProfile.active===false){
+        const reactivate=confirm(`Für ${email} existiert ein deaktiviertes Benutzerkonto.\n\nEs wird kein neues Konto erzeugt. Soll der Benutzer reaktiviert und ${organizationName(organizationId)||'diesem Mandanten'} zugeordnet werden?`);
+        if(!reactivate)return;
+        await cloudRequest(`profiles?id=eq.${encodeURIComponent(existingProfile.id)}`,{
+          method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({active:true,full_name:fullName})
+        });
+        existingProfile.active=true;
+        existingProfile.full_name=fullName;
+      }
       const memberships=await cloudRequest(`organization_memberships?select=id,role&organization_id=eq.${encodeURIComponent(organizationId)}&user_id=eq.${encodeURIComponent(existingProfile.id)}&limit=1`);
       const existingMembership=memberships?.[0];
       const orgName=organizationName(organizationId)||currentOrganization?.name||'diesem Mandanten';
@@ -11634,43 +11656,67 @@ async function resetSelectedUserInitialPassword(){
 }
 
 
-async function deleteSelectedUser(){
-  if(!isAdminRole())return requireAdminUI('Benutzer löschen');
+async function removeSelectedUserFromTenant(){
+  if(!isAdminRole())return requireAdminUI('Benutzer aus Mandant entfernen');
   const uid=document.getElementById('userAdminSelect')?.value;
+  const orgId=currentOrganizationId();
   if(!uid)return alert('Bitte zuerst einen Benutzer auswählen.');
-  if(uid===currentUserProfile?.id)return alert('Der aktuell angemeldete Administrator kann sich nicht selbst löschen.');
+  if(!orgId)return alert('Es ist kein Mandant ausgewählt.');
+  if(uid===currentUserProfile?.id)return alert('Der aktuell angemeldete Administrator kann seine eigene Mandantenzuordnung hier nicht entfernen.');
 
   const p=(userAdminProfiles||[]).find(x=>x.id===uid);
+  const membership=(userAdminMemberships||[]).find(m=>m.user_id===uid&&m.organization_id===orgId);
+  if(!membership?.id)return alert('Für diesen Benutzer besteht in diesem Mandanten keine Zuordnung.');
   const label=p?.full_name||p?.email||'diesen Benutzer';
+  const orgName=organizationName(orgId)||currentOrganization?.name||'diesem Mandanten';
 
   const ok=confirm(
-    `Benutzer „${label}“ wirklich löschen?\n\n`+
-    `Der Login wird entfernt und alle Objektzuordnungen werden gelöscht. `+
-    `Bereits vorhandene Dokumentationen bleiben erhalten.`
+    `Benutzer „${label}“ aus „${orgName}“ entfernen?\n\n`+
+    `Nur die Zuordnung zu diesem Mandanten und dessen Objektzugriffe werden entfernt. `+
+    `Login, Profil, Dokumentationen und Zuordnungen zu anderen Mandanten bleiben erhalten.`
   );
   if(!ok)return;
 
   try{
-    const res=await fetch(`${SUPABASE_URL}/functions/v1/delete-user`,{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization':`Bearer ${cloudSession?.access_token||''}`,
-        'apikey':SUPABASE_PUBLISHABLE_KEY
-      },
-      body:JSON.stringify({userId:uid})
+    // Nur Objektzuordnungen auf Objekte des aktuell administrierten Mandanten entfernen.
+    const ownObjectIds=new Set((db.objects||[])
+      .filter(o=>!o.externalManaged&&o.organizationId===orgId)
+      .map(o=>String(o.id)));
+    const ownAssignments=(userAdminAssignments||[])
+      .filter(a=>a.user_id===uid&&ownObjectIds.has(String(a.object_id)));
+    for(const a of ownAssignments){
+      await cloudRequest(`object_user_assignments?id=eq.${encodeURIComponent(a.id)}`,{
+        method:'DELETE',headers:{Prefer:'return=minimal'}
+      });
+    }
+
+    // Externe Betreuungszuweisung dieses Mandanten für den Benutzer lösen, ohne Kollaboration zu löschen.
+    const sharedRows=(cloudObjectCollaborations||[]).filter(c=>
+      String(c.service_organization_id||'')===String(orgId) &&
+      String(c.assigned_user_id||c.assignee_user_id||'')===String(uid)
+    );
+    for(const c of sharedRows){
+      const collaborationId=c.collaboration_id||c.id||'';
+      if(!collaborationId)continue;
+      try{
+        await cloudRequest('rpc/set_collaboration_assignee',{
+          method:'POST',body:JSON.stringify({p_collaboration_id:collaborationId,p_user_id:null})
+        });
+      }catch(_e){
+        console.warn('Externe Objektzuweisung konnte nicht automatisch gelöst werden.',_e);
+      }
+    }
+
+    await cloudRequest(`organization_memberships?id=eq.${encodeURIComponent(membership.id)}`,{
+      method:'DELETE',headers:{Prefer:'return=minimal'}
     });
 
-    const text=await res.text();
-    let data={};
-    try{data=text?JSON.parse(text):{};}catch{}
-    if(!res.ok)throw new Error(data?.error||text||`HTTP ${res.status}`);
-
-    alert('Benutzer wurde gelöscht.');
+    document.getElementById('userAdminSelect').value='';
     await loadUserAdminData();
+    alert(`„${label}“ wurde aus „${orgName}“ entfernt. Andere Mandantenzuordnungen und der Login bleiben bestehen.`);
   }catch(e){
     console.error(e);
-    alert('Benutzer konnte nicht gelöscht werden: '+(e?.message||e));
+    alert('Benutzer konnte nicht aus dem Mandanten entfernt werden: '+(e?.message||e));
   }
 }
 
@@ -11683,8 +11729,8 @@ async function saveUserAdminPermissions(){
   if(!uid||!organizationRole)return alert('Benutzer und Mandantenrolle fehlen.');
   if(!fullName)return alert('Bitte einen Anzeigenamen eingeben.');
   if(isAdminDelegate()&&['tenant_admin','admin_delegate'].includes(organizationRole))return alert('Admin-Vertretungen dürfen keine administrativen Mandantenrollen vergeben.');
-  const membership=userAdminMemberships.find(m=>m.user_id===uid);
-  const orgId=membership?.organization_id||currentOrganizationId();
+  const orgId=currentOrganizationId();
+  const membership=userAdminMemberships.find(m=>m.user_id===uid&&m.organization_id===orgId);
   if(!orgId)return alert('Für den Benutzer fehlt die Mandantenzuordnung.');
   if(!isAdminRole()&&orgId!==currentOrganizationId())return alert('Benutzer eines anderen Mandanten dürfen nicht bearbeitet werden.');
   if(uid===currentUserProfile?.id&&!active)return alert('Der aktuell angemeldete Benutzer kann sich nicht selbst deaktivieren.');
