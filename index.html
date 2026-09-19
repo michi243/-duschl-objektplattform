@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.88</title>
+<title>Duschl Service – Objektplattform v2.20.89</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3434,6 +3434,11 @@ module.exports = QRCode;
   };
 })(window);
 </script>
+<!-- RELEASE 2.20.89 | BASIS 2.20.88 | DATUM 19.09.2026
+ÄNDERUNGEN: Serverseitige Notification-Grundstruktur vorbereitet; fünf priorisierte Ereignistypen und Empfänger-Scope im Backend-Outbox-Modell.
+UNVERÄNDERT: Rollen, RLS, Mandantenlogik, Findings, Entscheidungen, Messaging, Routing, Tenant-Aktivität und bestehende UI-Abläufe.
+BACKEND: additive SQL-Erweiterung notification_outbox + Trigger/Funktionen erforderlich; noch kein externer Mail-Provider und keine Zugangsdaten im Frontend.
+-->
 <!-- RELEASE 2.20.88 | BASIS 2.20.87 | DATUM 18.09.2026
 ÄNDERUNGEN: Findings-INSERT und Rücklesen getrennt; Diagnoseaufruf entfernt; Versionskennzeichnung konsolidiert.
 UNVERÄNDERT: Rollen, RLS, Mandantenlogik, Entscheidungen, Messaging und Routing.
@@ -3446,7 +3451,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    Backend: organization_activity + RPCs touch_my_organization_activity / platform_get_tenant_activity_v2.
    Unverändert: Rollenmodell, Objektzugriffe, Findings, Entscheidungen, Messaging, Routing, Objektzuweisungen.
 */
-const APP_VERSION='2.20.88'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.89'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
