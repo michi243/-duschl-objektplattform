@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.20.93</title>
+<title>Duschl Service – Objektplattform v2.20.94</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3460,7 +3460,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    Backend: organization_activity + RPCs touch_my_organization_activity / platform_get_tenant_activity_v2.
    Unverändert: Rollenmodell, Objektzugriffe, Findings, Entscheidungen, Messaging, Routing, Objektzuweisungen.
 */
-const APP_VERSION='2.20.93'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.20.94'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -9456,8 +9456,10 @@ async function cloudSaveObject(id,data){
 async function cloudDeleteObject(id){
   await cloudRequest(`objects?id=eq.${encodeURIComponent(id)}`,{method:'DELETE'});
 }
-// v2.20.93: Deep Links aus automatischen Benachrichtigungen.
-// Die URL enthält ausschließlich technische Vorgangs-IDs; Berechtigungen werden weiterhin serverseitig geprüft.
+// v2.20.94: Zentrale Deep-Link-Navigation aus automatischen Benachrichtigungen.
+// Platform Admin ermittelt bei Bedarf zuerst den Eigentümermandanten des Vorgangs,
+// wechselt kontrolliert in dessen Mandantenkontext und öffnet danach den konkreten Vorgang.
+// Normale Benutzer bleiben vollständig durch die bestehenden RLS-/Berechtigungsregeln begrenzt.
 let notificationDeepLinkHandled=false;
 function notificationDeepLinkFromUrl(){
   const p=new URLSearchParams(location.search);
@@ -9472,12 +9474,39 @@ function clearNotificationDeepLink(){
   u.searchParams.delete('id');
   history.replaceState(null,'',u.pathname+(u.search?u.search:'')+(u.hash||''));
 }
-function openNotificationDeepLink(){
+async function platformTenantForNotificationDeepLink(link){
+  if(!isPlatformOperatorRole()||isPlatformTenantMode())return null;
+  let objectId='';
+  if(link.type==='finding'){
+    const rows=await cloudRequest(`findings?id=eq.${encodeURIComponent(link.id)}&select=id,object_id`);
+    objectId=String(rows?.[0]?.object_id||'');
+  }else if(link.type==='resident_report'){
+    const rows=await cloudRequest(`resident_reports?id=eq.${encodeURIComponent(link.id)}&select=id,object_id`);
+    objectId=String(rows?.[0]?.object_id||'');
+  }else if(link.type==='work_order'){
+    const rows=await cloudRequest(`shared_work_orders?id=eq.${encodeURIComponent(link.id)}&select=id,source_object_id,source_organization_id`);
+    const w=rows?.[0];
+    if(w?.source_organization_id)return String(w.source_organization_id);
+    objectId=String(w?.source_object_id||'');
+  }
+  if(!objectId)return null;
+  const objects=await cloudRequest(`objects?id=eq.${encodeURIComponent(objectId)}&select=id,organization_id`);
+  return String(objects?.[0]?.organization_id||'')||null;
+}
+async function openNotificationDeepLink(){
   if(notificationDeepLinkHandled)return;
   const link=notificationDeepLinkFromUrl();
   if(!link)return;
   notificationDeepLinkHandled=true;
   try{
+    // Platform Admin startet außerhalb eines Mandanten ohne operative Datensicht.
+    // Deshalb Eigentümermandant serverseitig ermitteln und denselben sicheren
+    // Mandantenmodus verwenden, den der Admin auch manuell öffnet.
+    const targetOrgId=await platformTenantForNotificationDeepLink(link);
+    if(targetOrgId && (!isPlatformTenantMode()||String(currentOrganizationId()||'')!==targetOrgId)){
+      await enterPlatformTenantMode(targetOrgId);
+    }
+
     if(link.type==='finding'){
       const f=(db.findings||[]).find(x=>String(x.id||'')===link.id);
       if(!f)throw new Error('Der Vorgang ist für diesen Benutzer nicht verfügbar.');
@@ -9493,7 +9522,11 @@ function openNotificationDeepLink(){
       showSection('residentReports');
       setTimeout(()=>openResidentReportDetails(r.id),80);
     }else if(link.type==='work_order'){
-      const o=(cloudExternalOrders||[]).find(x=>String(x.id||'')===link.id);
+      let o=(cloudExternalOrders||[]).find(x=>String(x.id||'')===link.id);
+      if(!o && isPlatformOperatorRole()){
+        try{await cloudLoadExternalOrders(false);}catch(_){/* Zugriff bleibt serverseitig begrenzt. */}
+        o=(cloudExternalOrders||[]).find(x=>String(x.id||'')===link.id);
+      }
       if(!o)throw new Error('Der Auftrag ist für diesen Benutzer nicht verfügbar.');
       openExternalOrderById(o.id);
     }else{
@@ -9502,7 +9535,9 @@ function openNotificationDeepLink(){
     clearNotificationDeepLink();
   }catch(e){
     console.warn('Benachrichtigungslink konnte nicht geöffnet werden',e);
-    clearNotificationDeepLink();
+    // URL bei Fehler bewusst erhalten: nach erneutem Login bzw. korrigiertem
+    // Berechtigungskontext kann derselbe Link erneut verarbeitet werden.
+    notificationDeepLinkHandled=false;
     alert(e?.message||'Der verlinkte Vorgang konnte nicht geöffnet werden.');
   }
 }
