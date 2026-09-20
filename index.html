@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.08</title>
+<title>Duschl Service – Objektplattform v2.21.09</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3528,7 +3528,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Globale endgültige Löschung bleibt ausschließlich der separaten Platform-Admin-Bereinigung vorbehalten.
    - BACKEND: keine SQL-/RLS-/RPC-Änderung.
 */
-const APP_VERSION='2.21.08'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.09'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -7239,7 +7239,7 @@ async function syncRoutedWorkOrdersForFinding(findingId,completed){
   }
 }
 
-// v2.21.08
+// v2.21.09
 // BASIS: v2.21.07
 // DATUM: 2026-09-20
 // ÄNDERUNGEN:
@@ -7249,9 +7249,19 @@ async function syncRoutedWorkOrdersForFinding(findingId,completed){
 // UNVERÄNDERT: SQL, RLS, Tabellen, RPCs, Notification-Routing und Datenmodell.
 // BACKEND: keine Änderung.
 
-// v2.21.08: Ein vom Dienstleister zurückgegebener Auftrag ist eine echte Entscheidung
+// v2.21.09: Ein vom Dienstleister zurückgegebener Auftrag ist eine echte Entscheidung
 // des ursprünglichen Auftraggebers. Der Entscheidungsdialog bietet direkt die zwei
 // fachlich relevanten Folgewege: intern übernehmen oder erneut extern vergeben.
+
+// v2.21.09
+// BASIS: v2.21.08
+// DATUM: 2026-09-20
+// ÄNDERUNGEN:
+// - Neuvergabe eines zurückgegebenen Arbeitsauftrags nutzt den atomaren RPC reroute_rejected_work_order_v1.
+// - Bisherige aktive Routing-Verantwortung wird nur innerhalb derselben erfolgreichen DB-Transaktion beendet.
+// - Rückgabeentscheidung wird nur bei erfolgreicher Neuvergabe abgeschlossen.
+// - Normales Routing bleibt unverändert über route_finding_to_organization_by_code.
+// BACKEND: neuer RPC reroute_rejected_work_order_v1; keine Tabellen-/RLS-Änderung.
 
 let returnedOrderDecisionContextId=null;
 
@@ -7334,7 +7344,7 @@ async function rerouteReturnedOrder(id){
 }
 
 function openExternalOrderById(id){
-  // v2.21.08: Ein ggf. geöffneter Entscheidungsdialog darf die Chronik nicht verdecken.
+  // v2.21.09: Ein ggf. geöffneter Entscheidungsdialog darf die Chronik nicht verdecken.
   closeModal();
   const target=(cloudExternalOrders||[]).find(x=>String(x.id||'')===String(id||''));
   const filter=document.getElementById('externalWorkFilter');
@@ -7865,11 +7875,33 @@ async function routeFindingToOrganization(findingId){
   const subcontractingAllowed=document.getElementById('routeSubcontracting')?.checked===true;
   if(!code)return alert('Bitte eine Empfängerfirma auswählen.');
   try{
-    await cloudRequest('rpc/route_finding_to_organization_by_code',{method:'POST',body:JSON.stringify({p_finding_id:findingId,p_partner_code:code,p_instruction:instruction,p_include_photos:includePhotos,p_subcontracting_allowed:subcontractingAllowed})});
     const returnedDecisionId=returnedOrderDecisionContextId;
     if(returnedDecisionId){
-      await resolveReturnedOrderDecision(returnedDecisionId,'rerouted');
+      // v2.21.09: Neuvergabe nach Rückgabe ist ein atomarer Backend-Prozess.
+      // Der alte Auftrag wird erst zusammen mit der erfolgreichen Neuvergabe
+      // abgeschlossen; bei einem Fehler rollt PostgreSQL den gesamten Vorgang zurück.
+      await cloudRequest('rpc/reroute_rejected_work_order_v1',{
+        method:'POST',
+        body:JSON.stringify({
+          p_rejected_work_order_id:returnedDecisionId,
+          p_partner_code:code,
+          p_instruction:instruction,
+          p_include_photos:includePhotos,
+          p_subcontracting_allowed:subcontractingAllowed
+        })
+      });
       returnedOrderDecisionContextId=null;
+    }else{
+      await cloudRequest('rpc/route_finding_to_organization_by_code',{
+        method:'POST',
+        body:JSON.stringify({
+          p_finding_id:findingId,
+          p_partner_code:code,
+          p_instruction:instruction,
+          p_include_photos:includePhotos,
+          p_subcontracting_allowed:subcontractingAllowed
+        })
+      });
     }
     closeModal();
     await cloudLoadExternalOrders(false);
@@ -8068,7 +8100,7 @@ async function openExternalOrderDocumentation(id){
   },30);
 }
 
-// v2.21.08: Der Mandantenkontext der Auftragsverknüpfung wird aus dem
+// v2.21.09: Der Mandantenkontext der Auftragsverknüpfung wird aus dem
 // Arbeitsauftrag übernommen. Das ist insbesondere für Platform-Admins relevant,
 // die tenantübergreifend arbeiten können. Für normale Mandantennutzer bleibt
 // executor_organization_id identisch mit dem aktiven Mandanten.
@@ -14549,7 +14581,7 @@ async function saveFinding(id){
       const residentRoute=!!externalRouteOrderAfterSave?.source_resident_report_id&&String((externalRouteOrderAfterSave?.source_snapshot||{}).route_type||'')==='resident_report_auto';
       const executorOrganizationId=String(externalRouteOrderAfterSave?.executor_organization_id||'')||null;
 
-      // v2.21.08: Die Dokumentation ist zu diesem Zeitpunkt bereits gespeichert.
+      // v2.21.09: Die Dokumentation ist zu diesem Zeitpunkt bereits gespeichert.
       // Die Verknüpfung mit dem Arbeitsauftrag ist ein nachgelagerter Schritt und
       // darf einen erfolgreichen Haupt-Speichervorgang nicht als fehlgeschlagen melden.
       try{
