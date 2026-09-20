@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.07</title>
+<title>Duschl Service – Objektplattform v2.21.08</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -7239,9 +7239,41 @@ async function syncRoutedWorkOrdersForFinding(findingId,completed){
   }
 }
 
-// v2.21.07: Ein vom Dienstleister zurückgegebener Auftrag ist eine echte Entscheidung
+// v2.21.08
+// BASIS: v2.21.07
+// DATUM: 2026-09-20
+// ÄNDERUNGEN:
+// - „Historie ansehen“ schließt den Entscheidungsdialog und öffnet sichtbar den Auftrag mit Chronik.
+// - Entscheidungen zu zurückgegebenen Aufträgen werden nach „Intern übernehmen“ bzw. erfolgreicher Neuvergabe abgeschlossen.
+// - Abgeschlossene Rückgabeentscheidungen verschwinden aus „Entscheidungen“, bleiben aber in der Auftragshistorie erhalten.
+// UNVERÄNDERT: SQL, RLS, Tabellen, RPCs, Notification-Routing und Datenmodell.
+// BACKEND: keine Änderung.
+
+// v2.21.08: Ein vom Dienstleister zurückgegebener Auftrag ist eine echte Entscheidung
 // des ursprünglichen Auftraggebers. Der Entscheidungsdialog bietet direkt die zwei
 // fachlich relevanten Folgewege: intern übernehmen oder erneut extern vergeben.
+
+let returnedOrderDecisionContextId=null;
+
+async function resolveReturnedOrderDecision(id,resolution){
+  const order=(cloudExternalOrders||[]).find(x=>String(x.id||'')===String(id||''));
+  if(!order)return;
+  const snap={...(order.source_snapshot||{})};
+  snap.return_decision_resolved_at=new Date().toISOString();
+  snap.return_decision_resolved_by=currentUserId()||null;
+  snap.return_decision_resolution=String(resolution||'resolved');
+  await cloudRequest(`shared_work_orders?id=eq.${encodeURIComponent(id)}`,{
+    method:'PATCH',
+    headers:{'Prefer':'return=minimal'},
+    body:JSON.stringify({
+      source_snapshot:snap,
+      updated_at:new Date().toISOString()
+    })
+  });
+  order.source_snapshot=snap;
+  order.updated_at=new Date().toISOString();
+}
+
 function openReturnedExternalOrderDecision(id){
   const order=(cloudExternalOrders||[]).find(x=>String(x.id||'')===String(id||''));
   if(!order)return alert('Vorgang nicht gefunden.');
@@ -7271,16 +7303,23 @@ function openReturnedExternalOrderDecision(id){
     </div>`:`<div class="card" style="margin-top:12px;border-color:rgba(245,158,11,.55)"><strong>Quelldokumentation nicht verfügbar.</strong><div class="muted" style="margin-top:4px">Eine interne Übernahme oder Neuvergabe ist erst möglich, wenn die ursprüngliche Feststellung geladen werden kann.</div></div><div class="row" style="margin-top:14px"><button type="button" onclick="openExternalOrderById('${esc(id)}')">Historie ansehen</button><button type="button" onclick="closeModal()">Schließen</button></div>`}`);
 }
 
-function takeReturnedOrderInternal(id){
+async function takeReturnedOrderInternal(id){
   const order=(cloudExternalOrders||[]).find(x=>String(x.id||'')===String(id||''));
   if(!order)return alert('Vorgang nicht gefunden.');
   const findingId=String(order.source_finding_id||'');
   const finding=(db.findings||[]).find(f=>String(f.id||'')===findingId);
   if(!finding)return alert('Die ursprüngliche Dokumentation konnte nicht geladen werden.');
-  closeModal();
-  // Die bestehende Arbeitsvorratslogik bleibt führend. Es wird kein zweiter
-  // Parallelprozess erzeugt, sondern die Aufgabe direkt an der Feststellung geplant.
-  openWorkItem(finding.id);
+  try{
+    await resolveReturnedOrderDecision(id,'internal_takeover');
+    await cloudLoadExternalOrders(false);
+    closeModal();
+    if(typeof renderWorkQueue==='function')renderWorkQueue();
+    // Die bestehende Arbeitsvorratslogik bleibt führend. Es wird kein zweiter
+    // Parallelprozess erzeugt, sondern die Aufgabe direkt an der Feststellung geplant.
+    openWorkItem(finding.id);
+  }catch(e){
+    alert('Die Entscheidung konnte nicht abgeschlossen werden: '+(e.message||e));
+  }
 }
 
 async function rerouteReturnedOrder(id){
@@ -7289,11 +7328,14 @@ async function rerouteReturnedOrder(id){
   const findingId=String(order.source_finding_id||'');
   const finding=(db.findings||[]).find(f=>String(f.id||'')===findingId);
   if(!finding)return alert('Die ursprüngliche Dokumentation konnte nicht geladen werden.');
+  returnedOrderDecisionContextId=String(id||'');
   closeModal();
   await openRouteFindingModal(finding.id);
 }
 
 function openExternalOrderById(id){
+  // v2.21.08: Ein ggf. geöffneter Entscheidungsdialog darf die Chronik nicht verdecken.
+  closeModal();
   const target=(cloudExternalOrders||[]).find(x=>String(x.id||'')===String(id||''));
   const filter=document.getElementById('externalWorkFilter');
   if(target && !externalOrderIsOpen(target.status) && filter){
@@ -7372,7 +7414,8 @@ function returnedExternalOrderDecisions(){
     const snap=x.source_snapshot||{};
     return String(x.source_organization_id||'')===orgId &&
       String(x.status||'').toLowerCase()==='rejected' &&
-      !!snap.returned_by_executor_at;
+      !!snap.returned_by_executor_at &&
+      !snap.return_decision_resolved_at;
   });
 }
 function pendingExternalReviewFindingIds(){
@@ -7823,9 +7866,15 @@ async function routeFindingToOrganization(findingId){
   if(!code)return alert('Bitte eine Empfängerfirma auswählen.');
   try{
     await cloudRequest('rpc/route_finding_to_organization_by_code',{method:'POST',body:JSON.stringify({p_finding_id:findingId,p_partner_code:code,p_instruction:instruction,p_include_photos:includePhotos,p_subcontracting_allowed:subcontractingAllowed})});
+    const returnedDecisionId=returnedOrderDecisionContextId;
+    if(returnedDecisionId){
+      await resolveReturnedOrderDecision(returnedDecisionId,'rerouted');
+      returnedOrderDecisionContextId=null;
+    }
     closeModal();
     await cloudLoadExternalOrders(false);
     renderFindings();
+    if(typeof renderWorkQueue==='function')renderWorkQueue();
     alert('Die Verantwortung für den Vorgang wurde an die Empfängerfirma übergeben. Frühere Empfänger bleiben nur in der Prozesshistorie sichtbar.');
   }catch(e){alert('Vorgang konnte nicht geroutet werden: '+(e.message||e));}
 }
@@ -8019,7 +8068,7 @@ async function openExternalOrderDocumentation(id){
   },30);
 }
 
-// v2.21.07: Der Mandantenkontext der Auftragsverknüpfung wird aus dem
+// v2.21.08: Der Mandantenkontext der Auftragsverknüpfung wird aus dem
 // Arbeitsauftrag übernommen. Das ist insbesondere für Platform-Admins relevant,
 // die tenantübergreifend arbeiten können. Für normale Mandantennutzer bleibt
 // executor_organization_id identisch mit dem aktiven Mandanten.
@@ -14500,7 +14549,7 @@ async function saveFinding(id){
       const residentRoute=!!externalRouteOrderAfterSave?.source_resident_report_id&&String((externalRouteOrderAfterSave?.source_snapshot||{}).route_type||'')==='resident_report_auto';
       const executorOrganizationId=String(externalRouteOrderAfterSave?.executor_organization_id||'')||null;
 
-      // v2.21.07: Die Dokumentation ist zu diesem Zeitpunkt bereits gespeichert.
+      // v2.21.08: Die Dokumentation ist zu diesem Zeitpunkt bereits gespeichert.
       // Die Verknüpfung mit dem Arbeitsauftrag ist ein nachgelagerter Schritt und
       // darf einen erfolgreichen Haupt-Speichervorgang nicht als fehlgeschlagen melden.
       try{
