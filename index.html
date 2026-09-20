@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.06</title>
+<title>Duschl Service – Objektplattform v2.21.07</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -7239,7 +7239,7 @@ async function syncRoutedWorkOrdersForFinding(findingId,completed){
   }
 }
 
-// v2.21.06: Ein vom Dienstleister zurückgegebener Auftrag ist eine echte Entscheidung
+// v2.21.07: Ein vom Dienstleister zurückgegebener Auftrag ist eine echte Entscheidung
 // des ursprünglichen Auftraggebers. Der Entscheidungsdialog bietet direkt die zwei
 // fachlich relevanten Folgewege: intern übernehmen oder erneut extern vergeben.
 function openReturnedExternalOrderDecision(id){
@@ -8019,11 +8019,15 @@ async function openExternalOrderDocumentation(id){
   },30);
 }
 
-async function syncResidentRouteDocumentation(orderId,findingId,completed){
+// v2.21.07: Der Mandantenkontext der Auftragsverknüpfung wird aus dem
+// Arbeitsauftrag übernommen. Das ist insbesondere für Platform-Admins relevant,
+// die tenantübergreifend arbeiten können. Für normale Mandantennutzer bleibt
+// executor_organization_id identisch mit dem aktiven Mandanten.
+async function syncResidentRouteDocumentation(orderId,findingId,completed,organizationId=null){
   await cloudRequest('rpc/link_resident_route_documentation',{
     method:'POST',
     body:JSON.stringify({
-      p_organization_id:currentOrganizationId()||null,
+      p_organization_id:organizationId||currentOrganizationId()||null,
       p_work_order_id:orderId,
       p_finding_id:findingId,
       p_completed:completed===true
@@ -8032,11 +8036,11 @@ async function syncResidentRouteDocumentation(orderId,findingId,completed){
 }
 
 
-async function syncExternalRouteDocumentation(orderId,findingId,completed){
+async function syncExternalRouteDocumentation(orderId,findingId,completed,organizationId=null){
   await cloudRequest('rpc/link_external_order_execution_documentation',{
     method:'POST',
     body:JSON.stringify({
-      p_organization_id:currentOrganizationId()||null,
+      p_organization_id:organizationId||currentOrganizationId()||null,
       p_work_order_id:orderId,
       p_finding_id:findingId,
       p_completed:completed===true
@@ -14494,12 +14498,39 @@ async function saveFinding(id){
     }
     if(externalRouteOrderIdAfterSave){
       const residentRoute=!!externalRouteOrderAfterSave?.source_resident_report_id&&String((externalRouteOrderAfterSave?.source_snapshot||{}).route_type||'')==='resident_report_auto';
-      if(residentRoute){
-        await syncResidentRouteDocumentation(externalRouteOrderIdAfterSave,row.id,data.status==='Erledigt');
-      }else{
-        await syncExternalRouteDocumentation(externalRouteOrderIdAfterSave,row.id,data.status==='Erledigt');
+      const executorOrganizationId=String(externalRouteOrderAfterSave?.executor_organization_id||'')||null;
+
+      // v2.21.07: Die Dokumentation ist zu diesem Zeitpunkt bereits gespeichert.
+      // Die Verknüpfung mit dem Arbeitsauftrag ist ein nachgelagerter Schritt und
+      // darf einen erfolgreichen Haupt-Speichervorgang nicht als fehlgeschlagen melden.
+      try{
+        if(residentRoute){
+          await syncResidentRouteDocumentation(
+            externalRouteOrderIdAfterSave,
+            row.id,
+            data.status==='Erledigt',
+            executorOrganizationId
+          );
+        }else{
+          await syncExternalRouteDocumentation(
+            externalRouteOrderIdAfterSave,
+            row.id,
+            data.status==='Erledigt',
+            executorOrganizationId
+          );
+        }
+        externalOrderDocumentationContext={
+          orderId:externalRouteOrderIdAfterSave,
+          findingId:row.id,
+          routeType:residentRoute?'resident_report_auto':'finding_route'
+        };
+      }catch(linkError){
+        console.error('Dokumentation gespeichert, Auftragsverknüpfung fehlgeschlagen',linkError);
+        alert(
+          'Die Dokumentation wurde gespeichert, konnte aber nicht mit dem Arbeitsauftrag verknüpft werden.\n\n' +
+          (linkError?.message||linkError)
+        );
       }
-      externalOrderDocumentationContext={orderId:externalRouteOrderIdAfterSave,findingId:row.id,routeType:residentRoute?'resident_report_auto':'finding_route'};
     }
     const isRecordedDecision=decisionRequired && !['pending','not_required','quote_sent'].includes(decisionStatus);
     const nowIso=new Date().toISOString();
