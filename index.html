@@ -3653,7 +3653,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    Deep-Link bleibt über Login erhalten und öffnet nach Datenladen Winterdienst + erste Ausführung der verlinkten Tour.
    UNVERÄNDERT: Rollen/RLS, Tourbearbeitung/-löschung, Mitarbeiterqualifikation, Leistungsumfang, SOP und übrige Fachprozesse.
    BACKEND: Edge Function process-notification-outbox aktualisieren; keine Tabellen-/RLS-/RPC-Änderung. */
-const APP_VERSION='2.21.26'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.27'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -15901,7 +15901,7 @@ document.addEventListener('click',()=>setTimeout(dsRefreshDataMenuButton,20));
 document.addEventListener('DOMContentLoaded',prefillLoginEmailFromUrl);
 
 /* =========================================================
-   WINTERDIENST V1 · 2.21.26
+   WINTERDIENST V1 · 2.21.27
    SOP + Leistungsumfang + Tourvorlage + Tagestour + Objekteinsatz
    ========================================================= */
 let wsState={sops:[],versions:[],scopes:[],templates:[],stops:[],runs:[],executions:[],areas:[],selectedAreas:[],manualAreas:[],tenantUsers:[]};
@@ -16328,7 +16328,11 @@ async function wsCreateRun(){
       })
     });
     await loadWinterService();
-    alert('Tagestour erzeugt und Mitarbeiter informiert.');
+    const createdRun=wsState.runs
+      .filter(r=>String(r.tour_template_id)===String(tid) && String(r.service_date)===String(date))
+      .sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')))[0];
+    if(createdRun)await wsEnsureRunExecutionScopes(createdRun.id);
+    alert('Tagestour erzeugt, Leistungsumfänge verknüpft und Mitarbeiter informiert.');
   }catch(e){alert('Tagestour konnte nicht erzeugt werden: '+(e.message||e))}
 }
 function wsRenderRuns(){
@@ -16341,13 +16345,54 @@ function wsRenderRuns(){
     return `<div class="card" style="padding:10px;margin:8px 0"><strong>${wsEsc(r.service_date)} · ${wsEsc(t?.name||'Tour')}</strong><div class="muted">${wsEsc(wsStatusLabel(r.status))} · ${ex.length} Objekte · Ausgeführt von: ${wsEsc(assigneeName)}</div><div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">${ex.map(x=>{const o=wsObjects().find(z=>z.id===x.object_id);return `<button type="button" onclick="wsOpenExecution('${wsEsc(x.id)}')">${x.sort_order}. ${wsEsc(o?.name||'Objekt')} · ${wsEsc(wsStatusLabel(x.status))}</button>`}).join('')}</div></div>`;
   }).join(''):'<div class="empty">Noch keine Tagestour.</div>';
 }
+function wsScopeForExecution(x){
+  if(!x)return null;
+  if(x.scope_id){
+    const direct=wsState.scopes.find(s=>String(s.id)===String(x.scope_id));
+    if(direct)return direct;
+  }
+  const run=wsState.runs.find(r=>String(r.id)===String(x.run_id));
+  const serviceDate=run?.service_date||wsToday();
+  return wsState.scopes
+    .filter(s=>String(s.object_id)===String(x.object_id) && s.active!==false)
+    .filter(s=>(!s.valid_from || String(s.valid_from)<=String(serviceDate)) &&
+               (!s.valid_until || String(s.valid_until)>=String(serviceDate)))
+    .sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')))[0]||null;
+}
+
+async function wsEnsureRunExecutionScopes(runId){
+  const run=wsState.runs.find(r=>String(r.id)===String(runId));
+  if(!run)return;
+  const executions=wsState.executions.filter(x=>String(x.run_id)===String(runId));
+  for(const x of executions){
+    if(x.scope_id)continue;
+    const scope=wsScopeForExecution(x);
+    if(!scope)continue;
+    await cloudRequest(`winter_service_executions?id=eq.${encodeURIComponent(x.id)}&organization_id=eq.${encodeURIComponent(wsOrg())}`,{
+      method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({scope_id:scope.id})
+    });
+    x.scope_id=scope.id;
+  }
+}
+
 async function wsOpenExecution(id){
   try{
     wsExecutionPhotos.before=null; wsExecutionPhotos.after=null;
     const x=wsState.executions.find(e=>e.id===id); if(!x)throw new Error('Einsatz nicht gefunden.');
     const o=wsObjects().find(z=>z.id===x.object_id);
     let scopeAreas=[];
-    if(x.scope_id)scopeAreas=await cloudRequest(`winter_service_scope_areas?select=*,object_areas(name)&scope_id=eq.${encodeURIComponent(x.scope_id)}&active=eq.true&order=sort_order.asc`);
+    const resolvedScope=wsScopeForExecution(x);
+    if(resolvedScope){
+      if(!x.scope_id){
+        try{
+          await cloudRequest(`winter_service_executions?id=eq.${encodeURIComponent(x.id)}&organization_id=eq.${encodeURIComponent(wsOrg())}`,{
+            method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({scope_id:resolvedScope.id})
+          });
+          x.scope_id=resolvedScope.id;
+        }catch(e){console.warn('Leistungsumfang konnte am Einsatz nicht dauerhaft verknüpft werden; Anzeige nutzt Fallback.',e)}
+      }
+      scopeAreas=await cloudRequest(`winter_service_scope_areas?select=*,object_areas(name)&scope_id=eq.${encodeURIComponent(resolvedScope.id)}&active=eq.true&order=sort_order.asc`);
+    }
     const media=await cloudRequest(`winter_service_execution_media?select=*&execution_id=eq.${encodeURIComponent(id)}&order=created_at.asc`);
     const panel=document.getElementById('wsExecutionPanel');
     panel.innerHTML=`
