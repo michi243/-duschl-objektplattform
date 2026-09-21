@@ -2146,7 +2146,10 @@ body.public-report-mode>#photoViewer{display:none!important}
       </div>
       <label style="margin-top:10px">Objekte in Reihenfolge<select id="wsTourObjects" multiple size="7"></select></label>
       <div class="muted" style="margin-top:5px">Mehrfachauswahl in der gewünschten Reihenfolge anklicken; gespeichert wird die aktuelle Listenreihenfolge der ausgewählten Objekte.</div>
-      <div class="row" style="margin-top:10px"><button class="primary" type="button" onclick="wsSaveTourTemplate()">Tourvorlage speichern</button></div>
+      <div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">
+        <button id="wsTourSaveBtn" class="primary" type="button" onclick="wsSaveTourTemplate()">Tourvorlage speichern</button>
+        <button id="wsTourCancelBtn" type="button" class="hidden" onclick="wsCancelTourEdit()">Bearbeitung abbrechen</button>
+      </div>
       <div id="wsTourList" style="margin-top:12px"></div>
     </div>
 
@@ -3645,7 +3648,12 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    UNVERÄNDERT: Rollen/RLS, Objektzugriffe, Findings, Entscheidungen, Messaging, Routing, Empfängerermittlung, Digest, Deep-Link-Logik und Frontend-Prozesse.
    BACKEND: Edge Function process-notification-outbox aktualisieren; additive Anpassung von notify_work_order_created_v1 empfohlen. Keine Tabellen-/RLS-Änderung.
 */
-const APP_VERSION='2.21.23'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.21.25 | BASIS 2.21.24 | DATUM 21.09.2026
+   ÄNDERUNGEN: Winterdienst-Mail fachlich konkretisiert; direkter Deep-Link auf die konkrete Tagestour.
+   Deep-Link bleibt über Login erhalten und öffnet nach Datenladen Winterdienst + erste Ausführung der verlinkten Tour.
+   UNVERÄNDERT: Rollen/RLS, Tourbearbeitung/-löschung, Mitarbeiterqualifikation, Leistungsumfang, SOP und übrige Fachprozesse.
+   BACKEND: Edge Function process-notification-outbox aktualisieren; keine Tabellen-/RLS-/RPC-Änderung. */
+const APP_VERSION='2.21.25'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -9945,6 +9953,10 @@ async function openNotificationDeepLink(){
       await new Promise(res=>setTimeout(res,120));
       const run=wsState.runs.find(r=>String(r.id)===String(link.id));
       if(!run)throw new Error('Die Winterdiensttour ist für diesen Benutzer nicht verfügbar.');
+      const templateSelect=document.getElementById('wsRunTemplate');
+      const dateInput=document.getElementById('wsRunDate');
+      if(templateSelect && run.tour_template_id)templateSelect.value=run.tour_template_id;
+      if(dateInput && run.service_date)dateInput.value=run.service_date;
       const first=wsState.executions.filter(x=>String(x.run_id)===String(run.id)).sort((a,b)=>a.sort_order-b.sort_order)[0];
       document.getElementById('wsRunList')?.scrollIntoView({behavior:'smooth',block:'center'});
       if(first)await wsOpenExecution(first.id);
@@ -15889,10 +15901,11 @@ document.addEventListener('click',()=>setTimeout(dsRefreshDataMenuButton,20));
 document.addEventListener('DOMContentLoaded',prefillLoginEmailFromUrl);
 
 /* =========================================================
-   WINTERDIENST V1 · 2.21.23
+   WINTERDIENST V1 · 2.21.25
    SOP + Leistungsumfang + Tourvorlage + Tagestour + Objekteinsatz
    ========================================================= */
 let wsState={sops:[],versions:[],scopes:[],templates:[],stops:[],runs:[],executions:[],areas:[],selectedAreas:[],manualAreas:[],tenantUsers:[]};
+let wsEditingTourTemplateId=null;
 
 function wsOrg(){const id=currentOrganizationId();if(!id)throw new Error('Kein aktiver Mandant.');return id}
 function wsObjects(){return (db?.objects||[]).filter(o=>o.active!==false)}
@@ -16166,25 +16179,122 @@ async function wsSaveScope(){
   }catch(e){alert('Leistungsumfang konnte nicht gespeichert werden: '+(e.message||e))}
 }
 
+function wsResetTourForm(){
+  wsEditingTourTemplateId=null;
+  const name=document.getElementById('wsTourName');
+  const start=document.getElementById('wsTourStart');
+  const objects=document.getElementById('wsTourObjects');
+  const save=document.getElementById('wsTourSaveBtn');
+  const cancel=document.getElementById('wsTourCancelBtn');
+  if(name)name.value='';
+  if(start)start.value='05:00';
+  if(objects)[...objects.options].forEach(o=>o.selected=false);
+  if(save)save.textContent='Tourvorlage speichern';
+  if(cancel)cancel.classList.add('hidden');
+}
+
+function wsEditTourTemplate(id){
+  const t=wsState.templates.find(x=>x.id===id && x.active!==false);
+  if(!t){alert('Tourvorlage wurde nicht gefunden.');return}
+  wsEditingTourTemplateId=id;
+  const name=document.getElementById('wsTourName');
+  const start=document.getElementById('wsTourStart');
+  const objects=document.getElementById('wsTourObjects');
+  const save=document.getElementById('wsTourSaveBtn');
+  const cancel=document.getElementById('wsTourCancelBtn');
+  if(name)name.value=t.name||'';
+  if(start)start.value=(t.default_start_time||'05:00').slice(0,5);
+  const selectedIds=new Set(
+    wsState.stops
+      .filter(s=>s.tour_template_id===id && s.active!==false)
+      .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0))
+      .map(s=>String(s.object_id))
+  );
+  if(objects)[...objects.options].forEach(o=>o.selected=selectedIds.has(String(o.value)));
+  if(save)save.textContent='Änderungen speichern';
+  if(cancel)cancel.classList.remove('hidden');
+  name?.focus();
+}
+
+function wsCancelTourEdit(){ wsResetTourForm(); }
+
 async function wsSaveTourTemplate(){
   try{
     const org=wsOrg(), name=document.getElementById('wsTourName').value.trim(), start=document.getElementById('wsTourStart').value||null;
     const selected=[...document.getElementById('wsTourObjects').selectedOptions].map(o=>o.value);
     if(!name||!selected.length)throw new Error('Name und mindestens ein Objekt sind Pflicht.');
+
+    if(wsEditingTourTemplateId){
+      const id=wsEditingTourTemplateId;
+      await cloudRequest(`winter_service_tour_templates?id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(org)}`,{
+        method:'PATCH',headers:{Prefer:'return=minimal'},
+        body:JSON.stringify({name,default_start_time:start})
+      });
+      // Stopps nicht hart löschen: Historie bleibt nachvollziehbar; für die Vorlage werden sie deaktiviert
+      // und anschließend mit der neuen Auswahl/Reihenfolge neu angelegt.
+      await cloudRequest(`winter_service_tour_stops?tour_template_id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(org)}`,{
+        method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({active:false})
+      });
+      await cloudRequest('winter_service_tour_stops',{
+        method:'POST',headers:{Prefer:'return=minimal'},
+        body:JSON.stringify(selected.map((object_id,i)=>({
+          id:wsUuid(),organization_id:org,tour_template_id:id,object_id,sort_order:i+1,active:true
+        })))
+      });
+      wsResetTourForm();
+      await loadWinterService();
+      alert('Tourvorlage geändert.');
+      return;
+    }
+
     const id=wsUuid();
     await cloudRequest('winter_service_tour_templates',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({id,organization_id:org,name,default_start_time:start,active:true,created_by:currentUserId()})});
     await cloudRequest('winter_service_tour_stops',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(selected.map((object_id,i)=>({id:wsUuid(),organization_id:org,tour_template_id:id,object_id,sort_order:i+1,active:true})))});
-    document.getElementById('wsTourName').value=''; await loadWinterService(); alert('Tourvorlage gespeichert.');
+    wsResetTourForm(); await loadWinterService(); alert('Tourvorlage gespeichert.');
   }catch(e){alert('Tourvorlage konnte nicht gespeichert werden: '+(e.message||e))}
 }
+
+async function wsDeleteTourTemplate(id){
+  const t=wsState.templates.find(x=>x.id===id);
+  if(!t){alert('Tourvorlage wurde nicht gefunden.');return}
+  const runCount=wsState.runs.filter(r=>r.tour_template_id===id).length;
+  const note=runCount
+    ? `\n\n${runCount} bereits erzeugte Tagestour(en) bleiben aus Nachweisgründen vollständig erhalten.`
+    : '';
+  if(!confirm(`Tourvorlage "${t.name}" löschen?${note}`))return;
+  try{
+    const org=wsOrg();
+    // Soft Delete schützt bereits erzeugte Einsätze und deren Historie.
+    await cloudRequest(`winter_service_tour_templates?id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(org)}`,{
+      method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({active:false})
+    });
+    await cloudRequest(`winter_service_tour_stops?tour_template_id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(org)}`,{
+      method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({active:false})
+    });
+    if(wsEditingTourTemplateId===id)wsResetTourForm();
+    await loadWinterService();
+    alert('Tourvorlage gelöscht. Bereits erzeugte Tagestouren bleiben erhalten.');
+  }catch(e){alert('Tourvorlage konnte nicht gelöscht werden: '+(e.message||e))}
+}
+
 function wsRenderTours(){
   const el=document.getElementById('wsTourList');if(!el)return;
-  el.innerHTML=wsState.templates.length?wsState.templates.map(t=>{
-    const stops=wsState.stops.filter(s=>s.tour_template_id===t.id).sort((a,b)=>a.sort_order-b.sort_order);
+  const activeTemplates=wsState.templates.filter(t=>t.active!==false);
+  el.innerHTML=activeTemplates.length?activeTemplates.map(t=>{
+    const stops=wsState.stops.filter(s=>s.tour_template_id===t.id && s.active!==false).sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
     const names=stops.map(s=>wsObjects().find(o=>o.id===s.object_id)?.name||'Objekt').join(' → ');
-    return `<div class="card" style="padding:10px;margin:8px 0"><strong>${wsEsc(t.name)}</strong><div class="muted">${wsEsc(t.default_start_time||'—')} · ${wsEsc(names||'keine Stopps')}</div></div>`;
+    return `<div class="card" style="padding:10px;margin:8px 0">
+      <div class="row" style="justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
+        <div><strong>${wsEsc(t.name)}</strong><div class="muted">${wsEsc(t.default_start_time||'—')} · ${wsEsc(names||'keine Stopps')}</div></div>
+        <div class="row" style="gap:6px;flex-wrap:wrap">
+          <button type="button" onclick="wsEditTourTemplate('${wsEsc(t.id)}')">Bearbeiten</button>
+          <button type="button" onclick="wsDeleteTourTemplate('${wsEsc(t.id)}')">Löschen</button>
+        </div>
+      </div>
+    </div>`;
   }).join(''):'<div class="empty">Noch keine Tourvorlage.</div>';
 }
+
 async function wsCreateRun(){
   try{
     const tid=document.getElementById('wsRunTemplate').value;
