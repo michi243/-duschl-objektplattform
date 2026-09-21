@@ -3645,7 +3645,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    UNVERÄNDERT: Rollen/RLS, Objektzugriffe, Findings, Entscheidungen, Messaging, Routing, Empfängerermittlung, Digest, Deep-Link-Logik und Frontend-Prozesse.
    BACKEND: Edge Function process-notification-outbox aktualisieren; additive Anpassung von notify_work_order_created_v1 empfohlen. Keine Tabellen-/RLS-Änderung.
 */
-const APP_VERSION='2.21.21'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.22'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -11686,6 +11686,7 @@ async function saveWorkItem(id){
    Backend: neue SECURITY DEFINER RPC get_tenant_users(uuid); bestehende Schreib-/Löschlogik unverändert. */
 let userAdminProfiles=[];
 let userAdminAssignments=[];
+let userAdminQualifications=[];
 
 async function loadUserAdminData(){
   if(!canManageUsersUI())return;
@@ -11706,6 +11707,12 @@ async function loadUserAdminData(){
       id:r.membership_id,organization_id:r.organization_id,user_id:r.user_id,role:r.membership_role
     }));
     userAdminAssignments=await cloudRequest('object_user_assignments?select=id,object_id,user_id,active')||[];
+    try{
+      userAdminQualifications=await cloudRequest(`user_service_qualifications?organization_id=eq.${encodeURIComponent(orgId)}&select=id,organization_id,user_id,qualification_code,active,valid_from,valid_until,notes`)||[];
+    }catch(_qe){
+      userAdminQualifications=[];
+      console.warn('Einsatzqualifikationen konnten nicht geladen werden.',_qe);
+    }
     try{
       await cloudLoadSharedObjects();
       await cloudLoadObjectCollaborations(false);
@@ -11798,8 +11805,31 @@ function loadUserAdminEditor(){
       </span>
     </label>`;
   }).join('')||'<p class="muted">Keine eigenen oder extern betreuten Objekte vorhanden.</p>';
+  const qualificationCatalog=[
+    ['winter_service','Winterdienst'],
+    ['garden_service','Grün-/Außenanlagenpflege'],
+    ['cleaning_service','Reinigung'],
+    ['caretaker_service','Hausmeister-/Objektservice'],
+    ['minor_repairs','Montage/Kleinreparaturen']
+  ];
+  const userQualifications=new Map(
+    userAdminQualifications
+      .filter(q=>String(q.user_id)===String(uid))
+      .map(q=>[String(q.qualification_code),q])
+  );
+  const qualificationRows=qualificationCatalog.map(([code,label])=>{
+    const q=userQualifications.get(code);
+    return `<label class="row" style="gap:10px;align-items:center;margin:8px 0;padding:9px 10px;border:1px solid var(--line);border-radius:10px">
+      <input type="checkbox" class="userServiceQualification" value="${esc(code)}" ${q?.active!==false&&q?'checked':''}>
+      <span><strong>${esc(label)}</strong></span>
+    </label>`;
+  }).join('');
   const orgName=organizationName(orgId)||currentOrganization?.name||'—';
-  ed.innerHTML=`<div class="card"><h3>${esc(p.email||p.full_name||'Benutzer')}</h3><div class="muted" style="margin-bottom:12px">Unternehmen: <strong>${esc(orgName)}</strong></div><div class="grid2"><label>Anzeigename<input id="userAdminFullName" value="${esc(p.full_name||'')}" placeholder="z. B. Hans Müller"></label><label>Mandantenrolle<select id="userAdminRole">${roleOptions}</select></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminActive" type="checkbox" ${p.active!==false?'checked':''}><span>Benutzer aktiv</span></label></div><p class="muted">Berechtigungen gelten ausschließlich innerhalb des zugeordneten Unternehmens. Plattformadministrator-Rechte können hier nicht vergeben werden.</p><h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px">
+  ed.innerHTML=`<div class="card"><h3>${esc(p.email||p.full_name||'Benutzer')}</h3><div class="muted" style="margin-bottom:12px">Unternehmen: <strong>${esc(orgName)}</strong></div><div class="grid2"><label>Anzeigename<input id="userAdminFullName" value="${esc(p.full_name||'')}" placeholder="z. B. Hans Müller"></label><label>Mandantenrolle<select id="userAdminRole">${roleOptions}</select></label><label class="row" style="gap:10px;align-items:center;margin-top:24px"><input id="userAdminActive" type="checkbox" ${p.active!==false?'checked':''}><span>Benutzer aktiv</span></label></div><p class="muted">Berechtigungen gelten ausschließlich innerhalb des zugeordneten Unternehmens. Plattformadministrator-Rechte können hier nicht vergeben werden.</p>
+  <h3 style="margin-top:18px">Einsatzqualifikationen</h3>
+  <p class="muted">Qualifikationen steuern, für welche operativen Leistungen dieser Benutzer eingesetzt werden kann. Sie verändern keine Systemrolle und keine Objektberechtigung.</p>
+  <div>${qualificationRows}</div>
+  <h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px">
   <button onclick="saveUserAdminPermissions()">Speichern</button>
   ${canResetUserPasswordUI()?'<button onclick="resetSelectedUserInitialPassword()">Initialpasswort erzeugen</button>':''}
   ${isAdminRole()?'<button class="danger" onclick="removeSelectedUserFromTenant()">Aus Mandant entfernen</button>':''}
@@ -12117,6 +12147,41 @@ async function saveUserAdminPermissions(){
       for(const object_id of checked)if(!existingIds.has(object_id))await cloudRequest('object_user_assignments',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({object_id,user_id:uid,active:true,assigned_by:currentUserProfile?.id})});
     }
 
+    // Einsatzqualifikationen: organisatorische Rolle und fachliche Einsatzfähigkeit bleiben getrennt.
+    const selectedQualifications=new Set(
+      [...document.querySelectorAll('.userServiceQualification:checked')].map(el=>String(el.value))
+    );
+    const qualificationCatalogCodes=['winter_service','garden_service','cleaning_service','caretaker_service','minor_repairs'];
+    for(const code of qualificationCatalogCodes){
+      const existingQ=userAdminQualifications.find(q=>
+        String(q.organization_id)===String(orgId) &&
+        String(q.user_id)===String(uid) &&
+        String(q.qualification_code)===code
+      );
+      const shouldBeActive=selectedQualifications.has(code);
+      if(existingQ){
+        if(existingQ.active!==shouldBeActive){
+          await cloudRequest(`user_service_qualifications?id=eq.${encodeURIComponent(existingQ.id)}`,{
+            method:'PATCH',
+            headers:{Prefer:'return=minimal'},
+            body:JSON.stringify({active:shouldBeActive,updated_at:new Date().toISOString()})
+          });
+        }
+      }else if(shouldBeActive){
+        await cloudRequest('user_service_qualifications',{
+          method:'POST',
+          headers:{Prefer:'return=minimal'},
+          body:JSON.stringify({
+            organization_id:orgId,
+            user_id:uid,
+            qualification_code:code,
+            active:true,
+            created_by:currentUserProfile?.id||null
+          })
+        });
+      }
+    }
+
     // Extern betreute Objekte: Zuweisung erfolgt über die jeweilige Betreuungsbeziehung.
     const sharedChecks=[...document.querySelectorAll('.userSharedObjectAssignment')];
     for(const el of sharedChecks){
@@ -12139,7 +12204,7 @@ async function saveUserAdminPermissions(){
         await cloudRequest(rpc,{method:'POST',body:JSON.stringify(body)});
       }
     }
-    alert('Berechtigungen und Objektzugriffe gespeichert.');
+    alert('Berechtigungen, Einsatzqualifikationen und Objektzugriffe gespeichert.');
     await loadUserAdminData();
   }catch(e){alert('Speichern fehlgeschlagen: '+e.message)}
 }
@@ -15824,7 +15889,7 @@ document.addEventListener('click',()=>setTimeout(dsRefreshDataMenuButton,20));
 document.addEventListener('DOMContentLoaded',prefillLoginEmailFromUrl);
 
 /* =========================================================
-   WINTERDIENST V1 · 2.21.21
+   WINTERDIENST V1 · 2.21.22
    SOP + Leistungsumfang + Tourvorlage + Tagestour + Objekteinsatz
    ========================================================= */
 let wsState={sops:[],versions:[],scopes:[],templates:[],stops:[],runs:[],executions:[],areas:[],selectedAreas:[],manualAreas:[],tenantUsers:[]};
