@@ -3653,7 +3653,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    Deep-Link bleibt über Login erhalten und öffnet nach Datenladen Winterdienst + erste Ausführung der verlinkten Tour.
    UNVERÄNDERT: Rollen/RLS, Tourbearbeitung/-löschung, Mitarbeiterqualifikation, Leistungsumfang, SOP und übrige Fachprozesse.
    BACKEND: Edge Function process-notification-outbox aktualisieren; keine Tabellen-/RLS-/RPC-Änderung. */
-const APP_VERSION='2.21.27'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.28'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -15901,7 +15901,7 @@ document.addEventListener('click',()=>setTimeout(dsRefreshDataMenuButton,20));
 document.addEventListener('DOMContentLoaded',prefillLoginEmailFromUrl);
 
 /* =========================================================
-   WINTERDIENST V1 · 2.21.27
+   WINTERDIENST V1 · 2.21.28
    SOP + Leistungsumfang + Tourvorlage + Tagestour + Objekteinsatz
    ========================================================= */
 let wsState={sops:[],versions:[],scopes:[],templates:[],stops:[],runs:[],executions:[],areas:[],selectedAreas:[],manualAreas:[],tenantUsers:[]};
@@ -16345,6 +16345,26 @@ function wsRenderRuns(){
     return `<div class="card" style="padding:10px;margin:8px 0"><strong>${wsEsc(r.service_date)} · ${wsEsc(t?.name||'Tour')}</strong><div class="muted">${wsEsc(wsStatusLabel(r.status))} · ${ex.length} Objekte · Ausgeführt von: ${wsEsc(assigneeName)}</div><div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">${ex.map(x=>{const o=wsObjects().find(z=>z.id===x.object_id);return `<button type="button" onclick="wsOpenExecution('${wsEsc(x.id)}')">${x.sort_order}. ${wsEsc(o?.name||'Objekt')} · ${wsEsc(wsStatusLabel(x.status))}</button>`}).join('')}</div></div>`;
   }).join(''):'<div class="empty">Noch keine Tagestour.</div>';
 }
+async function wsGetOrCreateSeasonScope(objectId, season, validFrom, validUntil, sopVersionId=null){
+  const orgId=wsOrg();
+  const existing=await cloudRequest(
+    `winter_service_object_scopes?select=*&organization_id=eq.${encodeURIComponent(orgId)}&object_id=eq.${encodeURIComponent(objectId)}&season=eq.${encodeURIComponent(season)}&active=eq.true&order=created_at.asc`
+  );
+  if(existing?.length){
+    const keep=existing[0];
+    await cloudRequest(`winter_service_object_scopes?id=eq.${encodeURIComponent(keep.id)}&organization_id=eq.${encodeURIComponent(orgId)}`,{
+      method:'PATCH',headers:{Prefer:'return=minimal'},
+      body:JSON.stringify({valid_from:validFrom||keep.valid_from,valid_until:validUntil||keep.valid_until,sop_version_id:sopVersionId||keep.sop_version_id,active:true})
+    });
+    return keep;
+  }
+  const rows=await cloudRequest('winter_service_object_scopes',{
+    method:'POST',headers:{Prefer:'return=representation'},
+    body:JSON.stringify({organization_id:orgId,object_id:objectId,season,valid_from:validFrom||null,valid_until:validUntil||null,sop_version_id:sopVersionId||null,active:true})
+  });
+  return rows?.[0]||null;
+}
+
 function wsScopeForExecution(x){
   if(!x)return null;
   if(x.scope_id){
