@@ -3653,7 +3653,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    Deep-Link bleibt über Login erhalten und öffnet nach Datenladen Winterdienst + erste Ausführung der verlinkten Tour.
    UNVERÄNDERT: Rollen/RLS, Tourbearbeitung/-löschung, Mitarbeiterqualifikation, Leistungsumfang, SOP und übrige Fachprozesse.
    BACKEND: Edge Function process-notification-outbox aktualisieren; keine Tabellen-/RLS-/RPC-Änderung. */
-const APP_VERSION='2.21.29'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.30'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -15901,7 +15901,7 @@ document.addEventListener('click',()=>setTimeout(dsRefreshDataMenuButton,20));
 document.addEventListener('DOMContentLoaded',prefillLoginEmailFromUrl);
 
 /* =========================================================
-   WINTERDIENST V1 · 2.21.29
+   WINTERDIENST V1 · 2.21.30
    SOP + Leistungsumfang + Tourvorlage + Tagestour + Objekteinsatz
    ========================================================= */
 let wsState={sops:[],versions:[],scopes:[],templates:[],stops:[],runs:[],executions:[],areas:[],selectedAreas:[],manualAreas:[],tenantUsers:[]};
@@ -16403,6 +16403,71 @@ async function wsGetOrCreateSeasonScope(objectId, season, validFrom, validUntil,
     body:JSON.stringify({organization_id:orgId,object_id:objectId,season,valid_from:validFrom||null,valid_until:validUntil||null,sop_version_id:sopVersionId||null,active:true})
   });
   return rows?.[0]||null;
+}
+
+
+function wsIsWinterOperative(){
+  const role=String(currentMembership?.role||currentProfile?.role||'');
+  return ['object_manager','employee'].includes(role);
+}
+
+function wsMyRuns(){
+  const uid=currentUserId();
+  return wsState.runs
+    .filter(r=>String(r.assigned_user_id||'')===String(uid))
+    .sort((a,b)=>{
+      const ad=String(a.service_date||'')+' '+String(a.start_time||'');
+      const bd=String(b.service_date||'')+' '+String(b.start_time||'');
+      return ad.localeCompare(bd);
+    });
+}
+
+function wsMyOpenExecutions(){
+  const runIds=new Set(wsMyRuns().map(r=>String(r.id)));
+  return wsState.executions.filter(x=>runIds.has(String(x.run_id)) && !['completed','cancelled'].includes(String(x.status||'')));
+}
+
+async function wsOpenMyWinterService(){
+  await loadWinterService();
+  const open=wsMyOpenExecutions();
+  if(open.length===1){
+    await wsOpenExecution(open[0].id);
+    return;
+  }
+  const runs=wsMyRuns();
+  if(runs.length===1){
+    const first=wsState.executions
+      .filter(x=>String(x.run_id)===String(runs[0].id))
+      .sort((a,b)=>(Number(a.sort_order||0)-Number(b.sort_order||0)))[0];
+    if(first){ await wsOpenExecution(first.id); return; }
+  }
+  wsRenderMyWinterOrders();
+}
+
+function wsRenderMyWinterOrders(){
+  const root=document.getElementById('winterServiceContent')||document.getElementById('winterServiceView')||document.querySelector('[data-ws-content]');
+  if(!root)return;
+  const runs=wsMyRuns();
+  const runIds=new Set(runs.map(r=>String(r.id)));
+  const executions=wsState.executions.filter(x=>runIds.has(String(x.run_id)));
+  const objName=id=>wsState.objects?.find(o=>String(o.id)===String(id))?.name||'Objekt';
+  const cards=runs.map(r=>{
+    const xs=executions.filter(x=>String(x.run_id)===String(r.id)).sort((a,b)=>(Number(a.sort_order||0)-Number(b.sort_order||0)));
+    const open=xs.filter(x=>!['completed','cancelled'].includes(String(x.status||'')));
+    const target=open[0]||xs[0];
+    return `<div class="card" style="margin-bottom:12px">
+      <div class="muted">${wsEsc(r.service_date||'')} · ${wsEsc(r.start_time||'')}</div>
+      <h3 style="margin:6px 0">${wsEsc(r.tour_name||r.name||'Winterdienstauftrag')}</h3>
+      <div>${xs.map(x=>`<div style="padding:5px 0">${wsEsc(objName(x.object_id))} · ${wsEsc(x.status||'offen')}</div>`).join('')}</div>
+      ${target?`<button class="btn primary" onclick="wsOpenExecution('${target.id}')">${open.length?'Auftrag öffnen':'Dokumentation ansehen'}</button>`:''}
+    </div>`;
+  }).join('');
+  root.innerHTML=`<section class="panel">
+    <div class="eyebrow">WINTERDIENST</div>
+    <h2>Meine Winterdienstaufträge</h2>
+    <p class="muted">Hier sehen Sie ausschließlich die Ihnen zugewiesenen Winterdiensteinsätze.</p>
+    ${cards||'<div class="empty">Aktuell ist Ihnen kein Winterdienstauftrag zugewiesen.</div>'}
+  </section>`;
 }
 
 function wsScopeForExecution(x){
