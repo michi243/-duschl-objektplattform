@@ -2105,29 +2105,34 @@ body.public-report-mode>#photoViewer{display:none!important}
         <label>Gültig bis<input id="wsScopeUntil" type="date" value="2027-03-31"/></label>
       </div>
       <div class="row" style="margin-top:10px"><button type="button" onclick="wsLoadAreasForScope()">Bereiche laden</button></div>
-      <div id="wsScopeAreas" style="margin-top:10px"><span class="muted">Objekt wählen und Bereiche laden.</span></div>
       <div class="card" style="padding:10px;margin-top:10px">
-        <strong>Winterdienstfläche ergänzen</strong>
-        <div class="muted" style="margin-top:4px">Für konkrete Außenflächen, die nicht als allgemeiner Objektbereich angelegt sind.</div>
-        <div class="grid2" style="margin-top:8px">
-          <label>Bezeichnung<input id="wsManualAreaName" placeholder="z. B. Gehweg Straßenseite"/></label>
-          <label>Priorität
-            <select id="wsManualAreaPriority">
-              <option value="1">1 · zuerst</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-            </select>
+        <strong>Winterdienstfläche hinzufügen</strong>
+        <div class="muted" style="margin-top:4px">Vorhandenen Objektbereich übernehmen oder eine konkrete zusätzliche Fläche erfassen.</div>
+        <div class="row" style="gap:8px;margin-top:8px;align-items:end;flex-wrap:wrap">
+          <label style="flex:1;min-width:220px">Vorhandener Objektbereich
+            <select id="wsExistingAreaPicker"><option value="">Bereich wählen …</option></select>
           </label>
+          <button type="button" onclick="wsAddExistingArea()">Bereich hinzufügen</button>
         </div>
-        <div class="row" style="gap:16px;margin-top:8px;flex-wrap:wrap">
-          <label class="row" style="align-items:center"><input id="wsManualAreaClear" type="checkbox" style="width:auto"> Räumen</label>
-          <label class="row" style="align-items:center"><input id="wsManualAreaGrit" type="checkbox" style="width:auto"> Streuen</label>
-        </div>
-        <label style="margin-top:8px">Besonderheit / Hinweis<input id="wsManualAreaNote" placeholder="z. B. Gefälle, schattig, erhöhte Glättegefahr"/></label>
-        <div class="row" style="margin-top:8px"><button type="button" onclick="wsAddManualArea()">Fläche hinzufügen</button></div>
+        <details style="margin-top:10px">
+          <summary style="cursor:pointer;font-weight:700">Eigene Fläche erfassen</summary>
+          <div class="grid2" style="margin-top:8px">
+            <label>Bezeichnung<input id="wsManualAreaName" placeholder="z. B. Gehweg Straßenseite"/></label>
+            <label>Priorität
+              <select id="wsManualAreaPriority">
+                <option value="1">1 · zuerst</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+              </select>
+            </label>
+          </div>
+          <div class="row" style="gap:16px;margin-top:8px;flex-wrap:wrap">
+            <label class="row" style="align-items:center"><input id="wsManualAreaClear" type="checkbox" style="width:auto"> Räumen</label>
+            <label class="row" style="align-items:center"><input id="wsManualAreaGrit" type="checkbox" style="width:auto"> Streuen</label>
+          </div>
+          <label style="margin-top:8px">Besonderheit / Hinweis<input id="wsManualAreaNote" placeholder="z. B. Gefälle, schattig, erhöhte Glättegefahr"/></label>
+          <div class="row" style="margin-top:8px"><button type="button" onclick="wsAddManualArea()">Eigene Fläche hinzufügen</button></div>
+        </details>
       </div>
-      <div id="wsManualAreaList" style="margin-top:10px"></div>
+      <div id="wsScopeAreas" style="margin-top:10px"><span class="muted">Objekt wählen und Bereiche laden.</span></div>
       <div class="row" style="margin-top:10px"><button class="primary" type="button" onclick="wsSaveScope()">Leistungsumfang speichern</button></div>
     </div>
   </div>
@@ -3636,7 +3641,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    UNVERÄNDERT: Rollen/RLS, Objektzugriffe, Findings, Entscheidungen, Messaging, Routing, Empfängerermittlung, Digest, Deep-Link-Logik und Frontend-Prozesse.
    BACKEND: Edge Function process-notification-outbox aktualisieren; additive Anpassung von notify_work_order_created_v1 empfohlen. Keine Tabellen-/RLS-Änderung.
 */
-const APP_VERSION='2.21.18'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.19'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -15803,10 +15808,10 @@ document.addEventListener('click',()=>setTimeout(dsRefreshDataMenuButton,20));
 document.addEventListener('DOMContentLoaded',prefillLoginEmailFromUrl);
 
 /* =========================================================
-   WINTERDIENST V1 · 2.21.18
+   WINTERDIENST V1 · 2.21.19
    SOP + Leistungsumfang + Tourvorlage + Tagestour + Objekteinsatz
    ========================================================= */
-let wsState={sops:[],versions:[],scopes:[],templates:[],stops:[],runs:[],executions:[],areas:[],manualAreas:[]};
+let wsState={sops:[],versions:[],scopes:[],templates:[],stops:[],runs:[],executions:[],areas:[],selectedAreas:[],manualAreas:[]};
 
 function wsOrg(){const id=currentOrganizationId();if(!id)throw new Error('Kein aktiver Mandant.');return id}
 function wsObjects(){return (db?.objects||[]).filter(o=>o.active!==false)}
@@ -15955,41 +15960,39 @@ async function wsLoadAreasForScope(){
     if(!objectId)throw new Error('Objekt wählen.');
     const areas=await cloudRequest(`object_areas?select=*&object_id=eq.${encodeURIComponent(objectId)}&active=eq.true&order=sort_order.asc,name.asc`);
     wsState.areas=areas||[];
+    wsState.selectedAreas=[];
     wsState.manualAreas=[];
-    wsRenderManualAreas();
-    const el=document.getElementById('wsScopeAreas');
-    el.innerHTML=wsState.areas.length?`
-      <div class="muted" style="margin-bottom:8px">Nur Flächen aktivieren, die vertraglich zum Winterdienst gehören. Standardmäßig ist nichts ausgewählt.</div>
-      ${wsState.areas.map(a=>`
-      <div class="card" style="padding:9px;margin:7px 0">
-        <div class="row space" style="gap:10px;align-items:center">
-          <strong>${wsEsc(a.name)}</strong>
-          <label class="row" style="align-items:center"><input type="checkbox" data-ws-area="${wsEsc(a.id)}" data-kind="include" style="width:auto" onchange="wsToggleExistingArea('${wsEsc(a.id)}')"> Winterdienstfläche</label>
-        </div>
-        <div id="wsAreaOptions_${wsEsc(a.id)}" style="display:none">
-          <div class="row" style="gap:16px;margin-top:7px;flex-wrap:wrap">
-            <label class="row" style="align-items:center"><input type="checkbox" data-ws-area="${wsEsc(a.id)}" data-kind="clear" style="width:auto"> Räumen</label>
-            <label class="row" style="align-items:center"><input type="checkbox" data-ws-area="${wsEsc(a.id)}" data-kind="grit" style="width:auto"> Streuen</label>
-            <label>Priorität
-              <select data-ws-priority="${wsEsc(a.id)}" style="width:auto">
-                <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
-              </select>
-            </label>
-            <input data-ws-note="${wsEsc(a.id)}" placeholder="Besonderheit / Hinweis" style="flex:1;min-width:180px">
-          </div>
-        </div>
-      </div>`).join('')}`:'<div class="empty">Für dieses Objekt sind keine aktiven Bereiche angelegt. Winterdienstflächen können unten trotzdem manuell ergänzt werden.</div>';
+    wsRenderAreaPicker();
+    wsRenderScopeSelection();
   }catch(e){alert(e.message||e)}
 }
-function wsToggleExistingArea(id){
-  const included=document.querySelector(`[data-ws-area="${id}"][data-kind="include"]`)?.checked===true;
-  const box=document.getElementById(`wsAreaOptions_${id}`);
-  if(box)box.style.display=included?'block':'none';
-  if(!included){
-    const c=document.querySelector(`[data-ws-area="${id}"][data-kind="clear"]`);
-    const g=document.querySelector(`[data-ws-area="${id}"][data-kind="grit"]`);
-    if(c)c.checked=false;if(g)g.checked=false;
-  }
+function wsRenderAreaPicker(){
+  const picker=document.getElementById('wsExistingAreaPicker');if(!picker)return;
+  const selected=new Set(wsState.selectedAreas.map(x=>x.object_area_id));
+  picker.innerHTML='<option value="">Bereich wählen …</option>'+
+    wsState.areas.filter(a=>!selected.has(a.id))
+      .map(a=>`<option value="${wsEsc(a.id)}">${wsEsc(a.name)}</option>`).join('');
+}
+function wsAddExistingArea(){
+  const picker=document.getElementById('wsExistingAreaPicker');
+  const id=picker?.value||'';
+  if(!id){alert('Bitte einen vorhandenen Objektbereich auswählen.');return}
+  const a=wsState.areas.find(x=>x.id===id);
+  if(!a)return;
+  if(wsState.selectedAreas.some(x=>x.object_area_id===id))return;
+  wsState.selectedAreas.push({
+    object_area_id:a.id,name:a.name,clear_snow:false,grit:false,
+    priority:1,notes:'',sort_order:a.sort_order||0
+  });
+  wsRenderAreaPicker();wsRenderScopeSelection();
+}
+function wsRemoveExistingArea(id){
+  wsState.selectedAreas=wsState.selectedAreas.filter(x=>x.object_area_id!==id);
+  wsRenderAreaPicker();wsRenderScopeSelection();
+}
+function wsUpdateSelectedArea(id,key,value){
+  const a=wsState.selectedAreas.find(x=>x.object_area_id===id);if(!a)return;
+  a[key]=value;
 }
 function wsAddManualArea(){
   const name=document.getElementById('wsManualAreaName').value.trim();
@@ -16004,19 +16007,33 @@ function wsAddManualArea(){
   document.getElementById('wsManualAreaClear').checked=false;
   document.getElementById('wsManualAreaGrit').checked=false;
   document.getElementById('wsManualAreaNote').value='';
-  wsRenderManualAreas();
+  wsRenderScopeSelection();
 }
 function wsRemoveManualArea(id){
   wsState.manualAreas=wsState.manualAreas.filter(x=>x.client_id!==id);
-  wsRenderManualAreas();
+  wsRenderScopeSelection();
 }
-function wsRenderManualAreas(){
-  const el=document.getElementById('wsManualAreaList');if(!el)return;
-  el.innerHTML=wsState.manualAreas.length?`
-    <strong>Zusätzliche Winterdienstflächen</strong>
-    ${wsState.manualAreas.map(a=>`<div class="card" style="padding:9px;margin:7px 0">
-      <div class="row space" style="gap:8px"><div><strong>${wsEsc(a.name)}</strong><div class="muted">${a.clear_snow?'Räumen':''}${a.clear_snow&&a.grit?' + ':''}${a.grit?'Streuen':''} · Priorität ${a.priority}${a.notes?' · '+wsEsc(a.notes):''}</div></div><button type="button" onclick="wsRemoveManualArea('${a.client_id}')">Entfernen</button></div>
-    </div>`).join('')}`:'';
+function wsRenderScopeSelection(){
+  const el=document.getElementById('wsScopeAreas');if(!el)return;
+  const existing=wsState.selectedAreas.map(a=>`
+    <div class="card" style="padding:10px;margin:7px 0">
+      <div class="row space" style="gap:8px"><strong>${wsEsc(a.name)}</strong><button type="button" onclick="wsRemoveExistingArea('${a.object_area_id}')">Entfernen</button></div>
+      <div class="row" style="gap:14px;margin-top:8px;flex-wrap:wrap">
+        <label class="row" style="align-items:center"><input type="checkbox" style="width:auto" ${a.clear_snow?'checked':''} onchange="wsUpdateSelectedArea('${a.object_area_id}','clear_snow',this.checked)"> Räumen</label>
+        <label class="row" style="align-items:center"><input type="checkbox" style="width:auto" ${a.grit?'checked':''} onchange="wsUpdateSelectedArea('${a.object_area_id}','grit',this.checked)"> Streuen</label>
+        <label>Priorität <select style="width:auto" onchange="wsUpdateSelectedArea('${a.object_area_id}','priority',Number(this.value))">
+          ${[1,2,3,4].map(p=>`<option value="${p}" ${a.priority===p?'selected':''}>${p}</option>`).join('')}
+        </select></label>
+        <input value="${wsEsc(a.notes||'')}" oninput="wsUpdateSelectedArea('${a.object_area_id}','notes',this.value)" placeholder="Besonderheit / Hinweis" style="flex:1;min-width:180px">
+      </div>
+    </div>`).join('');
+  const manual=wsState.manualAreas.map(a=>`
+    <div class="card" style="padding:10px;margin:7px 0">
+      <div class="row space" style="gap:8px"><div><strong>${wsEsc(a.name)}</strong><div class="muted">Eigene Fläche · ${a.clear_snow?'Räumen':''}${a.clear_snow&&a.grit?' + ':''}${a.grit?'Streuen':''} · Priorität ${a.priority}${a.notes?' · '+wsEsc(a.notes):''}</div></div><button type="button" onclick="wsRemoveManualArea('${a.client_id}')">Entfernen</button></div>
+    </div>`).join('');
+  el.innerHTML=(existing||manual)
+    ? `<strong>Ausgewählte Winterdienstflächen</strong>${existing}${manual}`
+    : '<div class="empty">Noch keine Winterdienstfläche ausgewählt.</div>';
 }
 async function wsSaveScope(){
   try{
@@ -16029,20 +16046,13 @@ async function wsSaveScope(){
       id,organization_id:org,object_id:objectId,season,valid_from:document.getElementById('wsScopeFrom').value||null,valid_until:document.getElementById('wsScopeUntil').value||null,sop_version_id:approved.id,active:true,created_by:currentUserId()
     })});
     const rows=[];
-    for(const a of wsState.areas){
-      const included=document.querySelector(`[data-ws-area="${a.id}"][data-kind="include"]`)?.checked===true;
-      if(!included)continue;
-      const clear=document.querySelector(`[data-ws-area="${a.id}"][data-kind="clear"]`)?.checked===true;
-      const grit=document.querySelector(`[data-ws-area="${a.id}"][data-kind="grit"]`)?.checked===true;
-      if(!clear&&!grit)throw new Error(`Für "${a.name}" mindestens Räumen oder Streuen auswählen.`);
+    for(const a of wsState.selectedAreas){
+      if(!a.clear_snow&&!a.grit)throw new Error(`Für "${a.name}" mindestens Räumen oder Streuen auswählen.`);
       rows.push({
-        id:wsUuid(),organization_id:org,scope_id:id,object_area_id:a.id,
+        id:wsUuid(),organization_id:org,scope_id:id,object_area_id:a.object_area_id,
         area_name:a.name,area_source:'object_area',
-        clear_snow:clear,grit,
-        priority:Number(document.querySelector(`[data-ws-priority="${a.id}"]`)?.value||1),
-        sort_order:a.sort_order||0,
-        notes:document.querySelector(`[data-ws-note="${a.id}"]`)?.value?.trim()||null,
-        active:true
+        clear_snow:a.clear_snow,grit:a.grit,priority:Number(a.priority||1),
+        sort_order:a.sort_order||0,notes:(a.notes||'').trim()||null,active:true
       });
     }
     for(const a of wsState.manualAreas){
