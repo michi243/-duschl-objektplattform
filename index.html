@@ -3653,7 +3653,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    Deep-Link bleibt über Login erhalten und öffnet nach Datenladen Winterdienst + erste Ausführung der verlinkten Tour.
    UNVERÄNDERT: Rollen/RLS, Tourbearbeitung/-löschung, Mitarbeiterqualifikation, Leistungsumfang, SOP und übrige Fachprozesse.
    BACKEND: Edge Function process-notification-outbox aktualisieren; keine Tabellen-/RLS-/RPC-Änderung. */
-const APP_VERSION='2.21.30'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.31'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -15901,7 +15901,7 @@ document.addEventListener('click',()=>setTimeout(dsRefreshDataMenuButton,20));
 document.addEventListener('DOMContentLoaded',prefillLoginEmailFromUrl);
 
 /* =========================================================
-   WINTERDIENST V1 · 2.21.30
+   WINTERDIENST V1 · 2.21.31
    SOP + Leistungsumfang + Tourvorlage + Tagestour + Objekteinsatz
    ========================================================= */
 let wsState={sops:[],versions:[],scopes:[],templates:[],stops:[],runs:[],executions:[],areas:[],selectedAreas:[],manualAreas:[],tenantUsers:[]};
@@ -15934,6 +15934,8 @@ async function loadWinterService(){
     wsPopulateObjectSelects(); wsPopulateRunAssignees(); wsRenderSops(); wsRenderTours(); wsRenderRuns();
     const d=document.getElementById('wsRunDate'); if(d&&!d.value)d.value=wsToday();
   }catch(e){console.error(e);alert('Winterdienst konnte nicht geladen werden: '+(e.message||e))}
+
+  if(!wsIsWinterOperative()) wsRenderGroupedRuns();
 }
 
 function wsPopulateObjectSelects(){
@@ -16406,6 +16408,79 @@ async function wsGetOrCreateSeasonScope(objectId, season, validFrom, validUntil,
 }
 
 
+
+function wsRunStatus(r){
+  const xs=wsState.executions.filter(x=>String(x.run_id)===String(r.id));
+  if(xs.some(x=>String(x.status)==='active'))return 'active';
+  if(xs.length && xs.every(x=>String(x.status)==='completed'))return 'completed';
+  return 'planned';
+}
+function wsRunStatusLabel(s){ return s==='active'?'Läuft':s==='completed'?'Abgeschlossen':'Geplant'; }
+function wsRunCard(r){
+  const xs=wsState.executions.filter(x=>String(x.run_id)===String(r.id))
+    .sort((a,b)=>(Number(a.sort_order||0)-Number(b.sort_order||0)));
+  const objName=id=>wsState.objects?.find(o=>String(o.id)===String(id))?.name||'Objekt';
+  const assignee=wsState.assignees?.find(u=>String(u.id)===String(r.assigned_user_id))?.full_name||r.assignee_name||'Nicht zugewiesen';
+  const status=wsRunStatus(r);
+  const title=r.tour_name||r.name||r.template_name||'Tagestour';
+  return `<div class="card" style="margin:10px 0;padding:14px">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
+      <div>
+        <strong>${wsEsc(r.service_date||'')} · ${wsEsc(title)}</strong>
+        <div class="muted" style="margin-top:4px">${xs.length} Objekt${xs.length===1?'':'e'} · Ausgeführt von: ${wsEsc(assignee)}</div>
+      </div>
+      <span class="badge">${wsEsc(wsRunStatusLabel(status))}</span>
+    </div>
+    <div style="margin-top:10px">${xs.map((x,i)=>`<button class="btn secondary" style="margin:3px 6px 3px 0" onclick="wsOpenExecution('${x.id}')">${i+1}. ${wsEsc(objName(x.object_id))}</button>`).join('')}</div>
+  </div>`;
+}
+function wsRenderGroupedRuns(){
+  const host=document.getElementById('wsRunsList');
+  if(!host)return;
+  const today=wsToday();
+  const futureLimit=new Date(today+'T00:00:00'); futureLimit.setDate(futureLimit.getDate()+14);
+  const limit=futureLimit.toISOString().slice(0,10);
+  const runs=[...wsState.runs].sort((a,b)=>String(a.service_date||'').localeCompare(String(b.service_date||'')));
+  const current=runs.filter(r=>wsRunStatus(r)==='active' || String(r.service_date)===today);
+  const planned=runs.filter(r=>wsRunStatus(r)==='planned' && String(r.service_date)>today && String(r.service_date)<=limit);
+  const history=runs.filter(r=>wsRunStatus(r)==='completed' || String(r.service_date)<today);
+  const later=runs.filter(r=>wsRunStatus(r)==='planned' && String(r.service_date)>limit);
+
+  host.innerHTML=`
+    <section style="margin-top:18px">
+      <h3>Aktuelle Einsätze</h3>
+      ${current.map(wsRunCard).join('')||'<div class="muted">Keine aktuellen Einsätze.</div>'}
+    </section>
+    <section style="margin-top:22px">
+      <h3>Geplante Einsätze · nächste 14 Tage</h3>
+      ${planned.map(wsRunCard).join('')||'<div class="muted">Keine geplanten Einsätze in den nächsten 14 Tagen.</div>'}
+      ${later.length?`<details style="margin-top:12px"><summary>Weitere geplante Einsätze (${later.length})</summary>${later.map(wsRunCard).join('')}</details>`:''}
+    </section>
+    <details style="margin-top:22px">
+      <summary><strong>Historie</strong> · ${history.length} abgeschlossene/vergangene Einsätze</summary>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:14px 0">
+        <label>Saison<input id="wsHistSeason" placeholder="z. B. 2026/27" oninput="wsFilterHistory()"></label>
+        <label>Tour<input id="wsHistTour" placeholder="Tourname" oninput="wsFilterHistory()"></label>
+        <label>Mitarbeiter<input id="wsHistEmployee" placeholder="Name" oninput="wsFilterHistory()"></label>
+      </div>
+      <div id="wsHistoryRuns">${history.map(wsRunCard).join('')||'<div class="muted">Noch keine Historie.</div>'}</div>
+    </details>`;
+}
+function wsFilterHistory(){
+  const season=(document.getElementById('wsHistSeason')?.value||'').toLowerCase().trim();
+  const tour=(document.getElementById('wsHistTour')?.value||'').toLowerCase().trim();
+  const emp=(document.getElementById('wsHistEmployee')?.value||'').toLowerCase().trim();
+  const hist=wsState.runs.filter(r=>wsRunStatus(r)==='completed' || String(r.service_date)<wsToday()).filter(r=>{
+    const d=String(r.service_date||'');
+    const y=Number(d.slice(0,4)||0), m=Number(d.slice(5,7)||0);
+    const seasonText=m>=7?`${y}/${String(y+1).slice(-2)}`:`${y-1}/${String(y).slice(-2)}`;
+    const title=String(r.tour_name||r.name||r.template_name||'').toLowerCase();
+    const assignee=String(wsState.assignees?.find(u=>String(u.id)===String(r.assigned_user_id))?.full_name||r.assignee_name||'').toLowerCase();
+    return (!season||seasonText.toLowerCase().includes(season)) && (!tour||title.includes(tour)) && (!emp||assignee.includes(emp));
+  });
+  const el=document.getElementById('wsHistoryRuns'); if(el)el.innerHTML=hist.map(wsRunCard).join('')||'<div class="muted">Keine passenden Einsätze.</div>';
+}
+
 function wsIsWinterOperative(){
   const role=String(currentMembership?.role||currentProfile?.role||'');
   return ['object_manager','employee'].includes(role);
@@ -16448,25 +16523,21 @@ function wsRenderMyWinterOrders(){
   const root=document.getElementById('winterServiceContent')||document.getElementById('winterServiceView')||document.querySelector('[data-ws-content]');
   if(!root)return;
   const runs=wsMyRuns();
-  const runIds=new Set(runs.map(r=>String(r.id)));
-  const executions=wsState.executions.filter(x=>runIds.has(String(x.run_id)));
-  const objName=id=>wsState.objects?.find(o=>String(o.id)===String(id))?.name||'Objekt';
-  const cards=runs.map(r=>{
-    const xs=executions.filter(x=>String(x.run_id)===String(r.id)).sort((a,b)=>(Number(a.sort_order||0)-Number(b.sort_order||0)));
-    const open=xs.filter(x=>!['completed','cancelled'].includes(String(x.status||'')));
-    const target=open[0]||xs[0];
-    return `<div class="card" style="margin-bottom:12px">
-      <div class="muted">${wsEsc(r.service_date||'')} · ${wsEsc(r.start_time||'')}</div>
-      <h3 style="margin:6px 0">${wsEsc(r.tour_name||r.name||'Winterdienstauftrag')}</h3>
-      <div>${xs.map(x=>`<div style="padding:5px 0">${wsEsc(objName(x.object_id))} · ${wsEsc(x.status||'offen')}</div>`).join('')}</div>
-      ${target?`<button class="btn primary" onclick="wsOpenExecution('${target.id}')">${open.length?'Auftrag öffnen':'Dokumentation ansehen'}</button>`:''}
-    </div>`;
-  }).join('');
+  const today=wsToday();
+  const openRuns=runs.filter(r=>wsRunStatus(r)!=='completed' && String(r.service_date)>=today);
+  const activeRuns=runs.filter(r=>wsRunStatus(r)==='active');
+  const nextRuns=openRuns.filter(r=>wsRunStatus(r)!=='active').slice(0,1);
+  const visible=[...activeRuns,...nextRuns].filter((r,i,a)=>a.findIndex(z=>String(z.id)===String(r.id))===i);
+  const history=runs.filter(r=>wsRunStatus(r)==='completed' || String(r.service_date)<today);
   root.innerHTML=`<section class="panel">
     <div class="eyebrow">WINTERDIENST</div>
-    <h2>Meine Winterdienstaufträge</h2>
-    <p class="muted">Hier sehen Sie ausschließlich die Ihnen zugewiesenen Winterdiensteinsätze.</p>
-    ${cards||'<div class="empty">Aktuell ist Ihnen kein Winterdienstauftrag zugewiesen.</div>'}
+    <h2>Mein Winterdienst</h2>
+    <p class="muted">Aktueller und nächster persönlicher Auftrag.</p>
+    ${visible.map(wsRunCard).join('')||'<div class="empty">Aktuell ist Ihnen kein Winterdienstauftrag zugewiesen.</div>'}
+    <details style="margin-top:18px">
+      <summary>Meine Historie (${history.length})</summary>
+      ${history.map(wsRunCard).join('')||'<div class="muted">Noch keine abgeschlossenen Einsätze.</div>'}
+    </details>
   </section>`;
 }
 
