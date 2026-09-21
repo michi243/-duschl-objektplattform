@@ -1491,6 +1491,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <nav>
 <button class="primary" id="navDashboard" onclick="showSection('dashboard')"><span class="nav-icon">⌂</span><span>Dashboard</span></button>
 <button id="navObjects" onclick="showSection('objects')"><span class="nav-icon">▦</span><span>Objekte</span></button>
+<button id="navWinterService" onclick="showSection('winterService')"><span class="nav-icon">❄</span><span>Winterdienst</span></button>
 <button id="navFindings" onclick="showSection('findings')"><span class="nav-icon">▤</span><span>Dokumentation</span></button>
 <button id="navResidentReports" onclick="showSection('residentReports')"><span class="nav-icon">◯</span><span>Meldungen</span><span class="badge nav-count" id="residentReportNavCount">0</span></button>
 <button id="navDecisions" onclick="showSection('decisions')"><span class="nav-icon">✓</span><span>Entscheidungen</span><span class="badge nav-count" id="decisionNavCount">0</span></button>
@@ -2069,6 +2070,75 @@ body.public-report-mode>#photoViewer{display:none!important}
 </div>
 </section>
 
+
+
+<section class="section" id="winterService">
+  <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
+    <div>
+      <h2 style="margin:0">Winterdienst</h2>
+      <div class="muted" style="margin-top:6px">SOP · Leistungsumfang · Touren · Einsätze</div>
+    </div>
+    <button type="button" onclick="loadWinterService()">↻ Aktualisieren</button>
+  </div>
+
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card">
+      <h3>SOP-Verwaltung</h3>
+      <div class="muted">Freigegebene SOP-Versionen werden bei neuen Einsätzen festgeschrieben.</div>
+      <div id="wsSopList" style="margin-top:12px"><span class="muted">Wird geladen …</span></div>
+      <div class="grid2" style="margin-top:14px">
+        <label>Dokumentennummer<input id="wsSopNumber" value="SOP-006"/></label>
+        <label>Titel<input id="wsSopTitle" value="Winterdienst"/></label>
+        <label>Version<input id="wsSopVersion" value="1.1"/></label>
+        <label>Gültig ab<input id="wsSopValidFrom" type="date" value="2026-11-01"/></label>
+      </div>
+      <label style="margin-top:10px">SOP-Datei<input id="wsSopFile" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"/></label>
+      <div class="row" style="margin-top:10px"><button class="primary" type="button" onclick="wsSaveSop()">SOP speichern / Version freigeben</button></div>
+    </div>
+
+    <div class="card">
+      <h3>Objekt-Leistungsumfang</h3>
+      <div class="grid2">
+        <label>Objekt<select id="wsScopeObject"></select></label>
+        <label>Saison<input id="wsScopeSeason" value="2026/27"/></label>
+        <label>Gültig von<input id="wsScopeFrom" type="date" value="2026-11-01"/></label>
+        <label>Gültig bis<input id="wsScopeUntil" type="date" value="2027-03-31"/></label>
+      </div>
+      <div class="row" style="margin-top:10px"><button type="button" onclick="wsLoadAreasForScope()">Bereiche laden</button></div>
+      <div id="wsScopeAreas" style="margin-top:10px"><span class="muted">Objekt wählen und Bereiche laden.</span></div>
+      <div class="row" style="margin-top:10px"><button class="primary" type="button" onclick="wsSaveScope()">Leistungsumfang speichern</button></div>
+    </div>
+  </div>
+
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card">
+      <h3>Tourvorlagen</h3>
+      <div class="grid2">
+        <label>Name<input id="wsTourName" placeholder="z. B. Tour Nord"/></label>
+        <label>Startzeit<input id="wsTourStart" type="time" value="05:00"/></label>
+      </div>
+      <label style="margin-top:10px">Objekte in Reihenfolge<select id="wsTourObjects" multiple size="7"></select></label>
+      <div class="muted" style="margin-top:5px">Mehrfachauswahl in der gewünschten Reihenfolge anklicken; gespeichert wird die aktuelle Listenreihenfolge der ausgewählten Objekte.</div>
+      <div class="row" style="margin-top:10px"><button class="primary" type="button" onclick="wsSaveTourTemplate()">Tourvorlage speichern</button></div>
+      <div id="wsTourList" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card">
+      <h3>Winterdiensteinsatz</h3>
+      <div class="grid2">
+        <label>Tourvorlage<select id="wsRunTemplate"></select></label>
+        <label>Datum<input id="wsRunDate" type="date"/></label>
+      </div>
+      <div class="row" style="margin-top:10px"><button class="primary" type="button" onclick="wsCreateRun()">Tagestour erzeugen</button></div>
+      <div id="wsRunList" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3>Aktiver Objekteinsatz</h3>
+    <div id="wsExecutionPanel"><span class="muted">Noch kein Einsatz geöffnet.</span></div>
+  </div>
+</section>
 
 <section class="section" id="notificationSettings">
   <div class="row space">
@@ -3544,7 +3614,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    UNVERÄNDERT: Rollen/RLS, Objektzugriffe, Findings, Entscheidungen, Messaging, Routing, Empfängerermittlung, Digest, Deep-Link-Logik und Frontend-Prozesse.
    BACKEND: Edge Function process-notification-outbox aktualisieren; additive Anpassung von notify_work_order_created_v1 empfohlen. Keine Tabellen-/RLS-Änderung.
 */
-const APP_VERSION='2.21.15'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.16'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -10471,7 +10541,7 @@ function showSection(id){
   document.querySelectorAll('#platformBottomNav [data-pa-nav]').forEach(b=>b.classList.toggle('active',b.getAttribute('data-pa-nav')===id));
   if(id==='objects'){renderObjectsDirect();try{renderObjects();}catch(e){console.error('Detail-Renderer Objektseite fehlgeschlagen',e);}}
   if(id==='platformUsers' && isAdminRole() && !isPlatformTenantMode()){refreshPlatformOrphanUserCard();}
-  if(id==='dashboard'&&isAdminRole()){loadPlatformSystemStatus();}if(id==='partnerDirectory'){loadPartnerDirectory();}if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='externalOrders')cloudLoadExternalOrders();if(id==='users')loadUserAdminData();
+  if(id==='dashboard'&&isAdminRole()){loadPlatformSystemStatus();}if(id==='partnerDirectory'){loadPartnerDirectory();}if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='externalOrders')cloudLoadExternalOrders();if(id==='users')loadUserAdminData();if(id==='winterService')loadWinterService();
 }
 function priorityLabel(p){
   return ({P1:'Sofort',P2:'Dringend',P3:'Planbar',P4:'Beobachten'})[p]||p||'';
@@ -15709,6 +15779,220 @@ document.addEventListener('click',()=>setTimeout(dsRefreshDataMenuButton,20));
 </div>
 <script>
 document.addEventListener('DOMContentLoaded',prefillLoginEmailFromUrl);
+
+/* =========================================================
+   WINTERDIENST V1 · 2.21.16
+   SOP + Leistungsumfang + Tourvorlage + Tagestour + Objekteinsatz
+   ========================================================= */
+let wsState={sops:[],versions:[],scopes:[],templates:[],stops:[],runs:[],executions:[],areas:[]};
+
+function wsOrg(){const id=currentOrganizationId();if(!id)throw new Error('Kein aktiver Mandant.');return id}
+function wsObjects(){return (db?.objects||[]).filter(o=>o.active!==false)}
+function wsEsc(v){return esc(v??'')}
+function wsToday(){return new Date().toISOString().slice(0,10)}
+function wsUuid(){return crypto.randomUUID()}
+function wsStatusLabel(v){return ({planned:'Geplant',active:'Läuft',completed:'Abgeschlossen',cancelled:'Abgebrochen'})[v]||v||'—'}
+
+async function loadWinterService(){
+  try{
+    const org=wsOrg();
+    const [sops,versions,scopes,templates,stops,runs,executions]=await Promise.all([
+      cloudRequest(`sops?select=*&organization_id=eq.${encodeURIComponent(org)}&order=document_number.asc`),
+      cloudRequest(`sop_versions?select=*&organization_id=eq.${encodeURIComponent(org)}&order=created_at.desc`),
+      cloudRequest(`winter_service_object_scopes?select=*&organization_id=eq.${encodeURIComponent(org)}&order=created_at.desc`),
+      cloudRequest(`winter_service_tour_templates?select=*&organization_id=eq.${encodeURIComponent(org)}&order=name.asc`),
+      cloudRequest(`winter_service_tour_stops?select=*&organization_id=eq.${encodeURIComponent(org)}&order=sort_order.asc`),
+      cloudRequest(`winter_service_runs?select=*&organization_id=eq.${encodeURIComponent(org)}&order=service_date.desc,created_at.desc`),
+      cloudRequest(`winter_service_executions?select=*&organization_id=eq.${encodeURIComponent(org)}&order=created_at.desc`)
+    ]);
+    wsState={...wsState,sops:sops||[],versions:versions||[],scopes:scopes||[],templates:templates||[],stops:stops||[],runs:runs||[],executions:executions||[]};
+    wsPopulateObjectSelects(); wsRenderSops(); wsRenderTours(); wsRenderRuns();
+    const d=document.getElementById('wsRunDate'); if(d&&!d.value)d.value=wsToday();
+  }catch(e){console.error(e);alert('Winterdienst konnte nicht geladen werden: '+(e.message||e))}
+}
+
+function wsPopulateObjectSelects(){
+  const opts=wsObjects().map(o=>`<option value="${wsEsc(o.id)}">${wsEsc(o.name)}</option>`).join('');
+  ['wsScopeObject','wsTourObjects'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=opts});
+  const rt=document.getElementById('wsRunTemplate');
+  if(rt)rt.innerHTML='<option value="">Tour wählen …</option>'+wsState.templates.filter(t=>t.active!==false).map(t=>`<option value="${wsEsc(t.id)}">${wsEsc(t.name)}</option>`).join('');
+}
+function wsRenderSops(){
+  const el=document.getElementById('wsSopList'); if(!el)return;
+  if(!wsState.sops.length){el.innerHTML='<div class="empty">Noch keine SOP angelegt.</div>';return}
+  el.innerHTML=wsState.sops.map(s=>{
+    const vv=wsState.versions.filter(v=>v.sop_id===s.id);
+    const active=vv.find(v=>v.status==='approved')||vv[0];
+    return `<div class="card" style="padding:10px;margin:8px 0"><strong>${wsEsc(s.document_number)} · ${wsEsc(s.title)}</strong><div class="muted">${active?`Version ${wsEsc(active.version)} · ${wsEsc(active.status)} · gültig ab ${wsEsc(active.valid_from||'—')}`:'Keine Version'}</div></div>`;
+  }).join('');
+}
+
+async function wsUploadSopFile(sopId,versionId,file){
+  if(!file)return '';
+  const safe=(file.name||'sop').replace(/[^a-zA-Z0-9._-]+/g,'_');
+  const path=`${wsOrg()}/sops/${sopId}/${versionId}/${safe}`;
+  await cloudMediaPut(path,file);
+  return path;
+}
+async function wsSaveSop(){
+  try{
+    const org=wsOrg(), number=document.getElementById('wsSopNumber').value.trim(), title=document.getElementById('wsSopTitle').value.trim();
+    const version=document.getElementById('wsSopVersion').value.trim(), valid=document.getElementById('wsSopValidFrom').value;
+    if(!number||!title||!version||!valid)throw new Error('Dokumentennummer, Titel, Version und Gültig-ab sind Pflicht.');
+    let sop=wsState.sops.find(x=>x.document_number.toLowerCase()===number.toLowerCase());
+    if(!sop){
+      const id=wsUuid();
+      const rows=await cloudRequest('sops',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({id,organization_id:org,document_number:number,title,scope:'Hausmeisterservice',active:true,created_by:currentUserId()})});
+      sop=rows?.[0]||{id,organization_id:org,document_number:number,title};
+    }
+    if(wsState.versions.some(v=>v.sop_id===sop.id&&v.version===version))throw new Error('Diese SOP-Version existiert bereits.');
+    const vid=wsUuid(), file=document.getElementById('wsSopFile').files?.[0]||null;
+    const storagePath=await wsUploadSopFile(sop.id,vid,file);
+    await cloudRequest(`sop_versions?sop_id=eq.${encodeURIComponent(sop.id)}&status=eq.approved`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'superseded',superseded_at:new Date().toISOString()})});
+    await cloudRequest('sop_versions',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({
+      id:vid,sop_id:sop.id,organization_id:org,version,status:'approved',valid_from:valid,approved_at:new Date().toISOString(),approved_by:currentUserId(),storage_path:storagePath||null,original_filename:file?.name||null,created_by:currentUserId()
+    })});
+    await loadWinterService(); alert('SOP-Version freigegeben.');
+  }catch(e){alert('SOP konnte nicht gespeichert werden: '+(e.message||e))}
+}
+
+async function wsLoadAreasForScope(){
+  try{
+    const objectId=document.getElementById('wsScopeObject').value;
+    if(!objectId)throw new Error('Objekt wählen.');
+    const areas=await cloudRequest(`object_areas?select=*&object_id=eq.${encodeURIComponent(objectId)}&active=eq.true&order=sort_order.asc,name.asc`);
+    wsState.areas=areas||[];
+    const el=document.getElementById('wsScopeAreas');
+    el.innerHTML=wsState.areas.length?wsState.areas.map(a=>`
+      <div class="card" style="padding:9px;margin:7px 0">
+        <strong>${wsEsc(a.name)}</strong>
+        <div class="row" style="gap:16px;margin-top:7px;flex-wrap:wrap">
+          <label class="row" style="align-items:center"><input type="checkbox" data-ws-area="${wsEsc(a.id)}" data-kind="clear" style="width:auto" checked> Räumen</label>
+          <label class="row" style="align-items:center"><input type="checkbox" data-ws-area="${wsEsc(a.id)}" data-kind="grit" style="width:auto" checked> Streuen</label>
+          <input data-ws-note="${wsEsc(a.id)}" placeholder="Besonderheit / Hinweis" style="flex:1;min-width:180px">
+        </div>
+      </div>`).join(''):'<div class="empty">Für dieses Objekt sind keine aktiven Bereiche angelegt.</div>';
+  }catch(e){alert(e.message||e)}
+}
+async function wsSaveScope(){
+  try{
+    const org=wsOrg(), objectId=document.getElementById('wsScopeObject').value, season=document.getElementById('wsScopeSeason').value.trim();
+    if(!objectId||!season)throw new Error('Objekt und Saison sind Pflicht.');
+    const approved=wsState.versions.find(v=>v.status==='approved');
+    if(!approved)throw new Error('Zuerst eine freigegebene Winterdienst-SOP anlegen.');
+    const id=wsUuid();
+    await cloudRequest('winter_service_object_scopes',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({
+      id,organization_id:org,object_id:objectId,season,valid_from:document.getElementById('wsScopeFrom').value||null,valid_until:document.getElementById('wsScopeUntil').value||null,sop_version_id:approved.id,active:true,created_by:currentUserId()
+    })});
+    const rows=[];
+    for(const a of wsState.areas){
+      const clear=document.querySelector(`[data-ws-area="${a.id}"][data-kind="clear"]`)?.checked===true;
+      const grit=document.querySelector(`[data-ws-area="${a.id}"][data-kind="grit"]`)?.checked===true;
+      if(!clear&&!grit)continue;
+      rows.push({id:wsUuid(),organization_id:org,scope_id:id,object_area_id:a.id,clear_snow:clear,grit,sort_order:a.sort_order||0,notes:document.querySelector(`[data-ws-note="${a.id}"]`)?.value?.trim()||null,active:true});
+    }
+    if(rows.length)await cloudRequest('winter_service_scope_areas',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(rows)});
+    await loadWinterService(); alert('Winterdienst-Leistungsumfang gespeichert.');
+  }catch(e){alert('Leistungsumfang konnte nicht gespeichert werden: '+(e.message||e))}
+}
+
+async function wsSaveTourTemplate(){
+  try{
+    const org=wsOrg(), name=document.getElementById('wsTourName').value.trim(), start=document.getElementById('wsTourStart').value||null;
+    const selected=[...document.getElementById('wsTourObjects').selectedOptions].map(o=>o.value);
+    if(!name||!selected.length)throw new Error('Name und mindestens ein Objekt sind Pflicht.');
+    const id=wsUuid();
+    await cloudRequest('winter_service_tour_templates',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({id,organization_id:org,name,default_start_time:start,active:true,created_by:currentUserId()})});
+    await cloudRequest('winter_service_tour_stops',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(selected.map((object_id,i)=>({id:wsUuid(),organization_id:org,tour_template_id:id,object_id,sort_order:i+1,active:true})))});
+    document.getElementById('wsTourName').value=''; await loadWinterService(); alert('Tourvorlage gespeichert.');
+  }catch(e){alert('Tourvorlage konnte nicht gespeichert werden: '+(e.message||e))}
+}
+function wsRenderTours(){
+  const el=document.getElementById('wsTourList');if(!el)return;
+  el.innerHTML=wsState.templates.length?wsState.templates.map(t=>{
+    const stops=wsState.stops.filter(s=>s.tour_template_id===t.id).sort((a,b)=>a.sort_order-b.sort_order);
+    const names=stops.map(s=>wsObjects().find(o=>o.id===s.object_id)?.name||'Objekt').join(' → ');
+    return `<div class="card" style="padding:10px;margin:8px 0"><strong>${wsEsc(t.name)}</strong><div class="muted">${wsEsc(t.default_start_time||'—')} · ${wsEsc(names||'keine Stopps')}</div></div>`;
+  }).join(''):'<div class="empty">Noch keine Tourvorlage.</div>';
+}
+async function wsCreateRun(){
+  try{
+    const org=wsOrg(), tid=document.getElementById('wsRunTemplate').value, date=document.getElementById('wsRunDate').value||wsToday();
+    const template=wsState.templates.find(t=>t.id===tid); if(!template)throw new Error('Tourvorlage wählen.');
+    const stops=wsState.stops.filter(s=>s.tour_template_id===tid&&s.active!==false).sort((a,b)=>a.sort_order-b.sort_order);
+    if(!stops.length)throw new Error('Tourvorlage enthält keine Objekte.');
+    const runId=wsUuid();
+    await cloudRequest('winter_service_runs',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({id:runId,organization_id:org,tour_template_id:tid,service_date:date,status:'planned',planned_start_time:template.default_start_time,created_by:currentUserId()})});
+    const ex=[];
+    for(const s of stops){
+      const scope=wsState.scopes.find(x=>x.object_id===s.object_id&&x.active!==false);
+      ex.push({id:wsUuid(),organization_id:org,run_id:runId,object_id:s.object_id,scope_id:scope?.id||null,sop_version_id:scope?.sop_version_id||null,sort_order:s.sort_order,status:'planned',assigned_user_id:currentUserId(),created_by:currentUserId()});
+    }
+    await cloudRequest('winter_service_executions',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(ex)});
+    await loadWinterService(); alert('Tagestour erzeugt.');
+  }catch(e){alert('Tagestour konnte nicht erzeugt werden: '+(e.message||e))}
+}
+function wsRenderRuns(){
+  const el=document.getElementById('wsRunList');if(!el)return;
+  el.innerHTML=wsState.runs.length?wsState.runs.slice(0,10).map(r=>{
+    const t=wsState.templates.find(x=>x.id===r.tour_template_id);
+    const ex=wsState.executions.filter(x=>x.run_id===r.id).sort((a,b)=>a.sort_order-b.sort_order);
+    return `<div class="card" style="padding:10px;margin:8px 0"><strong>${wsEsc(r.service_date)} · ${wsEsc(t?.name||'Tour')}</strong><div class="muted">${wsEsc(wsStatusLabel(r.status))} · ${ex.length} Objekte</div><div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">${ex.map(x=>{const o=wsObjects().find(z=>z.id===x.object_id);return `<button type="button" onclick="wsOpenExecution('${wsEsc(x.id)}')">${x.sort_order}. ${wsEsc(o?.name||'Objekt')} · ${wsEsc(wsStatusLabel(x.status))}</button>`}).join('')}</div></div>`;
+  }).join(''):'<div class="empty">Noch keine Tagestour.</div>';
+}
+async function wsOpenExecution(id){
+  try{
+    const x=wsState.executions.find(e=>e.id===id); if(!x)throw new Error('Einsatz nicht gefunden.');
+    const o=wsObjects().find(z=>z.id===x.object_id);
+    let scopeAreas=[];
+    if(x.scope_id)scopeAreas=await cloudRequest(`winter_service_scope_areas?select=*,object_areas(name)&scope_id=eq.${encodeURIComponent(x.scope_id)}&active=eq.true&order=sort_order.asc`);
+    const media=await cloudRequest(`winter_service_execution_media?select=*&execution_id=eq.${encodeURIComponent(id)}&order=created_at.asc`);
+    const panel=document.getElementById('wsExecutionPanel');
+    panel.innerHTML=`
+      <div class="row space"><div><strong>${wsEsc(o?.name||'Objekt')}</strong><div class="muted">Status: ${wsEsc(wsStatusLabel(x.status))}</div></div>${x.status==='planned'?`<button class="primary" onclick="wsStartExecution('${id}')">Einsatz starten</button>`:''}</div>
+      ${x.status!=='planned'?`
+      <div class="grid2" style="margin-top:12px">
+        <div><div class="muted">Beginn</div><strong>${wsEsc(x.started_at?new Date(x.started_at).toLocaleString('de-DE'):'—')}</strong></div>
+        <div><div class="muted">Wetter</div><strong>${wsEsc(x.weather_summary||'Noch nicht automatisch angebunden')}</strong></div>
+      </div>
+      <div class="grid2" style="margin-top:12px">
+        <label>Vorherfoto<input id="wsBeforePhoto" type="file" accept="image/*" capture="environment"></label>
+        <label>Nachherfoto<input id="wsAfterPhoto" type="file" accept="image/*" capture="environment"></label>
+      </div>
+      <div style="margin-top:12px"><strong>Leistungsumfang</strong>${scopeAreas.length?scopeAreas.map(a=>`<label class="row" style="align-items:center;margin-top:7px"><input type="checkbox" data-ws-done="${wsEsc(a.id)}" style="width:auto"> <span>${wsEsc(a.object_areas?.name||'Bereich')} · ${a.clear_snow?'Räumen':''}${a.clear_snow&&a.grit?' + ':''}${a.grit?'Streuen':''}${a.notes?` · ${wsEsc(a.notes)}`:''}</span></label>`).join(''):'<div class="muted">Kein strukturierter Leistungsumfang hinterlegt.</div>'}</div>
+      <label style="margin-top:12px">Besonderheiten / Abweichungen<textarea id="wsExecutionNote" rows="3"></textarea></label>
+      <div class="row" style="margin-top:12px;gap:8px"><button class="primary" onclick="wsCompleteExecution('${id}')">Einsatz abschließen</button></div>
+      <div class="muted" style="margin-top:8px">Vorher- und Nachherfoto sind für den Abschluss verpflichtend.</div>
+      `:''}`;
+  }catch(e){alert(e.message||e)}
+}
+async function wsStartExecution(id){
+  try{
+    await cloudRequest(`winter_service_executions?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'active',started_at:new Date().toISOString(),assigned_user_id:currentUserId()})});
+    const x=wsState.executions.find(e=>e.id===id); if(x){x.status='active';x.started_at=new Date().toISOString()}
+    wsOpenExecution(id); wsRenderRuns();
+  }catch(e){alert('Einsatz konnte nicht gestartet werden: '+(e.message||e))}
+}
+async function wsStoreExecutionPhoto(executionId,objectId,phase,file){
+  if(!file)throw new Error(`${phase==='before'?'Vorher':'Nachher'}foto fehlt.`);
+  const mid=wsUuid(), safe=(file.name||`${phase}.jpg`).replace(/[^a-zA-Z0-9._-]+/g,'_');
+  const path=`${wsOrg()}/winterdienst/${executionId}/${phase}/${mid}_${safe}`;
+  await cloudMediaPut(path,file);
+  await cloudRequest('winter_service_execution_media',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({id:mid,organization_id:wsOrg(),execution_id:executionId,object_id:objectId,phase,storage_path:path,original_filename:file.name||null,mime_type:file.type||null,created_by:currentUserId()})});
+}
+async function wsCompleteExecution(id){
+  try{
+    const x=wsState.executions.find(e=>e.id===id);if(!x)throw new Error('Einsatz nicht gefunden.');
+    const before=document.getElementById('wsBeforePhoto').files?.[0], after=document.getElementById('wsAfterPhoto').files?.[0];
+    if(!before||!after)throw new Error('Vorher- und Nachherfoto sind verpflichtend.');
+    const required=[...document.querySelectorAll('[data-ws-done]')]; if(required.length&&required.some(c=>!c.checked))throw new Error('Bitte alle beauftragten Bereiche bestätigen.');
+    await wsStoreExecutionPhoto(id,x.object_id,'before',before); await wsStoreExecutionPhoto(id,x.object_id,'after',after);
+    const note=document.getElementById('wsExecutionNote').value.trim();
+    await cloudRequest(`winter_service_executions?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'completed',completed_at:new Date().toISOString(),completion_note:note||null,completed_by:currentUserId()})});
+    await loadWinterService(); document.getElementById('wsExecutionPanel').innerHTML='<div class="empty">Einsatz abgeschlossen. Nächstes Objekt aus der Tagestour öffnen.</div>';
+  }catch(e){alert('Einsatz konnte nicht abgeschlossen werden: '+(e.message||e))}
+}
+
 </script>
 </body>
 </html>
