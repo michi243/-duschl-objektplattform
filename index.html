@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.13</title>
+<title>Duschl Service – Objektplattform v2.21.14</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1456,7 +1456,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <h2 style="margin-top:0">Duschl Service</h2>
 <div class="muted" style="margin-bottom:14px">Zentrale Objektplattform · Supabase Test</div>
 <label>E-Mail</label>
-<input autocomplete="username" id="authEmail" type="email" value="Duschl-service@gmx.de"/>
+<input autocomplete="username" id="authEmail" type="email"/>
 <label>Passwort</label>
 <input autocomplete="current-password" id="authPassword" placeholder="Supabase-Benutzerpasswort" type="password"/>
 <div class="muted" id="authMessage" style="margin:10px 0"></div>
@@ -3544,7 +3544,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    UNVERÄNDERT: Rollen/RLS, Objektzugriffe, Findings, Entscheidungen, Messaging, Routing, Empfängerermittlung, Digest, Deep-Link-Logik und Frontend-Prozesse.
    BACKEND: Edge Function process-notification-outbox aktualisieren; additive Anpassung von notify_work_order_created_v1 empfohlen. Keine Tabellen-/RLS-Änderung.
 */
-const APP_VERSION='2.21.13'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.14'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
