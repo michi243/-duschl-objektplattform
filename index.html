@@ -3645,7 +3645,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    UNVERÄNDERT: Rollen/RLS, Objektzugriffe, Findings, Entscheidungen, Messaging, Routing, Empfängerermittlung, Digest, Deep-Link-Logik und Frontend-Prozesse.
    BACKEND: Edge Function process-notification-outbox aktualisieren; additive Anpassung von notify_work_order_created_v1 empfohlen. Keine Tabellen-/RLS-Änderung.
 */
-const APP_VERSION='2.21.22'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.23'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -15889,7 +15889,7 @@ document.addEventListener('click',()=>setTimeout(dsRefreshDataMenuButton,20));
 document.addEventListener('DOMContentLoaded',prefillLoginEmailFromUrl);
 
 /* =========================================================
-   WINTERDIENST V1 · 2.21.22
+   WINTERDIENST V1 · 2.21.23
    SOP + Leistungsumfang + Tourvorlage + Tagestour + Objekteinsatz
    ========================================================= */
 let wsState={sops:[],versions:[],scopes:[],templates:[],stops:[],runs:[],executions:[],areas:[],selectedAreas:[],manualAreas:[],tenantUsers:[]};
@@ -16218,6 +16218,7 @@ function wsRenderRuns(){
 }
 async function wsOpenExecution(id){
   try{
+    wsExecutionPhotos.before=null; wsExecutionPhotos.after=null;
     const x=wsState.executions.find(e=>e.id===id); if(!x)throw new Error('Einsatz nicht gefunden.');
     const o=wsObjects().find(z=>z.id===x.object_id);
     let scopeAreas=[];
@@ -16231,12 +16232,30 @@ async function wsOpenExecution(id){
         <div><div class="muted">Beginn</div><strong>${wsEsc(x.started_at?new Date(x.started_at).toLocaleString('de-DE'):'—')}</strong></div>
         <div><div class="muted">Wetter</div><strong>${wsEsc(x.weather_summary||'Noch nicht automatisch angebunden')}</strong></div>
       </div>
-      <div class="grid2" style="margin-top:12px">
-        <label>Vorherfoto<input id="wsBeforePhoto" type="file" accept="image/*" capture="environment"></label>
-        <label>Nachherfoto<input id="wsAfterPhoto" type="file" accept="image/*" capture="environment"></label>
+      <div style="margin-top:14px">
+        <strong>1. Vorherfoto</strong>
+        <div class="muted" style="margin:4px 0 8px">Zustand vor Beginn der Arbeiten dokumentieren.</div>
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <button type="button" class="primary" onclick="document.getElementById('wsBeforeCamera').click()">📷 Foto aufnehmen</button>
+          <button type="button" onclick="document.getElementById('wsBeforeLibrary').click()">Bild auswählen</button>
+        </div>
+        <input id="wsBeforeCamera" type="file" accept="image/*" capture="environment" style="display:none" onchange="wsExecutionPhotoSelected('before',this)">
+        <input id="wsBeforeLibrary" type="file" accept="image/*" style="display:none" onchange="wsExecutionPhotoSelected('before',this)">
+        <div id="wsBeforePreview" style="margin-top:10px"></div>
       </div>
-      <div style="margin-top:12px"><strong>Leistungsumfang</strong>${scopeAreas.length?scopeAreas.map(a=>`<label class="row" style="align-items:center;margin-top:7px"><input type="checkbox" data-ws-done="${wsEsc(a.id)}" style="width:auto"> <span>${wsEsc(a.area_name||a.object_areas?.name||'Bereich')} · ${a.clear_snow?'Räumen':''}${a.clear_snow&&a.grit?' + ':''}${a.grit?'Streuen':''}${a.notes?` · ${wsEsc(a.notes)}`:''}</span></label>`).join(''):'<div class="muted">Kein strukturierter Leistungsumfang hinterlegt.</div>'}</div>
-      <label style="margin-top:12px">Besonderheiten / Abweichungen<textarea id="wsExecutionNote" rows="3"></textarea></label>
+      <div style="margin-top:16px"><strong>2. Leistungsumfang</strong>${scopeAreas.length?scopeAreas.map(a=>`<label class="row" style="align-items:center;margin-top:7px"><input type="checkbox" data-ws-done="${wsEsc(a.id)}" style="width:auto"> <span>${wsEsc(a.area_name||a.object_areas?.name||'Bereich')} · ${a.clear_snow?'Räumen':''}${a.clear_snow&&a.grit?' + ':''}${a.grit?'Streuen':''}${a.notes?` · ${wsEsc(a.notes)}`:''}</span></label>`).join(''):'<div class="muted">Kein strukturierter Leistungsumfang hinterlegt.</div>'}</div>
+      <div style="margin-top:16px">
+        <strong>3. Nachherfoto</strong>
+        <div class="muted" style="margin:4px 0 8px">Ausgeführten Zustand nach Abschluss der Arbeiten dokumentieren.</div>
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <button type="button" class="primary" onclick="document.getElementById('wsAfterCamera').click()">📷 Foto aufnehmen</button>
+          <button type="button" onclick="document.getElementById('wsAfterLibrary').click()">Bild auswählen</button>
+        </div>
+        <input id="wsAfterCamera" type="file" accept="image/*" capture="environment" style="display:none" onchange="wsExecutionPhotoSelected('after',this)">
+        <input id="wsAfterLibrary" type="file" accept="image/*" style="display:none" onchange="wsExecutionPhotoSelected('after',this)">
+        <div id="wsAfterPreview" style="margin-top:10px"></div>
+      </div>
+      <label style="margin-top:16px"><strong>4. Besonderheiten / Abweichungen</strong><textarea id="wsExecutionNote" rows="3"></textarea></label>
       <div class="row" style="margin-top:12px;gap:8px"><button class="primary" onclick="wsCompleteExecution('${id}')">Einsatz abschließen</button></div>
       <div class="muted" style="margin-top:8px">Vorher- und Nachherfoto sind für den Abschluss verpflichtend.</div>
       `:''}`;
@@ -16249,6 +16268,22 @@ async function wsStartExecution(id){
     wsOpenExecution(id); wsRenderRuns();
   }catch(e){alert('Einsatz konnte nicht gestartet werden: '+(e.message||e))}
 }
+const wsExecutionPhotos={before:null,after:null};
+function wsExecutionPhotoSelected(phase,input){
+  const file=input?.files?.[0]||null;
+  if(!file)return;
+  wsExecutionPhotos[phase]=file;
+  const preview=document.getElementById(phase==='before'?'wsBeforePreview':'wsAfterPreview');
+  if(!preview)return;
+  const url=URL.createObjectURL(file);
+  preview.innerHTML=`<div class="card" style="padding:8px;max-width:420px">
+    <img src="${url}" alt="${phase==='before'?'Vorherfoto':'Nachherfoto'}" style="display:block;width:100%;max-height:280px;object-fit:cover;border-radius:10px">
+    <div class="row space" style="margin-top:8px;gap:8px">
+      <span class="muted">${phase==='before'?'Vorherfoto':'Nachherfoto'} ausgewählt</span>
+      <button type="button" onclick="document.getElementById('${phase==='before'?'wsBeforeCamera':'wsAfterCamera'}').click()">Neu aufnehmen</button>
+    </div>
+  </div>`;
+}
 async function wsStoreExecutionPhoto(executionId,objectId,phase,file){
   if(!file)throw new Error(`${phase==='before'?'Vorher':'Nachher'}foto fehlt.`);
   const mid=wsUuid(), safe=(file.name||`${phase}.jpg`).replace(/[^a-zA-Z0-9._-]+/g,'_');
@@ -16259,7 +16294,7 @@ async function wsStoreExecutionPhoto(executionId,objectId,phase,file){
 async function wsCompleteExecution(id){
   try{
     const x=wsState.executions.find(e=>e.id===id);if(!x)throw new Error('Einsatz nicht gefunden.');
-    const before=document.getElementById('wsBeforePhoto').files?.[0], after=document.getElementById('wsAfterPhoto').files?.[0];
+    const before=wsExecutionPhotos.before, after=wsExecutionPhotos.after;
     if(!before||!after)throw new Error('Vorher- und Nachherfoto sind verpflichtend.');
     const required=[...document.querySelectorAll('[data-ws-done]')]; if(required.length&&required.some(c=>!c.checked))throw new Error('Bitte alle beauftragten Bereiche bestätigen.');
     await wsStoreExecutionPhoto(id,x.object_id,'before',before); await wsStoreExecutionPhoto(id,x.object_id,'after',after);
