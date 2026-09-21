@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.12</title>
+<title>Duschl Service – Objektplattform v2.21.13</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3544,7 +3544,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    UNVERÄNDERT: Rollen/RLS, Objektzugriffe, Findings, Entscheidungen, Messaging, Routing, Empfängerermittlung, Digest, Deep-Link-Logik und Frontend-Prozesse.
    BACKEND: Edge Function process-notification-outbox aktualisieren; additive Anpassung von notify_work_order_created_v1 empfohlen. Keine Tabellen-/RLS-Änderung.
 */
-const APP_VERSION='2.21.12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.13'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -9701,6 +9701,20 @@ async function cloudDeleteObject(id){
 // Der Deep Link wird nach dem vollständigen Datenladen verarbeitet. Platform Admins können
 // den Zielmandanten auch dann öffnen, wenn er noch nicht im lokalen Organisations-Cache liegt.
 // Nach dem Mandantenwechsel wird der konkrete Datensatz bei Bedarf erneut serverseitig geladen.
+function prefillLoginEmailFromUrl(){
+  try{
+    const p=new URLSearchParams(location.search);
+    const email=String(p.get('email')||'').trim();
+    if(!email)return;
+    const input=document.getElementById('authEmail');
+    if(input){
+      input.value=email;
+      input.dispatchEvent(new Event('input',{bubbles:true}));
+      input.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+  }catch(_e){}
+}
+
 let notificationDeepLinkHandled=false;
 function notificationDeepLinkFromUrl(){
   const p=new URLSearchParams(location.search);
@@ -9713,6 +9727,7 @@ function clearNotificationDeepLink(){
   const u=new URL(location.href);
   u.searchParams.delete('vorgang');
   u.searchParams.delete('id');
+  u.searchParams.delete('email');
   history.replaceState(null,'',u.pathname+(u.search?u.search:'')+(u.hash||''));
 }
 async function notificationDeepLinkTarget(link){
@@ -15692,5 +15707,8 @@ document.addEventListener('click',()=>setTimeout(dsRefreshDataMenuButton,20));
   <button id="platformBackupNavBtn" type="button" onclick="exportData()"><span>▰</span><small>Sicherung</small></button>
   <button type="button" onclick="cloudLogout()"><span>↪</span><small>Abmelden</small></button>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded',prefillLoginEmailFromUrl);
+</script>
 </body>
 </html>
