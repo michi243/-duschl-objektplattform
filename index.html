@@ -3614,7 +3614,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    UNVERÄNDERT: Rollen/RLS, Objektzugriffe, Findings, Entscheidungen, Messaging, Routing, Empfängerermittlung, Digest, Deep-Link-Logik und Frontend-Prozesse.
    BACKEND: Edge Function process-notification-outbox aktualisieren; additive Anpassung von notify_work_order_created_v1 empfohlen. Keine Tabellen-/RLS-Änderung.
 */
-const APP_VERSION='2.21.16'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.17'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -15781,7 +15781,7 @@ document.addEventListener('click',()=>setTimeout(dsRefreshDataMenuButton,20));
 document.addEventListener('DOMContentLoaded',prefillLoginEmailFromUrl);
 
 /* =========================================================
-   WINTERDIENST V1 · 2.21.16
+   WINTERDIENST V1 · 2.21.17
    SOP + Leistungsumfang + Tourvorlage + Tagestour + Objekteinsatz
    ========================================================= */
 let wsState={sops:[],versions:[],scopes:[],templates:[],stops:[],runs:[],executions:[],areas:[]};
@@ -15835,25 +15835,96 @@ async function wsUploadSopFile(sopId,versionId,file){
   return path;
 }
 async function wsSaveSop(){
+  const friendlyError=(e)=>{
+    const raw=String(e?.message||e||'Unbekannter Fehler');
+    if(/invalid_mime_type|InvalidMimeType|mime type/i.test(raw)) return 'Der Dateityp wird vom Speicher noch nicht unterstützt.';
+    if(/duplicate key|unique constraint/i.test(raw)) return 'Die SOP bzw. diese Version ist bereits vorhanden. Bitte aktualisieren und erneut prüfen.';
+    if(/row-level security|RLS/i.test(raw)) return 'Keine Berechtigung zum Speichern dieser SOP.';
+    return raw;
+  };
   try{
-    const org=wsOrg(), number=document.getElementById('wsSopNumber').value.trim(), title=document.getElementById('wsSopTitle').value.trim();
-    const version=document.getElementById('wsSopVersion').value.trim(), valid=document.getElementById('wsSopValidFrom').value;
+    const org=wsOrg();
+    const number=document.getElementById('wsSopNumber').value.trim();
+    const title=document.getElementById('wsSopTitle').value.trim();
+    const version=document.getElementById('wsSopVersion').value.trim();
+    const valid=document.getElementById('wsSopValidFrom').value;
+    const file=document.getElementById('wsSopFile').files?.[0]||null;
     if(!number||!title||!version||!valid)throw new Error('Dokumentennummer, Titel, Version und Gültig-ab sind Pflicht.');
-    let sop=wsState.sops.find(x=>x.document_number.toLowerCase()===number.toLowerCase());
+    if(!file)throw new Error('Für eine freigegebene SOP ist eine Datei erforderlich.');
+
+    // Authoritative lookup from Supabase, not only from local wsState.
+    const existing=await cloudRequest(
+      `sops?select=*&organization_id=eq.${encodeURIComponent(org)}&document_number=eq.${encodeURIComponent(number)}&limit=1`
+    );
+    let sop=existing?.[0]||null;
+
     if(!sop){
       const id=wsUuid();
-      const rows=await cloudRequest('sops',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({id,organization_id:org,document_number:number,title,scope:'Hausmeisterservice',active:true,created_by:currentUserId()})});
+      const rows=await cloudRequest('sops',{
+        method:'POST',
+        headers:{Prefer:'return=representation'},
+        body:JSON.stringify({
+          id,organization_id:org,document_number:number,title,
+          scope:'Hausmeisterservice',active:true,created_by:currentUserId()
+        })
+      });
       sop=rows?.[0]||{id,organization_id:org,document_number:number,title};
+    }else if(sop.title!==title){
+      await cloudRequest(`sops?id=eq.${encodeURIComponent(sop.id)}`,{
+        method:'PATCH',
+        headers:{Prefer:'return=minimal'},
+        body:JSON.stringify({title,active:true,updated_at:new Date().toISOString()})
+      });
     }
-    if(wsState.versions.some(v=>v.sop_id===sop.id&&v.version===version))throw new Error('Diese SOP-Version existiert bereits.');
-    const vid=wsUuid(), file=document.getElementById('wsSopFile').files?.[0]||null;
-    const storagePath=await wsUploadSopFile(sop.id,vid,file);
-    await cloudRequest(`sop_versions?sop_id=eq.${encodeURIComponent(sop.id)}&status=eq.approved`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'superseded',superseded_at:new Date().toISOString()})});
-    await cloudRequest('sop_versions',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({
-      id:vid,sop_id:sop.id,organization_id:org,version,status:'approved',valid_from:valid,approved_at:new Date().toISOString(),approved_by:currentUserId(),storage_path:storagePath||null,original_filename:file?.name||null,created_by:currentUserId()
-    })});
-    await loadWinterService(); alert('SOP-Version freigegeben.');
-  }catch(e){alert('SOP konnte nicht gespeichert werden: '+(e.message||e))}
+
+    // Check DB for exact version before upload.
+    const duplicate=await cloudRequest(
+      `sop_versions?select=id,status,storage_path&sop_id=eq.${encodeURIComponent(sop.id)}&version=eq.${encodeURIComponent(version)}&limit=1`
+    );
+    if(duplicate?.length)throw new Error(`SOP ${number} Version ${version} ist bereits vorhanden.`);
+
+    // Upload first. Only after successful upload do we change approval states.
+    const vid=wsUuid();
+    let storagePath='';
+    try{
+      storagePath=await wsUploadSopFile(sop.id,vid,file);
+    }catch(uploadError){
+      throw new Error('Datei konnte nicht gespeichert werden: '+friendlyError(uploadError));
+    }
+    if(!storagePath)throw new Error('Datei konnte nicht gespeichert werden.');
+
+    // Create new approved version first. If this fails, no prior approved version is touched.
+    await cloudRequest('sop_versions',{
+      method:'POST',
+      headers:{Prefer:'return=minimal'},
+      body:JSON.stringify({
+        id:vid,sop_id:sop.id,organization_id:org,version,
+        status:'approved',valid_from:valid,
+        approved_at:new Date().toISOString(),
+        approved_by:currentUserId(),
+        storage_path:storagePath,
+        original_filename:file.name||null,
+        created_by:currentUserId()
+      })
+    });
+
+    // Only after the new version exists successfully, supersede older approved versions.
+    await cloudRequest(
+      `sop_versions?sop_id=eq.${encodeURIComponent(sop.id)}&status=eq.approved&id=neq.${encodeURIComponent(vid)}`,
+      {
+        method:'PATCH',
+        headers:{Prefer:'return=minimal'},
+        body:JSON.stringify({status:'superseded',superseded_at:new Date().toISOString()})
+      }
+    );
+
+    await loadWinterService();
+    document.getElementById('wsSopFile').value='';
+    alert(`SOP ${number} Version ${version} wurde gespeichert und freigegeben.`);
+  }catch(e){
+    console.error('wsSaveSop',e);
+    alert('SOP konnte nicht gespeichert werden: '+friendlyError(e));
+  }
 }
 
 async function wsLoadAreasForScope(){
