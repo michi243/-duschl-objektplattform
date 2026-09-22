@@ -2118,9 +2118,9 @@ body.public-report-mode>#photoViewer{display:none!important}
             </select>
           </label>
           <label>Bestehendes Dokument<select id="dmExisting" onchange="dmExistingChanged()"><option value="">Neues Dokument …</option></select></label>
-          <label>Dokument-Nr.<input id="dmCode" placeholder="z. B. MHB-001"></label>
-          <label>Titel<input id="dmTitle" placeholder="z. B. Managementhandbuch Duschl Service"></label>
-          <label>Version<input id="dmVersion" placeholder="z. B. 1.0"></label>
+          <label>Titel<input id="dmTitle" placeholder="z. B. Managementhandbuch Duschl Service" oninput="dmSuggestExisting()"></label>
+          <label>Dokument-Nr.<input id="dmCode" placeholder="wird automatisch vergeben" readonly></label>
+          <label>Version<input id="dmVersion" placeholder="wird vorgeschlagen"></label>
           <label>Gültig ab<input id="dmValidFrom" type="date"></label>
           <label>Nächste Überprüfung<input id="dmReviewDate" type="date"></label>
           <label>Status
@@ -2132,6 +2132,7 @@ body.public-report-mode>#photoViewer{display:none!important}
         </div>
         <label style="margin-top:10px">Änderungsgrund<textarea id="dmChangeReason" rows="2" placeholder="Bei Version 1.0: Erstfreigabe"></textarea></label>
         <label style="margin-top:10px">Dokument<input id="dmFile" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp,.txt"></label>
+        <div id="dmDetectionHint" class="muted" style="margin-top:6px">Dokumentnummer und Version werden systemseitig ermittelt. Bestehende Dokumente erhalten eine neue Version.</div>
         <div class="muted" style="margin-top:6px">Eine Freigabe ist nur mit hinterlegter Datei möglich. Freigegebene Versionen sind unveränderbar.</div>
         <div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">
           <button class="primary" onclick="dmSaveVersion()">Dokumentversion speichern</button>
@@ -3845,7 +3846,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    Deep-Link bleibt über Login erhalten und öffnet nach Datenladen Winterdienst + erste Ausführung der verlinkten Tour.
    UNVERÄNDERT: Rollen/RLS, Tourbearbeitung/-löschung, Mitarbeiterqualifikation, Leistungsumfang, SOP und übrige Fachprozesse.
    BACKEND: Edge Function process-notification-outbox aktualisieren; keine Tabellen-/RLS-/RPC-Änderung. */
-const APP_VERSION='2.21.41'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.42'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -16990,21 +16991,53 @@ async function dmLoad(){
   const sel=document.getElementById('dmExisting');
   if(sel)sel.innerHTML='<option value="">Neues Dokument …</option>'+dmState.documents.map(d=>`<option value="${dmEsc(d.id)}">${dmEsc(d.document_number)} · ${dmEsc(d.title)}</option>`).join('');
   dmRender();
+  if(!document.getElementById('dmExisting')?.value && !document.getElementById('dmVersion')?.value) dmExistingChanged();
  }catch(e){alert('Dokumentenmanagement konnte nicht geladen werden: '+(e.message||e));}
 }
 function dmExistingChanged(){
  const id=document.getElementById('dmExisting')?.value||'',d=dmState.documents.find(x=>x.id===id);
- ['dmCode','dmTitle','dmType'].forEach(x=>{const e=document.getElementById(x);if(e)e.disabled=!!d;});
  if(d){
   document.getElementById('dmCode').value=d.document_number||'';
   document.getElementById('dmTitle').value=d.title||'';
   document.getElementById('dmType').value=d.document_type||'other';
+  document.getElementById('dmVersion').value=dmNextVersion(d.id);
+  document.getElementById('dmDetectionHint').textContent=`Bestehendes Dokument erkannt: ${d.document_number}. Neue Version wird angelegt.`;
  }else{
   document.getElementById('dmCode').value='';
   document.getElementById('dmTitle').value='';
-  document.getElementById('dmType').value='management_manual';
+  document.getElementById('dmVersion').value='1.0';
+  document.getElementById('dmDetectionHint').textContent='Neues Dokument: Dokumentnummer wird beim Speichern automatisch vergeben.';
  }
 }
+
+function dmNorm(v){return String(v||'').trim().toLocaleLowerCase('de-DE').replace(/\s+/g,' ');}
+function dmPrefix(type){
+ return ({management_manual:'MHB',sop:'SOP',work_instruction:'AA',form:'FORM',checklist:'CL',template:'VOR',other:'DOC'})[type]||'DOC';
+}
+function dmNextVersion(documentId){
+ const vv=dmState.versions.filter(v=>v.document_id===documentId).map(v=>String(v.version||''));
+ if(!vv.length)return '1.0';
+ let best=[0,0];
+ for(const v of vv){
+  const m=v.match(/^(\d+)(?:\.(\d+))?$/); if(!m)continue;
+  const x=[Number(m[1]),Number(m[2]||0)];
+  if(x[0]>best[0]||(x[0]===best[0]&&x[1]>best[1]))best=x;
+ }
+ return `${best[0]||1}.${best[1]+1}`;
+}
+function dmSuggestExisting(){
+ const title=dmNorm(document.getElementById('dmTitle')?.value);
+ const type=document.getElementById('dmType')?.value;
+ if(!title)return;
+ const matches=dmState.documents.filter(d=>d.document_type===type&&dmNorm(d.title)===title);
+ if(matches.length===1){
+  const sel=document.getElementById('dmExisting'); sel.value=matches[0].id; dmExistingChanged();
+ }else{
+  const h=document.getElementById('dmDetectionHint');
+  if(h)h.textContent=matches.length>1?'Mehrere gleichnamige Dokumente gefunden – bitte Bestand auswählen.':'Kein identisches Bestandsdokument erkannt. Beim Speichern wird erneut serverseitig geprüft.';
+ }
+}
+
 function dmRender(){
  const el=document.getElementById('dmList');if(!el)return;
  const f=document.getElementById('dmFilterType')?.value||'';
@@ -17052,52 +17085,54 @@ async function dmOpenFile(versionId){
 async function dmSaveVersion(){
  try{
   if(!dmAdmin())throw new Error('Keine Administrationsberechtigung.');
-  const existing=document.getElementById('dmExisting').value;
+  const selected=document.getElementById('dmExisting').value||null;
   const type=document.getElementById('dmType').value;
-  const code=document.getElementById('dmCode').value.trim();
   const title=document.getElementById('dmTitle').value.trim();
-  const version=document.getElementById('dmVersion').value.trim();
+  const requestedVersion=document.getElementById('dmVersion').value.trim()||null;
   const valid_from=document.getElementById('dmValidFrom').value||null;
   const review_date=document.getElementById('dmReviewDate').value||null;
   const status=document.getElementById('dmStatus').value;
   const change_reason=document.getElementById('dmChangeReason').value.trim()||null;
   const file=document.getElementById('dmFile').files?.[0]||null;
-  if(!version||(!existing&&(!code||!title)))throw new Error('Dokument-Nr., Titel und Version vollständig angeben.');
+  if(!title)throw new Error('Titel angeben.');
   if(status==='released'&&!valid_from)throw new Error('Für eine Freigabe ist „Gültig ab“ erforderlich.');
   if(status==='released'&&!file)throw new Error('Eine freigegebene Version benötigt ein Dokument.');
-  let document_id=existing;
-  if(!document_id){
-   document_id=crypto.randomUUID();
-   await cloudRequest('managed_documents',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({
-    id:document_id,organization_id:dmOrg(),document_type:type,document_number:code,title,active:true,created_by:currentUserId()
-   })});
-  }
-  const duplicate=await cloudRequest(`managed_document_versions?select=id&document_id=eq.${encodeURIComponent(document_id)}&version=eq.${encodeURIComponent(version)}&limit=1`);
-  if(duplicate?.length)throw new Error('Diese Dokumentversion existiert bereits.');
-  const version_id=crypto.randomUUID();
+
+  /* Server entscheidet atomar: Bestandsdokument oder neue Nummer. */
+  const prepRows=await cloudRequest('rpc/prepare_managed_document_version_v2',{
+   method:'POST',
+   body:JSON.stringify({
+    p_organization_id:dmOrg(),p_document_type:type,p_title:title,
+    p_selected_document_id:selected,p_requested_version:requestedVersion
+   })
+  });
+  const prep=Array.isArray(prepRows)?prepRows[0]:prepRows;
+  if(!prep?.document_id||!prep?.version_id)throw new Error('Dokument konnte nicht vorbereitet werden.');
+
   let storage_path=null;
   if(file){
    const safe=(file.name||'dokument').replace(/[^a-zA-Z0-9._-]+/g,'_');
-   storage_path=`${dmOrg()}/${document_id}/${version_id}/${safe}`;
+   storage_path=`${dmOrg()}/${prep.document_id}/${prep.version_id}/${safe}`;
    await dmStoragePut(storage_path,file);
   }
-  try{
-   await cloudRequest('managed_document_versions',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({
-    id:version_id,organization_id:dmOrg(),document_id,version,status,valid_from,review_date,change_reason,
-    storage_path,original_filename:file?.name||null,mime_type:file?.type||null,file_size:file?.size||null,
-    created_by:currentUserId(),
-    released_by:status==='released'?currentUserId():null,
-    released_at:status==='released'?new Date().toISOString():null
-   })});
-  }catch(e){
-   if(storage_path){try{await cloudStorageRequest(`object/${DM_BUCKET}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefixes:[storage_path]})});}catch(_e){}}
-   throw e;
-  }
-  document.getElementById('dmVersion').value='';
+
+  await cloudRequest('rpc/finalize_managed_document_version_v2',{
+   method:'POST',
+   body:JSON.stringify({
+    p_version_id:prep.version_id,p_status:status,p_valid_from:valid_from,p_review_date:review_date,
+    p_change_reason:change_reason,p_storage_path:storage_path,p_original_filename:file?.name||null,
+    p_mime_type:file?.type||null,p_file_size:file?.size||null
+   })
+  });
+
+  document.getElementById('dmExisting').value='';
+  document.getElementById('dmTitle').value='';
+  document.getElementById('dmCode').value='';
+  document.getElementById('dmVersion').value='1.0';
   document.getElementById('dmChangeReason').value='';
   document.getElementById('dmFile').value='';
   await dmLoad();
-  alert('Dokumentversion wurde gespeichert.');
+  alert(`${prep.document_number} · Version ${prep.version} wurde gespeichert.`);
  }catch(e){alert('Dokumentversion konnte nicht gespeichert werden: '+(e.message||e));}
 }
 async function dmArchiveVersion(id){
