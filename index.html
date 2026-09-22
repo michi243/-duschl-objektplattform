@@ -3846,7 +3846,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    Deep-Link bleibt über Login erhalten und öffnet nach Datenladen Winterdienst + erste Ausführung der verlinkten Tour.
    UNVERÄNDERT: Rollen/RLS, Tourbearbeitung/-löschung, Mitarbeiterqualifikation, Leistungsumfang, SOP und übrige Fachprozesse.
    BACKEND: Edge Function process-notification-outbox aktualisieren; keine Tabellen-/RLS-/RPC-Änderung. */
-const APP_VERSION='2.21.42'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.43'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -17050,11 +17050,12 @@ function dmRender(){
       <div class="muted">${dmEsc(dmTypeLabels[d.document_type]||d.document_type)}</div></div>
     </div>
     ${vv.map(v=>`<div style="border-top:1px solid var(--border,#ddd);margin-top:8px;padding-top:8px">
-      <strong>Version ${dmEsc(v.version)}</strong> · ${dmEsc(v.status)}
+      <strong>Version ${dmEsc(v.version)}</strong> · ${dmEsc(({draft:'Entwurf',released:'Freigegeben',archived:'Archiviert'})[v.status]||v.status)}
       <div class="muted">gültig ab ${dmEsc(v.valid_from||'—')} · Freigabe ${dmEsc(v.released_at?new Date(v.released_at).toLocaleString('de-DE'):'—')} · nächste Prüfung ${dmEsc(v.review_date||'—')}</div>
       <div class="muted">${dmEsc(v.original_filename||'Keine Datei')}</div>
       <div class="row" style="margin-top:6px;gap:6px;flex-wrap:wrap">
         ${v.storage_path?`<button type="button" onclick="dmOpenFile('${dmEsc(v.id)}')">Dokument öffnen</button>`:''}
+        ${v.status==='draft'?`<button type="button" onclick="dmDiscardDraft('${dmEsc(v.id)}')">Entwurf verwerfen</button>`:''}
         ${v.status==='released'?`<button type="button" onclick="dmArchiveVersion('${dmEsc(v.id)}')">Archivieren</button>`:''}
       </div>
     </div>`).join('')}
@@ -17082,6 +17083,14 @@ async function dmOpenFile(versionId){
   setTimeout(()=>URL.revokeObjectURL(url),60000);
  }catch(e){alert('Dokument konnte nicht geöffnet werden: '+(e.message||e));}
 }
+async function dmDiscardDraft(versionId){
+ if(!confirm('Diesen Entwurf verwerfen? Freigegebene Versionen bleiben unverändert.'))return;
+ try{
+  await cloudRequest('rpc/discard_managed_document_draft_v1',{method:'POST',body:JSON.stringify({p_version_id:versionId})});
+  await dmLoad();
+ }catch(e){alert('Entwurf konnte nicht verworfen werden: '+(e.message||e));}
+}
+
 async function dmSaveVersion(){
  try{
   if(!dmAdmin())throw new Error('Keine Administrationsberechtigung.');
@@ -17099,7 +17108,7 @@ async function dmSaveVersion(){
   if(status==='released'&&!file)throw new Error('Eine freigegebene Version benötigt ein Dokument.');
 
   /* Server entscheidet atomar: Bestandsdokument oder neue Nummer. */
-  const prepRows=await cloudRequest('rpc/prepare_managed_document_version_v2',{
+  const prepRows=await cloudRequest('rpc/prepare_managed_document_version_v3',{
    method:'POST',
    body:JSON.stringify({
     p_organization_id:dmOrg(),p_document_type:type,p_title:title,
