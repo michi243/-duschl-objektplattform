@@ -2085,7 +2085,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 
 <section class="section" id="operations">
   <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
-    <div><h2 style="margin:0">Touren &amp; Einsätze</h2><div class="muted" style="margin-top:6px">Regelmäßige Leistungen automatisch planen und mit zusätzlichen Aufgaben ergänzen.</div></div>
+    <div><h2 style="margin:0">Touren &amp; Einsätze</h2><div class="muted" style="margin-top:6px"><span id="opsSubtitle">Regelmäßige Leistungen automatisch planen und mit zusätzlichen Aufgaben ergänzen.</span></div></div>
     <button type="button" onclick="opsLoad()">↻ Aktualisieren</button>
   </div>
   <div class="grid g2 ops-planning-only" style="margin-top:14px">
@@ -3694,7 +3694,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    Deep-Link bleibt über Login erhalten und öffnet nach Datenladen Winterdienst + erste Ausführung der verlinkten Tour.
    UNVERÄNDERT: Rollen/RLS, Tourbearbeitung/-löschung, Mitarbeiterqualifikation, Leistungsumfang, SOP und übrige Fachprozesse.
    BACKEND: Edge Function process-notification-outbox aktualisieren; keine Tabellen-/RLS-/RPC-Änderung. */
-const APP_VERSION='2.21.35'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.36'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -16742,7 +16742,7 @@ async function wsCompleteExecution(id){
 
 
 const opsState={services:[],plans:[],tours:[],stops:[],runs:[],runStops:[]};
-function opsEsc(v){return escapeHtml(String(v??''));}
+function opsEsc(v){return String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));}
 function opsOrg(){return currentOrganizationId();}
 function opsObjName(id){return (db.objects||[]).find(o=>String(o.id)===String(id))?.name||'Objekt';}
 function opsServiceName(id){return opsState.services.find(x=>String(x.id)===String(id))?.name||'Leistung';}
@@ -16755,6 +16755,8 @@ function opsApplyViewMode(){
   const section=document.getElementById('operations'); if(!section)return;
   const planning=opsIsPlanningRole();
   section.classList.toggle('ops-operative-mode',!planning);
+  const sub=document.getElementById('opsSubtitle');
+  if(sub)sub.textContent=planning?'Regelmäßige Leistungen automatisch planen und mit zusätzlichen Aufgaben ergänzen.':'Deine geplanten Touren, Einsätze und zusätzlichen Aufgaben.';
   const op=document.getElementById('opsOperativeView');
   if(op){op.classList.toggle('hidden',planning);op.style.display=planning?'none':'block';}
   section.querySelectorAll('.ops-planning-only').forEach(el=>el.style.display=planning?'':'none');
@@ -16772,9 +16774,10 @@ function opsRenderMyRuns(){
   }).join('')||'<div class="muted">Aktuell sind dir keine Touren oder Einsätze zugewiesen.</div>';
 }
 async function opsLoad(){
+ opsApplyViewMode();
  const org=opsOrg();if(!org)return;
  try{
-  try{await cloudRequest('rpc/generate_recurring_operations_v1',{method:'POST',body:JSON.stringify({p_organization_id:org,p_horizon_days:21})});}catch(e){console.warn(e);}
+  if(opsIsPlanningRole())try{await cloudRequest('rpc/generate_recurring_operations_v1',{method:'POST',body:JSON.stringify({p_organization_id:org,p_horizon_days:21})});}catch(e){console.warn(e);}
   const a=await Promise.all([
    cloudRequest(`service_types?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=name.asc`),
    cloudRequest(`recurring_service_plans?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=created_at.desc`),
