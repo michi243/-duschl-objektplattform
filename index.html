@@ -1499,6 +1499,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <nav>
 <button class="primary" id="navDashboard" onclick="showSection('dashboard')"><span class="nav-icon">⌂</span><span>Dashboard</span></button>
 <button id="navObjects" onclick="showSection('objects')"><span class="nav-icon">▦</span><span>Objekte</span></button>
+<button id="navDocumentManagement" onclick="showSection('documentManagement')"><span class="nav-icon">▤</span><span>Dokumentenmanagement</span></button>
 <button id="navSopServices" onclick="showSection('sopServices')"><span class="nav-icon">▣</span><span>SOP &amp; Leistungen</span></button>
 <button id="navOperations" onclick="showSection('operations')"><span class="nav-icon">⇄</span><span>Touren &amp; Einsätze</span></button>
 <button id="navWinterService" onclick="showSection('winterService')"><span class="nav-icon">❄</span><span>Winterdienst</span></button>
@@ -2084,6 +2085,80 @@ body.public-report-mode>#photoViewer{display:none!important}
 
 
 
+
+
+<section class="section" id="documentManagement">
+  <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
+    <div>
+      <h2 style="margin:0">Dokumentenmanagement</h2>
+      <div class="muted" style="margin-top:6px">Gelenkte Mandantendokumente: Managementhandbücher, SOPs, Arbeitsanweisungen, Formulare, Checklisten und Vorlagen.</div>
+    </div>
+    <button type="button" onclick="dmLoad()">↻ Aktualisieren</button>
+  </div>
+
+  <div id="dmNoAdmin" class="card hidden" style="margin-top:14px">
+    <strong>Keine Administrationsberechtigung</strong>
+    <div class="muted" style="margin-top:6px">Gelenkte Dokumente werden durch die Mandantenadministration verwaltet. Operative Nutzer erhalten nur die für ihre Arbeit freigegebenen Dokumente.</div>
+  </div>
+
+  <div id="dmAdminView">
+    <div class="grid g2" style="margin-top:14px">
+      <div class="card">
+        <h3>Dokument anlegen / neue Version</h3>
+        <div class="grid2">
+          <label>Dokumenttyp
+            <select id="dmType">
+              <option value="management_manual">Managementhandbuch</option>
+              <option value="sop">SOP</option>
+              <option value="work_instruction">Arbeitsanweisung</option>
+              <option value="form">Formular</option>
+              <option value="checklist">Checkliste</option>
+              <option value="template">Vorlage</option>
+              <option value="other">Sonstiges</option>
+            </select>
+          </label>
+          <label>Bestehendes Dokument<select id="dmExisting" onchange="dmExistingChanged()"><option value="">Neues Dokument …</option></select></label>
+          <label>Dokument-Nr.<input id="dmCode" placeholder="z. B. MHB-001"></label>
+          <label>Titel<input id="dmTitle" placeholder="z. B. Managementhandbuch Duschl Service"></label>
+          <label>Version<input id="dmVersion" placeholder="z. B. 1.0"></label>
+          <label>Gültig ab<input id="dmValidFrom" type="date"></label>
+          <label>Nächste Überprüfung<input id="dmReviewDate" type="date"></label>
+          <label>Status
+            <select id="dmStatus">
+              <option value="draft">Entwurf</option>
+              <option value="released">Freigegeben</option>
+            </select>
+          </label>
+        </div>
+        <label style="margin-top:10px">Änderungsgrund<textarea id="dmChangeReason" rows="2" placeholder="Bei Version 1.0: Erstfreigabe"></textarea></label>
+        <label style="margin-top:10px">Dokument<input id="dmFile" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp,.txt"></label>
+        <div class="muted" style="margin-top:6px">Eine Freigabe ist nur mit hinterlegter Datei möglich. Freigegebene Versionen sind unveränderbar.</div>
+        <div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">
+          <button class="primary" onclick="dmSaveVersion()">Dokumentversion speichern</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Dokumentenregister</h3>
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <label style="flex:1">Filter
+            <select id="dmFilterType" onchange="dmRender()">
+              <option value="">Alle Dokumenttypen</option>
+              <option value="management_manual">Managementhandbuch</option>
+              <option value="sop">SOP</option>
+              <option value="work_instruction">Arbeitsanweisung</option>
+              <option value="form">Formular</option>
+              <option value="checklist">Checkliste</option>
+              <option value="template">Vorlage</option>
+              <option value="other">Sonstiges</option>
+            </select>
+          </label>
+        </div>
+        <div id="dmList" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <section class="section" id="sopServices">
   <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -3770,7 +3845,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    Deep-Link bleibt über Login erhalten und öffnet nach Datenladen Winterdienst + erste Ausführung der verlinkten Tour.
    UNVERÄNDERT: Rollen/RLS, Tourbearbeitung/-löschung, Mitarbeiterqualifikation, Leistungsumfang, SOP und übrige Fachprozesse.
    BACKEND: Edge Function process-notification-outbox aktualisieren; keine Tabellen-/RLS-/RPC-Änderung. */
-const APP_VERSION='2.21.39'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.40'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -16885,6 +16960,155 @@ async function opsSavePlan(){const object_id=document.getElementById('opsPlanObj
 async function opsSaveTour(){const name=document.getElementById('opsTourName').value.trim(),ids=[...document.getElementById('opsTourPlans').selectedOptions].map(x=>x.value);if(!name||!ids.length)return alert('Name und Leistungspläne erforderlich.');const id=crypto.randomUUID();await cloudRequest('operation_tour_templates',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({id,organization_id:opsOrg(),name,default_start_time:document.getElementById('opsTourStart').value||null,active:true,created_by:currentUserId()})});await cloudRequest('operation_tour_stops',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(ids.map((recurring_plan_id,i)=>({organization_id:opsOrg(),tour_template_id:id,recurring_plan_id,sort_order:i+1,active:true})))});await opsLoad();}
 
 
+
+/* === DOKUMENTENMANAGEMENT · GELENKTE DOKUMENTE · 2.21.40 === */
+const DM_BUCKET='document-management';
+const dmState={documents:[],versions:[]};
+const dmTypeLabels={
+ management_manual:'Managementhandbuch',sop:'SOP',work_instruction:'Arbeitsanweisung',
+ form:'Formular',checklist:'Checkliste',template:'Vorlage',other:'Sonstiges'
+};
+function dmEsc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function dmOrg(){return currentOrganizationId();}
+function dmAdmin(){return slTenantAdmin();}
+function dmApplyAccess(){
+ const admin=dmAdmin(),a=document.getElementById('dmAdminView'),n=document.getElementById('dmNoAdmin');
+ if(a)a.style.display=admin?'block':'none';
+ if(n){n.classList.toggle('hidden',admin);n.style.display=admin?'none':'block';}
+ const nav=document.getElementById('navDocumentManagement');if(nav)nav.style.display=admin?'':'none';
+ return admin;
+}
+async function dmLoad(){
+ if(!dmApplyAccess())return;
+ const org=dmOrg();if(!org)return;
+ try{
+  const [docs,vers]=await Promise.all([
+   cloudRequest(`managed_documents?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=document_number.asc`),
+   cloudRequest(`managed_document_versions?select=*&organization_id=eq.${encodeURIComponent(org)}&order=created_at.desc`)
+  ]);
+  dmState.documents=docs||[];dmState.versions=vers||[];
+  const sel=document.getElementById('dmExisting');
+  if(sel)sel.innerHTML='<option value="">Neues Dokument …</option>'+dmState.documents.map(d=>`<option value="${dmEsc(d.id)}">${dmEsc(d.document_number)} · ${dmEsc(d.title)}</option>`).join('');
+  dmRender();
+ }catch(e){alert('Dokumentenmanagement konnte nicht geladen werden: '+(e.message||e));}
+}
+function dmExistingChanged(){
+ const id=document.getElementById('dmExisting')?.value||'',d=dmState.documents.find(x=>x.id===id);
+ ['dmCode','dmTitle','dmType'].forEach(x=>{const e=document.getElementById(x);if(e)e.disabled=!!d;});
+ if(d){
+  document.getElementById('dmCode').value=d.document_number||'';
+  document.getElementById('dmTitle').value=d.title||'';
+  document.getElementById('dmType').value=d.document_type||'other';
+ }else{
+  document.getElementById('dmCode').value='';
+  document.getElementById('dmTitle').value='';
+  document.getElementById('dmType').value='management_manual';
+ }
+}
+function dmRender(){
+ const el=document.getElementById('dmList');if(!el)return;
+ const f=document.getElementById('dmFilterType')?.value||'';
+ const docs=dmState.documents.filter(d=>!f||d.document_type===f);
+ el.innerHTML=docs.map(d=>{
+  const vv=dmState.versions.filter(v=>v.document_id===d.id);
+  return `<div class="card" style="padding:10px;margin:8px 0">
+    <div class="row space" style="gap:8px;align-items:flex-start">
+      <div><strong>${dmEsc(d.document_number)} · ${dmEsc(d.title)}</strong>
+      <div class="muted">${dmEsc(dmTypeLabels[d.document_type]||d.document_type)}</div></div>
+    </div>
+    ${vv.map(v=>`<div style="border-top:1px solid var(--border,#ddd);margin-top:8px;padding-top:8px">
+      <strong>Version ${dmEsc(v.version)}</strong> · ${dmEsc(v.status)}
+      <div class="muted">gültig ab ${dmEsc(v.valid_from||'—')} · Freigabe ${dmEsc(v.released_at?new Date(v.released_at).toLocaleString('de-DE'):'—')} · nächste Prüfung ${dmEsc(v.review_date||'—')}</div>
+      <div class="muted">${dmEsc(v.original_filename||'Keine Datei')}</div>
+      <div class="row" style="margin-top:6px;gap:6px;flex-wrap:wrap">
+        ${v.storage_path?`<button type="button" onclick="dmOpenFile('${dmEsc(v.id)}')">Dokument öffnen</button>`:''}
+        ${v.status==='released'?`<button type="button" onclick="dmArchiveVersion('${dmEsc(v.id)}')">Archivieren</button>`:''}
+      </div>
+    </div>`).join('')}
+  </div>`;
+ }).join('')||'<div class="muted">Noch keine Dokumente.</div>';
+}
+async function dmStoragePut(path,file){
+ const r=await cloudStorageRequest(`object/${DM_BUCKET}/${path}`,{
+  method:'POST',
+  headers:{'Content-Type':file.type||'application/octet-stream','x-upsert':'false'},
+  body:file
+ });
+ return path;
+}
+async function dmStorageGet(path){
+ const r=await cloudStorageRequest(`object/authenticated/${DM_BUCKET}/${path}`,{method:'GET'});
+ return await r.blob();
+}
+async function dmOpenFile(versionId){
+ try{
+  const v=dmState.versions.find(x=>x.id===versionId);
+  if(!v?.storage_path)return alert('Keine Datei hinterlegt.');
+  const blob=await dmStorageGet(v.storage_path),url=URL.createObjectURL(blob);
+  window.open(url,'_blank','noopener');
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+ }catch(e){alert('Dokument konnte nicht geöffnet werden: '+(e.message||e));}
+}
+async function dmSaveVersion(){
+ try{
+  if(!dmAdmin())throw new Error('Keine Administrationsberechtigung.');
+  const existing=document.getElementById('dmExisting').value;
+  const type=document.getElementById('dmType').value;
+  const code=document.getElementById('dmCode').value.trim();
+  const title=document.getElementById('dmTitle').value.trim();
+  const version=document.getElementById('dmVersion').value.trim();
+  const valid_from=document.getElementById('dmValidFrom').value||null;
+  const review_date=document.getElementById('dmReviewDate').value||null;
+  const status=document.getElementById('dmStatus').value;
+  const change_reason=document.getElementById('dmChangeReason').value.trim()||null;
+  const file=document.getElementById('dmFile').files?.[0]||null;
+  if(!version||(!existing&&(!code||!title)))throw new Error('Dokument-Nr., Titel und Version vollständig angeben.');
+  if(status==='released'&&!valid_from)throw new Error('Für eine Freigabe ist „Gültig ab“ erforderlich.');
+  if(status==='released'&&!file)throw new Error('Eine freigegebene Version benötigt ein Dokument.');
+  let document_id=existing;
+  if(!document_id){
+   document_id=crypto.randomUUID();
+   await cloudRequest('managed_documents',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({
+    id:document_id,organization_id:dmOrg(),document_type:type,document_number:code,title,active:true,created_by:currentUserId()
+   })});
+  }
+  const duplicate=await cloudRequest(`managed_document_versions?select=id&document_id=eq.${encodeURIComponent(document_id)}&version=eq.${encodeURIComponent(version)}&limit=1`);
+  if(duplicate?.length)throw new Error('Diese Dokumentversion existiert bereits.');
+  const version_id=crypto.randomUUID();
+  let storage_path=null;
+  if(file){
+   const safe=(file.name||'dokument').replace(/[^a-zA-Z0-9._-]+/g,'_');
+   storage_path=`${dmOrg()}/${document_id}/${version_id}/${safe}`;
+   await dmStoragePut(storage_path,file);
+  }
+  try{
+   await cloudRequest('managed_document_versions',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({
+    id:version_id,organization_id:dmOrg(),document_id,version,status,valid_from,review_date,change_reason,
+    storage_path,original_filename:file?.name||null,mime_type:file?.type||null,file_size:file?.size||null,
+    created_by:currentUserId(),
+    released_by:status==='released'?currentUserId():null,
+    released_at:status==='released'?new Date().toISOString():null
+   })});
+  }catch(e){
+   if(storage_path){try{await cloudStorageRequest(`object/${DM_BUCKET}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefixes:[storage_path]})});}catch(_e){}}
+   throw e;
+  }
+  document.getElementById('dmVersion').value='';
+  document.getElementById('dmChangeReason').value='';
+  document.getElementById('dmFile').value='';
+  await dmLoad();
+  alert('Dokumentversion wurde gespeichert.');
+ }catch(e){alert('Dokumentversion konnte nicht gespeichert werden: '+(e.message||e));}
+}
+async function dmArchiveVersion(id){
+ if(!confirm('Diese freigegebene Version archivieren? Bestehende Nachweise und Historie bleiben erhalten.'))return;
+ try{
+  await cloudRequest('rpc/archive_managed_document_version_v1',{method:'POST',body:JSON.stringify({p_version_id:id})});
+  await dmLoad();
+ }catch(e){alert('Archivierung fehlgeschlagen: '+(e.message||e));}
+}
+
+
 /* === SOP & LEISTUNGEN · MANDANTENSTAMMDATEN · 2.21.37 === */
 const slState={services:[],activities:[],sops:[],versions:[],scopes:[],scopeActivities:[]};
 function slEsc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -16995,6 +17219,19 @@ async function openAssignedOperationSop(runStopId){
     else alert(`${d.sop_code||'SOP'} · ${d.sop_title||''}\nVersion ${d.sop_version||''}\n${d.note||''}`);
   }catch(e){alert('SOP konnte nicht geladen werden: '+(e.message||e));}
 }
+
+
+/* Dokumentenmanagement bei Navigation laden */
+(function(){
+ const oldShowSection=window.showSection;
+ if(typeof oldShowSection==='function'){
+  window.showSection=function(id){
+   const r=oldShowSection.apply(this,arguments);
+   if(id==='documentManagement') setTimeout(()=>dmLoad(),0);
+   return r;
+  };
+ }
+})();
 
 </script>
 </body>
