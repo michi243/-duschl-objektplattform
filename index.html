@@ -2088,7 +2088,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <section class="section" id="sopServices">
   <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
     <div><h2 style="margin:0">SOP &amp; Leistungen</h2>
-      <div class="muted" style="margin-top:6px">Mandantenbezogene Stammdaten für standardisierte Leistungen, Tätigkeiten und Objekt-Leistungsumfänge.</div>
+      <div class="muted" style="margin-top:6px">Mandantenbezogene Administration für standardisierte Leistungen, Tätigkeiten und Objekt-Leistungsumfänge. Objektbetreuer und Mitarbeiter erhalten SOPs ausschließlich im jeweiligen Einsatz lesend.</div>
     </div>
     <button type="button" onclick="slLoad()">↻ Aktualisieren</button>
   </div>
@@ -3770,7 +3770,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    Deep-Link bleibt über Login erhalten und öffnet nach Datenladen Winterdienst + erste Ausführung der verlinkten Tour.
    UNVERÄNDERT: Rollen/RLS, Tourbearbeitung/-löschung, Mitarbeiterqualifikation, Leistungsumfang, SOP und übrige Fachprozesse.
    BACKEND: Edge Function process-notification-outbox aktualisieren; keine Tabellen-/RLS-/RPC-Änderung. */
-const APP_VERSION='2.21.38'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.39'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -16970,6 +16970,30 @@ async function slSaveObjectScope(){
  await cloudRequest('object_service_scopes',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({id,organization_id:slOrg(),object_id,service_type_id,sop_version_id,note:document.getElementById('slObjectNote').value.trim()||null,active:true,created_by:currentUserId()})});
  await cloudRequest('object_service_scope_activities',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(acts.map(activity_id=>({organization_id:slOrg(),object_service_scope_id:id,activity_id})))});
  await slLoad();
+}
+
+
+/* === SOP READ-ONLY · OPERATIVE ROLLEN · 2.21.39 ===
+   Kein SOP-Menü für Objektbetreuer/Mitarbeiter.
+   SOP wird nur kontextbezogen aus einem berechtigten Einsatz/Run geöffnet. */
+async function openAssignedOperationSop(runStopId){
+  if(!runStopId) return alert('Einsatz fehlt.');
+  try{
+    const rows=await cloudRequest(`rpc/get_operation_sop_v1`,{
+      method:'POST',
+      body:JSON.stringify({p_run_stop_id:runStopId})
+    });
+    const d=Array.isArray(rows)?rows[0]:rows;
+    if(!d) return alert('Für diesen Einsatz ist keine freigegebene SOP hinterlegt.');
+    const body=[
+      `<div class="card"><h3>${slEsc(d.sop_code||'SOP')} · ${slEsc(d.sop_title||'Arbeitsanweisung')}</h3>`,
+      `<div class="muted">Version ${slEsc(d.sop_version||'')} · gültig ab ${slEsc(d.valid_from||'')}</div>`,
+      d.note?`<p>${slEsc(d.note)}</p>`:'',
+      `<p class="muted">Nur lesen · gültige Arbeitsanweisung für diesen Einsatz.</p></div>`
+    ].join('');
+    if(typeof openModal==='function') openModal('Arbeitsanweisung / SOP',body);
+    else alert(`${d.sop_code||'SOP'} · ${d.sop_title||''}\nVersion ${d.sop_version||''}\n${d.note||''}`);
+  }catch(e){alert('SOP konnte nicht geladen werden: '+(e.message||e));}
 }
 
 </script>
