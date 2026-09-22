@@ -1499,6 +1499,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <nav>
 <button class="primary" id="navDashboard" onclick="showSection('dashboard')"><span class="nav-icon">⌂</span><span>Dashboard</span></button>
 <button id="navObjects" onclick="showSection('objects')"><span class="nav-icon">▦</span><span>Objekte</span></button>
+<button id="navSopServices" onclick="showSection('sopServices')"><span class="nav-icon">▣</span><span>SOP &amp; Leistungen</span></button>
 <button id="navOperations" onclick="showSection('operations')"><span class="nav-icon">⇄</span><span>Touren &amp; Einsätze</span></button>
 <button id="navWinterService" onclick="showSection('winterService')"><span class="nav-icon">❄</span><span>Winterdienst</span></button>
 <button id="navFindings" onclick="showSection('findings')"><span class="nav-icon">▤</span><span>Dokumentation</span></button>
@@ -2082,6 +2083,81 @@ body.public-report-mode>#photoViewer{display:none!important}
 
 
 
+
+
+<section class="section" id="sopServices">
+  <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
+    <div><h2 style="margin:0">SOP &amp; Leistungen</h2>
+      <div class="muted" style="margin-top:6px">Mandantenbezogene Stammdaten für standardisierte Leistungen, Tätigkeiten und Objekt-Leistungsumfänge.</div>
+    </div>
+    <button type="button" onclick="slLoad()">↻ Aktualisieren</button>
+  </div>
+
+  <div id="slNoAdmin" class="card hidden" style="margin-top:14px">
+    <strong>Keine Administrationsberechtigung</strong>
+    <div class="muted" style="margin-top:6px">SOPs und Leistungsstammdaten werden durch den Mandanten administriert.</div>
+  </div>
+
+  <div id="slAdminView">
+    <div class="grid g2" style="margin-top:14px">
+      <div class="card">
+        <h3>Leistungsarten</h3>
+        <div class="grid2">
+          <label>Bezeichnung<input id="slServiceName" placeholder="z. B. Winterdienst"></label>
+          <label>Erforderliche Qualifikation<select id="slQualification"><option value="">Keine</option><option value="winter_service">Winterdienst</option><option value="garden_service">Grün-/Außenanlagenpflege</option><option value="cleaning_service">Reinigung</option><option value="caretaker_service">Hausmeister-/Objektservice</option><option value="minor_repairs">Montage/Kleinreparaturen</option></select></label>
+        </div>
+        <label style="margin-top:10px">Bemerkung<textarea id="slServiceNote" rows="2"></textarea></label>
+        <div class="row" style="margin-top:10px"><button class="primary" onclick="slSaveService()">Leistungsart speichern</button></div>
+        <div id="slServiceList" style="margin-top:12px"></div>
+      </div>
+
+      <div class="card">
+        <h3>Tätigkeitsbausteine</h3>
+        <div class="grid2">
+          <label>Leistungsart<select id="slActivityService"></select></label>
+          <label>Tätigkeit<input id="slActivityName" placeholder="z. B. Schnee räumen"></label>
+        </div>
+        <label style="margin-top:10px">Bemerkung<textarea id="slActivityNote" rows="2"></textarea></label>
+        <div class="row" style="margin-top:10px"><button class="primary" onclick="slSaveActivity()">Tätigkeit speichern</button></div>
+        <div id="slActivityList" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <div class="grid g2" style="margin-top:14px">
+      <div class="card">
+        <h3>SOP-Version</h3>
+        <div class="muted">Freigegebene Versionen werden für neue Objekt-Leistungsumfänge auswählbar.</div>
+        <div class="grid2" style="margin-top:10px">
+          <label>Leistungsart<select id="slSopService"></select></label>
+          <label>SOP<select id="slSopExisting"><option value="">Neue SOP …</option></select></label>
+          <label>Dokument-Nr.<input id="slSopCode" placeholder="z. B. SOP-006"></label>
+          <label>Titel<input id="slSopTitle" placeholder="z. B. Winterdienst"></label>
+          <label>Version<input id="slSopVersion" placeholder="z. B. 1.1"></label>
+          <label>Gültig ab<input id="slSopValidFrom" type="date"></label>
+          <label>Status<select id="slSopStatus"><option value="draft">Entwurf</option><option value="released">Freigegeben</option><option value="archived">Archiviert</option></select></label>
+        </div>
+        <label style="margin-top:10px">Bemerkung<textarea id="slSopNote" rows="2"></textarea></label>
+        <div class="row" style="margin-top:10px"><button class="primary" onclick="slSaveSopVersion()">SOP-Version speichern</button></div>
+        <div id="slSopList" style="margin-top:12px"></div>
+      </div>
+
+      <div class="card">
+        <h3>Objekt-Leistungsumfang</h3>
+        <div class="grid2">
+          <label>Objekt<select id="slObject"></select></label>
+          <label>Leistungsart<select id="slObjectService" onchange="slObjectServiceChanged()"></select></label>
+          <label>SOP-Version<select id="slObjectSop"></select></label>
+        </div>
+        <label style="margin-top:10px">Tätigkeiten</label>
+        <div id="slObjectActivities" class="card" style="padding:10px;margin-top:6px"></div>
+        <label style="margin-top:10px">Bemerkung / objektspezifischer Hinweis<textarea id="slObjectNote" rows="2"></textarea></label>
+        <div class="muted" style="margin-top:6px">Die Bemerkung erweitert den definierten Leistungsumfang nicht.</div>
+        <div class="row" style="margin-top:10px"><button class="primary" onclick="slSaveObjectScope()">Objekt-Leistungsumfang speichern</button></div>
+        <div id="slObjectScopeList" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <section class="section" id="operations">
   <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -3694,7 +3770,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    Deep-Link bleibt über Login erhalten und öffnet nach Datenladen Winterdienst + erste Ausführung der verlinkten Tour.
    UNVERÄNDERT: Rollen/RLS, Tourbearbeitung/-löschung, Mitarbeiterqualifikation, Leistungsumfang, SOP und übrige Fachprozesse.
    BACKEND: Edge Function process-notification-outbox aktualisieren; keine Tabellen-/RLS-/RPC-Änderung. */
-const APP_VERSION='2.21.36'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.37'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -10591,6 +10667,8 @@ async function saveNotificationPreferences(){
 }
 
 function showSection(id){
+ if(id==='sopServices'){setTimeout(()=>slLoad(),0);}
+
  if(id==='operations'){setTimeout(()=>opsLoad(),0);}
 
   if(id==='inspections')id='findings';
@@ -16805,6 +16883,81 @@ function opsRender(){
 async function opsSaveServiceType(){const name=document.getElementById('opsServiceName').value.trim();if(!name)return alert('Bezeichnung fehlt.');await cloudRequest('service_types',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({organization_id:opsOrg(),name,qualification_code:document.getElementById('opsServiceQualification').value.trim()||null,active:true,created_by:currentUserId()})});await opsLoad();}
 async function opsSavePlan(){const object_id=document.getElementById('opsPlanObject').value,service_type_id=document.getElementById('opsPlanService').value,weekdays=[...document.querySelectorAll('.ops-weekday:checked')].map(x=>Number(x.value));if(!object_id||!service_type_id||!weekdays.length)return alert('Objekt, Leistungsart und Wochentag erforderlich.');await cloudRequest('recurring_service_plans',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({organization_id:opsOrg(),object_id,service_type_id,weekdays,interval_weeks:1,valid_from:document.getElementById('opsPlanFrom').value||new Date().toISOString().slice(0,10),valid_until:document.getElementById('opsPlanUntil').value||null,scope_text:document.getElementById('opsPlanScope').value.trim()||null,active:true,created_by:currentUserId()})});await opsLoad();}
 async function opsSaveTour(){const name=document.getElementById('opsTourName').value.trim(),ids=[...document.getElementById('opsTourPlans').selectedOptions].map(x=>x.value);if(!name||!ids.length)return alert('Name und Leistungspläne erforderlich.');const id=crypto.randomUUID();await cloudRequest('operation_tour_templates',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({id,organization_id:opsOrg(),name,default_start_time:document.getElementById('opsTourStart').value||null,active:true,created_by:currentUserId()})});await cloudRequest('operation_tour_stops',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(ids.map((recurring_plan_id,i)=>({organization_id:opsOrg(),tour_template_id:id,recurring_plan_id,sort_order:i+1,active:true})))});await opsLoad();}
+
+
+/* === SOP & LEISTUNGEN · MANDANTENSTAMMDATEN · 2.21.37 === */
+const slState={services:[],activities:[],sops:[],versions:[],scopes:[],scopeActivities:[]};
+function slEsc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function slOrg(){return currentOrganizationId();}
+function slTenantAdmin(){
+  const r=String(effectiveUserRole()||'').toLowerCase();
+  return r==='tenant_admin'||r==='admin_delegate';
+}
+function slApplyAccess(){
+ const admin=slTenantAdmin(),a=document.getElementById('slAdminView'),n=document.getElementById('slNoAdmin');
+ if(a)a.style.display=admin?'block':'none'; if(n){n.classList.toggle('hidden',admin);n.style.display=admin?'none':'block';}
+ return admin;
+}
+async function slLoad(){
+ if(!slApplyAccess())return;
+ const org=slOrg();if(!org)return;
+ try{
+  const a=await Promise.all([
+   cloudRequest(`service_types?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=name.asc`),
+   cloudRequest(`service_activities?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=name.asc`),
+   cloudRequest(`tenant_sops?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=code.asc`),
+   cloudRequest(`tenant_sop_versions?select=*&organization_id=eq.${encodeURIComponent(org)}&order=created_at.desc`),
+   cloudRequest(`object_service_scopes?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=created_at.desc`),
+   cloudRequest(`object_service_scope_activities?select=*&organization_id=eq.${encodeURIComponent(org)}`)
+  ]);
+  [slState.services,slState.activities,slState.sops,slState.versions,slState.scopes,slState.scopeActivities]=a.map(x=>x||[]);
+  slPopulate();slRender();
+ }catch(e){alert('SOP & Leistungen konnten nicht geladen werden: '+(e.message||e));}
+}
+function slOptions(sel,first='Auswählen …'){return `<option value="">${first}</option>`+slState.services.map(x=>`<option value="${slEsc(x.id)}">${slEsc(x.name)}</option>`).join('');}
+function slPopulate(){
+ ['slActivityService','slSopService','slObjectService'].forEach(id=>{const e=document.getElementById(id);if(e)e.innerHTML=slOptions();});
+ const o=document.getElementById('slObject');if(o)o.innerHTML='<option value="">Objekt wählen …</option>'+((db.objects||[]).filter(x=>!x.deletedAt).map(x=>`<option value="${slEsc(x.id)}">${slEsc(x.name)}</option>`).join(''));
+ const se=document.getElementById('slSopExisting');if(se)se.innerHTML='<option value="">Neue SOP …</option>'+slState.sops.map(x=>`<option value="${slEsc(x.id)}">${slEsc(x.code)} · ${slEsc(x.title)}</option>`).join('');
+ slObjectServiceChanged();
+}
+function slObjectServiceChanged(){
+ const sid=document.getElementById('slObjectService')?.value||'';
+ const acts=slState.activities.filter(x=>x.service_type_id===sid);
+ const ah=document.getElementById('slObjectActivities');if(ah)ah.innerHTML=acts.map(x=>`<label style="display:block;margin:6px 0"><input type="checkbox" class="sl-scope-activity" value="${slEsc(x.id)}" style="width:auto"> ${slEsc(x.name)}</label>`).join('')||'<span class="muted">Keine Tätigkeiten definiert.</span>';
+ const sopIds=new Set(slState.sops.filter(x=>x.service_type_id===sid).map(x=>x.id));
+ const vers=slState.versions.filter(v=>sopIds.has(v.sop_id)&&v.status==='released');
+ const sv=document.getElementById('slObjectSop');if(sv)sv.innerHTML='<option value="">Freigegebene SOP wählen …</option>'+vers.map(v=>{const sp=slState.sops.find(x=>x.id===v.sop_id);return `<option value="${slEsc(v.id)}">${slEsc(sp?.code||'SOP')} · V${slEsc(v.version)}</option>`}).join('');
+}
+function slRender(){
+ let e=document.getElementById('slServiceList');if(e)e.innerHTML=slState.services.map(x=>`<div class="card" style="padding:8px;margin:6px 0"><strong>${slEsc(x.name)}</strong><div class="muted">${slEsc(x.qualification_code||'keine Qualifikation')}</div></div>`).join('')||'<div class="muted">Keine Leistungsarten.</div>';
+ e=document.getElementById('slActivityList');if(e)e.innerHTML=slState.activities.map(x=>`<div class="card" style="padding:8px;margin:6px 0"><strong>${slEsc(x.name)}</strong><div class="muted">${slEsc(slState.services.find(s=>s.id===x.service_type_id)?.name||'')}</div></div>`).join('')||'<div class="muted">Keine Tätigkeiten.</div>';
+ e=document.getElementById('slSopList');if(e)e.innerHTML=slState.versions.map(v=>{const sp=slState.sops.find(x=>x.id===v.sop_id);return `<div class="card" style="padding:8px;margin:6px 0"><strong>${slEsc(sp?.code||'SOP')} · ${slEsc(sp?.title||'')} · V${slEsc(v.version)}</strong><div class="muted">${slEsc(v.status)} · gültig ab ${slEsc(v.valid_from||'')}</div></div>`}).join('')||'<div class="muted">Keine SOP-Versionen.</div>';
+ e=document.getElementById('slObjectScopeList');if(e)e.innerHTML=slState.scopes.map(x=>`<div class="card" style="padding:8px;margin:6px 0"><strong>${slEsc((db.objects||[]).find(o=>o.id===x.object_id)?.name||'Objekt')} · ${slEsc(slState.services.find(a=>a.id===x.service_type_id)?.name||'Leistung')}</strong><div class="muted">${slEsc(x.note||'')}</div></div>`).join('')||'<div class="muted">Keine Objekt-Leistungsumfänge.</div>';
+}
+async function slSaveService(){
+ const name=document.getElementById('slServiceName').value.trim();if(!name)return alert('Bezeichnung fehlt.');
+ await cloudRequest('service_types',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({organization_id:slOrg(),name,qualification_code:document.getElementById('slQualification').value||null,note:document.getElementById('slServiceNote').value.trim()||null,active:true,created_by:currentUserId()})});await slLoad();
+}
+async function slSaveActivity(){
+ const service_type_id=document.getElementById('slActivityService').value,name=document.getElementById('slActivityName').value.trim();if(!service_type_id||!name)return alert('Leistungsart und Tätigkeit erforderlich.');
+ await cloudRequest('service_activities',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({organization_id:slOrg(),service_type_id,name,note:document.getElementById('slActivityNote').value.trim()||null,active:true,created_by:currentUserId()})});await slLoad();
+}
+async function slSaveSopVersion(){
+ const service_type_id=document.getElementById('slSopService').value,existing=document.getElementById('slSopExisting').value,code=document.getElementById('slSopCode').value.trim(),title=document.getElementById('slSopTitle').value.trim(),version=document.getElementById('slSopVersion').value.trim();
+ if(!service_type_id||!version||(!existing&&(!code||!title)))return alert('Leistungsart, SOP und Version vollständig angeben.');
+ let sop_id=existing;
+ if(!sop_id){sop_id=crypto.randomUUID();await cloudRequest('tenant_sops',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({id:sop_id,organization_id:slOrg(),service_type_id,code,title,active:true,created_by:currentUserId()})});}
+ await cloudRequest('tenant_sop_versions',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({organization_id:slOrg(),sop_id,version,valid_from:document.getElementById('slSopValidFrom').value||null,status:document.getElementById('slSopStatus').value,note:document.getElementById('slSopNote').value.trim()||null,created_by:currentUserId()})});await slLoad();
+}
+async function slSaveObjectScope(){
+ const object_id=document.getElementById('slObject').value,service_type_id=document.getElementById('slObjectService').value,sop_version_id=document.getElementById('slObjectSop').value,acts=[...document.querySelectorAll('.sl-scope-activity:checked')].map(x=>x.value);
+ if(!object_id||!service_type_id||!sop_version_id||!acts.length)return alert('Objekt, Leistungsart, freigegebene SOP und mindestens eine Tätigkeit erforderlich.');
+ const id=crypto.randomUUID();
+ await cloudRequest('object_service_scopes',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({id,organization_id:slOrg(),object_id,service_type_id,sop_version_id,note:document.getElementById('slObjectNote').value.trim()||null,active:true,created_by:currentUserId()})});
+ await cloudRequest('object_service_scope_activities',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(acts.map(activity_id=>({organization_id:slOrg(),object_service_scope_id:id,activity_id})))});
+ await slLoad();
+}
 
 </script>
 </body>
