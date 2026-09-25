@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.46</title>
+<title>Duschl Service – Objektplattform v2.21.47</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3846,7 +3846,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    Deep-Link bleibt über Login erhalten und öffnet nach Datenladen Winterdienst + erste Ausführung der verlinkten Tour.
    UNVERÄNDERT: Rollen/RLS, Tourbearbeitung/-löschung, Mitarbeiterqualifikation, Leistungsumfang, SOP und übrige Fachprozesse.
    BACKEND: Edge Function process-notification-outbox aktualisieren; keine Tabellen-/RLS-/RPC-Änderung. */
-const APP_VERSION='2.21.46'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.47'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -12944,6 +12944,7 @@ function renderObjects(){
           <button onclick="openFindingModal('${esc(o.id)}','')">Dokumentation erfassen</button>
           ${!o.externalManaged&&!isCustomerRole()?`<button onclick="openObjectQrCode('${esc(o.id)}')">Objekt-QR</button>`:''}
           ${!o.externalManaged&&canManageObjectsUI()?`<button onclick="openObjectAreasModal('${esc(o.id)}')">Bereiche</button><button onclick="openObjectServicesModal('${esc(o.id)}')">Leistungen &amp; SOPs</button><button onclick="openObjectModal('${esc(o.id)}')">Bearbeiten</button>`:''}
+          ${o.externalManaged&&slTenantAdmin()?`<button onclick="openObjectServicesModal('${esc(o.id)}')">Leistungen &amp; SOPs</button>`:''}
           <button onclick="showObjectReport('${esc(o.id)}')">Bericht</button>
           ${o.externalManaged?`<button onclick="showSection('externalOrders')">Externe Aufträge</button>`:''}
         </div>
@@ -16130,6 +16131,22 @@ function osaProcessForService(serviceId){
   const n=String(st?.name||'').toLowerCase();
   return q==='winter_service'||n.includes('winter')?'winter_service':'generic';
 }
+function osaNormalizedScopeName(v){
+  return String(v||'').toLowerCase()
+    .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')
+    .replace(/[^a-z0-9]+/g,' ').trim();
+}
+function osaExternalAllowedServices(obj){
+  if(!obj?.externalManaged)return osaState.services;
+  const scope=osaNormalizedScopeName(obj.serviceScope||'');
+  return osaState.services.filter(st=>{
+    const name=osaNormalizedScopeName(st.name||'');
+    const q=String(st.qualification_code||'').toLowerCase();
+    if(q==='winter_service'||name==='winterdienst'||name==='widi')return scope.includes('winterdienst');
+    return !!name && scope.includes(name);
+  });
+}
+
 async function openObjectServicesModal(objectId){
   try{
     if(!slTenantAdmin())return alert('Keine Administrationsberechtigung.');
@@ -16143,6 +16160,7 @@ async function openObjectServicesModal(objectId){
       document.body.appendChild(modal);
     }
     const rows=osaState.assignments.filter(x=>String(x.object_id)===String(objectId));
+    const allowedServices=osaExternalAllowedServices(obj);
     const rowHtml=rows.map(a=>{
       const st=osaState.services.find(x=>x.id===a.service_type_id);
       const v=osaState.versions.find(x=>x.id===a.managed_document_version_id);
@@ -16161,12 +16179,13 @@ async function openObjectServicesModal(objectId){
       <div class="card" style="margin-top:14px">
         <h3>Leistung zuordnen</h3>
         <div class="grid2">
-          <label>Leistungsart<select id="osaService"><option value="">Leistung wählen …</option>${osaState.services.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select></label>
+          <label>Leistungsart<select id="osaService"><option value="">Leistung wählen …</option>${allowedServices.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select></label>
           <label>Freigegebene SOP<select id="osaSop"><option value="">SOP wählen …</option>${osaSopOptions()}</select></label>
           <label>Gültig von<input id="osaFrom" type="date"></label>
           <label>Gültig bis<input id="osaUntil" type="date"></label>
         </div>
         <label style="margin-top:10px">Objektspezifischer Leistungsumfang / Hinweis<textarea id="osaNote" placeholder="Nur objektspezifische Abgrenzung; die Arbeitsweise wird durch die SOP definiert."></textarea></label>
+        ${obj.externalManaged?`<div class="muted" style="margin-top:6px"><strong>Externe Betreuung:</strong> Es sind ausschließlich Leistungen auswählbar, die vom Auftraggeber für diesen Mandanten freigegeben wurden. Freigegeben: ${esc(obj.serviceScope||'—')}</div>`:''}
         <div class="muted" style="margin-top:6px">Winterdienst wird automatisch dem spezialisierten Winterdienst-Prozess zugeordnet. Andere Leistungen laufen über Touren &amp; Einsätze.</div>
         <div class="row" style="margin-top:10px"><button class="primary" onclick="osaSave('${esc(objectId)}')">Zuordnung speichern</button></div>
       </div>
@@ -16179,18 +16198,19 @@ async function osaSave(objectId){
     const service_type_id=document.getElementById('osaService')?.value||'';
     const managed_document_version_id=document.getElementById('osaSop')?.value||'';
     if(!service_type_id||!managed_document_version_id)throw new Error('Leistungsart und freigegebene SOP auswählen.');
-    await cloudRequest('rpc/set_object_service_assignment_v1',{
-      method:'POST',
-      body:JSON.stringify({
-        p_object_id:objectId,
-        p_service_type_id:service_type_id,
-        p_managed_document_version_id:managed_document_version_id,
-        p_process_type:osaProcessForService(service_type_id),
-        p_valid_from:document.getElementById('osaFrom')?.value||null,
-        p_valid_until:document.getElementById('osaUntil')?.value||null,
-        p_note:document.getElementById('osaNote')?.value.trim()||null
-      })
-    });
+    const obj=(db.objects||[]).find(o=>String(o.id)===String(objectId));
+    const rpc=obj?.externalManaged?'rpc/set_external_object_service_assignment_v1':'rpc/set_object_service_assignment_v1';
+    const payload={
+      p_object_id:objectId,
+      p_service_type_id:service_type_id,
+      p_managed_document_version_id:managed_document_version_id,
+      p_process_type:osaProcessForService(service_type_id),
+      p_valid_from:document.getElementById('osaFrom')?.value||null,
+      p_valid_until:document.getElementById('osaUntil')?.value||null,
+      p_note:document.getElementById('osaNote')?.value.trim()||null
+    };
+    if(obj?.externalManaged)payload.p_collaboration_id=obj.collaborationId||null;
+    await cloudRequest(rpc,{method:'POST',body:JSON.stringify(payload)});
     await openObjectServicesModal(objectId);
   }catch(e){alert('Zuordnung konnte nicht gespeichert werden: '+(e.message||e));}
 }
