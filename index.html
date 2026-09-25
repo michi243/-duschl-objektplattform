@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.54</title>
+<title>Duschl Service – Objektplattform v2.21.55</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -442,6 +442,13 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
   .dm-usage-item,
   .dm-version-assignment{font-size:12px;}
 }
+
+
+/* === Tourplanung V2 · Leistungspläne · 2.21.55 === */
+.ops-assignment-item,.ops-plan-item{padding:10px 11px;margin:7px 0;border:1px solid var(--line-soft);border-radius:11px;background:#0b1823}
+.ops-plan-meta{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:5px}
+.ops-plan-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.ops-plan-actions button{min-height:34px;padding:6px 9px}
 
 /* ===== Dark UI completion – v2.0.2 Kundenbericht ===== */
 body,main,.section,.content,.container,.wrap,.page{background:transparent!important;color:var(--text)!important}
@@ -2447,15 +2454,53 @@ body.public-report-mode>#photoViewer{display:none!important}
     <button type="button" onclick="opsLoad()">↻ Aktualisieren</button>
   </div>
   <div class="grid g2 ops-planning-only" style="margin-top:14px">
-    <div class="card"><h3>Leistungsarten</h3><div class="muted">Tätigkeit, Qualifikation und SOP bilden die fachliche Grundlage.</div>
-      <div class="grid2" style="margin-top:10px"><label>Bezeichnung<input id="opsServiceName" placeholder="z. B. Mülltonnenservice"></label><label>Qualifikation<input id="opsServiceQualification" placeholder="z. B. caretaker_service"></label></div>
-      <div class="row" style="margin-top:10px"><button class="primary" onclick="opsSaveServiceType()">Leistungsart anlegen</button></div><div id="opsServiceList" style="margin-top:12px"></div></div>
-    <div class="card"><h3>Wiederkehrender Leistungsplan</h3>
-      <div class="grid2"><label>Objekt<select id="opsPlanObject"></select></label><label>Leistungsart<select id="opsPlanService"></select></label><label>Gültig von<input id="opsPlanFrom" type="date"></label><label>Gültig bis<input id="opsPlanUntil" type="date"></label></div>
-      <label style="margin-top:10px">Wochentage</label><div class="row" style="gap:10px;flex-wrap:wrap">
-      <label><input class="ops-weekday" type="checkbox" value="1" style="width:auto"> Mo</label><label><input class="ops-weekday" type="checkbox" value="2" style="width:auto"> Di</label><label><input class="ops-weekday" type="checkbox" value="3" style="width:auto"> Mi</label><label><input class="ops-weekday" type="checkbox" value="4" style="width:auto"> Do</label><label><input class="ops-weekday" type="checkbox" value="5" style="width:auto"> Fr</label><label><input class="ops-weekday" type="checkbox" value="6" style="width:auto"> Sa</label><label><input class="ops-weekday" type="checkbox" value="0" style="width:auto"> So</label></div>
-      <label style="margin-top:10px">Leistungsumfang / Auftrag<textarea id="opsPlanScope" rows="3"></textarea></label>
-      <div class="row" style="margin-top:10px"><button class="primary" onclick="opsSavePlan()">Leistungsplan speichern</button></div><div id="opsPlanList" style="margin-top:12px"></div></div>
+    <div class="card">
+      <h3>Planbare Objektleistungen</h3>
+      <div class="muted">Nur aktive Objekt-Leistungszuordnungen mit freigegebener SOP. Winterdienst wird hier bewusst nicht geplant.</div>
+      <div id="opsAssignmentList" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card">
+      <div class="row space" style="gap:10px;align-items:flex-start">
+        <div><h3 style="margin:0">Wiederkehrender Leistungsplan</h3><div class="muted" style="margin-top:5px">Rhythmus und Zeitbedarf für eine verbindlich zugeordnete Objektleistung.</div></div>
+        <span id="opsPlanEditBadge" class="badge hidden">Bearbeitung</span>
+      </div>
+
+      <label style="margin-top:12px">Objektleistung
+        <select id="opsPlanAssignment" onchange="opsPlanAssignmentChanged()"><option value="">Objekt &amp; Leistung wählen …</option></select>
+      </label>
+      <div id="opsPlanAssignmentInfo" class="muted" style="margin-top:7px">Zuerst eine planbare Objektleistung auswählen.</div>
+
+      <div class="grid2" style="margin-top:12px">
+        <label>Rhythmus<select id="opsPlanInterval"><option value="1">wöchentlich</option><option value="2">alle 2 Wochen</option><option value="4">alle 4 Wochen</option></select></label>
+        <label>Geplante Dauer (Min.)<input id="opsPlanDuration" type="number" min="5" max="1440" step="5" value="60"></label>
+        <label>Zeitfenster von<input id="opsPlanWindowStart" type="time"></label>
+        <label>Zeitfenster bis<input id="opsPlanWindowEnd" type="time"></label>
+        <label>Gültig von<input id="opsPlanFrom" type="date"></label>
+        <label>Gültig bis<input id="opsPlanUntil" type="date"></label>
+      </div>
+
+      <label style="margin-top:10px">Wochentage</label>
+      <div class="row" style="gap:10px;flex-wrap:wrap">
+        <label><input class="ops-weekday" type="checkbox" value="1" style="width:auto"> Mo</label>
+        <label><input class="ops-weekday" type="checkbox" value="2" style="width:auto"> Di</label>
+        <label><input class="ops-weekday" type="checkbox" value="3" style="width:auto"> Mi</label>
+        <label><input class="ops-weekday" type="checkbox" value="4" style="width:auto"> Do</label>
+        <label><input class="ops-weekday" type="checkbox" value="5" style="width:auto"> Fr</label>
+        <label><input class="ops-weekday" type="checkbox" value="6" style="width:auto"> Sa</label>
+        <label><input class="ops-weekday" type="checkbox" value="0" style="width:auto"> So</label>
+      </div>
+
+      <label style="margin-top:10px">Objektspezifischer Hinweis
+        <textarea id="opsPlanScope" rows="3" placeholder="Nur planungsrelevante Besonderheiten; die Arbeitsweise wird durch die SOP definiert."></textarea>
+      </label>
+
+      <div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">
+        <button id="opsPlanSaveBtn" class="primary" onclick="opsSavePlan()">Leistungsplan speichern</button>
+        <button id="opsPlanCancelBtn" class="hidden" onclick="opsCancelPlanEdit()">Bearbeitung abbrechen</button>
+      </div>
+      <div id="opsPlanList" style="margin-top:12px"></div>
+    </div>
   </div>
   <div class="grid g2 ops-planning-only" style="margin-top:14px">
     <div class="card"><h3>Tourvorlagen</h3><div class="grid2"><label>Name<input id="opsTourName" placeholder="z. B. Dienstag Nord"></label><label>Startzeit<input id="opsTourStart" type="time" value="07:00"></label></div>
@@ -4095,7 +4140,15 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    UX: Objektzuordnungen innerhalb der Historie kompakt statt als große Unterkarten.
    UNVERÄNDERT: Datenmodell, Rollen/Mandanten, SQL/RLS/RPC, SOP-Leistungsart, Objektzuordnung, Winterdienst.
    BACKEND: keine Änderung. */
-const APP_VERSION='2.21.54'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.21.55 | BASIS 2.21.54 | 25.09.2026
+   TOURPLANUNG V2 – SCHRITT 1: Wiederkehrende Leistungspläne.
+   ARCHITEKTUR: Planung nur aus aktiven Objekt-Leistungszuordnungen mit freigegebener SOP.
+   WINTERDIENST: bleibt außerhalb der Standard-Tourplanung.
+   UX: 1/2/4-Wochen-Rhythmus, Wochentage, Dauer, Zeitfenster, Gültigkeit, Hinweis.
+   UX: Leistungspläne bearbeiten und deaktivieren.
+   BEREINIGUNG: Freie Leistungsart-Anlage in der Tourplanung entfernt.
+   BACKEND: SQL-Migration 2.21.55 erforderlich. */
+const APP_VERSION='2.21.55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -17384,77 +17437,173 @@ async function wsCompleteExecution(id){
 }
 
 
-const opsState={services:[],plans:[],tours:[],stops:[],runs:[],runStops:[]};
+const opsState={services:[],plans:[],tours:[],stops:[],runs:[],runStops:[],assignments:[],documents:[],versions:[]};
+let opsEditingPlanId=null;
+
 function opsEsc(v){return String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));}
 function opsOrg(){return currentOrganizationId();}
 function opsObjName(id){return (db.objects||[]).find(o=>String(o.id)===String(id))?.name||'Objekt';}
 function opsServiceName(id){return opsState.services.find(x=>String(x.id)===String(id))?.name||'Leistung';}
+function opsVersion(id){return opsState.versions.find(x=>String(x.id)===String(id))||null;}
+function opsSopLabel(a){
+  const v=opsVersion(a?.managed_document_version_id);
+  const d=v&&opsState.documents.find(x=>String(x.id)===String(v.document_id));
+  return d&&v?`${d.document_number} · ${d.title} · V${v.version}`:'Keine freigegebene SOP';
+}
+function opsAssignmentLabel(a){return `${opsObjName(a.object_id)} · ${opsServiceName(a.service_type_id)}`;}
+function opsPlanAssignment(p){
+  return (opsState.assignments||[]).find(a=>String(a.object_id)===String(p.object_id)&&String(a.service_type_id)===String(p.service_type_id)&&a.active!==false&&String(a.process_type||'generic')==='generic')||null;
+}
+function opsWeekdayLabel(v){const m={0:'So',1:'Mo',2:'Di',3:'Mi',4:'Do',5:'Fr',6:'Sa'};return (v||[]).map(x=>m[Number(x)]??String(x)).join(', ');}
+function opsIntervalLabel(v){return ({1:'wöchentlich',2:'alle 2 Wochen',4:'alle 4 Wochen'})[Number(v)]||`alle ${v} Wochen`;}
+function opsTimeWindowLabel(p){const a=String(p?.time_window_start||'').slice(0,5),b=String(p?.time_window_end||'').slice(0,5);return a&&b?`${a}–${b}`:a?`ab ${a}`:b?`bis ${b}`:'kein Zeitfenster';}
+function opsPlanableAssignments(){
+  return (opsState.assignments||[]).filter(a=>a.active!==false&&String(a.process_type||'generic')==='generic'&&!!a.managed_document_version_id).sort((a,b)=>opsAssignmentLabel(a).localeCompare(opsAssignmentLabel(b),'de'));
+}
 
 function opsIsPlanningRole(){
-  /* 2.21.45:
-     Plattform-Admin/Vertretung arbeitet bei aktivem Mandanten in der Planungssicht.
-     Die globale Plattformrolle darf hier nicht in die operative Mitarbeitersicht fallen. */
   const globalRole=String(globalPlatformRole()||'').toLowerCase();
   const platformAdmin=['platform_admin','platform_admin_delegate'].includes(globalRole);
   const activeOrg=String(opsOrg()||'').trim();
-  if(platformAdmin && activeOrg) return true;
-  if(hasOperationalAdminAccess()) return true;
+  if(platformAdmin&&activeOrg)return true;
+  if(hasOperationalAdminAccess())return true;
   return isPropertyManagerRole();
 }
 function opsApplyViewMode(){
-  const section=document.getElementById('operations'); if(!section)return;
+  const section=document.getElementById('operations');if(!section)return;
   const planning=opsIsPlanningRole();
   section.classList.toggle('ops-operative-mode',!planning);
   const sub=document.getElementById('opsSubtitle');
-  if(sub)sub.textContent=planning?'Regelmäßige Leistungen automatisch planen und mit zusätzlichen Aufgaben ergänzen.':'Deine geplanten Touren, Einsätze und zusätzlichen Aufgaben.';
+  if(sub)sub.textContent=planning?'Wiederkehrende Leistungen aus verbindlichen Objekt-/SOP-Zuordnungen planen und zu Touren bündeln.':'Deine geplanten Touren, Einsätze und zusätzlichen Aufgaben.';
   const op=document.getElementById('opsOperativeView');
   if(op){op.classList.toggle('hidden',planning);op.style.display=planning?'none':'block';}
   section.querySelectorAll('.ops-planning-only').forEach(el=>el.style.display=planning?'':'none');
 }
-function opsMyRuns(){
-  const uid=String(currentUserId()||'');
-  return (opsState.runs||[]).filter(r=>String(r.assigned_user_id||'')===uid);
-}
+function opsMyRuns(){const uid=String(currentUserId()||'');return (opsState.runs||[]).filter(r=>String(r.assigned_user_id||'')===uid);}
 function opsRenderMyRuns(){
-  const host=document.getElementById('opsMyRunList'); if(!host)return;
+  const host=document.getElementById('opsMyRunList');if(!host)return;
   const runs=opsMyRuns().sort((a,b)=>String(a.service_date).localeCompare(String(b.service_date)));
-  host.innerHTML=runs.map(r=>{
-    const xs=(opsState.runStops||[]).filter(x=>x.run_id===r.id);
-    return `<div class="card" style="padding:10px;margin:7px 0"><strong>${opsEsc(r.service_date)} · ${opsEsc(r.name||'Tour')}</strong><div class="muted">${xs.length} Stopps · ${opsEsc(r.status||'planned')}</div>${xs.map(x=>`<div style="margin-top:6px">${x.sort_order}. ${opsEsc(opsObjName(x.object_id))} · ${opsEsc(opsServiceName(x.service_type_id))}</div>`).join('')}</div>`;
-  }).join('')||'<div class="muted">Aktuell sind dir keine Touren oder Einsätze zugewiesen.</div>';
+  host.innerHTML=runs.map(r=>{const xs=(opsState.runStops||[]).filter(x=>x.run_id===r.id);return `<div class="card" style="padding:10px;margin:7px 0"><strong>${opsEsc(r.service_date)} · ${opsEsc(r.name||'Tour')}</strong><div class="muted">${xs.length} Stopps · ${opsEsc(r.status||'planned')}</div>${xs.map(x=>`<div style="margin-top:6px">${x.sort_order}. ${opsEsc(opsObjName(x.object_id))} · ${opsEsc(opsServiceName(x.service_type_id))}</div>`).join('')}</div>`;}).join('')||'<div class="muted">Aktuell sind dir keine Touren oder Einsätze zugewiesen.</div>';
 }
 async function opsLoad(){
- opsApplyViewMode();
- const org=opsOrg();if(!org)return;
- try{
-  if(opsIsPlanningRole())try{await cloudRequest('rpc/generate_recurring_operations_v1',{method:'POST',body:JSON.stringify({p_organization_id:org,p_horizon_days:21})});}catch(e){console.warn(e);}
-  const a=await Promise.all([
-   cloudRequest(`service_types?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=name.asc`),
-   cloudRequest(`recurring_service_plans?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=created_at.desc`),
-   cloudRequest(`operation_tour_templates?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=name.asc`),
-   cloudRequest(`operation_tour_stops?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=sort_order.asc`),
-   cloudRequest(`operation_runs?select=*&organization_id=eq.${encodeURIComponent(org)}&order=service_date.asc`),
-   cloudRequest(`operation_run_stops?select=*&organization_id=eq.${encodeURIComponent(org)}&order=sort_order.asc`)
-  ]);
-  [opsState.services,opsState.plans,opsState.tours,opsState.stops,opsState.runs,opsState.runStops]=a.map(x=>x||[]);
   opsApplyViewMode();
-  if(opsIsPlanningRole()){opsPopulate();opsRender();}else{opsRenderMyRuns();}
- }catch(e){alert('Touren & Einsätze konnten nicht geladen werden: '+(e.message||e));}
+  const org=opsOrg();if(!org)return;
+  try{
+    if(opsIsPlanningRole())try{await cloudRequest('rpc/generate_recurring_operations_v1',{method:'POST',body:JSON.stringify({p_organization_id:org,p_horizon_days:21})});}catch(e){console.warn(e);}
+    const a=await Promise.all([
+      cloudRequest(`service_types?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=name.asc`),
+      cloudRequest(`recurring_service_plans?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=created_at.desc`),
+      cloudRequest(`operation_tour_templates?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=name.asc`),
+      cloudRequest(`operation_tour_stops?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=sort_order.asc`),
+      cloudRequest(`operation_runs?select=*&organization_id=eq.${encodeURIComponent(org)}&order=service_date.asc`),
+      cloudRequest(`operation_run_stops?select=*&organization_id=eq.${encodeURIComponent(org)}&order=sort_order.asc`),
+      cloudRequest(`object_service_assignments?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&process_type=eq.generic&order=created_at.desc`),
+      cloudRequest(`managed_documents?select=*&organization_id=eq.${encodeURIComponent(org)}&document_type=eq.sop&active=eq.true&order=document_number.asc`),
+      cloudRequest(`managed_document_versions?select=*&organization_id=eq.${encodeURIComponent(org)}&status=eq.released&order=created_at.desc`)
+    ]);
+    [opsState.services,opsState.plans,opsState.tours,opsState.stops,opsState.runs,opsState.runStops,opsState.assignments,opsState.documents,opsState.versions]=a.map(x=>x||[]);
+    opsApplyViewMode();
+    if(opsIsPlanningRole()){opsPopulate();opsRender();}else opsRenderMyRuns();
+  }catch(e){alert('Touren & Einsätze konnten nicht geladen werden: '+(e.message||e));}
 }
 function opsPopulate(){
- const oo=document.getElementById('opsPlanObject');if(oo)oo.innerHTML='<option value="">Objekt wählen …</option>'+((db.objects||[]).filter(o=>!o.deletedAt).map(o=>`<option value="${opsEsc(o.id)}">${opsEsc(o.name)}</option>`).join(''));
- const ss=document.getElementById('opsPlanService');if(ss)ss.innerHTML='<option value="">Leistungsart wählen …</option>'+opsState.services.map(x=>`<option value="${opsEsc(x.id)}">${opsEsc(x.name)}</option>`).join('');
- const tp=document.getElementById('opsTourPlans');if(tp)tp.innerHTML=opsState.plans.map(p=>`<option value="${opsEsc(p.id)}">${opsEsc(opsObjName(p.object_id))} · ${opsEsc(opsServiceName(p.service_type_id))}</option>`).join('');
+  const s=document.getElementById('opsPlanAssignment');
+  if(s){
+    const keep=s.value||'';
+    s.innerHTML='<option value="">Objekt & Leistung wählen …</option>'+opsPlanableAssignments().map(a=>`<option value="${opsEsc(a.id)}">${opsEsc(opsAssignmentLabel(a))}</option>`).join('');
+    if([...s.options].some(o=>String(o.value)===String(keep)))s.value=keep;
+  }
+  const tp=document.getElementById('opsTourPlans');
+  if(tp)tp.innerHTML=opsState.plans.map(p=>`<option value="${opsEsc(p.id)}">${opsEsc(opsObjName(p.object_id))} · ${opsEsc(opsServiceName(p.service_type_id))} · ${opsEsc(opsIntervalLabel(p.interval_weeks))}</option>`).join('');
+  if(!opsEditingPlanId)opsPlanAssignmentChanged();
+}
+function opsPlanAssignmentChanged(){
+  const id=document.getElementById('opsPlanAssignment')?.value||'',a=opsState.assignments.find(x=>String(x.id)===String(id)),info=document.getElementById('opsPlanAssignmentInfo');
+  if(!a){if(info)info.textContent='Zuerst eine planbare Objektleistung auswählen.';return;}
+  if(info)info.innerHTML=`<strong>${opsEsc(opsAssignmentLabel(a))}</strong><br>${opsEsc(opsSopLabel(a))} · Touren &amp; Einsätze${a.valid_from||a.valid_until?`<br>Leistungszuordnung gültig ${opsEsc(a.valid_from||'—')} – ${opsEsc(a.valid_until||'offen')}`:''}`;
+  if(!opsEditingPlanId){
+    const f=document.getElementById('opsPlanFrom'),u=document.getElementById('opsPlanUntil'),today=new Date().toISOString().slice(0,10);
+    if(f&&!f.value)f.value=a.valid_from&&a.valid_from>today?a.valid_from:today;
+    if(u&&!u.value&&a.valid_until)u.value=a.valid_until;
+  }
+}
+function opsResetPlanForm(){
+  opsEditingPlanId=null;
+  const s=document.getElementById('opsPlanAssignment');if(s){s.value='';s.disabled=false;}
+  document.getElementById('opsPlanInterval').value='1';
+  document.getElementById('opsPlanDuration').value='60';
+  document.getElementById('opsPlanWindowStart').value='';
+  document.getElementById('opsPlanWindowEnd').value='';
+  document.getElementById('opsPlanFrom').value='';
+  document.getElementById('opsPlanUntil').value='';
+  document.getElementById('opsPlanScope').value='';
+  document.querySelectorAll('.ops-weekday').forEach(x=>x.checked=false);
+  document.getElementById('opsPlanEditBadge')?.classList.add('hidden');
+  document.getElementById('opsPlanCancelBtn')?.classList.add('hidden');
+  const b=document.getElementById('opsPlanSaveBtn');if(b)b.textContent='Leistungsplan speichern';
+  opsPlanAssignmentChanged();
+}
+function opsCancelPlanEdit(){opsResetPlanForm();}
+function opsEditPlan(id){
+  const p=opsState.plans.find(x=>String(x.id)===String(id));if(!p)return;
+  const a=opsPlanAssignment(p);if(!a)return alert('Keine aktuell aktive Objekt-Leistungszuordnung. Plan zuerst fachlich bereinigen.');
+  opsEditingPlanId=p.id;
+  const s=document.getElementById('opsPlanAssignment');s.value=a.id;s.disabled=true;
+  document.getElementById('opsPlanInterval').value=String(p.interval_weeks||1);
+  document.getElementById('opsPlanDuration').value=String(p.planned_duration_minutes||60);
+  document.getElementById('opsPlanWindowStart').value=String(p.time_window_start||'').slice(0,5);
+  document.getElementById('opsPlanWindowEnd').value=String(p.time_window_end||'').slice(0,5);
+  document.getElementById('opsPlanFrom').value=p.valid_from||'';
+  document.getElementById('opsPlanUntil').value=p.valid_until||'';
+  document.getElementById('opsPlanScope').value=p.scope_text||'';
+  const days=new Set((p.weekdays||[]).map(Number));document.querySelectorAll('.ops-weekday').forEach(x=>x.checked=days.has(Number(x.value)));
+  document.getElementById('opsPlanEditBadge')?.classList.remove('hidden');
+  document.getElementById('opsPlanCancelBtn')?.classList.remove('hidden');
+  document.getElementById('opsPlanSaveBtn').textContent='Änderungen speichern';
+  opsPlanAssignmentChanged();
+}
+async function opsDeactivatePlan(id){
+  if(!confirm('Diesen Leistungsplan deaktivieren? Bereits erzeugte Einsätze bleiben erhalten.'))return;
+  try{
+    await cloudRequest(`recurring_service_plans?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({active:false})});
+    if(String(opsEditingPlanId)===String(id))opsResetPlanForm();
+    await opsLoad();
+  }catch(e){alert('Leistungsplan konnte nicht deaktiviert werden: '+(e.message||e));}
 }
 function opsRender(){
- let e=document.getElementById('opsServiceList');if(e)e.innerHTML=opsState.services.map(x=>`<div class="card" style="padding:9px;margin:6px 0"><strong>${opsEsc(x.name)}</strong><div class="muted">${opsEsc(x.qualification_code||'keine Qualifikation')}</div></div>`).join('')||'<div class="muted">Noch keine Leistungsarten.</div>';
- e=document.getElementById('opsPlanList');if(e)e.innerHTML=opsState.plans.map(p=>`<div class="card" style="padding:9px;margin:6px 0"><strong>${opsEsc(opsObjName(p.object_id))} · ${opsEsc(opsServiceName(p.service_type_id))}</strong><div class="muted">Wochentage ${opsEsc((p.weekdays||[]).join(', '))} · ${opsEsc(p.valid_from)} – ${opsEsc(p.valid_until||'offen')}</div><div>${opsEsc(p.scope_text||'')}</div></div>`).join('')||'<div class="muted">Noch keine Leistungspläne.</div>';
- e=document.getElementById('opsTourList');if(e)e.innerHTML=opsState.tours.map(t=>`<div class="card" style="padding:9px;margin:6px 0"><strong>${opsEsc(t.name)}</strong><div class="muted">${opsEsc(t.default_start_time||'')} · ${opsState.stops.filter(x=>x.tour_template_id===t.id).length} Stopps</div></div>`).join('')||'<div class="muted">Noch keine Tourvorlagen.</div>';
- const today=new Date().toISOString().slice(0,10);e=document.getElementById('opsRunList');if(e)e.innerHTML=opsState.runs.filter(r=>String(r.service_date)>=today).slice(0,30).map(r=>{const xs=opsState.runStops.filter(x=>x.run_id===r.id);return `<div class="card" style="padding:10px;margin:7px 0"><strong>${opsEsc(r.service_date)} · ${opsEsc(r.name||'Tour')}</strong><div class="muted">${xs.length} Stopps · ${opsEsc(r.status)}</div>${xs.map(x=>`<div>${x.sort_order}. ${opsEsc(opsObjName(x.object_id))} · ${opsEsc(opsServiceName(x.service_type_id))}</div>`).join('')}</div>`}).join('')||'<div class="muted">Keine geplanten Einsätze.</div>';
+  let e=document.getElementById('opsAssignmentList');
+  if(e)e.innerHTML=opsPlanableAssignments().map(a=>`<div class="ops-assignment-item"><strong>${opsEsc(opsAssignmentLabel(a))}</strong><div class="muted" style="margin-top:4px">${opsEsc(opsSopLabel(a))}</div><div class="ops-plan-meta"><span class="badge">Touren &amp; Einsätze</span>${a.valid_from?`<span class="muted">ab ${opsEsc(a.valid_from)}</span>`:''}${a.valid_until?`<span class="muted">bis ${opsEsc(a.valid_until)}</span>`:''}</div></div>`).join('')||'<div class="muted">Keine planbaren Objektleistungen. Zuerst unter „Objekte → Leistungen & SOPs“ eine nicht-winterliche Leistung zuordnen.</div>';
+  e=document.getElementById('opsPlanList');
+  if(e)e.innerHTML=opsState.plans.map(p=>{const a=opsPlanAssignment(p);return `<div class="ops-plan-item"><strong>${opsEsc(opsObjName(p.object_id))} · ${opsEsc(opsServiceName(p.service_type_id))}</strong><div class="muted" style="margin-top:4px">${a?opsEsc(opsSopLabel(a)):'Keine aktive Objekt-Leistungszuordnung'}</div><div class="ops-plan-meta"><span class="badge">${opsEsc(opsIntervalLabel(p.interval_weeks))}</span><span class="badge">${opsEsc(opsWeekdayLabel(p.weekdays))}</span><span class="badge">${opsEsc(p.planned_duration_minutes||60)} Min.</span><span class="badge">${opsEsc(opsTimeWindowLabel(p))}</span></div><div class="muted" style="margin-top:5px">gültig ${opsEsc(p.valid_from||'—')} – ${opsEsc(p.valid_until||'offen')}</div>${p.scope_text?`<div style="margin-top:5px">${opsEsc(p.scope_text)}</div>`:''}<div class="ops-plan-actions"><button type="button" onclick="opsEditPlan('${opsEsc(p.id)}')" ${a?'':'disabled'}>Bearbeiten</button><button type="button" class="danger" onclick="opsDeactivatePlan('${opsEsc(p.id)}')">Deaktivieren</button></div></div>`;}).join('')||'<div class="muted">Noch keine Leistungspläne.</div>';
+  e=document.getElementById('opsTourList');if(e)e.innerHTML=opsState.tours.map(t=>`<div class="card" style="padding:9px;margin:6px 0"><strong>${opsEsc(t.name)}</strong><div class="muted">${opsEsc(t.default_start_time||'')} · ${opsState.stops.filter(x=>x.tour_template_id===t.id).length} Stopps</div></div>`).join('')||'<div class="muted">Noch keine Tourvorlagen.</div>';
+  const today=new Date().toISOString().slice(0,10);e=document.getElementById('opsRunList');if(e)e.innerHTML=opsState.runs.filter(r=>String(r.service_date)>=today).slice(0,30).map(r=>{const xs=opsState.runStops.filter(x=>x.run_id===r.id);return `<div class="card" style="padding:10px;margin:7px 0"><strong>${opsEsc(r.service_date)} · ${opsEsc(r.name||'Tour')}</strong><div class="muted">${xs.length} Stopps · ${opsEsc(r.status)}</div>${xs.map(x=>`<div>${x.sort_order}. ${opsEsc(opsObjName(x.object_id))} · ${opsEsc(opsServiceName(x.service_type_id))}</div>`).join('')}</div>`}).join('')||'<div class="muted">Keine geplanten Einsätze.</div>';
 }
-async function opsSaveServiceType(){const name=document.getElementById('opsServiceName').value.trim();if(!name)return alert('Bezeichnung fehlt.');await cloudRequest('service_types',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({organization_id:opsOrg(),name,qualification_code:document.getElementById('opsServiceQualification').value.trim()||null,active:true,created_by:currentUserId()})});await opsLoad();}
-async function opsSavePlan(){const object_id=document.getElementById('opsPlanObject').value,service_type_id=document.getElementById('opsPlanService').value,weekdays=[...document.querySelectorAll('.ops-weekday:checked')].map(x=>Number(x.value));if(!object_id||!service_type_id||!weekdays.length)return alert('Objekt, Leistungsart und Wochentag erforderlich.');await cloudRequest('recurring_service_plans',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({organization_id:opsOrg(),object_id,service_type_id,weekdays,interval_weeks:1,valid_from:document.getElementById('opsPlanFrom').value||new Date().toISOString().slice(0,10),valid_until:document.getElementById('opsPlanUntil').value||null,scope_text:document.getElementById('opsPlanScope').value.trim()||null,active:true,created_by:currentUserId()})});await opsLoad();}
-async function opsSaveTour(){const name=document.getElementById('opsTourName').value.trim(),ids=[...document.getElementById('opsTourPlans').selectedOptions].map(x=>x.value);if(!name||!ids.length)return alert('Name und Leistungspläne erforderlich.');const id=crypto.randomUUID();await cloudRequest('operation_tour_templates',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({id,organization_id:opsOrg(),name,default_start_time:document.getElementById('opsTourStart').value||null,active:true,created_by:currentUserId()})});await cloudRequest('operation_tour_stops',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(ids.map((recurring_plan_id,i)=>({organization_id:opsOrg(),tour_template_id:id,recurring_plan_id,sort_order:i+1,active:true})))});await opsLoad();}
+async function opsSavePlan(){
+  try{
+    const assignmentId=document.getElementById('opsPlanAssignment')?.value||'',a=opsState.assignments.find(x=>String(x.id)===String(assignmentId));
+    if(!a)throw new Error('Planbare Objektleistung auswählen.');
+    if(String(a.process_type||'generic')!=='generic')throw new Error('Winterdienst darf nicht über die Standard-Tourplanung geplant werden.');
+    const weekdays=[...document.querySelectorAll('.ops-weekday:checked')].map(x=>Number(x.value));if(!weekdays.length)throw new Error('Mindestens einen Wochentag auswählen.');
+    const interval_weeks=Number(document.getElementById('opsPlanInterval').value);if(![1,2,4].includes(interval_weeks))throw new Error('Ungültiger Rhythmus.');
+    const planned_duration_minutes=Number(document.getElementById('opsPlanDuration').value);if(!Number.isFinite(planned_duration_minutes)||planned_duration_minutes<5||planned_duration_minutes>1440)throw new Error('Geplante Dauer muss zwischen 5 und 1440 Minuten liegen.');
+    const time_window_start=document.getElementById('opsPlanWindowStart').value||null,time_window_end=document.getElementById('opsPlanWindowEnd').value||null;if(time_window_start&&time_window_end&&time_window_end<=time_window_start)throw new Error('Das Ende des Zeitfensters muss nach dem Beginn liegen.');
+    const today=new Date().toISOString().slice(0,10),valid_from=document.getElementById('opsPlanFrom').value||today,valid_until=document.getElementById('opsPlanUntil').value||null;
+    if(valid_until&&valid_until<valid_from)throw new Error('„Gültig bis“ darf nicht vor „Gültig von“ liegen.');
+    if(a.valid_from&&valid_from<a.valid_from)throw new Error(`Der Leistungsplan darf nicht vor der Objekt-Leistungszuordnung beginnen (${a.valid_from}).`);
+    if(a.valid_until&&(!valid_until||valid_until>a.valid_until))throw new Error(`Der Leistungsplan muss spätestens mit der Objekt-Leistungszuordnung enden (${a.valid_until}).`);
+    const payload={organization_id:opsOrg(),object_id:a.object_id,service_type_id:a.service_type_id,weekdays,interval_weeks,planned_duration_minutes,time_window_start,time_window_end,valid_from,valid_until,scope_text:document.getElementById('opsPlanScope').value.trim()||null,active:true};
+    if(opsEditingPlanId)await cloudRequest(`recurring_service_plans?id=eq.${encodeURIComponent(opsEditingPlanId)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(payload)});
+    else{payload.created_by=currentUserId();await cloudRequest('recurring_service_plans',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(payload)});}
+    opsResetPlanForm();await opsLoad();
+  }catch(e){alert('Leistungsplan konnte nicht gespeichert werden: '+(e.message||e));}
+}
+async function opsSaveTour(){
+  const name=document.getElementById('opsTourName').value.trim(),ids=[...document.getElementById('opsTourPlans').selectedOptions].map(x=>x.value);if(!name||!ids.length)return alert('Name und Leistungspläne erforderlich.');
+  const id=crypto.randomUUID();
+  await cloudRequest('operation_tour_templates',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({id,organization_id:opsOrg(),name,default_start_time:document.getElementById('opsTourStart').value||null,active:true,created_by:currentUserId()})});
+  await cloudRequest('operation_tour_stops',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(ids.map((recurring_plan_id,i)=>({organization_id:opsOrg(),tour_template_id:id,recurring_plan_id,sort_order:i+1,active:true})))});
+  await opsLoad();
+}
 
 
 
