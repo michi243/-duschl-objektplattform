@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.15</title>
+<title>Duschl Service – Objektplattform v2.21.46</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1500,7 +1500,7 @@ body.public-report-mode>#photoViewer{display:none!important}
 <button class="primary" id="navDashboard" onclick="showSection('dashboard')"><span class="nav-icon">⌂</span><span>Dashboard</span></button>
 <button id="navObjects" onclick="showSection('objects')"><span class="nav-icon">▦</span><span>Objekte</span></button>
 <button id="navDocumentManagement" onclick="showSection('documentManagement')"><span class="nav-icon">▤</span><span>Dokumentenmanagement</span></button>
-<button id="navSopServices" onclick="showSection('sopServices')"><span class="nav-icon">▣</span><span>SOP &amp; Leistungen</span></button>
+<button id="navSopServices" class="hidden" style="display:none!important" onclick="showSection('sopServices')"><span class="nav-icon">▣</span><span>SOP &amp; Leistungen (Legacy)</span></button>
 <button id="navOperations" onclick="showSection('operations')"><span class="nav-icon">⇄</span><span>Touren &amp; Einsätze</span></button>
 <button id="navWinterService" onclick="showSection('winterService')"><span class="nav-icon">❄</span><span>Winterdienst</span></button>
 <button id="navFindings" onclick="showSection('findings')"><span class="nav-icon">▤</span><span>Dokumentation</span></button>
@@ -2161,7 +2161,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   </div>
 </section>
 
-<section class="section" id="sopServices">
+<section class="section hidden" id="sopServices" style="display:none!important" aria-hidden="true">
   <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
     <div><h2 style="margin:0">SOP &amp; Leistungen</h2>
       <div class="muted" style="margin-top:6px">Mandantenbezogene Administration für standardisierte Leistungen, Tätigkeiten und Objekt-Leistungsumfänge. Objektbetreuer und Mitarbeiter erhalten SOPs ausschließlich im jeweiligen Einsatz lesend.</div>
@@ -2269,14 +2269,14 @@ body.public-report-mode>#photoViewer{display:none!important}
   <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
     <div>
       <h2 style="margin:0">Winterdienst</h2>
-      <div class="muted" style="margin-top:6px">SOP · Leistungsumfang · Touren · Einsätze</div>
+      <div class="muted" style="margin-top:6px">Objekt-Leistungsumfang · Rufbereitschaft · Touren · Einsätze</div>
     </div>
     <button type="button" onclick="loadWinterService()">↻ Aktualisieren</button>
   </div>
 
   <div class="grid g2" style="margin-top:14px">
-    <div class="card">
-      <h3>SOP-Verwaltung</h3>
+    <div class="card ws-legacy-sop-admin hidden" style="display:none!important" aria-hidden="true">
+      <h3>SOP-Verwaltung (Legacy)</h3>
       <div class="muted">Freigegebene SOP-Versionen werden bei neuen Einsätzen festgeschrieben.</div>
       <div id="wsSopList" style="margin-top:12px"><span class="muted">Wird geladen …</span></div>
       <div class="grid2" style="margin-top:14px">
@@ -3846,7 +3846,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    Deep-Link bleibt über Login erhalten und öffnet nach Datenladen Winterdienst + erste Ausführung der verlinkten Tour.
    UNVERÄNDERT: Rollen/RLS, Tourbearbeitung/-löschung, Mitarbeiterqualifikation, Leistungsumfang, SOP und übrige Fachprozesse.
    BACKEND: Edge Function process-notification-outbox aktualisieren; keine Tabellen-/RLS-/RPC-Änderung. */
-const APP_VERSION='2.21.45'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.46'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -12943,7 +12943,7 @@ function renderObjects(){
         <div class="row">
           <button onclick="openFindingModal('${esc(o.id)}','')">Dokumentation erfassen</button>
           ${!o.externalManaged&&!isCustomerRole()?`<button onclick="openObjectQrCode('${esc(o.id)}')">Objekt-QR</button>`:''}
-          ${!o.externalManaged&&canManageObjectsUI()?`<button onclick="openObjectAreasModal('${esc(o.id)}')">Bereiche</button><button onclick="openObjectModal('${esc(o.id)}')">Bearbeiten</button>`:''}
+          ${!o.externalManaged&&canManageObjectsUI()?`<button onclick="openObjectAreasModal('${esc(o.id)}')">Bereiche</button><button onclick="openObjectServicesModal('${esc(o.id)}')">Leistungen &amp; SOPs</button><button onclick="openObjectModal('${esc(o.id)}')">Bearbeiten</button>`:''}
           <button onclick="showObjectReport('${esc(o.id)}')">Bericht</button>
           ${o.externalManaged?`<button onclick="showSection('externalOrders')">Externe Aufträge</button>`:''}
         </div>
@@ -16097,11 +16097,116 @@ document.addEventListener('click',()=>setTimeout(dsRefreshDataMenuButton,20));
 <script>
 document.addEventListener('DOMContentLoaded',prefillLoginEmailFromUrl);
 
+
+/* =========================================================
+   OBJEKT · LEISTUNGEN & SOPs · 2.21.46
+   Kanonische Zuordnung:
+   Dokumentenmanagement -> Objekt -> Fachprozess
+   ========================================================= */
+const osaState={assignments:[],services:[],documents:[],versions:[]};
+
+async function osaLoad(){
+  const org=currentOrganizationId(); if(!org)return;
+  const [assignments,services,documents,versions]=await Promise.all([
+    cloudRequest(`object_service_assignments?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=created_at.desc`),
+    cloudRequest(`service_types?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=name.asc`),
+    cloudRequest(`managed_documents?select=*&organization_id=eq.${encodeURIComponent(org)}&document_type=eq.sop&active=eq.true&order=document_number.asc`),
+    cloudRequest(`managed_document_versions?select=*&organization_id=eq.${encodeURIComponent(org)}&status=eq.released&order=created_at.desc`)
+  ]);
+  osaState.assignments=assignments||[];
+  osaState.services=services||[];
+  osaState.documents=documents||[];
+  osaState.versions=versions||[];
+}
+function osaSopOptions(){
+  return osaState.versions.map(v=>{
+    const d=osaState.documents.find(x=>x.id===v.document_id);
+    return d?`<option value="${esc(v.id)}">${esc(d.document_number)} · ${esc(d.title)} · V${esc(v.version)}</option>`:'';
+  }).join('');
+}
+function osaProcessForService(serviceId){
+  const st=osaState.services.find(x=>x.id===serviceId);
+  const q=String(st?.qualification_code||'').toLowerCase();
+  const n=String(st?.name||'').toLowerCase();
+  return q==='winter_service'||n.includes('winter')?'winter_service':'generic';
+}
+async function openObjectServicesModal(objectId){
+  try{
+    if(!slTenantAdmin())return alert('Keine Administrationsberechtigung.');
+    await osaLoad();
+    const obj=(db.objects||[]).find(o=>String(o.id)===String(objectId));
+    if(!obj)throw new Error('Objekt nicht gefunden.');
+    let modal=document.getElementById('objectServicesModal');
+    if(!modal){
+      modal=document.createElement('div');
+      modal.id='objectServicesModal'; modal.className='modal';
+      document.body.appendChild(modal);
+    }
+    const rows=osaState.assignments.filter(x=>String(x.object_id)===String(objectId));
+    const rowHtml=rows.map(a=>{
+      const st=osaState.services.find(x=>x.id===a.service_type_id);
+      const v=osaState.versions.find(x=>x.id===a.managed_document_version_id);
+      const d=v&&osaState.documents.find(x=>x.id===v.document_id);
+      const process=a.process_type==='winter_service'?'Winterdienst-Fachprozess':'Touren & Einsätze';
+      return `<div class="card" style="padding:10px;margin:8px 0">
+        <strong>${esc(st?.name||'Leistung')}</strong>
+        <div class="muted">${esc(d?`${d.document_number} · ${d.title} · V${v.version}`:'Keine SOP')} · ${esc(process)}</div>
+        ${a.note?`<div style="margin-top:5px">${esc(a.note)}</div>`:''}
+        <div class="row" style="margin-top:8px"><button class="danger" onclick="osaDeactivate('${esc(a.id)}','${esc(objectId)}')">Zuordnung beenden</button></div>
+      </div>`;
+    }).join('')||'<div class="empty">Noch keine Leistung/SOP zugeordnet.</div>';
+    modal.innerHTML=`<div class="modal-content" style="max-width:760px">
+      <div class="row space"><div><h2 style="margin:0">Leistungen &amp; SOPs</h2><div class="muted">${esc(obj.name||'Objekt')} · verbindliche Arbeitsgrundlage</div></div><button onclick="document.getElementById('objectServicesModal').style.display='none'">Schließen</button></div>
+      <div style="margin-top:14px">${rowHtml}</div>
+      <div class="card" style="margin-top:14px">
+        <h3>Leistung zuordnen</h3>
+        <div class="grid2">
+          <label>Leistungsart<select id="osaService"><option value="">Leistung wählen …</option>${osaState.services.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select></label>
+          <label>Freigegebene SOP<select id="osaSop"><option value="">SOP wählen …</option>${osaSopOptions()}</select></label>
+          <label>Gültig von<input id="osaFrom" type="date"></label>
+          <label>Gültig bis<input id="osaUntil" type="date"></label>
+        </div>
+        <label style="margin-top:10px">Objektspezifischer Leistungsumfang / Hinweis<textarea id="osaNote" placeholder="Nur objektspezifische Abgrenzung; die Arbeitsweise wird durch die SOP definiert."></textarea></label>
+        <div class="muted" style="margin-top:6px">Winterdienst wird automatisch dem spezialisierten Winterdienst-Prozess zugeordnet. Andere Leistungen laufen über Touren &amp; Einsätze.</div>
+        <div class="row" style="margin-top:10px"><button class="primary" onclick="osaSave('${esc(objectId)}')">Zuordnung speichern</button></div>
+      </div>
+    </div>`;
+    modal.style.display='flex';
+  }catch(e){alert('Leistungen & SOPs konnten nicht geladen werden: '+(e.message||e));}
+}
+async function osaSave(objectId){
+  try{
+    const service_type_id=document.getElementById('osaService')?.value||'';
+    const managed_document_version_id=document.getElementById('osaSop')?.value||'';
+    if(!service_type_id||!managed_document_version_id)throw new Error('Leistungsart und freigegebene SOP auswählen.');
+    await cloudRequest('rpc/set_object_service_assignment_v1',{
+      method:'POST',
+      body:JSON.stringify({
+        p_object_id:objectId,
+        p_service_type_id:service_type_id,
+        p_managed_document_version_id:managed_document_version_id,
+        p_process_type:osaProcessForService(service_type_id),
+        p_valid_from:document.getElementById('osaFrom')?.value||null,
+        p_valid_until:document.getElementById('osaUntil')?.value||null,
+        p_note:document.getElementById('osaNote')?.value.trim()||null
+      })
+    });
+    await openObjectServicesModal(objectId);
+  }catch(e){alert('Zuordnung konnte nicht gespeichert werden: '+(e.message||e));}
+}
+async function osaDeactivate(id,objectId){
+  if(!confirm('Diese Objekt-Leistungszuordnung beenden? Historische Einsätze bleiben erhalten.'))return;
+  try{
+    await cloudRequest('rpc/deactivate_object_service_assignment_v1',{method:'POST',body:JSON.stringify({p_assignment_id:id})});
+    await openObjectServicesModal(objectId);
+  }catch(e){alert('Zuordnung konnte nicht beendet werden: '+(e.message||e));}
+}
+
 /* =========================================================
    WINTERDIENST V1 · 2.21.33
    SOP + Leistungsumfang + Tourvorlage + Tagestour + Objekteinsatz
    ========================================================= */
-let wsState={sops:[],versions:[],scopes:[],templates:[],stops:[],runs:[],executions:[],areas:[],selectedAreas:[],manualAreas:[],tenantUsers:[]};
+let wsState={sops:[],versions:[],scopes:[],templates:[],stops:[],runs:[],executions:[],areas:[],selectedAreas:[],manualAreas:[],tenantUsers:[],objectAssignments:[],managedDocuments:[],managedVersions:[]};
 let wsEditingTourTemplateId=null;
 
 function wsOrg(){const id=currentOrganizationId();if(!id)throw new Error('Kein aktiver Mandant.');return id}
@@ -16114,27 +16219,30 @@ function wsStatusLabel(v){return ({planned:'Geplant',active:'Läuft',completed:'
 async function loadWinterService(){
   try{
     const org=wsOrg();
-    const [sops,versions,scopes,templates,stops,runs,executions]=await Promise.all([
-      cloudRequest(`sops?select=*&organization_id=eq.${encodeURIComponent(org)}&order=document_number.asc`),
-      cloudRequest(`sop_versions?select=*&organization_id=eq.${encodeURIComponent(org)}&order=created_at.desc`),
+    const [sops,versions,scopes,templates,stops,runs,executions,objectAssignments,managedDocuments,managedVersions]=await Promise.all([
+      Promise.resolve([]), /* Legacy SOP-Stamm wird nicht mehr operativ geladen. */
+      Promise.resolve([]), /* Legacy SOP-Versionen bleiben nur für historische FK-Daten bestehen. */
       cloudRequest(`winter_service_object_scopes?select=*&organization_id=eq.${encodeURIComponent(org)}&order=created_at.desc`),
       cloudRequest(`winter_service_tour_templates?select=*&organization_id=eq.${encodeURIComponent(org)}&order=name.asc`),
       cloudRequest(`winter_service_tour_stops?select=*&organization_id=eq.${encodeURIComponent(org)}&order=sort_order.asc`),
       cloudRequest(`winter_service_runs?select=*&organization_id=eq.${encodeURIComponent(org)}&order=service_date.desc,created_at.desc`),
-      cloudRequest(`winter_service_executions?select=*&organization_id=eq.${encodeURIComponent(org)}&order=created_at.desc`)
+      cloudRequest(`winter_service_executions?select=*&organization_id=eq.${encodeURIComponent(org)}&order=created_at.desc`),
+      cloudRequest(`object_service_assignments?select=*&organization_id=eq.${encodeURIComponent(org)}&process_type=eq.winter_service&active=eq.true&order=created_at.desc`),
+      cloudRequest(`managed_documents?select=*&organization_id=eq.${encodeURIComponent(org)}&document_type=eq.sop&active=eq.true&order=document_number.asc`),
+      cloudRequest(`managed_document_versions?select=*&organization_id=eq.${encodeURIComponent(org)}&status=eq.released&order=created_at.desc`)
     ]);
     let tenantUsers=[];
     try{
       tenantUsers=await cloudRequest('rpc/get_winter_service_assignees_v1',{method:'POST',body:JSON.stringify({p_organization_id:org})})||[];
     }catch(e){console.warn('Winterdienst-Mitarbeiter konnten nicht geladen werden',e)}
-    wsState={...wsState,sops:sops||[],versions:versions||[],scopes:scopes||[],templates:templates||[],stops:stops||[],runs:runs||[],executions:executions||[],tenantUsers};
+    wsState={...wsState,sops:sops||[],versions:versions||[],scopes:scopes||[],templates:templates||[],stops:stops||[],runs:runs||[],executions:executions||[],objectAssignments:objectAssignments||[],managedDocuments:managedDocuments||[],managedVersions:managedVersions||[],tenantUsers};
     wsApplyWinterServiceViewMode();
     if(wsIsWinterOperative()){
       wsRenderMyWinterOrders();
     }else{
       wsPopulateObjectSelects();
       wsPopulateRunAssignees();
-      wsRenderSops();
+      /* SOP-Verwaltung erfolgt zentral im Dokumentenmanagement / Objekt. */
       wsRenderTours();
       wsRenderRuns();
       wsRenderGroupedRuns();
@@ -16361,8 +16469,10 @@ async function wsSaveScope(){
     const validUntil=document.getElementById('wsScopeUntil').value||null;
     if(!objectId||!season)throw new Error('Objekt und Saison sind Pflicht.');
 
-    const approved=wsState.versions.find(v=>v.status==='approved');
-    if(!approved)throw new Error('Zuerst eine freigegebene Winterdienst-SOP anlegen.');
+    const assignment=wsState.objectAssignments.find(a=>String(a.object_id)===String(objectId)&&a.active!==false);
+    if(!assignment)throw new Error('Dem Objekt ist noch kein aktiver Winterdienst mit freigegebener SOP zugeordnet. Bitte zuerst unter Objekte → Leistungen & SOPs zuordnen.');
+    const managedVersion=wsState.managedVersions.find(v=>String(v.id)===String(assignment.managed_document_version_id));
+    if(!managedVersion)throw new Error('Die zugeordnete Winterdienst-SOP ist nicht freigegeben oder nicht verfügbar.');
 
     const rows=[];
     for(const a of wsState.selectedAreas){
@@ -16395,7 +16505,7 @@ async function wsSaveScope(){
       await cloudRequest(
         `winter_service_object_scopes?id=eq.${encodeURIComponent(scopeId)}&organization_id=eq.${encodeURIComponent(org)}`,
         {method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({
-          valid_from:validFrom,valid_until:validUntil,sop_version_id:approved.id,active:true
+          valid_from:validFrom,valid_until:validUntil,managed_document_version_id:managedVersion.id,object_service_assignment_id:assignment.id,active:true
         })}
       );
       // Alte Flächen bleiben historisch in der DB, sind für den aktuellen Scope aber nicht mehr aktiv.
@@ -16409,7 +16519,7 @@ async function wsSaveScope(){
         method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({
           id:scopeId,organization_id:org,object_id:objectId,season,
           valid_from:validFrom,valid_until:validUntil,
-          sop_version_id:approved.id,active:true,created_by:currentUserId()
+          managed_document_version_id:managedVersion.id,object_service_assignment_id:assignment.id,active:true,created_by:currentUserId()
         })
       });
     }
@@ -16707,7 +16817,7 @@ function wsApplyWinterServiceViewMode(){
     host.style.setProperty('display',operative?'block':'none','important');
   }
   const subtitle=section.querySelector(':scope > .row .muted');
-  if(subtitle) subtitle.textContent=operative?'Mein persönlicher Winterdienstauftrag':'SOP · Leistungsumfang · Touren · Einsätze';
+  if(subtitle) subtitle.textContent=operative?'Mein persönlicher Winterdienstauftrag':'Objekt-Leistungsumfang · Rufbereitschaft · Touren · Einsätze';
 }
 
 function wsMyRuns(){
