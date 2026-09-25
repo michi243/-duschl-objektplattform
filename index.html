@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.47</title>
+<title>Duschl Service – Objektplattform v2.21.48</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -2142,7 +2142,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <div class="card">
         <h3>Dokumentenregister</h3>
         <div class="row" style="gap:8px;flex-wrap:wrap">
-          <label style="flex:1">Filter
+          <label style="flex:1;min-width:220px">Dokumenttyp
             <select id="dmFilterType" onchange="dmRender()">
               <option value="">Alle Dokumenttypen</option>
               <option value="management_manual">Managementhandbuch</option>
@@ -2152,6 +2152,11 @@ body.public-report-mode>#photoViewer{display:none!important}
               <option value="checklist">Checkliste</option>
               <option value="template">Vorlage</option>
               <option value="other">Sonstiges</option>
+            </select>
+          </label>
+          <label style="flex:1;min-width:220px">Objekt
+            <select id="dmFilterObject" onchange="dmRender()">
+              <option value="">Alle Objekte</option>
             </select>
           </label>
         </div>
@@ -3846,7 +3851,12 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    Deep-Link bleibt über Login erhalten und öffnet nach Datenladen Winterdienst + erste Ausführung der verlinkten Tour.
    UNVERÄNDERT: Rollen/RLS, Tourbearbeitung/-löschung, Mitarbeiterqualifikation, Leistungsumfang, SOP und übrige Fachprozesse.
    BACKEND: Edge Function process-notification-outbox aktualisieren; keine Tabellen-/RLS-/RPC-Änderung. */
-const APP_VERSION='2.21.47'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.21.48 | BASIS 2.21.47 | 25.09.2026
+   ÄNDERUNG: Dokumentenmanagement zeigt je Dokumentversion die zugeordneten Objekte und Leistungen.
+   ÄNDERUNG: Objektfilter im Dokumentenregister; operative Zuordnung bleibt unter „Objekte > Leistungen & SOPs“.
+   UNVERÄNDERT: Rollen-/Mandantenlogik, RLS, SOP-Freigabe, Objekt-Leistungszuordnung, Touren & Einsätze, Winterdienst.
+   BACKEND: keine SQL-/RLS-/RPC-Änderung. */
+const APP_VERSION='2.21.48'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -17101,7 +17111,7 @@ async function opsSaveTour(){const name=document.getElementById('opsTourName').v
 
 /* === DOKUMENTENMANAGEMENT · GELENKTE DOKUMENTE · 2.21.40 === */
 const DM_BUCKET='document-management';
-const dmState={documents:[],versions:[]};
+const dmState={documents:[],versions:[],assignments:[],services:[]};
 const dmTypeLabels={
  management_manual:'Managementhandbuch',sop:'SOP',work_instruction:'Arbeitsanweisung',
  form:'Formular',checklist:'Checkliste',template:'Vorlage',other:'Sonstiges'
@@ -17120,13 +17130,31 @@ async function dmLoad(){
  if(!dmApplyAccess())return;
  const org=dmOrg();if(!org)return;
  try{
-  const [docs,vers]=await Promise.all([
+  const [docs,vers,assignments,services]=await Promise.all([
    cloudRequest(`managed_documents?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=document_number.asc`),
-   cloudRequest(`managed_document_versions?select=*&organization_id=eq.${encodeURIComponent(org)}&order=created_at.desc`)
+   cloudRequest(`managed_document_versions?select=*&organization_id=eq.${encodeURIComponent(org)}&order=created_at.desc`),
+   cloudRequest(`object_service_assignments?select=*&organization_id=eq.${encodeURIComponent(org)}&order=created_at.desc`),
+   cloudRequest(`service_types?select=*&organization_id=eq.${encodeURIComponent(org)}&order=name.asc`)
   ]);
-  dmState.documents=docs||[];dmState.versions=vers||[];
+  dmState.documents=docs||[];
+  dmState.versions=vers||[];
+  dmState.assignments=assignments||[];
+  dmState.services=services||[];
+
   const sel=document.getElementById('dmExisting');
   if(sel)sel.innerHTML='<option value="">Neues Dokument …</option>'+dmState.documents.map(d=>`<option value="${dmEsc(d.id)}">${dmEsc(d.document_number)} · ${dmEsc(d.title)}</option>`).join('');
+
+  const objectSel=document.getElementById('dmFilterObject');
+  if(objectSel){
+   const keep=objectSel.value||'';
+   const assignedObjectIds=new Set((dmState.assignments||[]).map(a=>String(a.object_id||'')).filter(Boolean));
+   const objs=(db.objects||[])
+    .filter(o=>!o.deletedAt && assignedObjectIds.has(String(o.id||'')))
+    .sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'de'));
+   objectSel.innerHTML='<option value="">Alle Objekte</option>'+objs.map(o=>`<option value="${dmEsc(o.id)}">${dmEsc(o.name||'Objekt')}</option>`).join('');
+   if([...objectSel.options].some(o=>String(o.value)===String(keep)))objectSel.value=keep;
+  }
+
   dmRender();
   if(!document.getElementById('dmExisting')?.value && !document.getElementById('dmVersion')?.value) dmExistingChanged();
  }catch(e){alert('Dokumentenmanagement konnte nicht geladen werden: '+(e.message||e));}
@@ -17175,29 +17203,97 @@ function dmSuggestExisting(){
  }
 }
 
+function dmVersionAssignments(versionId){
+ return (dmState.assignments||[]).filter(a=>String(a.managed_document_version_id||'')===String(versionId||''));
+}
+function dmObjectById(objectId){
+ return (db.objects||[]).find(x=>String(x.id||'')===String(objectId||''))||null;
+}
+function dmObjectName(objectId){
+ return dmObjectById(objectId)?.name||'Objekt nicht mehr im aktiven Bestand';
+}
+function dmServiceName(serviceId){
+ const s=(dmState.services||[]).find(x=>String(x.id||'')===String(serviceId||''));
+ return s?.name||'Leistung';
+}
+function dmAssignmentState(a){
+ const today=new Date().toISOString().slice(0,10);
+ if(a?.active===false)return 'Historisch';
+ if(a?.valid_until && String(a.valid_until)<today)return 'Abgelaufen';
+ if(a?.valid_from && String(a.valid_from)>today)return 'Geplant';
+ return 'Aktiv';
+}
+function dmAssignmentPeriod(a){
+ return `${a?.valid_from||'—'} – ${a?.valid_until||'offen'}`;
+}
+function dmProcessLabel(a){
+ return String(a?.process_type||'')==='winter_service'?'Winterdienst':'Touren & Einsätze';
+}
 function dmRender(){
  const el=document.getElementById('dmList');if(!el)return;
- const f=document.getElementById('dmFilterType')?.value||'';
- const docs=dmState.documents.filter(d=>!f||d.document_type===f);
+ const typeFilter=document.getElementById('dmFilterType')?.value||'';
+ const objectFilter=document.getElementById('dmFilterObject')?.value||'';
+
+ const docs=dmState.documents.filter(d=>{
+  if(typeFilter && d.document_type!==typeFilter)return false;
+  if(!objectFilter)return true;
+  const versionIds=new Set(
+   dmState.versions.filter(v=>String(v.document_id)===String(d.id)).map(v=>String(v.id))
+  );
+  return (dmState.assignments||[]).some(a=>
+   String(a.object_id||'')===String(objectFilter) &&
+   versionIds.has(String(a.managed_document_version_id||''))
+  );
+ });
+
  el.innerHTML=docs.map(d=>{
-  const vv=dmState.versions.filter(v=>v.document_id===d.id);
+  let vv=dmState.versions.filter(v=>String(v.document_id)===String(d.id));
+  if(objectFilter){
+   vv=vv.filter(v=>dmVersionAssignments(v.id).some(a=>String(a.object_id||'')===String(objectFilter)));
+  }
+
   return `<div class="card" style="padding:10px;margin:8px 0">
     <div class="row space" style="gap:8px;align-items:flex-start">
       <div><strong>${dmEsc(d.document_number)} · ${dmEsc(d.title)}</strong>
       <div class="muted">${dmEsc(dmTypeLabels[d.document_type]||d.document_type)}</div></div>
     </div>
-    ${vv.map(v=>`<div style="border-top:1px solid var(--border,#ddd);margin-top:8px;padding-top:8px">
-      <strong>Version ${dmEsc(v.version)}</strong> · ${dmEsc(({draft:'Entwurf',released:'Freigegeben',archived:'Archiviert'})[v.status]||v.status)}
-      <div class="muted">gültig ab ${dmEsc(v.valid_from||'—')} · Freigabe ${dmEsc(v.released_at?new Date(v.released_at).toLocaleString('de-DE'):'—')} · nächste Prüfung ${dmEsc(v.review_date||'—')}</div>
-      <div class="muted">${dmEsc(v.original_filename||'Keine Datei')}</div>
-      <div class="row" style="margin-top:6px;gap:6px;flex-wrap:wrap">
-        ${v.storage_path?`<button type="button" onclick="dmOpenFile('${dmEsc(v.id)}')">Dokument öffnen</button>`:''}
-        ${v.status==='draft'?`<button type="button" onclick="dmDiscardDraft('${dmEsc(v.id)}')">Entwurf verwerfen</button>`:''}
-        ${v.status==='released'?`<button type="button" onclick="dmArchiveVersion('${dmEsc(v.id)}')">Archivieren</button>`:''}
-      </div>
-    </div>`).join('')}
+    ${vv.map(v=>{
+      const assignments=dmVersionAssignments(v.id)
+       .filter(a=>!objectFilter||String(a.object_id||'')===String(objectFilter));
+
+      const assignmentHtml=assignments.length
+       ? `<div style="margin-top:9px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#0b1823">
+            <strong>Objektzuordnung</strong>
+            ${assignments.map(a=>{
+              const objectExists=!!dmObjectById(a.object_id);
+              return `<div style="border-top:1px solid var(--line-soft);margin-top:8px;padding-top:8px">
+                <div class="row" style="gap:7px;align-items:center">
+                  <strong>${dmEsc(dmObjectName(a.object_id))}</strong>
+                  <span>· ${dmEsc(dmServiceName(a.service_type_id))}</span>
+                  <span class="badge">${dmEsc(dmAssignmentState(a))}</span>
+                </div>
+                <div class="muted" style="margin-top:4px">Gültigkeit ${dmEsc(dmAssignmentPeriod(a))} · Prozess ${dmEsc(dmProcessLabel(a))}</div>
+                ${a.note?`<div class="muted" style="margin-top:3px">${dmEsc(a.note)}</div>`:''}
+                ${objectExists?`<div class="row" style="margin-top:7px"><button type="button" onclick="openObjectServicesModal('${dmEsc(a.object_id)}')">Leistungen &amp; SOPs öffnen</button></div>`:''}
+              </div>`;
+            }).join('')}
+          </div>`
+       : `<div class="muted" style="margin-top:8px">Keine Objektzuordnung.</div>`;
+
+      return `<div style="border-top:1px solid var(--border,#ddd);margin-top:8px;padding-top:8px">
+        <strong>Version ${dmEsc(v.version)}</strong> · ${dmEsc(({draft:'Entwurf',released:'Freigegeben',archived:'Archiviert'})[v.status]||v.status)}
+        <div class="muted">gültig ab ${dmEsc(v.valid_from||'—')} · Freigabe ${dmEsc(v.released_at?new Date(v.released_at).toLocaleString('de-DE'):'—')} · nächste Prüfung ${dmEsc(v.review_date||'—')}</div>
+        <div class="muted">${dmEsc(v.original_filename||'Keine Datei')}</div>
+        ${assignmentHtml}
+        <div class="row" style="margin-top:6px;gap:6px;flex-wrap:wrap">
+          ${v.storage_path?`<button type="button" onclick="dmOpenFile('${dmEsc(v.id)}')">Dokument öffnen</button>`:''}
+          ${v.status==='draft'?`<button type="button" onclick="dmDiscardDraft('${dmEsc(v.id)}')">Entwurf verwerfen</button>`:''}
+          ${v.status==='released'?`<button type="button" onclick="dmArchiveVersion('${dmEsc(v.id)}')">Archivieren</button>`:''}
+        </div>
+      </div>`;
+    }).join('')}
   </div>`;
- }).join('')||'<div class="muted">Noch keine Dokumente.</div>';
+ }).join('')||'<div class="muted">Keine Dokumente für den gewählten Filter.</div>';
 }
 async function dmStoragePut(path,file){
  const r=await cloudStorageRequest(`object/${DM_BUCKET}/${path}`,{
