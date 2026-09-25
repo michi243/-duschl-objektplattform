@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.55</title>
+<title>Duschl Service – Objektplattform v2.21.56</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -4148,7 +4148,16 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    UX: Leistungspläne bearbeiten und deaktivieren.
    BEREINIGUNG: Freie Leistungsart-Anlage in der Tourplanung entfernt.
    BACKEND: SQL-Migration 2.21.55 erforderlich. */
-const APP_VERSION='2.21.55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.21.56 | BASIS 2.21.55 | 25.09.2026
+   OBJEKT-GEODATEN: Straße, PLZ und Ort werden strukturiert gepflegt.
+   GEOCODING: Objektadresse wird über Supabase Edge Function einmalig in Latitude/Longitude aufgelöst.
+   CACHE: Koordinaten werden am Objekt gespeichert; unveränderte Adressen werden nicht erneut geokodiert.
+   INTEGRITÄT: Adressänderung verwirft alte Koordinaten automatisch.
+   UX: Geocoding-Status und manueller Neuabgleich im Objekt-Dialog.
+   BASIS FÜR: Winterdienst-Wetter, Entfernungen und spätere Routenoptimierung.
+   UNVERÄNDERT: Rollen/Mandanten, SOPs, Tourplanung, Winterdienstprozess.
+   BACKEND: SQL-Migration + Edge Function geocode-object erforderlich. */
+const APP_VERSION='2.21.56'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -6491,12 +6500,25 @@ async function cloudRequest(path,options={},retry=true){
   return data;
 }
 function cloudObjectToLocal(o){
-  const address=[o.street,o.postal_code,o.city].filter(Boolean).join(', ');
+  const street=String(o.street||'').trim();
+  const postalCode=String(o.postal_code||'').trim();
+  const city=String(o.city||'').trim();
+  const address=[
+    street,
+    [postalCode,city].filter(Boolean).join(' ')
+  ].filter(Boolean).join(', ');
   return {
     id:o.id,
     organizationId:o.organization_id||'',
     name:o.name||'',
+    street,
+    postalCode,
+    city,
     address,
+    latitude:o.latitude==null?null:Number(o.latitude),
+    longitude:o.longitude==null?null:Number(o.longitude),
+    geocodedAt:o.geocoded_at||null,
+    geocodeSource:o.geocode_source||null,
     notes:o.notes||'',
     isTest:o.is_test===true,
     createdAt:o.created_at?new Date(o.created_at).getTime():Date.now(),
@@ -10123,7 +10145,7 @@ async function cloudReloadObjects(){
     // Mandantenrollen laden ausschließlich die per RLS freigegebenen Objekte.
     let rows=[];
     if(isPlatformTenantMode()){
-      const objectPath=`objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(platformTenantModeOrgId)}&order=name.asc`;
+      const objectPath=`objects?select=id,organization_id,name,street,postal_code,city,latitude,longitude,geocoded_at,geocode_source,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(platformTenantModeOrgId)}&order=name.asc`;
       rows=await cloudRequest(objectPath);
     }else{
       // v2.19.42: Mandantenobjekte nicht mehr von einer möglicherweise zu restriktiven
@@ -10158,7 +10180,7 @@ async function cloudReloadObjects(){
           const canSeeAllOwn=isTenantAdminRole() || isAdminDelegate();
           if(orgId && canSeeAllOwn){
             rows=await cloudRequest(
-              `objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(orgId)}&order=name.asc`
+              `objects?select=id,organization_id,name,street,postal_code,city,latitude,longitude,geocoded_at,geocode_source,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(orgId)}&order=name.asc`
             );
           }
         }
@@ -10167,8 +10189,8 @@ async function cloudReloadObjects(){
         const orgId=(typeof currentOrganizationId==='function'&&currentOrganizationId())||'';
         const canSeeAllOwn=isTenantAdminRole() || isAdminDelegate();
         const path=(orgId&&canSeeAllOwn)
-          ? `objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(orgId)}&order=name.asc`
-          : 'objects?select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at&active=eq.true&order=name.asc';
+          ? `objects?select=id,organization_id,name,street,postal_code,city,latitude,longitude,geocoded_at,geocode_source,notes,is_test,created_at,updated_at&active=eq.true&organization_id=eq.${encodeURIComponent(orgId)}&order=name.asc`
+          : 'objects?select=id,organization_id,name,street,postal_code,city,latitude,longitude,geocoded_at,geocode_source,notes,is_test,created_at,updated_at&active=eq.true&order=name.asc';
         rows=await cloudRequest(path);
       }
     }
@@ -10259,13 +10281,12 @@ async function cloudReloadObjects(){
   }
 }
 async function cloudSaveObject(id,data){
-  const addr=splitAddress(data.address);
   const payload={
     name:data.name,
     organization_id:data.organizationId||null,
-    street:addr.street||null,
-    postal_code:addr.postal_code,
-    city:addr.city,
+    street:data.street||null,
+    postal_code:data.postalCode||null,
+    city:data.city||null,
     notes:data.notes||null,
     is_test:data.isTest===true,
     updated_at:new Date().toISOString()
@@ -10295,7 +10316,7 @@ async function cloudSaveObject(id,data){
   });
   const objectId=typeof result==='string'?result:(Array.isArray(result)?result[0]:result);
   if(!objectId)throw new Error('Objekt wurde serverseitig nicht angelegt.');
-  const rows=await cloudRequest(`objects?id=eq.${encodeURIComponent(objectId)}&select=id,organization_id,name,street,postal_code,city,notes,is_test,created_at,updated_at`);
+  const rows=await cloudRequest(`objects?id=eq.${encodeURIComponent(objectId)}&select=id,organization_id,name,street,postal_code,city,latitude,longitude,geocoded_at,geocode_source,notes,is_test,created_at,updated_at`);
   return rows?.[0];
 }
 async function cloudDeleteObject(id){
@@ -14659,18 +14680,109 @@ async function toggleObjectArea(objectId,areaId,active){
   catch(e){alert('Bereich konnte nicht geändert werden: '+(e.message||e));}
 }
 
+function objectAddressPartsForForm(o){
+  let street=String(o?.street||'').trim();
+  let postalCode=String(o?.postalCode||'').trim();
+  let city=String(o?.city||'').trim();
+
+  // Legacy: frühere Versionen speicherten die komplette Adresse teilweise
+  // im Feld street. Beim Öffnen wird eine deutsche PLZ/Ort-Kombination
+  // nur als Eingabehilfe zerlegt; gespeichert wird erst nach Benutzeraktion.
+  if(street && !postalCode && !city){
+    const m=street.match(/^(.*?)[,\s]+(\d{5})\s+(.+)$/);
+    if(m){
+      street=String(m[1]||'').replace(/,\s*$/,'').trim();
+      postalCode=String(m[2]||'').trim();
+      city=String(m[3]||'').trim();
+    }
+  }
+  return {street,postalCode,city};
+}
+function objectGeocodeStatusHtml(o){
+  const hasCoords=Number.isFinite(Number(o?.latitude))&&Number.isFinite(Number(o?.longitude));
+  if(!hasCoords){
+    return `<div id="oGeoStatus" class="muted">Standort noch nicht geokodiert. Nach dem Speichern wird die vollständige Adresse automatisch aufgelöst.</div>`;
+  }
+  const at=o?.geocodedAt?new Date(o.geocodedAt).toLocaleString('de-DE'):'—';
+  const source=String(o?.geocodeSource||'Geocoder');
+  return `<div id="oGeoStatus">
+    <strong>Standort ermittelt</strong>
+    <div class="muted" style="margin-top:4px">${Number(o.latitude).toFixed(6)}, ${Number(o.longitude).toFixed(6)} · ${esc(source)} · ${esc(at)}</div>
+  </div>`;
+}
+async function cloudGeocodeObject(objectId,{force=false}={}){
+  if(!cloudSession?.access_token)throw new Error('Keine aktive Anmeldung.');
+  const r=await fetch(`${SUPABASE_URL}/functions/v1/geocode-object`,{
+    method:'POST',
+    headers:{
+      'apikey':SUPABASE_PUBLISHABLE_KEY,
+      'Authorization':`Bearer ${cloudSession.access_token}`,
+      'Content-Type':'application/json'
+    },
+    body:JSON.stringify({object_id:objectId,force:force===true})
+  });
+  const raw=await r.text();
+  let data={};
+  try{data=raw?JSON.parse(raw):{}}catch(_e){}
+  if(!r.ok||data?.success!==true)throw new Error(data?.error||raw||`HTTP ${r.status}`);
+  return data;
+}
+async function geocodeObjectFromModal(objectId){
+  if(!objectId)return;
+  const btn=document.getElementById('oGeocodeBtn');
+  const status=document.getElementById('oGeoStatus');
+  const old=btn?.textContent||'Standort neu ermitteln';
+  if(btn){btn.disabled=true;btn.textContent='Standort wird ermittelt…';}
+  if(status)status.textContent='Standort wird aus der gespeicherten Adresse ermittelt …';
+  try{
+    const g=await cloudGeocodeObject(objectId,{force:true});
+    if(status)status.innerHTML=`<strong>Standort ermittelt</strong><div class="muted" style="margin-top:4px">${Number(g.latitude).toFixed(6)}, ${Number(g.longitude).toFixed(6)} · ${esc(g.source||'Geocoder')} · jetzt</div>`;
+    await cloudReloadObjects();
+  }catch(e){
+    if(status)status.textContent='Standort konnte nicht ermittelt werden: '+(e.message||e);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=old;}
+  }
+}
+
 function openObjectModal(id=''){
   if(!canManageObjectsUI())return alert('Objektverwaltung ist für diese Rolle nicht freigegeben.');
-  const o=db.objects.find(x=>x.id===id)||{id:'',organizationId:currentOrganizationId(),name:'',address:'',notes:'',isTest:false};
+  const o=db.objects.find(x=>x.id===id)||{id:'',organizationId:currentOrganizationId(),name:'',street:'',postalCode:'',city:'',address:'',latitude:null,longitude:null,geocodedAt:null,geocodeSource:null,notes:'',isTest:false};
+  const addressParts=objectAddressPartsForForm(o);
   const allowedOrgs=isAdminRole()?cloudOrganizations.filter(x=>x.active!==false):(currentOrganization?[currentOrganization]:[]);
   const fixedOrgId=id?o.organizationId:(o.organizationId||allowedOrgs[0]?.id||'');
   const orgControl=isAdminRole()&&!id
     ? `<label>Unternehmen / Mandant *</label><select id="oOrganization">${allowedOrgs.map(org=>`<option value="${esc(org.id)}" ${org.id===fixedOrgId?'selected':''}>${esc(org.name)}</option>`).join('')}</select>`
     : `<div class="card" style="margin-top:12px;padding:12px"><span class="muted">Unternehmen / Mandant</span><div style="font-weight:800;margin-top:4px">${esc(organizationName(fixedOrgId)||currentOrganization?.name||'—')}</div><input id="oOrganization" type="hidden" value="${esc(fixedOrgId)}"></div>`;
+
   modal(`<div class="row space"><h2>${id?'Objekt bearbeiten':'Objekt anlegen'}</h2><button onclick="closeModal()">✕</button></div>
   ${orgControl}
   <label>Objektbezeichnung *</label><input id="oName" value="${esc(o.name)}" placeholder="z. B. WEG Musterstraße 12">
-  <label>Adresse</label><input id="oAddress" value="${esc(o.address)}" placeholder="Straße, PLZ Ort">
+
+  <div class="grid2" style="margin-top:10px">
+    <label>Straße / Hausnummer
+      <input id="oStreet" value="${esc(addressParts.street)}" placeholder="z. B. Musterstraße 12">
+    </label>
+    <label>PLZ
+      <input id="oPostalCode" value="${esc(addressParts.postalCode)}" inputmode="numeric" maxlength="10" placeholder="z. B. 80933">
+    </label>
+    <label>Ort
+      <input id="oCity" value="${esc(addressParts.city)}" placeholder="z. B. München">
+    </label>
+  </div>
+
+  <div class="card" style="margin-top:12px;padding:12px">
+    <div class="row space" style="gap:10px;align-items:flex-start">
+      <div>
+        <strong>Geografischer Standort</strong>
+        <div class="muted" style="margin-top:4px">Grundlage für Winterdienst-Wetter und spätere Routenplanung.</div>
+      </div>
+      ${id?`<button id="oGeocodeBtn" type="button" onclick="geocodeObjectFromModal('${esc(id)}')">Standort neu ermitteln</button>`:''}
+    </div>
+    <div style="margin-top:8px">${objectGeocodeStatusHtml(o)}</div>
+    <div class="muted" style="margin-top:7px;font-size:12px">Geodaten © OpenStreetMap-Mitwirkende · Geocodierung über den konfigurierten Nominatim-Dienst. Bei „Standort neu ermitteln“ wird die zuletzt gespeicherte Adresse verwendet.</div>
+  </div>
+
   <label>Notizen</label><textarea id="oNotes">${esc(o.notes)}</textarea>
   ${!id?`<div class="card" style="margin-top:14px;padding:12px"><strong>Standardbereiche</strong><div class="muted" style="margin-top:5px">Beim Anlegen werden automatisch folgende Bereiche erzeugt: ${DEFAULT_OBJECT_AREAS.map(esc).join(', ')}. Sie können anschließend objektbezogen umbenannt, deaktiviert oder ergänzt werden.</div></div>`:''}
   <label class="row" style="gap:10px;align-items:center;margin-top:14px"><input id="oIsTest" type="checkbox" ${o.isTest?'checked':''}><span><strong>Testobjekt</strong><br><span class="muted"></span></span></label>
@@ -14683,21 +14795,38 @@ async function saveObject(id){
   if(!name)return alert('Bitte Objektbezeichnung eingeben.');
   const organizationId=document.getElementById('oOrganization')?.value||currentOrganizationId();
   if(!organizationId)return alert('Bitte ein Unternehmen / einen Mandanten auswählen.');
+
+  const street=document.getElementById('oStreet')?.value.trim()||'';
+  const postalCode=document.getElementById('oPostalCode')?.value.trim()||'';
+  const city=document.getElementById('oCity')?.value.trim()||'';
+
   const data={
     organizationId,
     name,
-    address:document.getElementById('oAddress').value.trim(),
+    street,
+    postalCode,
+    city,
     notes:document.getElementById('oNotes').value.trim(),
     isTest:!!document.getElementById('oIsTest')?.checked
   };
+
   try{
     const row=await cloudSaveObject(id,data);
     if(!row)throw new Error('Keine Rückgabe aus Supabase.');
 
-    // v2.18.82: Bei Neuanlage wurden die Standardbereiche bereits
-    // innerhalb derselben serverseitigen Transaktion erzeugt.
+    let geocodeWarning='';
+    if(row.id && street && postalCode && city){
+      try{
+        await cloudGeocodeObject(row.id,{force:false});
+      }catch(e){
+        console.warn('Objekt gespeichert, Geocodierung fehlgeschlagen',e);
+        geocodeWarning='Objekt wurde gespeichert. Der geografische Standort konnte noch nicht automatisch ermittelt werden: '+(e.message||e);
+      }
+    }
+
     closeModal();
     await cloudReloadObjects();
+    if(geocodeWarning)alert(geocodeWarning);
   }catch(e){
     console.error(e);
     alert('Objekt konnte nicht zentral gespeichert werden: '+(e.message||e));
