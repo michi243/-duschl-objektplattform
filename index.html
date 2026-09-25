@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.49</title>
+<title>Duschl Service – Objektplattform v2.21.50</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3861,7 +3861,14 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    GOVERNANCE: Freigabe verändert dieselbe Version; kein neuer Versionsdatensatz und kein erneuter Datei-Upload.
    UNVERÄNDERT: Rollen-/Mandantenlogik, RLS, Objekt-/SOP-Zuordnung, Touren & Einsätze, Winterdienst.
    BACKEND: keine SQL-/RLS-/RPC-Änderung; bestehende finalize_managed_document_version_v2 wird wiederverwendet. */
-const APP_VERSION='2.21.49'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.21.50 | BASIS 2.21.49 | 25.09.2026
+   ÄNDERUNG: Extern betreute Objekte beziehen auswählbare Leistungsarten aus den strukturierten Collaboration-Scopes.
+   FIX: Kein reiner Textvergleich mehr zwischen Leistungsart und Freigabetext.
+   MAPPING: Objektbetreuung, Grünpflege/Außenpflege, Abfall und Winterdienst werden auf kanonische Scope-Codes abgebildet.
+   FALLBACK: Nur wenn keine strukturierten Scopes vorliegen, wird die Legacy-Textfreigabe ausgewertet.
+   UNVERÄNDERT: Rollen/Mandanten, RLS, Dokumentenmanagement, Objekt-SOP-Zuordnung, Winterdienst-Fachprozess.
+   BACKEND: keine SQL-/RLS-/RPC-Änderung. */
+const APP_VERSION='2.21.50'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -16151,21 +16158,107 @@ function osaNormalizedScopeName(v){
     .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')
     .replace(/[^a-z0-9]+/g,' ').trim();
 }
+function osaServiceScopeCode(st){
+  const q=canonicalServiceScopeCode(String(st?.qualification_code||'').trim());
+  const qAliases={
+    WINTER_SERVICE:'WINTERDIENST',
+    WINTERDIENST:'WINTERDIENST',
+    WIDI:'WINTERDIENST',
+    GARTENPFLEGE:'GRUENPFLEGE',
+    GRUENPFLEGE:'GRUENPFLEGE',
+    AUSSENPFLEGE:'GRUENPFLEGE',
+    OBJEKTBETREUUNG:'OBJEKTBETREUUNG',
+    HAUSMEISTER:'OBJEKTBETREUUNG',
+    HAUSMEISTERSERVICE:'OBJEKTBETREUUNG',
+    ABFALL:'ABFALL',
+    MUELL:'ABFALL',
+    MUELLBEREITSTELLUNG:'ABFALL'
+  };
+  if(qAliases[q])return qAliases[q];
+
+  const n=osaNormalizedScopeName(st?.name||'');
+  const nameRules=[
+    ['WINTERDIENST',['winterdienst','winter service','widi']],
+    ['GRUENPFLEGE',['aussenpflege','gruenpflege','gartenpflege','garten und gruenanlagenpflege','gruenanlagenpflege']],
+    ['OBJEKTBETREUUNG',['objektbetreuung','hausmeisterservice','hausmeister dienst','hausmeisterdienst']],
+    ['ABFALL',['abfall','muellbereitstellung','muell bereitstellung','muellservice']],
+    ['REINIGUNG',['gebaeudereinigung','reinigung']],
+    ['AUFZUG',['aufzug','aufzugsservice']],
+    ['HEIZUNG',['heizung','waermeversorgung']],
+    ['SANITAER',['sanitaer','wasser']],
+    ['ELEKTRO',['elektro','beleuchtung']],
+    ['TUER_TOR',['tuer','tor','zutritt']],
+    ['SCHLIESSANLAGE',['schliessanlage']],
+    ['BRANDSCHUTZ',['brandschutz']],
+    ['DACH_FASSADE',['dach','fassade']],
+    ['MALER',['maler']],
+    ['SCHAEDLING',['schaedling']],
+    ['TIEFGARAGE',['tiefgarage','garage']]
+  ];
+  for(const [code,terms] of nameRules){
+    if(terms.some(term=>n.includes(term)))return code;
+  }
+
+  const catalogMatch=(cloudServiceScopeCatalog||[]).find(row=>{
+    const rn=osaNormalizedScopeName(row?.name||'');
+    return rn && (rn===n || n.includes(rn) || rn.includes(n));
+  });
+  return catalogMatch?canonicalServiceScopeCode(catalogMatch.code):'';
+}
+function osaExternalAllowedScopeCodes(obj){
+  if(!obj?.externalManaged)return new Set();
+
+  const structured=collaborationScopeRows(obj.collaborationId)
+    .filter(x=>x.active!==false)
+    .map(x=>canonicalServiceScopeCode(x.scope_code||x.code||''))
+    .filter(Boolean);
+
+  if(structured.length)return new Set(structured);
+
+  // Legacy-Fallback nur für Altbestände ohne strukturierte Collaboration-Scopes.
+  const raw=osaNormalizedScopeName(obj.serviceScope||'');
+  const codes=new Set();
+  const legacyRules=[
+    ['OBJEKTBETREUUNG',['objektbetreuung','hausmeisterservice']],
+    ['GRUENPFLEGE',['garten und gruenanlagenpflege','gruenanlagenpflege','gartenpflege','aussenpflege']],
+    ['ABFALL',['abfall','muellbereitstellung','muell bereitstellung']],
+    ['WINTERDIENST',['winterdienst']],
+    ['REINIGUNG',['gebaeudereinigung','reinigung']],
+    ['AUFZUG',['aufzug']],
+    ['HEIZUNG',['heizung','waermeversorgung']],
+    ['SANITAER',['sanitaer','wasser']],
+    ['ELEKTRO',['elektro','beleuchtung']]
+  ];
+  for(const [code,terms] of legacyRules){
+    if(terms.some(term=>raw.includes(term)))codes.add(code);
+  }
+  return codes;
+}
 function osaExternalAllowedServices(obj){
   if(!obj?.externalManaged)return osaState.services;
-  const scope=osaNormalizedScopeName(obj.serviceScope||'');
+  const allowedCodes=osaExternalAllowedScopeCodes(obj);
   return osaState.services.filter(st=>{
-    const name=osaNormalizedScopeName(st.name||'');
-    const q=String(st.qualification_code||'').toLowerCase();
-    if(q==='winter_service'||name==='winterdienst'||name==='widi')return scope.includes('winterdienst');
-    return !!name && scope.includes(name);
+    const code=osaServiceScopeCode(st);
+    return !!code && allowedCodes.has(code);
   });
+}
+function osaExternalScopeLabel(obj){
+  if(!obj?.externalManaged)return '';
+  const rows=collaborationScopeRows(obj.collaborationId).filter(x=>x.active!==false);
+  if(rows.length){
+    return rows.map(x=>x.scope_name||x.name||x.scope_code).filter(Boolean).join(', ');
+  }
+  return String(obj.serviceScope||'').trim();
 }
 
 async function openObjectServicesModal(objectId){
   try{
     if(!slTenantAdmin())return alert('Keine Administrationsberechtigung.');
-    await osaLoad();
+    await Promise.all([
+      osaLoad(),
+      cloudLoadObjectCollaborationScopes(),
+      cloudLoadServiceScopeCatalog()
+    ]);
     const obj=(db.objects||[]).find(o=>String(o.id)===String(objectId));
     if(!obj)throw new Error('Objekt nicht gefunden.');
     let modal=document.getElementById('objectServicesModal');
@@ -16200,7 +16293,7 @@ async function openObjectServicesModal(objectId){
           <label>Gültig bis<input id="osaUntil" type="date"></label>
         </div>
         <label style="margin-top:10px">Objektspezifischer Leistungsumfang / Hinweis<textarea id="osaNote" placeholder="Nur objektspezifische Abgrenzung; die Arbeitsweise wird durch die SOP definiert."></textarea></label>
-        ${obj.externalManaged?`<div class="muted" style="margin-top:6px"><strong>Externe Betreuung:</strong> Es sind ausschließlich Leistungen auswählbar, die vom Auftraggeber für diesen Mandanten freigegeben wurden. Freigegeben: ${esc(obj.serviceScope||'—')}</div>`:''}
+        ${obj.externalManaged?`<div class="muted" style="margin-top:6px"><strong>Externe Betreuung:</strong> Es sind ausschließlich Leistungen auswählbar, die vom Auftraggeber für diesen Mandanten freigegeben wurden. Freigegeben: ${esc(osaExternalScopeLabel(obj)||'—')}</div>`:''}
         <div class="muted" style="margin-top:6px">Winterdienst wird automatisch dem spezialisierten Winterdienst-Prozess zugeordnet. Andere Leistungen laufen über Touren &amp; Einsätze.</div>
         <div class="row" style="margin-top:10px"><button class="primary" onclick="osaSave('${esc(objectId)}')">Zuordnung speichern</button></div>
       </div>
