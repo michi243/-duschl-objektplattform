@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.50</title>
+<title>Duschl Service – Objektplattform v2.21.51</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -246,6 +246,66 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
   }
 }
 
+
+
+/* === Leistungen & SOPs Modal · Viewport-/Sticky-Header-Fix · 2.21.51 === */
+#objectServicesModal{
+  align-items:center!important;
+  justify-content:center!important;
+  padding:12px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+#objectServicesModal .osa-modal-content{
+  width:min(760px,100%)!important;
+  max-width:760px!important;
+  max-height:calc(100dvh - 24px)!important;
+  overflow:hidden!important;
+  display:flex!important;
+  flex-direction:column!important;
+  box-sizing:border-box!important;
+  padding:0!important;
+  border-radius:18px!important;
+}
+#objectServicesModal .osa-modal-header{
+  position:sticky!important;
+  top:0!important;
+  z-index:5!important;
+  flex:0 0 auto!important;
+  padding:16px 18px!important;
+  background:linear-gradient(180deg,#0d1a25 0%,#0b1823 100%)!important;
+  border-bottom:1px solid var(--line)!important;
+}
+#objectServicesModal .osa-modal-header button{
+  flex:0 0 auto!important;
+  white-space:nowrap!important;
+}
+#objectServicesModal .osa-modal-body{
+  min-height:0!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  padding:14px 18px 22px!important;
+}
+@media(max-width:700px){
+  #objectServicesModal{
+    align-items:flex-end!important;
+    padding:0!important;
+  }
+  #objectServicesModal .osa-modal-content{
+    width:100%!important;
+    max-width:none!important;
+    max-height:94dvh!important;
+    border-radius:20px 20px 0 0!important;
+    border-bottom:none!important;
+  }
+  #objectServicesModal .osa-modal-header{
+    padding:14px 16px!important;
+  }
+  #objectServicesModal .osa-modal-body{
+    padding:12px 16px calc(24px + env(safe-area-inset-bottom))!important;
+  }
+}
 
 /* ===== Dark UI completion – v2.0.2 Kundenbericht ===== */
 body,main,.section,.content,.container,.wrap,.page{background:transparent!important;color:var(--text)!important}
@@ -3868,7 +3928,13 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    FALLBACK: Nur wenn keine strukturierten Scopes vorliegen, wird die Legacy-Textfreigabe ausgewertet.
    UNVERÄNDERT: Rollen/Mandanten, RLS, Dokumentenmanagement, Objekt-SOP-Zuordnung, Winterdienst-Fachprozess.
    BACKEND: keine SQL-/RLS-/RPC-Änderung. */
-const APP_VERSION='2.21.50'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.21.51 | BASIS 2.21.50 | 25.09.2026
+   UX-FIX: „Leistungen & SOPs“-Dialog bleibt vollständig im sichtbaren Viewport.
+   UX-FIX: Kopfbereich mit Titel und Schließen-Button bleibt dauerhaft sichtbar.
+   UX-FIX: Nur der Dialoginhalt scrollt; zusätzliche Zuordnungen schieben den Dialog nicht mehr nach oben aus dem Bildschirm.
+   UNVERÄNDERT: Rollen/Mandanten, RLS/RPC, Dokumentenmanagement, Leistungsfreigaben, SOP-Zuordnung, Winterdienst.
+   BACKEND: keine SQL-/RLS-/RPC-Änderung. */
+const APP_VERSION='2.21.51'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -16281,21 +16347,31 @@ async function openObjectServicesModal(objectId){
         <div class="row" style="margin-top:8px"><button class="danger" onclick="osaDeactivate('${esc(a.id)}','${esc(objectId)}')">Zuordnung beenden</button></div>
       </div>`;
     }).join('')||'<div class="empty">Noch keine Leistung/SOP zugeordnet.</div>';
-    modal.innerHTML=`<div class="modal-content" style="max-width:760px">
-      <div class="row space"><div><h2 style="margin:0">Leistungen &amp; SOPs</h2><div class="muted">${esc(obj.name||'Objekt')} · verbindliche Arbeitsgrundlage</div></div><button onclick="document.getElementById('objectServicesModal').style.display='none'">Schließen</button></div>
-      <div style="margin-top:14px">${rowHtml}</div>
-      <div class="card" style="margin-top:14px">
-        <h3>Leistung zuordnen</h3>
-        <div class="grid2">
-          <label>Leistungsart<select id="osaService"><option value="">Leistung wählen …</option>${allowedServices.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select></label>
-          <label>Freigegebene SOP<select id="osaSop"><option value="">SOP wählen …</option>${osaSopOptions()}</select></label>
-          <label>Gültig von<input id="osaFrom" type="date"></label>
-          <label>Gültig bis<input id="osaUntil" type="date"></label>
+    modal.innerHTML=`<div class="modal-content osa-modal-content">
+      <div class="osa-modal-header">
+        <div class="row space" style="gap:12px;align-items:flex-start">
+          <div style="min-width:0">
+            <h2 style="margin:0">Leistungen &amp; SOPs</h2>
+            <div class="muted">${esc(obj.name||'Objekt')} · verbindliche Arbeitsgrundlage</div>
+          </div>
+          <button type="button" onclick="document.getElementById('objectServicesModal').style.display='none'">Schließen</button>
         </div>
-        <label style="margin-top:10px">Objektspezifischer Leistungsumfang / Hinweis<textarea id="osaNote" placeholder="Nur objektspezifische Abgrenzung; die Arbeitsweise wird durch die SOP definiert."></textarea></label>
-        ${obj.externalManaged?`<div class="muted" style="margin-top:6px"><strong>Externe Betreuung:</strong> Es sind ausschließlich Leistungen auswählbar, die vom Auftraggeber für diesen Mandanten freigegeben wurden. Freigegeben: ${esc(osaExternalScopeLabel(obj)||'—')}</div>`:''}
-        <div class="muted" style="margin-top:6px">Winterdienst wird automatisch dem spezialisierten Winterdienst-Prozess zugeordnet. Andere Leistungen laufen über Touren &amp; Einsätze.</div>
-        <div class="row" style="margin-top:10px"><button class="primary" onclick="osaSave('${esc(objectId)}')">Zuordnung speichern</button></div>
+      </div>
+      <div class="osa-modal-body">
+        <div>${rowHtml}</div>
+        <div class="card" style="margin-top:14px">
+          <h3>Leistung zuordnen</h3>
+          <div class="grid2">
+            <label>Leistungsart<select id="osaService"><option value="">Leistung wählen …</option>${allowedServices.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select></label>
+            <label>Freigegebene SOP<select id="osaSop"><option value="">SOP wählen …</option>${osaSopOptions()}</select></label>
+            <label>Gültig von<input id="osaFrom" type="date"></label>
+            <label>Gültig bis<input id="osaUntil" type="date"></label>
+          </div>
+          <label style="margin-top:10px">Objektspezifischer Leistungsumfang / Hinweis<textarea id="osaNote" placeholder="Nur objektspezifische Abgrenzung; die Arbeitsweise wird durch die SOP definiert."></textarea></label>
+          ${obj.externalManaged?`<div class="muted" style="margin-top:6px"><strong>Externe Betreuung:</strong> Es sind ausschließlich Leistungen auswählbar, die vom Auftraggeber für diesen Mandanten freigegeben wurden. Freigegeben: ${esc(osaExternalScopeLabel(obj)||'—')}</div>`:''}
+          <div class="muted" style="margin-top:6px">Winterdienst wird automatisch dem spezialisierten Winterdienst-Prozess zugeordnet. Andere Leistungen laufen über Touren &amp; Einsätze.</div>
+          <div class="row" style="margin-top:10px"><button class="primary" onclick="osaSave('${esc(objectId)}')">Zuordnung speichern</button></div>
+        </div>
       </div>
     </div>`;
     modal.style.display='flex';
