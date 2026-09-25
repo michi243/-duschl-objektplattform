@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.52</title>
+<title>Duschl Service – Objektplattform v2.21.53</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -2173,7 +2173,7 @@ body.public-report-mode>#photoViewer{display:none!important}
         <h3>Dokument anlegen / neue Version</h3>
         <div class="grid2">
           <label>Dokumenttyp
-            <select id="dmType">
+            <select id="dmType" onchange="dmTypeChanged()">
               <option value="management_manual">Managementhandbuch</option>
               <option value="sop">SOP</option>
               <option value="work_instruction">Arbeitsanweisung</option>
@@ -2184,6 +2184,11 @@ body.public-report-mode>#photoViewer{display:none!important}
             </select>
           </label>
           <label>Bestehendes Dokument<select id="dmExisting" onchange="dmExistingChanged()"><option value="">Neues Dokument …</option></select></label>
+          <label id="dmServiceTypeWrap" class="hidden">Leistungsart
+            <select id="dmServiceType">
+              <option value="">Leistungsart wählen …</option>
+            </select>
+          </label>
           <label>Titel<input id="dmTitle" placeholder="z. B. Managementhandbuch Duschl Service" oninput="dmSuggestExisting()"></label>
           <label>Dokument-Nr.<input id="dmCode" placeholder="wird automatisch vergeben" readonly></label>
           <label>Version<input id="dmVersion" placeholder="wird vorgeschlagen"></label>
@@ -3946,7 +3951,14 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    FIX: objectServicesModal erhält einen dedizierten hohen Layer und vollständige Viewport-Abdeckung.
    UNVERÄNDERT: Rollen/Mandanten, SQL/RLS/RPC, Dokumentenmanagement, Leistungsfreigaben, SOP-Zuordnung, Winterdienst.
    BACKEND: keine Änderung. */
-const APP_VERSION='2.21.52'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.21.53 | BASIS 2.21.52 | 25.09.2026
+   DATENMODELL: SOP-Dokumente werden verbindlich einer Leistungsart zugeordnet (managed_documents.service_type_id).
+   UX: Dokumentenmanagement zeigt/verwaltet die Leistungsart bei SOPs.
+   UX: Im Objekt werden nur SOPs der ausgewählten Leistungsart angeboten.
+   INTEGRITÄT: Backend-Trigger verhindert service_type/SOP-Mismatches bei object_service_assignments.
+   UNVERÄNDERT: Rollen/Mandanten, Collaboration-Scopes, Winterdienst-Fachprozess, übrige Dokumenttypen.
+   BACKEND: SQL-Migration 2.21.53 erforderlich. */
+const APP_VERSION='2.21.53'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -16219,11 +16231,25 @@ async function osaLoad(){
   osaState.documents=documents||[];
   osaState.versions=versions||[];
 }
-function osaSopOptions(){
+function osaSopOptions(serviceTypeId=''){
+  if(!serviceTypeId)return '';
   return osaState.versions.map(v=>{
     const d=osaState.documents.find(x=>x.id===v.document_id);
-    return d?`<option value="${esc(v.id)}">${esc(d.document_number)} · ${esc(d.title)} · V${esc(v.version)}</option>`:'';
+    if(!d||String(d.service_type_id||'')!==String(serviceTypeId))return '';
+    return `<option value="${esc(v.id)}">${esc(d.document_number)} · ${esc(d.title)} · V${esc(v.version)}</option>`;
   }).join('');
+}
+function osaServiceChanged(){
+  const sid=document.getElementById('osaService')?.value||'';
+  const sop=document.getElementById('osaSop');
+  if(!sop)return;
+  const options=osaSopOptions(sid);
+  sop.innerHTML='<option value="">SOP wählen …</option>'+options;
+  sop.disabled=!sid;
+  if(sid&&!options){
+    sop.innerHTML='<option value="">Keine freigegebene SOP für diese Leistungsart</option>';
+    sop.disabled=true;
+  }
 }
 function osaProcessForService(serviceId){
   const st=osaState.services.find(x=>x.id===serviceId);
@@ -16374,8 +16400,8 @@ async function openObjectServicesModal(objectId){
         <div class="card" style="margin-top:14px">
           <h3>Leistung zuordnen</h3>
           <div class="grid2">
-            <label>Leistungsart<select id="osaService"><option value="">Leistung wählen …</option>${allowedServices.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select></label>
-            <label>Freigegebene SOP<select id="osaSop"><option value="">SOP wählen …</option>${osaSopOptions()}</select></label>
+            <label>Leistungsart<select id="osaService" onchange="osaServiceChanged()"><option value="">Leistung wählen …</option>${allowedServices.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select></label>
+            <label>Freigegebene SOP<select id="osaSop" disabled><option value="">Zuerst Leistungsart wählen …</option></select></label>
             <label>Gültig von<input id="osaFrom" type="date"></label>
             <label>Gültig bis<input id="osaUntil" type="date"></label>
           </div>
@@ -17330,6 +17356,14 @@ async function dmLoad(){
   const sel=document.getElementById('dmExisting');
   if(sel)sel.innerHTML='<option value="">Neues Dokument …</option>'+dmState.documents.map(d=>`<option value="${dmEsc(d.id)}">${dmEsc(d.document_number)} · ${dmEsc(d.title)}</option>`).join('');
 
+  const serviceSel=document.getElementById('dmServiceType');
+  if(serviceSel){
+   const keep=serviceSel.value||'';
+   serviceSel.innerHTML='<option value="">Leistungsart wählen …</option>'+
+    (dmState.services||[]).filter(s=>s.active!==false).map(s=>`<option value="${dmEsc(s.id)}">${dmEsc(s.name)}</option>`).join('');
+   if([...serviceSel.options].some(o=>String(o.value)===String(keep)))serviceSel.value=keep;
+  }
+
   const objectSel=document.getElementById('dmFilterObject');
   if(objectSel){
    const keep=objectSel.value||'';
@@ -17345,6 +17379,30 @@ async function dmLoad(){
   if(!document.getElementById('dmExisting')?.value && !document.getElementById('dmVersion')?.value) dmExistingChanged();
  }catch(e){alert('Dokumentenmanagement konnte nicht geladen werden: '+(e.message||e));}
 }
+function dmTypeChanged(){
+ const type=document.getElementById('dmType')?.value||'';
+ const wrap=document.getElementById('dmServiceTypeWrap');
+ const sel=document.getElementById('dmServiceType');
+ const existingId=document.getElementById('dmExisting')?.value||'';
+ const existing=dmState.documents.find(x=>String(x.id)===String(existingId));
+
+ if(wrap)wrap.classList.toggle('hidden',type!=='sop');
+
+ if(type!=='sop'){
+  if(sel){sel.value='';sel.disabled=false;}
+  return;
+ }
+
+ if(sel){
+  if(existing?.service_type_id){
+   sel.value=existing.service_type_id;
+   sel.disabled=true;
+  }else{
+   sel.disabled=false;
+  }
+ }
+}
+
 function dmExistingChanged(){
  const id=document.getElementById('dmExisting')?.value||'',d=dmState.documents.find(x=>x.id===id);
  if(d){
@@ -17359,6 +17417,7 @@ function dmExistingChanged(){
   document.getElementById('dmVersion').value='1.0';
   document.getElementById('dmDetectionHint').textContent='Neues Dokument: Dokumentnummer wird beim Speichern automatisch vergeben.';
  }
+ dmTypeChanged();
 }
 
 function dmNorm(v){return String(v||'').trim().toLocaleLowerCase('de-DE').replace(/\s+/g,' ');}
@@ -17441,7 +17500,7 @@ function dmRender(){
   return `<div class="card" style="padding:10px;margin:8px 0">
     <div class="row space" style="gap:8px;align-items:flex-start">
       <div><strong>${dmEsc(d.document_number)} · ${dmEsc(d.title)}</strong>
-      <div class="muted">${dmEsc(dmTypeLabels[d.document_type]||d.document_type)}</div></div>
+      <div class="muted">${dmEsc(dmTypeLabels[d.document_type]||d.document_type)}${d.document_type==='sop'?` · ${dmEsc((dmState.services||[]).find(s=>String(s.id)===String(d.service_type_id||''))?.name||'keine Leistungsart')}`:''}</div></div>
     </div>
     ${vv.map(v=>{
       const assignments=dmVersionAssignments(v.id)
@@ -17564,6 +17623,7 @@ async function dmSaveVersion(){
   if(!dmAdmin())throw new Error('Keine Administrationsberechtigung.');
   const selected=document.getElementById('dmExisting').value||null;
   const type=document.getElementById('dmType').value;
+  const service_type_id=type==='sop'?(document.getElementById('dmServiceType')?.value||null):null;
   const title=document.getElementById('dmTitle').value.trim();
   const requestedVersion=document.getElementById('dmVersion').value.trim()||null;
   const valid_from=document.getElementById('dmValidFrom').value||null;
@@ -17572,6 +17632,7 @@ async function dmSaveVersion(){
   const change_reason=document.getElementById('dmChangeReason').value.trim()||null;
   const file=document.getElementById('dmFile').files?.[0]||null;
   if(!title)throw new Error('Titel angeben.');
+  if(type==='sop'&&!service_type_id)throw new Error('Für eine SOP muss eine Leistungsart gewählt werden.');
   if(status==='released'&&!valid_from)throw new Error('Für eine Freigabe ist „Gültig ab“ erforderlich.');
   if(status==='released'&&!file)throw new Error('Eine freigegebene Version benötigt ein Dokument.');
 
@@ -17585,6 +17646,14 @@ async function dmSaveVersion(){
   });
   const prep=Array.isArray(prepRows)?prepRows[0]:prepRows;
   if(!prep?.document_id||!prep?.version_id)throw new Error('Dokument konnte nicht vorbereitet werden.');
+
+  if(type==='sop'){
+   await cloudRequest(`managed_documents?id=eq.${encodeURIComponent(prep.document_id)}`,{
+    method:'PATCH',
+    headers:{Prefer:'return=minimal'},
+    body:JSON.stringify({service_type_id})
+   });
+  }
 
   let storage_path=null;
   if(file){
@@ -17608,6 +17677,9 @@ async function dmSaveVersion(){
   document.getElementById('dmVersion').value='1.0';
   document.getElementById('dmChangeReason').value='';
   document.getElementById('dmFile').value='';
+  const dmService=document.getElementById('dmServiceType');
+  if(dmService){dmService.value='';dmService.disabled=false;}
+  dmTypeChanged();
   await dmLoad();
   alert(`${prep.document_number} · Version ${prep.version} wurde gespeichert.`);
  }catch(e){alert('Dokumentversion konnte nicht gespeichert werden: '+(e.message||e));}
