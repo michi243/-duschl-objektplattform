@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.59</title>
+<title>Duschl Service – Objektplattform v2.21.61</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -618,6 +618,22 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
   .ws-weather-metrics{grid-template-columns:1fr 1fr}
   .ws-hourly-strip{grid-auto-columns:104px}
 }
+
+
+/* === GPS-Plausibilitätsprüfung · 2.21.61 === */
+.geo-check-box{
+  margin-top:10px;
+  border:1px solid var(--line-soft);
+  border-radius:10px;
+  padding:10px 12px;
+  background:#0a1620;
+}
+.geo-check-box[data-state="ok"]{border-color:rgba(157,217,173,.55)}
+.geo-check-box[data-state="warn"]{border-color:rgba(242,210,123,.6)}
+.geo-check-box[data-state="bad"]{border-color:rgba(255,154,154,.72)}
+.geo-check-box[data-state="neutral"]{border-color:var(--line-soft)}
+.geo-check-title{font-weight:800}
+.geo-check-meta{margin-top:4px;color:var(--muted);font-size:12px;line-height:1.35}
 
 /* ===== Dark UI completion – v2.0.2 Kundenbericht ===== */
 body,main,.section,.content,.container,.wrap,.page{background:transparent!important;color:var(--text)!important}
@@ -4366,7 +4382,23 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    FEHLERVERHALTEN: Automatischer Geocoder blockiert das Objektspeichern nicht.
    UNVERÄNDERT: Winterdienst-Wetter, Risikoheuristik, Snapshot, Rollen/RLS, SOPs und Tourplanung.
    BACKEND: keine SQL-Änderung erforderlich, sofern 2.21.56 bereits ausgeführt wurde. */
-const APP_VERSION='2.21.59'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.21.60 | BASIS 2.21.59 | 27.09.2026
+   OBJEKT-GEODATEN: ausschließlich manuelle Pflege von Breitengrad/Längengrad.
+   ENTFERNT: automatische Geocoding-Suche aus Objektmaske und Speicherprozess.
+   UX: kein Nominatim-/403-Hinweis mehr im regulären Objektprozess.
+   GOVERNANCE: geocode_source='manual' für manuell gepflegte Koordinaten.
+   UNVERÄNDERT: Winterdienst-Wetter, Risikoheuristik, Wetter-Snapshot, Rollen/RLS, SOPs und Tourplanung.
+   BACKEND: keine SQL-/Edge-Function-Änderung erforderlich. */
+/* RELEASE 2.21.61 | BASIS 2.21.60 | 27.09.2026
+   GPS-PLAUSIBILITÄT: manuelle Koordinaten werden gegen den Mittelpunkt der eingegebenen deutschen PLZ geprüft.
+   KEINE ADRESSSUCHE: Straße/Hausnummer werden nicht extern gesucht; nur die PLZ wird als Referenz verwendet.
+   DISTANZLOGIK: <10 km plausibel, 10–30 km prüfen, >30 km deutlich unplausibel.
+   SAVE-GATE: gelbe/rote Abweichungen erfordern bewusste Bestätigung; API-Ausfall blockiert das Speichern nicht.
+   UX: Prüfergebnis direkt im Bereich „Geografischer Standort“.
+   DATENQUELLE: Zippopotam.us / GeoNames-PLZ-Referenz.
+   UNVERÄNDERT: Winterdienst-Wetter, Risikoheuristik, Wetter-Snapshot, Rollen/RLS, SOPs und Tourplanung.
+   BACKEND: keine SQL-/Edge-Function-Änderung erforderlich. */
+const APP_VERSION='2.21.61'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -14907,6 +14939,149 @@ function objectAddressPartsForForm(o){
   }
   return {street,postalCode,city};
 }
+let objectCoordinateCheckState={
+  key:'',
+  checked:false,
+  status:'neutral',
+  distanceKm:null,
+  referenceName:'',
+  message:''
+};
+
+function objectCoordinateCheckKey(postalCode,latitude,longitude){
+  return [
+    String(postalCode||'').trim(),
+    Number(latitude).toFixed(6),
+    Number(longitude).toFixed(6)
+  ].join('|');
+}
+
+function geoDistanceKm(lat1,lon1,lat2,lon2){
+  const toRad=v=>Number(v)*Math.PI/180;
+  const R=6371;
+  const dLat=toRad(Number(lat2)-Number(lat1));
+  const dLon=toRad(Number(lon2)-Number(lon1));
+  const a=Math.sin(dLat/2)**2+
+    Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.min(1,Math.sqrt(a)));
+}
+
+function objectCoordinateCheckRender(state=objectCoordinateCheckState){
+  const box=document.getElementById('oCoordinateCheckResult');
+  if(!box)return;
+  const status=state?.status||'neutral';
+  box.dataset.state=status;
+  box.innerHTML=state?.message
+    ? `<div class="geo-check-title">${esc(state.message)}</div>${state.referenceName?`<div class="geo-check-meta">PLZ-Referenz: ${esc(state.referenceName)}${Number.isFinite(Number(state.distanceKm))?` · Abstand ca. ${Number(state.distanceKm).toFixed(1)} km`:''}</div>`:''}`
+    : `<div class="geo-check-title">Noch nicht geprüft</div><div class="geo-check-meta">Breitengrad/Längengrad werden gegen die eingegebene PLZ plausibilisiert.</div>`;
+}
+
+async function checkObjectCoordinatesPlausibility({silent=false}={}){
+  const postalCode=String(document.getElementById('oPostalCode')?.value||'').trim();
+  let coords;
+  try{
+    coords=objectManualCoordinatesFromForm();
+  }catch(e){
+    if(!silent)alert(e.message||e);
+    throw e;
+  }
+
+  if(!coords.provided){
+    objectCoordinateCheckState={key:'',checked:false,status:'neutral',distanceKm:null,referenceName:'',message:'Keine Koordinaten eingetragen.'};
+    objectCoordinateCheckRender();
+    return objectCoordinateCheckState;
+  }
+
+  if(!/^\d{5}$/.test(postalCode)){
+    objectCoordinateCheckState={key:'',checked:false,status:'warn',distanceKm:null,referenceName:'',message:'Für die Plausibilitätsprüfung wird eine fünfstellige deutsche PLZ benötigt.'};
+    objectCoordinateCheckRender();
+    return objectCoordinateCheckState;
+  }
+
+  const key=objectCoordinateCheckKey(postalCode,coords.latitude,coords.longitude);
+  const box=document.getElementById('oCoordinateCheckResult');
+  if(box){
+    box.dataset.state='neutral';
+    box.innerHTML='<div class="geo-check-title">Koordinaten werden gegen die PLZ geprüft …</div>';
+  }
+
+  try{
+    const response=await fetch(`https://api.zippopotam.us/de/${encodeURIComponent(postalCode)}`,{
+      method:'GET',
+      headers:{Accept:'application/json'}
+    });
+
+    if(response.status===404){
+      objectCoordinateCheckState={key,checked:false,status:'warn',distanceKm:null,referenceName:'',message:`PLZ ${postalCode} konnte in der Referenz nicht gefunden werden.`};
+      objectCoordinateCheckRender();
+      return objectCoordinateCheckState;
+    }
+    if(!response.ok)throw new Error(`PLZ-Prüfdienst HTTP ${response.status}`);
+
+    const data=await response.json();
+    const places=Array.isArray(data?.places)?data.places:[];
+    const candidates=places.map(p=>({
+      name:String(p?.['place name']||'').trim(),
+      latitude:Number(p?.latitude),
+      longitude:Number(p?.longitude)
+    })).filter(p=>Number.isFinite(p.latitude)&&Number.isFinite(p.longitude));
+
+    if(!candidates.length)throw new Error('Keine Referenzkoordinaten für diese PLZ.');
+
+    const ranked=candidates.map(p=>({
+      ...p,
+      distanceKm:geoDistanceKm(coords.latitude,coords.longitude,p.latitude,p.longitude)
+    })).sort((a,b)=>a.distanceKm-b.distanceKm);
+
+    const best=ranked[0];
+    let status='ok';
+    let message=`✓ Koordinaten passen plausibel zur PLZ ${postalCode}.`;
+
+    if(best.distanceKm>30){
+      status='bad';
+      message=`⚠ Koordinaten liegen ca. ${best.distanceKm.toFixed(1)} km von der PLZ ${postalCode} entfernt.`;
+    }else if(best.distanceKm>=10){
+      status='warn';
+      message=`⚠ Koordinaten liegen ca. ${best.distanceKm.toFixed(1)} km vom PLZ-Referenzpunkt entfernt. Bitte prüfen.`;
+    }
+
+    objectCoordinateCheckState={
+      key,
+      checked:true,
+      status,
+      distanceKm:best.distanceKm,
+      referenceName:best.name||postalCode,
+      message
+    };
+    objectCoordinateCheckRender();
+    return objectCoordinateCheckState;
+  }catch(e){
+    console.warn('PLZ-Plausibilitätsprüfung nicht verfügbar',e);
+    objectCoordinateCheckState={
+      key,
+      checked:false,
+      status:'neutral',
+      distanceKm:null,
+      referenceName:'',
+      message:'Plausibilitätsprüfung aktuell nicht verfügbar. Speichern bleibt möglich.'
+    };
+    objectCoordinateCheckRender();
+    return objectCoordinateCheckState;
+  }
+}
+
+function invalidateObjectCoordinateCheck(){
+  objectCoordinateCheckState={
+    key:'',
+    checked:false,
+    status:'neutral',
+    distanceKm:null,
+    referenceName:'',
+    message:''
+  };
+  objectCoordinateCheckRender();
+}
+
 function objectManualCoordinatesFromForm(){
   const latRaw=String(document.getElementById('oLatitude')?.value||'').trim().replace(',','.');
   const lonRaw=String(document.getElementById('oLongitude')?.value||'').trim().replace(',','.');
@@ -14938,10 +15113,11 @@ function objectGeocodeStatusHtml(o){
     return `<div id="oGeoStatus" class="muted">Standort noch nicht geokodiert. Nach dem Speichern wird die vollständige Adresse automatisch aufgelöst.</div>`;
   }
   const at=o?.geocodedAt?new Date(o.geocodedAt).toLocaleString('de-DE'):'—';
-  const source=String(o?.geocodeSource||'Geocoder');
+  const source=String(o?.geocodeSource||'manual');
+  const sourceLabel=source==='manual'?'manuell gepflegt':source;
   return `<div id="oGeoStatus">
-    <strong>Standort ermittelt</strong>
-    <div class="muted" style="margin-top:4px">${Number(o.latitude).toFixed(6)}, ${Number(o.longitude).toFixed(6)} · ${esc(source)} · ${esc(at)}</div>
+    <strong>Standort hinterlegt</strong>
+    <div class="muted" style="margin-top:4px">${Number(o.latitude).toFixed(6)}, ${Number(o.longitude).toFixed(6)} · ${esc(sourceLabel)} · ${esc(at)}</div>
   </div>`;
 }
 async function cloudGeocodeObject(objectId,{force=false}={}){
@@ -14998,7 +15174,7 @@ function openObjectModal(id=''){
       <input id="oStreet" value="${esc(addressParts.street)}" placeholder="z. B. Musterstraße 12">
     </label>
     <label>PLZ
-      <input id="oPostalCode" value="${esc(addressParts.postalCode)}" inputmode="numeric" maxlength="10" placeholder="z. B. 80933">
+      <input id="oPostalCode" value="${esc(addressParts.postalCode)}" oninput="invalidateObjectCoordinateCheck()" inputmode="numeric" maxlength="10" placeholder="z. B. 80933">
     </label>
     <label>Ort
       <input id="oCity" value="${esc(addressParts.city)}" placeholder="z. B. München">
@@ -15006,26 +15182,33 @@ function openObjectModal(id=''){
   </div>
 
   <div class="card" style="margin-top:12px;padding:12px">
-    <div class="row space" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
-      <div>
-        <strong>Geografischer Standort</strong>
-        <div class="muted" style="margin-top:4px">Grundlage für Winterdienst-Wetter und spätere Routenplanung.</div>
-      </div>
-      ${id?`<button id="oGeocodeBtn" type="button" onclick="geocodeObjectFromModal('${esc(id)}')">Automatisch ermitteln</button>`:''}
+    <div>
+      <strong>Geografischer Standort</strong>
+      <div class="muted" style="margin-top:4px">Grundlage für Winterdienst-Wetter und spätere Routenplanung. Koordinaten werden manuell gepflegt.</div>
     </div>
 
     <div class="grid2" style="margin-top:10px">
       <label>Breitengrad
-        <input id="oLatitude" inputmode="decimal" value="${o.latitude==null?'':esc(String(o.latitude))}" placeholder="z. B. 48.187118">
+        <input id="oLatitude" inputmode="decimal" oninput="invalidateObjectCoordinateCheck()" value="${o.latitude==null?'':esc(String(o.latitude))}" placeholder="z. B. 48.187118">
       </label>
       <label>Längengrad
-        <input id="oLongitude" inputmode="decimal" value="${o.longitude==null?'':esc(String(o.longitude))}" placeholder="z. B. 11.592979">
+        <input id="oLongitude" inputmode="decimal" oninput="invalidateObjectCoordinateCheck()" value="${o.longitude==null?'':esc(String(o.longitude))}" placeholder="z. B. 11.592979">
       </label>
     </div>
 
-    <div class="muted" style="margin-top:7px">Manuelle Koordinaten haben Vorrang. Sind beide Felder gefüllt, wird beim Speichern kein automatischer Geocoder aufgerufen.</div>
+    <div class="muted" style="margin-top:7px">Koordinaten z. B. in Windy oder einem Kartendienst ermitteln und hier eintragen.</div>
+
+    <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap">
+      <button type="button" onclick="checkObjectCoordinatesPlausibility()">Koordinaten prüfen</button>
+    </div>
+
+    <div id="oCoordinateCheckResult" class="geo-check-box" data-state="neutral">
+      <div class="geo-check-title">Noch nicht geprüft</div>
+      <div class="geo-check-meta">Die Koordinaten werden nur gegen den Referenzpunkt der eingegebenen PLZ geprüft. Es findet keine Adresssuche statt.</div>
+    </div>
+
     <div style="margin-top:8px">${objectGeocodeStatusHtml(o)}</div>
-    <div class="muted" style="margin-top:7px;font-size:12px">Automatische Geocodierung bleibt als optionaler Fallback bestehen. Manuell gespeicherte Koordinaten werden mit Quelle „manual“ dokumentiert.</div>
+    <div class="muted" style="margin-top:7px;font-size:12px">Manuell gespeicherte Koordinaten werden mit Quelle „manual“ dokumentiert. Referenzdaten für die PLZ-Prüfung: Zippopotam.us / GeoNames.</div>
   </div>
 
   <label>Notizen</label><textarea id="oNotes">${esc(o.notes)}</textarea>
@@ -15052,6 +15235,27 @@ async function saveObject(id){
     return alert(e.message||e);
   }
 
+  if(manualCoords.provided){
+    const currentKey=objectCoordinateCheckKey(postalCode,manualCoords.latitude,manualCoords.longitude);
+    let checkState=objectCoordinateCheckState;
+
+    if(checkState.key!==currentKey || !checkState.checked){
+      checkState=await checkObjectCoordinatesPlausibility({silent:true});
+    }
+
+    if(checkState.checked && checkState.status==='bad'){
+      const ok=confirm(
+        `${checkState.message}\n\nDie Abweichung ist größer als 30 km. Koordinaten trotzdem speichern?`
+      );
+      if(!ok)return;
+    }else if(checkState.checked && checkState.status==='warn'){
+      const ok=confirm(
+        `${checkState.message}\n\nKoordinaten trotzdem speichern?`
+      );
+      if(!ok)return;
+    }
+  }
+
   const data={
     organizationId,
     name,
@@ -15066,26 +15270,16 @@ async function saveObject(id){
     const row=await cloudSaveObject(id,data);
     if(!row)throw new Error('Keine Rückgabe aus Supabase.');
 
-    let geocodeWarning='';
-
     if(manualCoords.provided){
       await cloudSaveManualObjectCoordinates(
         row.id,
         manualCoords.latitude,
         manualCoords.longitude
       );
-    }else if(row.id && street && postalCode && city){
-      try{
-        await cloudGeocodeObject(row.id,{force:false});
-      }catch(e){
-        console.warn('Objekt gespeichert, automatische Geocodierung fehlgeschlagen',e);
-        geocodeWarning='Objekt wurde gespeichert. Der geografische Standort konnte nicht automatisch ermittelt werden. Sie können Breitengrad und Längengrad im Objekt manuell eintragen.';
-      }
     }
 
     closeModal();
     await cloudReloadObjects();
-    if(geocodeWarning)alert(geocodeWarning);
   }catch(e){
     console.error(e);
     alert('Objekt konnte nicht zentral gespeichert werden: '+(e.message||e));
