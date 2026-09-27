@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.70</title>
+<title>Duschl Service – Objektplattform v2.21.73</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -2915,6 +2915,24 @@ body.public-report-mode>#photoViewer{display:none!important}
       <select id="notificationDigestInterval"><option value="1">täglich</option><option value="2">alle 2 Tage</option><option value="4" selected>alle 4 Tage</option><option value="7">alle 7 Tage</option></select>
     </div>
   </div>
+
+  <div class="card" id="notificationTenantCcCard" style="margin-top:14px;display:none">
+    <h3>Mandanten-Dokumentation (CC)</h3>
+    <p class="muted">
+      Jede produktive Systemmail dieses Mandanten wird zusätzlich als echte CC-Kopie an die hier hinterlegte Dokumentationsadresse gesendet.
+      Sandbox-/Testversand erzeugt bewusst keine produktive CC-Kopie.
+    </p>
+    <label class="row" style="margin-top:14px;align-items:center">
+      <input id="notificationTenantCcEnabled" type="checkbox" style="width:auto"/>
+      <span>Dokumentationskopie für diesen Mandanten aktiv</span>
+    </label>
+    <label for="notificationTenantCcEmail">CC-E-Mail-Adresse</label>
+    <input id="notificationTenantCcEmail" type="email" inputmode="email" autocomplete="email" placeholder="z. B. objektservice@unternehmen.de"/>
+    <div class="muted" id="notificationTenantCcStatus" style="margin-top:8px">
+      Nur Mandanten-Admins und Plattform-Admins im Mandantenmodus können diese Einstellung ändern.
+    </div>
+  </div>
+
   <div class="card" style="margin-top:14px">
     <div class="row space">
       <div>
@@ -4514,7 +4532,20 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    BRIEFING-DIAGNOSE: letzter erzeugter Briefing-Payload wird lokal gespeichert und in der Konsole ausgegeben.
    MAILQUEUE: v2 bleibt führender Versandpfad; Backend-Diagnose für Doppelmail erfolgt separat.
    UNVERÄNDERT: Einsatzauftrag, Touren, Bereitschaftsindex, Wettercockpit, Einsatz-Snapshot, Rollen/RLS. */
-const APP_VERSION='2.21.70'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.21.72 | BASIS 2.21.70 | 27.09.2026
+   MANDANTEN-CC-DOKUMENTATION: Mandanten-Admin kann pro Mandant eine feste Dokumentationsadresse als CC aktivieren.
+   UI: Benachrichtigungen -> Mandanten-Dokumentation (CC).
+   BACKEND: get/set_organization_notification_cc_v1; Versand/Audit über process-notification-outbox 2.21.72.
+   GOVERNANCE: CC ist mandantenbezogen, kein Cross-Tenant-Fallback, Sandbox versendet bewusst kein produktives CC.
+   UNVERÄNDERT: persönliche Notification Preferences, Winterdienst-Briefing, Rollen-/Mandantenlogik, RLS. */
+/* RELEASE 2.21.73 | BASIS 2.21.72 | 27.09.2026
+   OBJEKTROLLEN: Mandantenrolle und Objektrolle sind unabhängig kombinierbar.
+   Ein tenant_admin kann zusätzlich object_responsible eines oder mehrerer Objekte sein.
+   Objektrollen: object_responsible, object_deputy, object_operator.
+   Benutzerverwaltung und interne Objektzuweisung verwenden die neue Rollen-RPC.
+   Noch KEINE Umschaltung bestehender Fach-RLS auf can_administer_object(); additive Einführung ohne Big-Bang.
+   UNVERÄNDERT: bestehende Objektzugriffe, externe Kollaborationszuweisungen, Winterdienst, Notification/CC. */
+const APP_VERSION='2.21.73'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -8018,65 +8049,81 @@ async function openSharedObjectAssignmentModal(collaborationId){
 }
 
 async function openInternalObjectAssignmentModal(objectId){
-  if(!hasOperationalAdminAccess())return alert('Nur Mandanten-Administration oder Platform-Admin im Mandantenmodus können Objektbetreuer zuweisen.');
+  if(!hasOperationalAdminAccess())return alert('Nur Mandanten-Administration oder Platform-Admin im Mandantenmodus können Objektrollen vergeben.');
   const obj=(db.objects||[]).find(o=>String(o.id||'')===String(objectId||''));
   if(!obj)return alert('Objekt nicht gefunden.');
+
   const users=await loadAssignableUsersForCurrentTenant();
-  const currentRows=await cloudRequest(`object_user_assignments?select=user_id&object_id=eq.${encodeURIComponent(objectId)}&active=eq.true`)||[];
-  const currentIds=new Set(currentRows.map(r=>r.user_id));
-  const options=users.map(u=>`<label class="user-message-recipient-row">
-    <input type="checkbox" class="internal-object-assignee" value="${esc(u.user_id)}" ${currentIds.has(u.user_id)?'checked':''}>
-    <span class="user-message-recipient-main"><span class="user-message-recipient-name">${esc(u.display_name)}</span><span class="user-message-recipient-role">${esc(u.organization_role||'Objektbetreuer')}</span></span>
-  </label>`).join('');
+  const currentRows=await cloudRequest(
+    `object_user_assignments?select=user_id,object_role,active,valid_from,valid_until&object_id=eq.${encodeURIComponent(objectId)}`
+  )||[];
+  const currentByUser=new Map(
+    currentRows.map(r=>[String(r.user_id),r])
+  );
+
+  const options=users.map(u=>{
+    const row=currentByUser.get(String(u.user_id));
+    const role=row?.active!==false?String(row?.object_role||'object_operator'):'';
+    return `<div class="user-message-recipient-row" style="align-items:center">
+      <span class="user-message-recipient-main" style="flex:1">
+        <span class="user-message-recipient-name">${esc(u.display_name)}</span>
+        <span class="user-message-recipient-role">${esc(ROLE_LABELS[u.organization_role]||u.organization_role||'Mandantenmitglied')}</span>
+      </span>
+      <select class="internal-object-role" data-user-id="${esc(u.user_id)}" style="min-width:220px">
+        <option value="" ${!role?'selected':''}>Keine Objektrolle</option>
+        <option value="object_operator" ${role==='object_operator'?'selected':''}>Objektbetreuer · operativ</option>
+        <option value="object_deputy" ${role==='object_deputy'?'selected':''}>Objektvertretung</option>
+        <option value="object_responsible" ${role==='object_responsible'?'selected':''}>Objektverantwortlich · administrativ</option>
+      </select>
+    </div>`;
+  }).join('');
+
   const root=document.getElementById('modalRoot');
   root.innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark">
-    <h2>Objektbetreuer zuweisen</h2>
-    <p class="muted">Die ausgewählten Mitarbeiter sind für dieses Objekt zuständig. Objektbezogene Dokumentationen, Meldungen und Arbeitsvorgänge werden ihnen innerhalb des Mandanten standardmäßig zugeordnet.</p>
+    <h2>Objektrollen vergeben</h2>
+    <p class="muted">Die Objektrolle ist unabhängig von der Mandantenrolle. Ein Mandanten-Admin kann deshalb zusätzlich als Objektverantwortlicher geführt werden.</p>
     <div class="user-message-recipient-box">${options||'<div class="muted">Keine aktiven zuweisbaren Benutzer vorhanden.</div>'}</div>
-    <div class="modal-actions"><button class="primary" onclick="saveInternalObjectAssignments('${esc(objectId)}')">Speichern</button><button onclick="closeModal()">Abbrechen</button></div>
+    <div class="modal-actions">
+      <button class="primary" onclick="saveInternalObjectAssignments('${esc(objectId)}')">Speichern</button>
+      <button onclick="closeModal()">Abbrechen</button>
+    </div>
   </div></div>`;
 }
+
 async function saveInternalObjectAssignments(objectId){
-  const selected=[...document.querySelectorAll('.internal-object-assignee:checked')].map(x=>x.value);
+  const orgId=currentOrganizationId();
+  if(!orgId)return alert('Kein aktiver Mandant.');
+
+  const selections=[...document.querySelectorAll('.internal-object-role')].map(el=>({
+    user_id:String(el.dataset.userId||''),
+    object_role:String(el.value||'')
+  })).filter(x=>x.user_id);
+
   try{
-    if(isAdminRole()&&isPlatformTenantMode()){
-      await cloudRequest('rpc/platform_support_set_object_assignments',{
+    for(const entry of selections){
+      await cloudRequest('rpc/set_object_user_role_v1',{
         method:'POST',
         body:JSON.stringify({
-          p_organization_id:currentOrganizationId(),
+          p_organization_id:orgId,
           p_object_id:objectId,
-          p_user_ids:selected
+          p_user_id:entry.user_id,
+          p_object_role:entry.object_role||null,
+          p_active:!!entry.object_role,
+          p_valid_from:null,
+          p_valid_until:null
         })
       });
-    }else{
-      const existing=await cloudRequest(`object_user_assignments?select=id,user_id,active&object_id=eq.${encodeURIComponent(objectId)}`)||[];
-      const selectedSet=new Set(selected);
-      for(const row of existing){
-        const shouldBeActive=selectedSet.has(row.user_id);
-        if(Boolean(row.active)!==shouldBeActive){
-          await cloudRequest(`object_user_assignments?id=eq.${encodeURIComponent(row.id)}`,{
-            method:'PATCH',
-            headers:{'Prefer':'return=minimal'},
-            body:JSON.stringify({active:shouldBeActive})
-          });
-        }
-        selectedSet.delete(row.user_id);
-      }
-      for(const uid of selectedSet){
-        await cloudRequest('object_user_assignments',{
-          method:'POST',
-          headers:{'Prefer':'return=minimal'},
-          body:JSON.stringify({object_id:objectId,user_id:uid,active:true,assigned_by:currentUserId()})
-        });
-      }
     }
+
     closeModal();
     await cloudReloadObjects();
-    alert('Objektbetreuer-Zuweisung gespeichert.');
+    if(canManageUsersUI())await loadUserAdminData();
+    alert('Objektrollen gespeichert.');
   }catch(e){
-    alert('Objektbetreuer konnten nicht gespeichert werden: '+(e.message||e));
+    alert('Objektrollen konnten nicht gespeichert werden: '+(e.message||e));
   }
 }
+
 async function saveSharedObjectAssignment(collaborationId){
   const uid=document.getElementById('socAssignee')?.value||null;
   try{
@@ -11347,6 +11394,76 @@ function openPlatformUsers(){
 }
 
 
+function canManageTenantNotificationCcUI(){
+  if(isPlatformOperatorRole())return isPlatformTenantMode();
+  return ['tenant_admin','admin_delegate'].includes(effectiveOrganizationRole());
+}
+
+async function loadTenantNotificationCc(){
+  const card=document.getElementById('notificationTenantCcCard');
+  const enabled=document.getElementById('notificationTenantCcEnabled');
+  const email=document.getElementById('notificationTenantCcEmail');
+  const status=document.getElementById('notificationTenantCcStatus');
+  const organizationId=currentOrganization?.id||null;
+  const allowed=canManageTenantNotificationCcUI();
+
+  if(card)card.style.display=allowed?'block':'none';
+  if(!allowed||!organizationId)return;
+
+  if(enabled)enabled.disabled=true;
+  if(email)email.disabled=true;
+  if(status)status.textContent='Mandanten-CC wird geladen …';
+
+  try{
+    const rows=await cloudRequest('rpc/get_organization_notification_cc_v1',{
+      method:'POST',
+      body:JSON.stringify({p_organization_id:organizationId})
+    });
+    const cfg=Array.isArray(rows)?rows[0]:rows;
+    if(enabled)enabled.checked=cfg?.cc_enabled===true;
+    if(email)email.value=String(cfg?.cc_email||currentUserProfile?.email||cloudSession?.user?.email||'');
+    if(status)status.textContent=cfg?.cc_email
+      ?'Mandantenbezogene Dokumentationsadresse geladen.'
+      :'Noch keine Dokumentationsadresse gespeichert.';
+  }catch(err){
+    console.error('Mandanten-CC laden fehlgeschlagen',err);
+    if(status)status.textContent='Mandanten-CC konnte nicht geladen werden.';
+  }finally{
+    if(enabled)enabled.disabled=false;
+    if(email)email.disabled=false;
+  }
+}
+
+async function saveTenantNotificationCc(){
+  if(!canManageTenantNotificationCcUI())return;
+  const organizationId=currentOrganization?.id||null;
+  if(!organizationId)return;
+
+  const enabled=document.getElementById('notificationTenantCcEnabled')?.checked===true;
+  const email=String(document.getElementById('notificationTenantCcEmail')?.value||'').trim();
+  const status=document.getElementById('notificationTenantCcStatus');
+
+  if(enabled&&!email){
+    throw new Error('Für eine aktive Dokumentationskopie ist eine CC-E-Mail-Adresse erforderlich.');
+  }
+
+  if(status)status.textContent='Mandanten-CC wird gespeichert …';
+
+  const rows=await cloudRequest('rpc/set_organization_notification_cc_v1',{
+    method:'POST',
+    body:JSON.stringify({
+      p_organization_id:organizationId,
+      p_cc_enabled:enabled,
+      p_cc_email:email||null
+    })
+  });
+  const cfg=Array.isArray(rows)?rows[0]:rows;
+
+  if(status)status.textContent=cfg?.cc_enabled
+    ?`Aktiv: Systemmails dieses Mandanten werden als CC an ${cfg.cc_email} dokumentiert.`
+    :'Dokumentationskopie ist deaktiviert.';
+}
+
 async function loadNotificationPreferences(){
   const tenant=document.getElementById('notificationSettingsTenant');
   const status=document.getElementById('notificationSettingsStatus');
@@ -11382,6 +11499,8 @@ async function loadNotificationPreferences(){
   }finally{
     if(saveBtn)saveBtn.disabled=false;
   }
+
+  await loadTenantNotificationCc();
 }
 
 async function saveNotificationPreferences(){
@@ -11412,7 +11531,8 @@ async function saveNotificationPreferences(){
         updated_at:new Date().toISOString()
       })
     });
-    if(status)status.textContent='Gespeichert. Die Einstellungen gelten ab dem nächsten Benachrichtigungsereignis.';
+    await saveTenantNotificationCc();
+    if(status)status.textContent='Gespeichert. Persönliche Einstellungen und Mandanten-CC gelten ab dem nächsten Benachrichtigungsereignis.';
   }catch(err){
     console.error(err);
     if(status)status.textContent='Speichern fehlgeschlagen.';
@@ -12595,7 +12715,7 @@ async function loadUserAdminData(){
     userAdminMemberships=(tenantUsers||[]).map(r=>({
       id:r.membership_id,organization_id:r.organization_id,user_id:r.user_id,role:r.membership_role
     }));
-    userAdminAssignments=await cloudRequest('object_user_assignments?select=id,object_id,user_id,active')||[];
+    userAdminAssignments=await cloudRequest('object_user_assignments?select=id,object_id,user_id,active,object_role,valid_from,valid_until')||[];
     try{
       userAdminQualifications=await cloudRequest(`user_service_qualifications?organization_id=eq.${encodeURIComponent(orgId)}&select=id,organization_id,user_id,qualification_code,active,valid_from,valid_until,notes`)||[];
     }catch(_qe){
@@ -12633,6 +12753,11 @@ function loadUserAdminEditor(){
   const membership=userAdminMemberships.find(m=>m.user_id===uid && (!activeOrgId||m.organization_id===activeOrgId))||null;
   const orgId=activeOrgId||membership?.organization_id||'';
   const assigned=new Set(userAdminAssignments.filter(a=>a.user_id===uid&&a.active!==false).map(a=>a.object_id));
+  const assignmentByObject=new Map(
+    userAdminAssignments
+      .filter(a=>String(a.user_id)===String(uid))
+      .map(a=>[String(a.object_id),a])
+  );
   const roles=[['tenant_admin','Mandanten-Admin'],['admin_delegate','Admin-Vertretung'],['property_manager','Verwalter'],['object_manager','Objektbetreuer'],['external_contractor','Externer Auftragnehmer'],['customer','Auftraggeber']];
   const allowedRoles=isAdminDelegate()?roles.filter(([v])=>!['tenant_admin','admin_delegate'].includes(v)):roles;
   const roleOptions=allowedRoles.map(([v,l])=>`<option value="${v}" ${membership?.role===v?'selected':''}>${l}</option>`).join('');
@@ -12676,23 +12801,64 @@ function loadUserAdminEditor(){
     return true;
   }).map(o=>{
     const isShared=o.kind==='shared';
-    const collab=isShared?sharedRows.find(c=>String(c.object_id||'')===String(o.id||'')&&String(c.collaboration_id||c.id||'')===String(o.collaborationId||'')):null;
-    const sharedAssignedToUser=!!collab && String(collab.assigned_user_id||collab.assignee_user_id||'')===String(uid);
-    const checked=isShared?sharedAssignedToUser:assigned.has(o.id);
-    const typeBadge=isShared?'<span class="badge">EXTERN BETREUT</span>':'<span class="badge">EIGENES OBJEKT</span>';
-    return `<label class="row" style="gap:10px;align-items:flex-start;margin:10px 0;padding:10px;border:1px solid var(--line);border-radius:12px">
-      <input type="checkbox"
-        class="${isShared?'userSharedObjectAssignment':'userObjectAssignment'}"
-        value="${esc(o.id)}"
-        data-collaboration-id="${esc(o.collaborationId||'')}"
-        data-current-assignee="${esc(collab?.assigned_user_id||collab?.assignee_user_id||'')}"
-        ${checked?'checked':''}>
-      <span>
-        <strong>${esc(o.name)}</strong> ${typeBadge}
-        ${o.address?`<br><span class="muted">${esc(o.address)}</span>`:''}
-        ${isShared&&o.serviceScope?`<br><span class="muted">Leistungsumfang: ${esc(o.serviceScope)}</span>`:''}
-      </span>
-    </label>`;
+    const collab=isShared
+      ?sharedRows.find(c=>
+          String(c.object_id||'')===String(o.id||'') &&
+          String(c.collaboration_id||c.id||'')===String(o.collaborationId||'')
+        )
+      :null;
+
+    const sharedAssignedToUser=
+      !!collab &&
+      String(collab.assigned_user_id||collab.assignee_user_id||'')===String(uid);
+
+    const currentAssignment=!isShared
+      ?assignmentByObject.get(String(o.id))
+      :null;
+
+    const currentRole=
+      currentAssignment?.active!==false
+        ?String(currentAssignment?.object_role||'object_operator')
+        :'';
+
+    const typeBadge=isShared
+      ?'<span class="badge">EXTERN BETREUT</span>'
+      :'<span class="badge">EIGENES OBJEKT</span>';
+
+    if(isShared){
+      return `<label class="row" style="gap:10px;align-items:flex-start;margin:10px 0;padding:10px;border:1px solid var(--line);border-radius:12px">
+        <input type="checkbox"
+          class="userSharedObjectAssignment"
+          value="${esc(o.id)}"
+          data-collaboration-id="${esc(o.collaborationId||'')}"
+          data-current-assignee="${esc(collab?.assigned_user_id||collab?.assignee_user_id||'')}"
+          ${sharedAssignedToUser?'checked':''}>
+        <span>
+          <strong>${esc(o.name)}</strong> ${typeBadge}
+          ${o.address?`<br><span class="muted">${esc(o.address)}</span>`:''}
+          ${o.serviceScope?`<br><span class="muted">Leistungsumfang: ${esc(o.serviceScope)}</span>`:''}
+          <br><span class="muted">Extern betreute Objekte behalten die operative Einzelzuweisung der Kollaboration.</span>
+        </span>
+      </label>`;
+    }
+
+    return `<div style="margin:10px 0;padding:10px;border:1px solid var(--line);border-radius:12px">
+      <div class="row" style="gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap">
+        <span style="min-width:220px;flex:1">
+          <strong>${esc(o.name)}</strong> ${typeBadge}
+          ${o.address?`<br><span class="muted">${esc(o.address)}</span>`:''}
+        </span>
+        <label style="min-width:230px">
+          Objektrolle
+          <select class="userObjectRole" data-object-id="${esc(o.id)}">
+            <option value="" ${!currentRole?'selected':''}>Keine Objektrolle</option>
+            <option value="object_operator" ${currentRole==='object_operator'?'selected':''}>Objektbetreuer · operativ</option>
+            <option value="object_deputy" ${currentRole==='object_deputy'?'selected':''}>Objektvertretung</option>
+            <option value="object_responsible" ${currentRole==='object_responsible'?'selected':''}>Objektverantwortlich · administrativ</option>
+          </select>
+        </label>
+      </div>
+    </div>`;
   }).join('')||'<p class="muted">Keine eigenen oder extern betreuten Objekte vorhanden.</p>';
   const qualificationCatalog=[
     ['winter_service','Winterdienst'],
@@ -12718,7 +12884,9 @@ function loadUserAdminEditor(){
   <h3 style="margin-top:18px">Einsatzqualifikationen</h3>
   <p class="muted">Qualifikationen steuern, für welche operativen Leistungen dieser Benutzer eingesetzt werden kann. Sie verändern keine Systemrolle und keine Objektberechtigung.</p>
   <div>${qualificationRows}</div>
-  <h3 style="margin-top:18px">Objektzugriffe</h3><div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px">
+  <h3 style="margin-top:18px">Objektrollen & Objektzugriffe</h3>
+  <p class="muted">Mandantenrolle und Objektrolle sind unabhängig. Auch ein Mandanten-Admin kann zusätzlich für konkrete Objekte als „Objektverantwortlich“ geführt werden.</p>
+  <div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px">
   <button onclick="saveUserAdminPermissions()">Speichern</button>
   ${canResetUserPasswordUI()?'<button onclick="resetSelectedUserInitialPassword()">Initialpasswort erzeugen</button>':''}
   ${isAdminRole()?'<button class="danger" onclick="removeSelectedUserFromTenant()">Aus Mandant entfernen</button>':''}
@@ -13004,36 +13172,65 @@ async function saveUserAdminPermissions(){
   if(!orgId)return alert('Für den Benutzer fehlt die Mandantenzuordnung.');
   if(!isAdminRole()&&orgId!==currentOrganizationId())return alert('Benutzer eines anderen Mandanten dürfen nicht bearbeitet werden.');
   if(uid===currentUserProfile?.id&&!active)return alert('Der aktuell angemeldete Benutzer kann sich nicht selbst deaktivieren.');
-  const checked=[...document.querySelectorAll('.userObjectAssignment:checked')].map(x=>x.value);
+  const objectRoles=[...document.querySelectorAll('.userObjectRole')].map(el=>({
+    object_id:String(el.dataset.objectId||''),
+    object_role:String(el.value||'')
+  })).filter(x=>x.object_id);
   const globalRole=['customer','property_manager'].includes(organizationRole)?'customer':'object_manager';
   try{
     await cloudRequest('profiles?id=eq.'+encodeURIComponent(uid),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({full_name:fullName,role:globalRole,active})});
     await cloudRequest(`organization_memberships?organization_id=eq.${encodeURIComponent(orgId)}&user_id=eq.${encodeURIComponent(uid)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({role:organizationRole})});
-    const existing=userAdminAssignments.filter(a=>a.user_id===uid && (db.objects||[]).some(o=>o.id===a.object_id&&!o.externalManaged&&o.organizationId===orgId));
-    if(isAdminRole()&&isPlatformTenantMode()){
-      // Interne Objektzuweisungen werden objektweise gespeichert, damit andere Mitarbeiterzuweisungen unangetastet bleiben.
-      const allOwnObjects=(db.objects||[]).filter(o=>!o.externalManaged&&o.organizationId===orgId);
-      for(const o of allOwnObjects){
-        const currentUsers=userAdminAssignments
-          .filter(a=>a.object_id===o.id&&a.active!==false&&a.user_id!==uid)
-          .map(a=>a.user_id);
-        if(checked.includes(o.id))currentUsers.push(uid);
-        await cloudRequest('rpc/platform_support_set_object_assignments',{
-          method:'POST',
-          body:JSON.stringify({
-            p_organization_id:orgId,
-            p_object_id:o.id,
-            p_user_ids:[...new Set(currentUsers)]
-          })
-        });
+    const existing=userAdminAssignments.filter(a=>
+      String(a.user_id)===String(uid) &&
+      (db.objects||[]).some(o=>
+        String(o.id)===String(a.object_id) &&
+        !o.externalManaged &&
+        String(o.organizationId||'')===String(orgId)
+      )
+    );
+
+    // Eigene Objekte: Objektrolle ist unabhängig von der Mandantenrolle.
+    // Auch tenant_admin / admin_delegate können object_responsible sein.
+    for(const entry of objectRoles){
+      const role=entry.object_role||null;
+      await cloudRequest('rpc/set_object_user_role_v1',{
+        method:'POST',
+        body:JSON.stringify({
+          p_organization_id:orgId,
+          p_object_id:entry.object_id,
+          p_user_id:uid,
+          p_object_role:role,
+          p_active:!!role,
+          p_valid_from:null,
+          p_valid_until:null
+        })
+      });
+    }
+
+    // Extern betreute Objekte: Zuweisung erfolgt weiterhin über die Kollaboration.
+    const sharedChecks=[...document.querySelectorAll('.userSharedObjectAssignment')];
+    for(const el of sharedChecks){
+      const collaborationId=el.dataset.collaborationId||'';
+      if(!collaborationId)continue;
+      const currentAssignee=el.dataset.currentAssignee||'';
+      const shouldAssign=!!el.checked;
+      if(shouldAssign && String(currentAssignee)!==String(uid)){
+        const rpc=(isAdminRole()&&isPlatformTenantMode())
+          ?'rpc/platform_support_assign_shared_object'
+          :'rpc/assign_shared_object';
+        const body=(isAdminRole()&&isPlatformTenantMode())
+          ?{p_organization_id:orgId,p_collaboration_id:collaborationId,p_user_id:uid}
+          :{p_collaboration_id:collaborationId,p_user_id:uid};
+        await cloudRequest(rpc,{method:'POST',body:JSON.stringify(body)});
+      }else if(!shouldAssign && String(currentAssignee)===String(uid)){
+        const rpc=(isAdminRole()&&isPlatformTenantMode())
+          ?'rpc/platform_support_assign_shared_object'
+          :'rpc/assign_shared_object';
+        const body=(isAdminRole()&&isPlatformTenantMode())
+          ?{p_organization_id:orgId,p_collaboration_id:collaborationId,p_user_id:null}
+          :{p_collaboration_id:collaborationId,p_user_id:null};
+        await cloudRequest(rpc,{method:'POST',body:JSON.stringify(body)});
       }
-    }else{
-      for(const a of existing){
-        const should=checked.includes(a.object_id);
-        if(a.active!==should)await cloudRequest('object_user_assignments?id=eq.'+encodeURIComponent(a.id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({active:should,updated_at:new Date().toISOString()})});
-      }
-      const existingIds=new Set(existing.map(a=>a.object_id));
-      for(const object_id of checked)if(!existingIds.has(object_id))await cloudRequest('object_user_assignments',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({object_id,user_id:uid,active:true,assigned_by:currentUserProfile?.id})});
     }
 
     // Einsatzqualifikationen: organisatorische Rolle und fachliche Einsatzfähigkeit bleiben getrennt.
