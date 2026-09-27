@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.61</title>
+<title>Duschl Service – Objektplattform v2.21.62</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -634,6 +634,68 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 .geo-check-box[data-state="neutral"]{border-color:var(--line-soft)}
 .geo-check-title{font-weight:800}
 .geo-check-meta{margin-top:4px;color:var(--muted);font-size:12px;line-height:1.35}
+
+
+/* === Wetterkarten-Layoutstabilität · 2.21.62 === */
+.ws-weather-head{
+  display:block!important;
+  min-height:104px;
+}
+.ws-weather-title{
+  min-height:30px;
+}
+.ws-weather-address{
+  min-height:46px;
+  margin-top:3px;
+}
+.ws-weather-rating-row{
+  min-height:32px;
+  margin-top:8px;
+  display:flex;
+  align-items:flex-start;
+}
+.ws-weather-metrics{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-template-rows:repeat(3,minmax(96px,auto));
+  gap:7px;
+  margin-top:10px;
+}
+.ws-weather-metric{
+  min-height:96px;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-start;
+}
+.ws-weather-metric .muted{
+  min-height:42px;
+  display:block;
+}
+.ws-weather-metric strong{
+  margin-top:auto;
+}
+.ws-weather-reasons{
+  min-height:0;
+}
+.ws-weather-details{
+  margin-top:6px;
+}
+@media(max-width:700px){
+  .ws-weather-head{min-height:auto}
+  .ws-weather-title{min-height:0}
+  .ws-weather-address{min-height:0}
+  .ws-weather-rating-row{min-height:0}
+  .ws-weather-metrics{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-rows:none;
+  }
+  .ws-weather-metric{
+    min-height:88px;
+  }
+  .ws-weather-metric .muted{
+    min-height:38px;
+  }
+}
 
 /* ===== Dark UI completion – v2.0.2 Kundenbericht ===== */
 body,main,.section,.content,.container,.wrap,.page{background:transparent!important;color:var(--text)!important}
@@ -4398,7 +4460,13 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    DATENQUELLE: Zippopotam.us / GeoNames-PLZ-Referenz.
    UNVERÄNDERT: Winterdienst-Wetter, Risikoheuristik, Wetter-Snapshot, Rollen/RLS, SOPs und Tourplanung.
    BACKEND: keine SQL-/Edge-Function-Änderung erforderlich. */
-const APP_VERSION='2.21.61'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.21.62 | BASIS 2.21.61 | 27.09.2026
+   WETTERKARTEN LAYOUT: Bewertung steht bei allen Objekten immer direkt unter der Adresse.
+   AUSRICHTUNG: KPI-Felder haben identische Reihenfolge, Mindesthöhe und Rasterposition.
+   KARTENHÖHE: Kopfbereich und KPI-Bereich sind layoutstabil; Inhalte springen nicht mehr.
+   UNVERÄNDERT: Wetterlogik, Priorisierung, PLZ-GPS-Plausibilitätsprüfung, Snapshot, Rollen/RLS, SOPs und Tourplanung.
+   BACKEND: keine SQL-/Edge-Function-Änderung erforderlich. */
+const APP_VERSION='2.21.62'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -17329,16 +17397,22 @@ function wsWeatherCard(objectId){
 
   if(!entry){
     return `<div class="ws-weather-card" data-risk="loading">
-      <strong>${wsEsc(o?.name||'Objekt')}</strong>
-      <div class="muted" style="margin-top:6px">Wetter wird geladen …</div>
+      <div class="ws-weather-head">
+        <div class="ws-weather-title"><strong>${wsEsc(o?.name||'Objekt')}</strong></div>
+        <div class="ws-weather-address muted">Wetter wird geladen …</div>
+        <div class="ws-weather-rating-row"></div>
+      </div>
     </div>`;
   }
 
   if(entry.error){
     return `<div class="ws-weather-card" data-risk="error">
       <div class="ws-weather-head">
-        <strong>${wsEsc(o?.name||entry.object_name||'Objekt')}</strong>
-        <span class="ws-weather-risk ws-risk-red">DATENFEHLER</span>
+        <div class="ws-weather-title"><strong>${wsEsc(o?.name||entry.object_name||'Objekt')}</strong></div>
+        <div class="ws-weather-address muted">${wsEsc(entry.address||'')}</div>
+        <div class="ws-weather-rating-row">
+          <span class="ws-weather-risk ws-risk-red">DATENFEHLER</span>
+        </div>
       </div>
       <div class="muted" style="margin-top:7px">${wsEsc(entry.error)}</div>
     </div>`;
@@ -17352,27 +17426,47 @@ function wsWeatherCard(objectId){
 
   return `<div class="ws-weather-card" data-risk="${primaryRisk}">
     <div class="ws-weather-head">
-      <div>
+      <div class="ws-weather-title">
         <strong>${wsEsc(entry.object_name||o?.name||'Objekt')}</strong>
-        <div class="muted" style="margin-top:3px">${wsEsc(entry.address||'')}</div>
       </div>
-      <span class="ws-weather-risk ${wsWeatherRiskClass(f24.risk_level)}">${wsEsc(wsWeatherRiskLabel(f24.risk_level))}</span>
+      <div class="ws-weather-address muted">${wsEsc(entry.address||'')}</div>
+      <div class="ws-weather-rating-row">
+        <span class="ws-weather-risk ${wsWeatherRiskClass(f24.risk_level)}">${wsEsc(wsWeatherRiskLabel(f24.risk_level))}</span>
+      </div>
     </div>
 
     <div class="ws-weather-metrics">
-      <div class="ws-weather-metric"><span class="muted">24 h</span><strong>${wsEsc(wsWeatherRiskLabel(f24.risk_level))}</strong></div>
-      <div class="ws-weather-metric"><span class="muted">48 h</span><strong>${wsEsc(wsWeatherRiskLabel(f48.risk_level))}</strong></div>
-      <div class="ws-weather-metric"><span class="muted">Min. Temperatur 24 h</span><strong>${wsEsc(wsWeatherNumber(f24.min_temperature,1,' °C'))}</strong></div>
-      <div class="ws-weather-metric"><span class="muted">Max. Niederschlag</span><strong>${wsEsc(wsWeatherNumber(f24.max_precipitation,1,' mm/h'))}</strong></div>
-      <div class="ws-weather-metric"><span class="muted">Max. Niederschlagswahr.</span><strong>${Number.isFinite(Number(f24.max_precipitation_probability))?`${Math.round(Number(f24.max_precipitation_probability))} %`:'—'}</strong></div>
-      <div class="ws-weather-metric"><span class="muted">Erstes Winterrisiko</span><strong>${wsEsc(wsWeatherFormatTime(f24.first_risk_at||f48.first_risk_at))}</strong></div>
+      <div class="ws-weather-metric">
+        <span class="muted">24 h</span>
+        <strong>${wsEsc(wsWeatherRiskLabel(f24.risk_level))}</strong>
+      </div>
+      <div class="ws-weather-metric">
+        <span class="muted">48 h</span>
+        <strong>${wsEsc(wsWeatherRiskLabel(f48.risk_level))}</strong>
+      </div>
+      <div class="ws-weather-metric">
+        <span class="muted">Min. Temperatur<br>24 h</span>
+        <strong>${wsEsc(wsWeatherNumber(f24.min_temperature,1,' °C'))}</strong>
+      </div>
+      <div class="ws-weather-metric">
+        <span class="muted">Max. Niederschlag</span>
+        <strong>${wsEsc(wsWeatherNumber(f24.max_precipitation,1,' mm/h'))}</strong>
+      </div>
+      <div class="ws-weather-metric">
+        <span class="muted">Max.<br>Niederschlagswahr.</span>
+        <strong>${Number.isFinite(Number(f24.max_precipitation_probability))?`${Math.round(Number(f24.max_precipitation_probability))} %`:'—'}</strong>
+      </div>
+      <div class="ws-weather-metric">
+        <span class="muted">Erstes Winterrisiko</span>
+        <strong>${wsEsc(wsWeatherFormatTime(f24.first_risk_at||f48.first_risk_at))}</strong>
+      </div>
     </div>
 
     ${reasons.length?`<div class="ws-weather-reasons"><strong>Treiber:</strong> ${reasons.slice(0,3).map(wsEsc).join(' · ')}</div>`:''}
 
-    ${warnings.length?`<details class="ws-weather-details" style="margin-top:7px"><summary>Amtliche Winterwarnungen (${warnings.length})</summary>${warnings.map(w=>`<div class="ws-weather-warning"><strong>${wsEsc(w.headline||w.event||'DWD-Warnung')}</strong>${w.severity?`<div class="muted">${wsEsc(w.severity)}</div>`:''}</div>`).join('')}</details>`:''}
+    ${warnings.length?`<details class="ws-weather-details"><summary>Amtliche Winterwarnungen (${warnings.length})</summary>${warnings.map(w=>`<div class="ws-weather-warning"><strong>${wsEsc(w.headline||w.event||'DWD-Warnung')}</strong>${w.severity?`<div class="muted">${wsEsc(w.severity)}</div>`:''}</div>`).join('')}</details>`:''}
 
-    <details class="ws-weather-details" style="margin-top:5px">
+    <details class="ws-weather-details">
       <summary>Stundenverlauf · nächste 24 h</summary>
       <div class="ws-hourly-strip">
         ${(entry.hourly||[]).slice(0,24).map(h=>`<div class="ws-hour">
