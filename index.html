@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.63</title>
+<title>Duschl Service – Objektplattform v2.21.64</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -718,6 +718,26 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 .ws-forecast-metric[data-risk="green"] strong{color:#a9e6b8}
 .ws-forecast-metric[data-risk="yellow"] strong{color:#f4d77f}
 .ws-forecast-metric[data-risk="red"] strong{color:#ffaaaa}
+
+
+/* === Winterdienst-Tourstopps · 2.21.64 === */
+.ws-tour-stop-draft{
+  display:flex;align-items:center;gap:10px;padding:9px 10px;margin-top:7px;
+  border:1px solid var(--line-soft);border-radius:10px;background:#0a1620;
+}
+.ws-tour-stop-number{
+  min-width:28px;height:28px;border-radius:999px;display:inline-flex;
+  align-items:center;justify-content:center;border:1px solid var(--line-soft);font-weight:900;
+}
+.ws-tour-stop-main{min-width:0;flex:1}
+.ws-tour-stop-actions{display:flex;gap:5px;flex-wrap:wrap}
+.ws-tour-stop-actions button{min-width:42px;padding:7px 9px}
+.ws-tour-stop-invalid{border-color:rgba(255,154,154,.72)}
+@media(max-width:700px){
+  .ws-tour-stop-draft{align-items:flex-start;flex-wrap:wrap}
+  .ws-tour-stop-main{flex-basis:calc(100% - 44px)}
+  .ws-tour-stop-actions{width:100%;padding-left:38px}
+}
 
 /* ===== Dark UI completion – v2.0.2 Kundenbericht ===== */
 body,main,.section,.content,.container,.wrap,.page{background:transparent!important;color:var(--text)!important}
@@ -2789,7 +2809,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
     <div>
       <h2 style="margin:0">Winterdienst</h2>
-      <div class="muted" style="margin-top:6px">Objekt-Leistungsumfang · Rufbereitschaft · Touren · Einsätze</div>
+      <div class="muted" style="margin-top:6px">Wetter · Rufbereitschaft · Touren · Einsätze</div>
     </div>
     <button type="button" onclick="loadWinterService()">↻ Aktualisieren</button>
   </div>
@@ -2809,70 +2829,29 @@ body.public-report-mode>#photoViewer{display:none!important}
   </div>
 
   <div class="grid g2" style="margin-top:14px">
-    <div class="card ws-legacy-sop-admin hidden" style="display:none!important" aria-hidden="true">
-      <h3>SOP-Verwaltung (Legacy)</h3>
-      <div class="muted">Freigegebene SOP-Versionen werden bei neuen Einsätzen festgeschrieben.</div>
-      <div id="wsSopList" style="margin-top:12px"><span class="muted">Wird geladen …</span></div>
-      <div class="grid2" style="margin-top:14px">
-        <label>Dokumentennummer<input id="wsSopNumber" value="SOP-006"/></label>
-        <label>Titel<input id="wsSopTitle" value="Winterdienst"/></label>
-        <label>Version<input id="wsSopVersion" value="1.1"/></label>
-        <label>Gültig ab<input id="wsSopValidFrom" type="date" value="2026-11-01"/></label>
-      </div>
-      <label style="margin-top:10px">SOP-Datei<input id="wsSopFile" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"/></label>
-      <div class="row" style="margin-top:10px"><button class="primary" type="button" onclick="wsSaveSop()">SOP speichern / Version freigeben</button></div>
-    </div>
-
-    <div class="card">
-      <h3>Objekt-Leistungsumfang</h3>
-      <div class="grid2">
-        <label>Objekt<select id="wsScopeObject"></select></label>
-        <label>Saison<input id="wsScopeSeason" value="2026/27"/></label>
-        <label>Gültig von<input id="wsScopeFrom" type="date" value="2026-11-01"/></label>
-        <label>Gültig bis<input id="wsScopeUntil" type="date" value="2027-03-31"/></label>
-      </div>
-      <div class="row" style="margin-top:10px"><button type="button" onclick="wsLoadAreasForScope()">Bereiche laden</button></div>
-      <div class="card" style="padding:10px;margin-top:10px">
-        <strong>Winterdienstfläche hinzufügen</strong>
-        <div class="muted" style="margin-top:4px">Vorhandenen Objektbereich übernehmen oder eine konkrete zusätzliche Fläche erfassen.</div>
-        <div class="row" style="gap:8px;margin-top:8px;align-items:end;flex-wrap:wrap">
-          <label style="flex:1;min-width:220px">Vorhandener Objektbereich
-            <select id="wsExistingAreaPicker"><option value="">Bereich wählen …</option></select>
-          </label>
-          <button type="button" onclick="wsAddExistingArea()">Bereich hinzufügen</button>
-        </div>
-        <details style="margin-top:10px">
-          <summary style="cursor:pointer;font-weight:700">Eigene Fläche erfassen</summary>
-          <div class="grid2" style="margin-top:8px">
-            <label>Bezeichnung<input id="wsManualAreaName" placeholder="z. B. Gehweg Straßenseite"/></label>
-            <label>Priorität
-              <select id="wsManualAreaPriority">
-                <option value="1">1 · zuerst</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
-              </select>
-            </label>
-          </div>
-          <div class="row" style="gap:16px;margin-top:8px;flex-wrap:wrap">
-            <label class="row" style="align-items:center"><input id="wsManualAreaClear" type="checkbox" style="width:auto"> Räumen</label>
-            <label class="row" style="align-items:center"><input id="wsManualAreaGrit" type="checkbox" style="width:auto"> Streuen</label>
-          </div>
-          <label style="margin-top:8px">Besonderheit / Hinweis<input id="wsManualAreaNote" placeholder="z. B. Gefälle, schattig, erhöhte Glättegefahr"/></label>
-          <div class="row" style="margin-top:8px"><button type="button" onclick="wsAddManualArea()">Eigene Fläche hinzufügen</button></div>
-        </details>
-      </div>
-      <div id="wsScopeAreas" style="margin-top:10px"><span class="muted">Objekt wählen und Bereiche laden.</span></div>
-      <div class="row" style="margin-top:10px"><button class="primary" type="button" onclick="wsSaveScope()">Leistungsumfang speichern</button></div>
-    </div>
-  </div>
-
-  <div class="grid g2" style="margin-top:14px">
     <div class="card ws-admin-only">
       <h3>Tourvorlagen</h3>
       <div class="grid2">
         <label>Name<input id="wsTourName" placeholder="z. B. Tour Nord"/></label>
         <label>Startzeit<input id="wsTourStart" type="time" value="05:00"/></label>
       </div>
-      <label style="margin-top:10px">Objekte in Reihenfolge<select id="wsTourObjects" multiple size="7"></select></label>
-      <div class="muted" style="margin-top:5px">Mehrfachauswahl in der gewünschten Reihenfolge anklicken; gespeichert wird die aktuelle Listenreihenfolge der ausgewählten Objekte.</div>
+      <div style="margin-top:10px">
+        <label>Objekt hinzufügen</label>
+        <div class="row" style="gap:8px;align-items:end;flex-wrap:wrap">
+          <select id="wsTourObjectPicker" style="flex:1;min-width:220px">
+            <option value="">Winterdienstobjekt wählen …</option>
+          </select>
+          <button id="wsTourAddObjectBtn" type="button" onclick="wsTourAddObject()">Zur Tour hinzufügen</button>
+        </div>
+        <div class="muted" style="margin-top:5px">Nur Objekte mit aktiver Winterdienst-Leistungszuordnung sind auswählbar.</div>
+      </div>
+
+      <div style="margin-top:12px">
+        <strong>Stoppreihenfolge</strong>
+        <div class="muted" style="margin-top:4px">Die Reihenfolge wird exakt so in die Tagestour übernommen.</div>
+        <div id="wsTourStopDraft" style="margin-top:8px"></div>
+      </div>
+
       <div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">
         <button id="wsTourSaveBtn" class="primary" type="button" onclick="wsSaveTourTemplate()">Tourvorlage speichern</button>
         <button id="wsTourCancelBtn" type="button" class="hidden" onclick="wsCancelTourEdit()">Bearbeitung abbrechen</button>
@@ -4494,7 +4473,15 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    UX: dezenter Hintergrund + Rahmen + farbiger Prognosewert, ohne Lesbarkeit der übrigen KPI-Felder zu beeinträchtigen.
    UNVERÄNDERT: Kartenlayout, PLZ-GPS-Plausibilitätsprüfung, Wetterdaten, Snapshot, Rollen/RLS, SOPs und Tourplanung.
    BACKEND: keine SQL-/Edge-Function-Änderung erforderlich. */
-const APP_VERSION='2.21.63'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.21.64 | BASIS 2.21.63 | 27.09.2026
+   WINTERDIENST OPERATIV: separater Pflegeblock „Objekt-Leistungsumfang“ aus der Winterdienst-Hauptseite entfernt.
+   TOUREN: alte Mehrfachauswahl ersetzt durch „Objekt hinzufügen“ + explizit geordnete Stoppliste.
+   REIHENFOLGE: Stopps können per ↑ / ↓ verschoben und einzeln entfernt werden.
+   GOVERNANCE: auswählbar sind nur Objekte mit aktiver Winterdienst-Leistungszuordnung im aktuellen Mandanten.
+   AUSFÜHRUNG: vorhandene Leistungsumfänge/Flächen werden weiterhin beim Erzeugen/Öffnen der Tagestour automatisch verknüpft.
+   UNVERÄNDERT: Wettercockpit, Forecast-Farben, GPS-Plausibilitätsprüfung, Wetter-Snapshot, Rollen/RLS, SOPs und allgemeine Tourplanung.
+   BACKEND: keine SQL-/Edge-Function-Änderung erforderlich. */
+const APP_VERSION='2.21.64'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -17318,6 +17305,7 @@ async function osaDeactivate(id,objectId){
    ========================================================= */
 let wsState={sops:[],versions:[],scopes:[],templates:[],stops:[],runs:[],executions:[],areas:[],selectedAreas:[],manualAreas:[],tenantUsers:[],objectAssignments:[],managedDocuments:[],managedVersions:[],weatherByObject:{}};
 let wsEditingTourTemplateId=null;
+let wsTourDraftObjectIds=[];
 
 function wsOrg(){const id=currentOrganizationId();if(!id)throw new Error('Kein aktiver Mandant.');return id}
 function wsObjects(){return (db?.objects||[]).filter(o=>o.active!==false)}
@@ -17593,6 +17581,7 @@ async function loadWinterService(){
       wsRenderMyWinterOrders();
     }else{
       wsPopulateObjectSelects();
+      wsRenderTourDraft();
       wsPopulateRunAssignees();
       /* SOP-Verwaltung erfolgt zentral im Dokumentenmanagement / Objekt. */
       wsRenderTours();
@@ -17605,11 +17594,77 @@ async function loadWinterService(){
   }catch(e){console.error(e);alert('Winterdienst konnte nicht geladen werden: '+(e.message||e))}
 }
 
+function wsTourEligibleObjectIds(){
+  return new Set(wsWinterObjectIds().map(String));
+}
 function wsPopulateObjectSelects(){
-  const opts=wsObjects().map(o=>`<option value="${wsEsc(o.id)}">${wsEsc(o.name)}</option>`).join('');
-  ['wsScopeObject','wsTourObjects'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=opts});
+  wsPopulateTourObjectPicker();
   const rt=document.getElementById('wsRunTemplate');
   if(rt)rt.innerHTML='<option value="">Tour wählen …</option>'+wsState.templates.filter(t=>t.active!==false).map(t=>`<option value="${wsEsc(t.id)}">${wsEsc(t.name)}</option>`).join('');
+}
+function wsPopulateTourObjectPicker(){
+  const el=document.getElementById('wsTourObjectPicker');
+  if(!el)return;
+  const eligible=wsTourEligibleObjectIds();
+  const selected=new Set(wsTourDraftObjectIds.map(String));
+  const rows=wsObjects()
+    .filter(o=>eligible.has(String(o.id))&&!selected.has(String(o.id)))
+    .sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'de'));
+  el.innerHTML='<option value="">Winterdienstobjekt wählen …</option>'+
+    rows.map(o=>`<option value="${wsEsc(o.id)}">${wsEsc(o.name)}</option>`).join('');
+  const btn=document.getElementById('wsTourAddObjectBtn');
+  if(btn)btn.disabled=!rows.length;
+}
+function wsRenderTourDraft(){
+  const host=document.getElementById('wsTourStopDraft');
+  if(!host)return;
+  const eligible=wsTourEligibleObjectIds();
+  if(!wsTourDraftObjectIds.length){
+    host.innerHTML='<div class="empty">Noch kein Objekt in der Tour.</div>';
+    wsPopulateTourObjectPicker();
+    return;
+  }
+  host.innerHTML=wsTourDraftObjectIds.map((objectId,index)=>{
+    const o=wsObjects().find(x=>String(x.id)===String(objectId));
+    const valid=eligible.has(String(objectId));
+    return `<div class="ws-tour-stop-draft ${valid?'':'ws-tour-stop-invalid'}">
+      <span class="ws-tour-stop-number">${index+1}</span>
+      <div class="ws-tour-stop-main">
+        <strong>${wsEsc(o?.name||'Objekt')}</strong>
+        <div class="muted" style="margin-top:2px">${valid?'Aktive Winterdienst-Leistungszuordnung':'Keine aktive Winterdienst-Leistungszuordnung – bitte entfernen'}</div>
+      </div>
+      <div class="ws-tour-stop-actions">
+        <button type="button" title="Nach oben" ${index===0?'disabled':''} onclick="wsTourMoveObject(${index},-1)">↑</button>
+        <button type="button" title="Nach unten" ${index===wsTourDraftObjectIds.length-1?'disabled':''} onclick="wsTourMoveObject(${index},1)">↓</button>
+        <button type="button" class="danger" onclick="wsTourRemoveObject(${index})">Entfernen</button>
+      </div>
+    </div>`;
+  }).join('');
+  wsPopulateTourObjectPicker();
+}
+function wsTourAddObject(){
+  const el=document.getElementById('wsTourObjectPicker');
+  const objectId=String(el?.value||'');
+  if(!objectId)return;
+  if(!wsTourEligibleObjectIds().has(objectId)){
+    alert('Dieses Objekt besitzt keine aktive Winterdienst-Leistungszuordnung.');
+    return;
+  }
+  if(!wsTourDraftObjectIds.some(id=>String(id)===objectId))wsTourDraftObjectIds.push(objectId);
+  if(el)el.value='';
+  wsRenderTourDraft();
+}
+function wsTourMoveObject(index,direction){
+  const target=index+direction;
+  if(index<0||target<0||index>=wsTourDraftObjectIds.length||target>=wsTourDraftObjectIds.length)return;
+  const [item]=wsTourDraftObjectIds.splice(index,1);
+  wsTourDraftObjectIds.splice(target,0,item);
+  wsRenderTourDraft();
+}
+function wsTourRemoveObject(index){
+  if(index<0||index>=wsTourDraftObjectIds.length)return;
+  wsTourDraftObjectIds.splice(index,1);
+  wsRenderTourDraft();
 }
 function wsPopulateRunAssignees(){
   const el=document.getElementById('wsRunAssignee');if(!el)return;
@@ -17892,16 +17947,16 @@ async function wsSaveScope(){
 
 function wsResetTourForm(){
   wsEditingTourTemplateId=null;
+  wsTourDraftObjectIds=[];
   const name=document.getElementById('wsTourName');
   const start=document.getElementById('wsTourStart');
-  const objects=document.getElementById('wsTourObjects');
   const save=document.getElementById('wsTourSaveBtn');
   const cancel=document.getElementById('wsTourCancelBtn');
   if(name)name.value='';
   if(start)start.value='05:00';
-  if(objects)[...objects.options].forEach(o=>o.selected=false);
   if(save)save.textContent='Tourvorlage speichern';
   if(cancel)cancel.classList.add('hidden');
+  wsRenderTourDraft();
 }
 
 function wsEditTourTemplate(id){
@@ -17910,18 +17965,15 @@ function wsEditTourTemplate(id){
   wsEditingTourTemplateId=id;
   const name=document.getElementById('wsTourName');
   const start=document.getElementById('wsTourStart');
-  const objects=document.getElementById('wsTourObjects');
   const save=document.getElementById('wsTourSaveBtn');
   const cancel=document.getElementById('wsTourCancelBtn');
   if(name)name.value=t.name||'';
   if(start)start.value=(t.default_start_time||'05:00').slice(0,5);
-  const selectedIds=new Set(
-    wsState.stops
-      .filter(s=>s.tour_template_id===id && s.active!==false)
-      .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0))
-      .map(s=>String(s.object_id))
-  );
-  if(objects)[...objects.options].forEach(o=>o.selected=selectedIds.has(String(o.value)));
+  wsTourDraftObjectIds=wsState.stops
+    .filter(s=>s.tour_template_id===id && s.active!==false)
+    .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0))
+    .map(s=>String(s.object_id));
+  wsRenderTourDraft();
   if(save)save.textContent='Änderungen speichern';
   if(cancel)cancel.classList.remove('hidden');
   name?.focus();
@@ -17932,8 +17984,11 @@ function wsCancelTourEdit(){ wsResetTourForm(); }
 async function wsSaveTourTemplate(){
   try{
     const org=wsOrg(), name=document.getElementById('wsTourName').value.trim(), start=document.getElementById('wsTourStart').value||null;
-    const selected=[...document.getElementById('wsTourObjects').selectedOptions].map(o=>o.value);
+    const selected=[...wsTourDraftObjectIds];
     if(!name||!selected.length)throw new Error('Name und mindestens ein Objekt sind Pflicht.');
+    const eligible=wsTourEligibleObjectIds();
+    const invalid=selected.filter(id=>!eligible.has(String(id)));
+    if(invalid.length)throw new Error('Mindestens ein Tourstopp besitzt keine aktive Winterdienst-Leistungszuordnung. Bitte diesen Stopp entfernen.');
 
     if(wsEditingTourTemplateId){
       const id=wsEditingTourTemplateId;
@@ -18008,10 +18063,10 @@ function wsRenderTours(){
   const activeTemplates=wsState.templates.filter(t=>t.active!==false);
   el.innerHTML=activeTemplates.length?activeTemplates.map(t=>{
     const stops=wsState.stops.filter(s=>s.tour_template_id===t.id && s.active!==false).sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
-    const names=stops.map(s=>wsObjects().find(o=>o.id===s.object_id)?.name||'Objekt').join(' → ');
+    const names=stops.map((s,i)=>`${i+1}. ${wsObjects().find(o=>o.id===s.object_id)?.name||'Objekt'}`).join(' → ');
     return `<div class="card" style="padding:10px;margin:8px 0">
       <div class="row" style="justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
-        <div><strong>${wsEsc(t.name)}</strong><div class="muted">${wsEsc(t.default_start_time||'—')} · ${wsEsc(names||'keine Stopps')}</div></div>
+        <div><strong>${wsEsc(t.name)}</strong><div class="muted">${wsEsc((t.default_start_time||'—').slice(0,5))} · ${wsEsc(names||'keine Stopps')}</div></div>
         <div class="row" style="gap:6px;flex-wrap:wrap">
           <button type="button" onclick="wsEditTourTemplate('${wsEsc(t.id)}')">Bearbeiten</button>
           <button type="button" onclick="wsDeleteTourTemplate('${wsEsc(t.id)}')">Löschen</button>
