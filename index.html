@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.62</title>
+<title>Duschl Service – Objektplattform v2.21.63</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -696,6 +696,28 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
     min-height:38px;
   }
 }
+
+
+/* === Forecast-Farblogik · 2.21.63 === */
+.ws-forecast-metric{
+  position:relative;
+  overflow:hidden;
+}
+.ws-forecast-metric[data-risk="green"]{
+  border-color:rgba(157,217,173,.62)!important;
+  background:rgba(74,160,103,.10)!important;
+}
+.ws-forecast-metric[data-risk="yellow"]{
+  border-color:rgba(242,210,123,.72)!important;
+  background:rgba(190,145,42,.12)!important;
+}
+.ws-forecast-metric[data-risk="red"]{
+  border-color:rgba(255,154,154,.78)!important;
+  background:rgba(190,70,70,.13)!important;
+}
+.ws-forecast-metric[data-risk="green"] strong{color:#a9e6b8}
+.ws-forecast-metric[data-risk="yellow"] strong{color:#f4d77f}
+.ws-forecast-metric[data-risk="red"] strong{color:#ffaaaa}
 
 /* ===== Dark UI completion – v2.0.2 Kundenbericht ===== */
 body,main,.section,.content,.container,.wrap,.page{background:transparent!important;color:var(--text)!important}
@@ -4466,7 +4488,13 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    KARTENHÖHE: Kopfbereich und KPI-Bereich sind layoutstabil; Inhalte springen nicht mehr.
    UNVERÄNDERT: Wetterlogik, Priorisierung, PLZ-GPS-Plausibilitätsprüfung, Snapshot, Rollen/RLS, SOPs und Tourplanung.
    BACKEND: keine SQL-/Edge-Function-Änderung erforderlich. */
-const APP_VERSION='2.21.62'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.21.63 | BASIS 2.21.62 | 27.09.2026
+   FORECAST-FARBLOGIK: 24-h- und 48-h-Prognosefelder werden entsprechend GRÜN/GELB/ROT visuell hervorgehoben.
+   KONSISTENZ: Farbe entspricht exakt der bestehenden Risikobewertung; keine Änderung der Risikologik.
+   UX: dezenter Hintergrund + Rahmen + farbiger Prognosewert, ohne Lesbarkeit der übrigen KPI-Felder zu beeinträchtigen.
+   UNVERÄNDERT: Kartenlayout, PLZ-GPS-Plausibilitätsprüfung, Wetterdaten, Snapshot, Rollen/RLS, SOPs und Tourplanung.
+   BACKEND: keine SQL-/Edge-Function-Änderung erforderlich. */
+const APP_VERSION='2.21.63'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -17436,11 +17464,11 @@ function wsWeatherCard(objectId){
     </div>
 
     <div class="ws-weather-metrics">
-      <div class="ws-weather-metric">
+      <div class="ws-weather-metric ws-forecast-metric" data-risk="${wsEsc(String(f24.risk_level||'green').toLowerCase())}">
         <span class="muted">24 h</span>
         <strong>${wsEsc(wsWeatherRiskLabel(f24.risk_level))}</strong>
       </div>
-      <div class="ws-weather-metric">
+      <div class="ws-weather-metric ws-forecast-metric" data-risk="${wsEsc(String(f48.risk_level||'green').toLowerCase())}">
         <span class="muted">48 h</span>
         <strong>${wsEsc(wsWeatherRiskLabel(f48.risk_level))}</strong>
       </div>
