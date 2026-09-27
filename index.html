@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.73</title>
+<title>Duschl Service – Objektplattform v2.21.74</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -4538,6 +4538,12 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    BACKEND: get/set_organization_notification_cc_v1; Versand/Audit über process-notification-outbox 2.21.72.
    GOVERNANCE: CC ist mandantenbezogen, kein Cross-Tenant-Fallback, Sandbox versendet bewusst kein produktives CC.
    UNVERÄNDERT: persönliche Notification Preferences, Winterdienst-Briefing, Rollen-/Mandantenlogik, RLS. */
+/* RELEASE 2.21.74 | HOTFIX | BASIS 2.21.73 | 27.09.2026
+   HOTFIX: doppelten const-Block sharedChecks in saveUserAdminPermissions entfernt.
+   Ursache Login-Ausfall: JavaScript-Syntaxfehler verhinderte das Parsen des Hauptscripts.
+   Keine Datenbank-/RLS-Änderung gegenüber 2.21.73.
+*/
+
 /* RELEASE 2.21.73 | BASIS 2.21.72 | 27.09.2026
    OBJEKTROLLEN: Mandantenrolle und Objektrolle sind unabhängig kombinierbar.
    Ein tenant_admin kann zusätzlich object_responsible eines oder mehrerer Objekte sein.
@@ -4545,7 +4551,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    Benutzerverwaltung und interne Objektzuweisung verwenden die neue Rollen-RPC.
    Noch KEINE Umschaltung bestehender Fach-RLS auf can_administer_object(); additive Einführung ohne Big-Bang.
    UNVERÄNDERT: bestehende Objektzugriffe, externe Kollaborationszuweisungen, Winterdienst, Notification/CC. */
-const APP_VERSION='2.21.73'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.21.74'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -13268,28 +13274,6 @@ async function saveUserAdminPermissions(){
       }
     }
 
-    // Extern betreute Objekte: Zuweisung erfolgt über die jeweilige Betreuungsbeziehung.
-    const sharedChecks=[...document.querySelectorAll('.userSharedObjectAssignment')];
-    for(const el of sharedChecks){
-      const collaborationId=el.dataset.collaborationId||'';
-      if(!collaborationId)continue;
-      const currentAssignee=el.dataset.currentAssignee||'';
-      const shouldAssign=!!el.checked;
-      // Nur ändern, wenn diese Benutzerzuordnung tatsächlich wechselt.
-      if(shouldAssign && String(currentAssignee)!==String(uid)){
-        const rpc=(isAdminRole()&&isPlatformTenantMode())?'rpc/platform_support_assign_shared_object':'rpc/assign_shared_object';
-        const body=(isAdminRole()&&isPlatformTenantMode())
-          ?{p_organization_id:orgId,p_collaboration_id:collaborationId,p_user_id:uid}
-          :{p_collaboration_id:collaborationId,p_user_id:uid};
-        await cloudRequest(rpc,{method:'POST',body:JSON.stringify(body)});
-      }else if(!shouldAssign && String(currentAssignee)===String(uid)){
-        const rpc=(isAdminRole()&&isPlatformTenantMode())?'rpc/platform_support_assign_shared_object':'rpc/assign_shared_object';
-        const body=(isAdminRole()&&isPlatformTenantMode())
-          ?{p_organization_id:orgId,p_collaboration_id:collaborationId,p_user_id:null}
-          :{p_collaboration_id:collaborationId,p_user_id:null};
-        await cloudRequest(rpc,{method:'POST',body:JSON.stringify(body)});
-      }
-    }
     alert('Berechtigungen, Einsatzqualifikationen und Objektzugriffe gespeichert.');
     await loadUserAdminData();
   }catch(e){alert('Speichern fehlgeschlagen: '+e.message)}
