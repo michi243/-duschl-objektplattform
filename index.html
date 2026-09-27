@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.56</title>
+<title>Duschl Service – Objektplattform v2.21.57</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -449,6 +449,74 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 .ops-plan-meta{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:5px}
 .ops-plan-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .ops-plan-actions button{min-height:34px;padding:6px 9px}
+
+
+/* === Winterdienst-Wetter · 2.21.57 === */
+.ws-weather-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:10px;
+  margin-top:12px;
+}
+.ws-weather-card{
+  border:1px solid var(--line-soft);
+  border-radius:12px;
+  padding:12px;
+  background:#0b1823;
+}
+.ws-weather-head{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:flex-start;
+  flex-wrap:wrap;
+}
+.ws-weather-risk{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  border:1px solid currentColor;
+  border-radius:999px;
+  padding:4px 8px;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.03em;
+}
+.ws-risk-green{color:#9dd9ad}
+.ws-risk-yellow{color:#f2d27b}
+.ws-risk-red{color:#ff9a9a}
+.ws-weather-metrics{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;
+  margin-top:10px;
+}
+.ws-weather-metric{
+  border:1px solid var(--line-soft);
+  border-radius:9px;
+  padding:8px;
+}
+.ws-weather-metric strong{
+  display:block;
+  margin-top:2px;
+}
+.ws-weather-reasons{
+  margin-top:9px;
+  font-size:13px;
+}
+.ws-weather-warning{
+  margin-top:7px;
+  padding:8px;
+  border:1px solid var(--line-soft);
+  border-radius:9px;
+}
+.ws-weather-source{
+  margin-top:9px;
+  font-size:12px;
+}
+@media(max-width:700px){
+  .ws-weather-metrics{grid-template-columns:1fr 1fr}
+}
 
 /* ===== Dark UI completion – v2.0.2 Kundenbericht ===== */
 body,main,.section,.content,.container,.wrap,.page{background:transparent!important;color:var(--text)!important}
@@ -2525,6 +2593,19 @@ body.public-report-mode>#photoViewer{display:none!important}
     <button type="button" onclick="loadWinterService()">↻ Aktualisieren</button>
   </div>
 
+  <div class="card ws-admin-only" style="margin-top:14px">
+    <div class="row space" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
+      <div>
+        <h3 style="margin:0">Wettercockpit</h3>
+        <div class="muted" style="margin-top:5px">24-/48-Stunden-Winterdienstrisiko für alle aktiv betreuten Winterdienstobjekte. Die Einstufung unterstützt die Disposition und löst keine Tour automatisch aus.</div>
+      </div>
+      <button id="wsWeatherRefreshBtn" type="button" onclick="wsLoadWeatherCockpit(true)">Wetter aktualisieren</button>
+    </div>
+    <div id="wsWeatherStatus" class="muted" style="margin-top:9px">Wetterdaten werden beim Öffnen des Winterdiensts geladen.</div>
+    <div id="wsWeatherCockpit" class="ws-weather-grid"></div>
+    <div class="muted ws-weather-source">Quelle der Wetterdaten: Deutscher Wetterdienst (DWD), technische Bereitstellung via Bright Sky. Interne Risikoeinstufung durch Duschl Service Objektplattform.</div>
+  </div>
+
   <div class="grid g2" style="margin-top:14px">
     <div class="card ws-legacy-sop-admin hidden" style="display:none!important" aria-hidden="true">
       <h3>SOP-Verwaltung (Legacy)</h3>
@@ -4157,7 +4238,17 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    BASIS FÜR: Winterdienst-Wetter, Entfernungen und spätere Routenoptimierung.
    UNVERÄNDERT: Rollen/Mandanten, SOPs, Tourplanung, Winterdienstprozess.
    BACKEND: SQL-Migration + Edge Function geocode-object erforderlich. */
-const APP_VERSION='2.21.56'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.21.57 | BASIS 2.21.56 | 25.09.2026
+   WINTERDIENST-WETTER: DWD-Wetterdaten via Bright Sky, objektbezogen über gespeicherte Koordinaten.
+   COCKPIT: 24h/48h-Winterdienstrisiko, Temperatur, Niederschlag, Schneesignal und amtliche Warnungen.
+   GOVERNANCE: Risikostufe ist interne Dispositionshilfe; keine automatische Tourauslösung.
+   SNAPSHOT: Beim Einsatzstart wird die aktuelle Wetterlage unveränderlich am Einsatz dokumentiert.
+   CACHE: Forecast wird serverseitig 30 Minuten je Mandant/Objekt zwischengespeichert.
+   ZUGRIFF: Wetterstandort wird serverseitig gegen aktive Winterdienst-Leistungszuordnung und Mandantenmitgliedschaft geprüft.
+   QUELLE: Deutscher Wetterdienst (DWD), technische Bereitstellung via Bright Sky.
+   UNVERÄNDERT: Rollen-/Mandantenlogik, SOPs, Leistungsumfänge, Touren, Fotos, Tourplanung V2.
+   BACKEND: SQL-Migration + Edge Function winter-weather erforderlich. */
+const APP_VERSION='2.21.57'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -16767,7 +16858,7 @@ async function osaDeactivate(id,objectId){
    WINTERDIENST V1 · 2.21.33
    SOP + Leistungsumfang + Tourvorlage + Tagestour + Objekteinsatz
    ========================================================= */
-let wsState={sops:[],versions:[],scopes:[],templates:[],stops:[],runs:[],executions:[],areas:[],selectedAreas:[],manualAreas:[],tenantUsers:[],objectAssignments:[],managedDocuments:[],managedVersions:[]};
+let wsState={sops:[],versions:[],scopes:[],templates:[],stops:[],runs:[],executions:[],areas:[],selectedAreas:[],manualAreas:[],tenantUsers:[],objectAssignments:[],managedDocuments:[],managedVersions:[],weatherByObject:{}};
 let wsEditingTourTemplateId=null;
 
 function wsOrg(){const id=currentOrganizationId();if(!id)throw new Error('Kein aktiver Mandant.');return id}
@@ -16776,6 +16867,140 @@ function wsEsc(v){return esc(v??'')}
 function wsToday(){return new Date().toISOString().slice(0,10)}
 function wsUuid(){return crypto.randomUUID()}
 function wsStatusLabel(v){return ({planned:'Geplant',active:'Läuft',completed:'Abgeschlossen',cancelled:'Abgebrochen'})[v]||v||'—'}
+
+function wsWeatherRiskLabel(level){
+  return ({green:'GRÜN · niedrig',yellow:'GELB · beobachten',red:'ROT · hoch'})[String(level||'').toLowerCase()]||'—';
+}
+function wsWeatherRiskClass(level){
+  const x=String(level||'').toLowerCase();
+  return x==='red'?'ws-risk-red':x==='yellow'?'ws-risk-yellow':'ws-risk-green';
+}
+function wsWeatherFormatTime(v){
+  if(!v)return '—';
+  const d=new Date(v);
+  return Number.isNaN(d.getTime())?String(v):d.toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+function wsWeatherNumber(v,digits=1,suffix=''){
+  const n=Number(v);
+  return Number.isFinite(n)?`${n.toFixed(digits)}${suffix}`:'—';
+}
+function wsWinterObjectIds(){
+  return [...new Set((wsState.objectAssignments||[])
+    .filter(a=>a.active!==false && String(a.process_type||'')==='winter_service')
+    .map(a=>String(a.object_id||''))
+    .filter(Boolean))];
+}
+async function wsWeatherRequest(objectId,mode='forecast',force=false){
+  if(!cloudSession?.access_token)throw new Error('Keine aktive Anmeldung.');
+  const r=await fetch(`${SUPABASE_URL}/functions/v1/winter-weather`,{
+    method:'POST',
+    headers:{
+      'apikey':SUPABASE_PUBLISHABLE_KEY,
+      'Authorization':`Bearer ${cloudSession.access_token}`,
+      'Content-Type':'application/json'
+    },
+    body:JSON.stringify({
+      organization_id:wsOrg(),
+      object_id:objectId,
+      mode,
+      force:force===true
+    })
+  });
+  const raw=await r.text();
+  let data={};
+  try{data=raw?JSON.parse(raw):{}}catch(_e){}
+  if(!r.ok||data?.success!==true)throw new Error(data?.error||raw||`HTTP ${r.status}`);
+  return data;
+}
+function wsWeatherCard(objectId){
+  const o=wsObjects().find(x=>String(x.id)===String(objectId));
+  const entry=wsState.weatherByObject?.[objectId];
+  if(!entry){
+    return `<div class="ws-weather-card"><strong>${wsEsc(o?.name||'Objekt')}</strong><div class="muted" style="margin-top:6px">Wetter wird geladen …</div></div>`;
+  }
+  if(entry.error){
+    return `<div class="ws-weather-card">
+      <strong>${wsEsc(o?.name||entry.object_name||'Objekt')}</strong>
+      <div class="muted" style="margin-top:6px">${wsEsc(entry.error)}</div>
+    </div>`;
+  }
+  const f24=entry.forecast_24h||{};
+  const f48=entry.forecast_48h||{};
+  const warnings=Array.isArray(entry.winter_alerts)?entry.winter_alerts:[];
+  const reasons=Array.isArray(f24.reasons)?f24.reasons:[];
+  return `<div class="ws-weather-card">
+    <div class="ws-weather-head">
+      <div>
+        <strong>${wsEsc(entry.object_name||o?.name||'Objekt')}</strong>
+        <div class="muted" style="margin-top:3px">${wsEsc(entry.address||'')}</div>
+      </div>
+      <span class="ws-weather-risk ${wsWeatherRiskClass(f24.risk_level)}">${wsEsc(wsWeatherRiskLabel(f24.risk_level))}</span>
+    </div>
+
+    <div class="ws-weather-metrics">
+      <div class="ws-weather-metric"><span class="muted">24 h</span><strong>${wsEsc(wsWeatherRiskLabel(f24.risk_level))}</strong></div>
+      <div class="ws-weather-metric"><span class="muted">48 h</span><strong>${wsEsc(wsWeatherRiskLabel(f48.risk_level))}</strong></div>
+      <div class="ws-weather-metric"><span class="muted">Min. Temperatur 24 h</span><strong>${wsEsc(wsWeatherNumber(f24.min_temperature,1,' °C'))}</strong></div>
+      <div class="ws-weather-metric"><span class="muted">Max. Niederschlag</span><strong>${wsEsc(wsWeatherNumber(f24.max_precipitation,1,' mm/h'))}</strong></div>
+      <div class="ws-weather-metric"><span class="muted">Max. Niederschlagswahr.</span><strong>${Number.isFinite(Number(f24.max_precipitation_probability))?`${Math.round(Number(f24.max_precipitation_probability))} %`:'—'}</strong></div>
+      <div class="ws-weather-metric"><span class="muted">Erstes Winterrisiko</span><strong>${wsEsc(wsWeatherFormatTime(f24.first_risk_at||f48.first_risk_at))}</strong></div>
+    </div>
+
+    ${reasons.length?`<div class="ws-weather-reasons"><strong>Treiber:</strong> ${reasons.slice(0,3).map(wsEsc).join(' · ')}</div>`:''}
+
+    ${warnings.length?`<details style="margin-top:9px"><summary>Amtliche Winterwarnungen (${warnings.length})</summary>${warnings.map(w=>`<div class="ws-weather-warning"><strong>${wsEsc(w.headline||w.event||'DWD-Warnung')}</strong>${w.severity?`<div class="muted">${wsEsc(w.severity)}</div>`:''}</div>`).join('')}</details>`:''}
+
+    <details style="margin-top:9px">
+      <summary>Stundenverlauf anzeigen</summary>
+      <div style="margin-top:7px">${(entry.hourly||[]).slice(0,24).map(h=>`<div class="row space" style="gap:8px;padding:5px 0;border-top:1px solid var(--line-soft)"><span>${wsEsc(wsWeatherFormatTime(h.timestamp))}</span><span>${wsEsc(wsWeatherNumber(h.temperature,1,' °C'))} · ${wsEsc(h.condition||'—')} · ${wsEsc(wsWeatherNumber(h.precipitation,1,' mm'))} · <strong class="${wsWeatherRiskClass(h.risk_level)}">${wsEsc(String(h.risk_level||'').toUpperCase())}</strong></span></div>`).join('')}</div>
+    </details>
+
+    <div class="muted" style="margin-top:8px;font-size:12px">Stand ${wsEsc(wsWeatherFormatTime(entry.fetched_at))}${entry.cached?' · Cache':''}${entry.station_name?` · ${wsEsc(entry.station_name)}`:''}</div>
+  </div>`;
+}
+function wsRenderWeatherCockpit(){
+  const host=document.getElementById('wsWeatherCockpit');
+  const status=document.getElementById('wsWeatherStatus');
+  if(!host)return;
+  const ids=wsWinterObjectIds();
+  if(!ids.length){
+    host.innerHTML='';
+    if(status)status.textContent='Keine aktive Winterdienst-Leistungszuordnung im aktuellen Mandanten.';
+    return;
+  }
+  host.innerHTML=ids.map(wsWeatherCard).join('');
+}
+async function wsLoadWeatherCockpit(force=false){
+  if(wsIsWinterOperative())return;
+  const ids=wsWinterObjectIds();
+  const status=document.getElementById('wsWeatherStatus');
+  const btn=document.getElementById('wsWeatherRefreshBtn');
+  if(!ids.length){
+    wsRenderWeatherCockpit();
+    return;
+  }
+  if(btn)btn.disabled=true;
+  if(status)status.textContent=`Wetter für ${ids.length} Winterdienstobjekt${ids.length===1?'':'e'} wird geladen …`;
+  wsRenderWeatherCockpit();
+  try{
+    const results=await Promise.allSettled(ids.map(id=>wsWeatherRequest(id,'forecast',force)));
+    results.forEach((r,i)=>{
+      const id=ids[i];
+      if(r.status==='fulfilled'){
+        wsState.weatherByObject[id]=r.value;
+      }else{
+        wsState.weatherByObject[id]={error:r.reason?.message||String(r.reason||'Wetterdaten nicht verfügbar.')};
+      }
+    });
+    wsRenderWeatherCockpit();
+    const errors=ids.filter(id=>wsState.weatherByObject[id]?.error).length;
+    if(status)status.textContent=errors
+      ?`${ids.length-errors} von ${ids.length} Wetterdatensätzen geladen · ${errors} Fehler.`
+      :`Wetterdaten für ${ids.length} Winterdienstobjekt${ids.length===1?'':'e'} aktuell.`;
+  }finally{
+    if(btn)btn.disabled=false;
+  }
+}
 
 async function loadWinterService(){
   try{
@@ -16807,6 +17032,8 @@ async function loadWinterService(){
       wsRenderTours();
       wsRenderRuns();
       wsRenderGroupedRuns();
+      wsRenderWeatherCockpit();
+      wsLoadWeatherCockpit(false).catch(e=>console.warn('Winterdienst-Wetter konnte nicht geladen werden',e));
       const d=document.getElementById('wsRunDate'); if(d&&!d.value)d.value=wsToday();
     }
   }catch(e){console.error(e);alert('Winterdienst konnte nicht geladen werden: '+(e.message||e))}
@@ -17491,7 +17718,12 @@ async function wsOpenExecution(id){
       ${x.status!=='planned'?`
       <div class="grid2" style="margin-top:12px">
         <div><div class="muted">Beginn</div><strong>${wsEsc(x.started_at?new Date(x.started_at).toLocaleString('de-DE'):'—')}</strong></div>
-        <div><div class="muted">Wetter</div><strong>${wsEsc(x.weather_summary||'Noch nicht automatisch angebunden')}</strong></div>
+        <div>
+          <div class="muted">Wetter bei Einsatzstart</div>
+          <strong>${wsEsc(x.weather_summary||'Wetterdaten beim Start nicht verfügbar')}</strong>
+          ${x.weather_risk_level?`<div style="margin-top:5px"><span class="ws-weather-risk ${wsWeatherRiskClass(x.weather_risk_level)}">${wsEsc(wsWeatherRiskLabel(x.weather_risk_level))}</span></div>`:''}
+          ${x.weather_captured_at?`<div class="muted" style="margin-top:4px">${wsEsc(wsWeatherFormatTime(x.weather_captured_at))}${x.weather_source?` · ${wsEsc(x.weather_source)}`:''}</div>`:''}
+        </div>
       </div>
       <div style="margin-top:14px">
         <strong>1. Vorherfoto</strong>
@@ -17524,10 +17756,44 @@ async function wsOpenExecution(id){
 }
 async function wsStartExecution(id){
   try{
-    await cloudRequest(`winter_service_executions?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'active',started_at:new Date().toISOString(),assigned_user_id:currentUserId()})});
-    const x=wsState.executions.find(e=>e.id===id); if(x){x.status='active';x.started_at=new Date().toISOString()}
-    wsOpenExecution(id); wsRenderRuns();
-  }catch(e){alert('Einsatz konnte nicht gestartet werden: '+(e.message||e))}
+    const x=wsState.executions.find(e=>String(e.id)===String(id));
+    if(!x)throw new Error('Einsatz nicht gefunden.');
+
+    const startedAt=new Date().toISOString();
+    const payload={
+      status:'active',
+      started_at:startedAt,
+      assigned_user_id:currentUserId()
+    };
+
+    // Wetter darf den operativen Einsatzstart nicht blockieren.
+    // Bei Erfolg wird ein unveränderlicher Snapshot am Einsatz gespeichert.
+    try{
+      const w=await wsWeatherRequest(x.object_id,'snapshot',true);
+      if(w?.snapshot){
+        payload.weather_summary=w.summary||null;
+        payload.weather_snapshot=w.snapshot;
+        payload.weather_source=w.source||'DWD / Bright Sky';
+        payload.weather_captured_at=w.captured_at||startedAt;
+        payload.weather_risk_level=w.risk_level||null;
+        payload.weather_risk_reason=Array.isArray(w.reasons)?w.reasons.join(' · '):(w.risk_reason||null);
+      }
+    }catch(weatherError){
+      console.warn('Wetter-Snapshot beim Einsatzstart nicht verfügbar',weatherError);
+    }
+
+    await cloudRequest(`winter_service_executions?id=eq.${encodeURIComponent(id)}`,{
+      method:'PATCH',
+      headers:{Prefer:'return=minimal'},
+      body:JSON.stringify(payload)
+    });
+
+    Object.assign(x,payload);
+    wsOpenExecution(id);
+    wsRenderRuns();
+  }catch(e){
+    alert('Einsatz konnte nicht gestartet werden: '+(e.message||e));
+  }
 }
 const wsExecutionPhotos={before:null,after:null};
 function wsExecutionPhotoSelected(phase,input){
