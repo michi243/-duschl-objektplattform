@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.57</title>
+<title>Duschl Service – Objektplattform v2.21.58</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -516,6 +516,107 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 @media(max-width:700px){
   .ws-weather-metrics{grid-template-columns:1fr 1fr}
+}
+
+
+/* === Winterdienst-Wetter UX · 2.21.58 === */
+.ws-weather-summary{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+  margin-top:12px;
+}
+.ws-weather-kpi{
+  border:1px solid var(--line-soft);
+  border-radius:11px;
+  padding:10px 12px;
+  min-width:0;
+  background:#0b1823;
+}
+.ws-weather-kpi .value{
+  display:block;
+  font-size:22px;
+  line-height:1;
+  font-weight:900;
+  margin-bottom:4px;
+}
+.ws-weather-kpi .label{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.25;
+}
+.ws-weather-card[data-risk="red"]{border-color:rgba(255,154,154,.72)}
+.ws-weather-card[data-risk="yellow"]{border-color:rgba(242,210,123,.58)}
+.ws-weather-card[data-risk="green"]{border-color:rgba(157,217,173,.48)}
+.ws-weather-card[data-risk="error"]{border-color:rgba(255,154,154,.72)}
+.ws-weather-card-priority{
+  display:flex;
+  gap:6px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.ws-hourly-strip{
+  display:grid;
+  grid-auto-flow:column;
+  grid-auto-columns:minmax(112px,1fr);
+  gap:7px;
+  overflow-x:auto;
+  overscroll-behavior-inline:contain;
+  padding:7px 1px 5px;
+  scroll-snap-type:x proximity;
+}
+.ws-hour{
+  scroll-snap-align:start;
+  border:1px solid var(--line-soft);
+  border-radius:9px;
+  padding:8px;
+  min-width:0;
+  background:#0a1620;
+}
+.ws-hour-time{
+  font-size:12px;
+  font-weight:800;
+}
+.ws-hour-temp{
+  font-size:17px;
+  font-weight:900;
+  margin-top:6px;
+}
+.ws-hour-meta{
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.3;
+  margin-top:4px;
+}
+.ws-hour-risk{
+  margin-top:7px;
+  font-size:11px;
+  font-weight:900;
+}
+.ws-weather-details summary{
+  cursor:pointer;
+  min-height:42px;
+  display:flex;
+  align-items:center;
+  font-weight:800;
+}
+.ws-weather-details[open] summary{margin-bottom:3px}
+@media(max-width:900px){
+  .ws-weather-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:700px){
+  .ws-weather-grid{grid-template-columns:1fr}
+  .ws-weather-card{padding:11px}
+  .ws-weather-head{align-items:center}
+  .ws-weather-summary{
+    grid-template-columns:repeat(4,minmax(105px,1fr));
+    overflow-x:auto;
+    padding-bottom:4px;
+  }
+  .ws-weather-kpi{padding:9px;min-width:105px}
+  .ws-weather-kpi .value{font-size:19px}
+  .ws-weather-metrics{grid-template-columns:1fr 1fr}
+  .ws-hourly-strip{grid-auto-columns:104px}
 }
 
 /* ===== Dark UI completion – v2.0.2 Kundenbericht ===== */
@@ -2602,6 +2703,7 @@ body.public-report-mode>#photoViewer{display:none!important}
       <button id="wsWeatherRefreshBtn" type="button" onclick="wsLoadWeatherCockpit(true)">Wetter aktualisieren</button>
     </div>
     <div id="wsWeatherStatus" class="muted" style="margin-top:9px">Wetterdaten werden beim Öffnen des Winterdiensts geladen.</div>
+    <div id="wsWeatherSummary" class="ws-weather-summary"></div>
     <div id="wsWeatherCockpit" class="ws-weather-grid"></div>
     <div class="muted ws-weather-source">Quelle der Wetterdaten: Deutscher Wetterdienst (DWD), technische Bereitstellung via Bright Sky. Interne Risikoeinstufung durch Duschl Service Objektplattform.</div>
   </div>
@@ -4248,7 +4350,15 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    QUELLE: Deutscher Wetterdienst (DWD), technische Bereitstellung via Bright Sky.
    UNVERÄNDERT: Rollen-/Mandantenlogik, SOPs, Leistungsumfänge, Touren, Fotos, Tourplanung V2.
    BACKEND: SQL-Migration + Edge Function winter-weather erforderlich. */
-const APP_VERSION='2.21.57'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.21.58 | BASIS 2.21.57 | 27.09.2026
+   WETTERCOCKPIT UX: Management-KPIs für kritisch/beobachten/unkritisch/Warnungen.
+   PRIORISIERUNG: Winterdienstobjekte werden ROT vor GELB vor GRÜN dargestellt.
+   STUNDENVERLAUF: kompakte horizontale Stundenleiste statt langer Zeilenliste.
+   SPRACHE: Wetterzustände und Risikokürzel vollständig deutsch.
+   MOBILE: KPI-Leiste, Objektkarten und Stundenverlauf für schmale Displays optimiert.
+   UNVERÄNDERT: Wetterlogik, DWD/Bright-Sky-Anbindung, Risikoheuristik, Snapshot, Rollen/RLS, SOPs und Tourplanung.
+   BACKEND: keine SQL-/Edge-Function-Änderung erforderlich. */
+const APP_VERSION='2.21.58'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -16912,23 +17022,83 @@ async function wsWeatherRequest(objectId,mode='forecast',force=false){
   if(!r.ok||data?.success!==true)throw new Error(data?.error||raw||`HTTP ${r.status}`);
   return data;
 }
+function wsWeatherConditionLabel(value){
+  const key=String(value||'').trim().toLowerCase();
+  const labels={
+    dry:'trocken',
+    rain:'Regen',
+    snow:'Schnee',
+    sleet:'Schneeregen',
+    hail:'Hagel',
+    fog:'Nebel',
+    thunderstorm:'Gewitter'
+  };
+  return labels[key]||key||'—';
+}
+function wsWeatherRiskShort(level){
+  return ({green:'GRÜN',yellow:'GELB',red:'ROT'})[String(level||'').toLowerCase()]||'—';
+}
+function wsWeatherPriority(entry){
+  if(!entry||entry.error)return 4;
+  const a=String(entry.forecast_24h?.risk_level||'green').toLowerCase();
+  const b=String(entry.forecast_48h?.risk_level||'green').toLowerCase();
+  const rank={red:3,yellow:2,green:1};
+  return Math.max(rank[a]||0,rank[b]||0);
+}
+function wsWeatherSummaryData(ids){
+  const result={total:ids.length,red:0,yellow:0,green:0,warnings:0,errors:0};
+  ids.forEach(id=>{
+    const e=wsState.weatherByObject?.[id];
+    if(!e)return;
+    if(e.error){result.errors++;return;}
+    const p=wsWeatherPriority(e);
+    if(p>=3)result.red++;
+    else if(p===2)result.yellow++;
+    else result.green++;
+    result.warnings+=(Array.isArray(e.winter_alerts)?e.winter_alerts.length:0);
+  });
+  return result;
+}
+function wsRenderWeatherSummary(ids){
+  const host=document.getElementById('wsWeatherSummary');
+  if(!host)return;
+  if(!ids.length){host.innerHTML='';return;}
+  const s=wsWeatherSummaryData(ids);
+  host.innerHTML=`
+    <div class="ws-weather-kpi"><span class="value ${s.red?'ws-risk-red':''}">${s.red}</span><span class="label">kritisch</span></div>
+    <div class="ws-weather-kpi"><span class="value ${s.yellow?'ws-risk-yellow':''}">${s.yellow}</span><span class="label">beobachten</span></div>
+    <div class="ws-weather-kpi"><span class="value ${s.green?'ws-risk-green':''}">${s.green}</span><span class="label">unkritisch</span></div>
+    <div class="ws-weather-kpi"><span class="value">${s.warnings}</span><span class="label">DWD-Warnungen${s.errors?` · ${s.errors} Datenfehler`:''}</span></div>`;
+}
+
 function wsWeatherCard(objectId){
   const o=wsObjects().find(x=>String(x.id)===String(objectId));
   const entry=wsState.weatherByObject?.[objectId];
+
   if(!entry){
-    return `<div class="ws-weather-card"><strong>${wsEsc(o?.name||'Objekt')}</strong><div class="muted" style="margin-top:6px">Wetter wird geladen …</div></div>`;
-  }
-  if(entry.error){
-    return `<div class="ws-weather-card">
-      <strong>${wsEsc(o?.name||entry.object_name||'Objekt')}</strong>
-      <div class="muted" style="margin-top:6px">${wsEsc(entry.error)}</div>
+    return `<div class="ws-weather-card" data-risk="loading">
+      <strong>${wsEsc(o?.name||'Objekt')}</strong>
+      <div class="muted" style="margin-top:6px">Wetter wird geladen …</div>
     </div>`;
   }
+
+  if(entry.error){
+    return `<div class="ws-weather-card" data-risk="error">
+      <div class="ws-weather-head">
+        <strong>${wsEsc(o?.name||entry.object_name||'Objekt')}</strong>
+        <span class="ws-weather-risk ws-risk-red">DATENFEHLER</span>
+      </div>
+      <div class="muted" style="margin-top:7px">${wsEsc(entry.error)}</div>
+    </div>`;
+  }
+
   const f24=entry.forecast_24h||{};
   const f48=entry.forecast_48h||{};
   const warnings=Array.isArray(entry.winter_alerts)?entry.winter_alerts:[];
   const reasons=Array.isArray(f24.reasons)?f24.reasons:[];
-  return `<div class="ws-weather-card">
+  const primaryRisk=wsWeatherPriority(entry)>=3?'red':wsWeatherPriority(entry)===2?'yellow':'green';
+
+  return `<div class="ws-weather-card" data-risk="${primaryRisk}">
     <div class="ws-weather-head">
       <div>
         <strong>${wsEsc(entry.object_name||o?.name||'Objekt')}</strong>
@@ -16948,11 +17118,19 @@ function wsWeatherCard(objectId){
 
     ${reasons.length?`<div class="ws-weather-reasons"><strong>Treiber:</strong> ${reasons.slice(0,3).map(wsEsc).join(' · ')}</div>`:''}
 
-    ${warnings.length?`<details style="margin-top:9px"><summary>Amtliche Winterwarnungen (${warnings.length})</summary>${warnings.map(w=>`<div class="ws-weather-warning"><strong>${wsEsc(w.headline||w.event||'DWD-Warnung')}</strong>${w.severity?`<div class="muted">${wsEsc(w.severity)}</div>`:''}</div>`).join('')}</details>`:''}
+    ${warnings.length?`<details class="ws-weather-details" style="margin-top:7px"><summary>Amtliche Winterwarnungen (${warnings.length})</summary>${warnings.map(w=>`<div class="ws-weather-warning"><strong>${wsEsc(w.headline||w.event||'DWD-Warnung')}</strong>${w.severity?`<div class="muted">${wsEsc(w.severity)}</div>`:''}</div>`).join('')}</details>`:''}
 
-    <details style="margin-top:9px">
-      <summary>Stundenverlauf anzeigen</summary>
-      <div style="margin-top:7px">${(entry.hourly||[]).slice(0,24).map(h=>`<div class="row space" style="gap:8px;padding:5px 0;border-top:1px solid var(--line-soft)"><span>${wsEsc(wsWeatherFormatTime(h.timestamp))}</span><span>${wsEsc(wsWeatherNumber(h.temperature,1,' °C'))} · ${wsEsc(h.condition||'—')} · ${wsEsc(wsWeatherNumber(h.precipitation,1,' mm'))} · <strong class="${wsWeatherRiskClass(h.risk_level)}">${wsEsc(String(h.risk_level||'').toUpperCase())}</strong></span></div>`).join('')}</div>
+    <details class="ws-weather-details" style="margin-top:5px">
+      <summary>Stundenverlauf · nächste 24 h</summary>
+      <div class="ws-hourly-strip">
+        ${(entry.hourly||[]).slice(0,24).map(h=>`<div class="ws-hour">
+          <div class="ws-hour-time">${wsEsc(wsWeatherFormatTime(h.timestamp))}</div>
+          <div class="ws-hour-temp">${wsEsc(wsWeatherNumber(h.temperature,1,' °C'))}</div>
+          <div class="ws-hour-meta">${wsEsc(wsWeatherConditionLabel(h.condition))}</div>
+          <div class="ws-hour-meta">${wsEsc(wsWeatherNumber(h.precipitation,1,' mm'))}${Number.isFinite(Number(h.precipitation_probability))?` · ${Math.round(Number(h.precipitation_probability))} %`:''}</div>
+          <div class="ws-hour-risk ${wsWeatherRiskClass(h.risk_level)}">${wsEsc(wsWeatherRiskShort(h.risk_level))}</div>
+        </div>`).join('')}
+      </div>
     </details>
 
     <div class="muted" style="margin-top:8px;font-size:12px">Stand ${wsEsc(wsWeatherFormatTime(entry.fetched_at))}${entry.cached?' · Cache':''}${entry.station_name?` · ${wsEsc(entry.station_name)}`:''}</div>
@@ -16963,12 +17141,25 @@ function wsRenderWeatherCockpit(){
   const status=document.getElementById('wsWeatherStatus');
   if(!host)return;
   const ids=wsWinterObjectIds();
+
   if(!ids.length){
     host.innerHTML='';
+    wsRenderWeatherSummary([]);
     if(status)status.textContent='Keine aktive Winterdienst-Leistungszuordnung im aktuellen Mandanten.';
     return;
   }
-  host.innerHTML=ids.map(wsWeatherCard).join('');
+
+  const sorted=[...ids].sort((a,b)=>{
+    const pa=wsWeatherPriority(wsState.weatherByObject?.[a]);
+    const pb=wsWeatherPriority(wsState.weatherByObject?.[b]);
+    if(pb!==pa)return pb-pa;
+    const an=String(wsState.weatherByObject?.[a]?.object_name||wsObjects().find(x=>String(x.id)===String(a))?.name||'');
+    const bn=String(wsState.weatherByObject?.[b]?.object_name||wsObjects().find(x=>String(x.id)===String(b))?.name||'');
+    return an.localeCompare(bn,'de');
+  });
+
+  wsRenderWeatherSummary(ids);
+  host.innerHTML=sorted.map(wsWeatherCard).join('');
 }
 async function wsLoadWeatherCockpit(force=false){
   if(wsIsWinterOperative())return;
@@ -16994,9 +17185,10 @@ async function wsLoadWeatherCockpit(force=false){
     });
     wsRenderWeatherCockpit();
     const errors=ids.filter(id=>wsState.weatherByObject[id]?.error).length;
+    const s=wsWeatherSummaryData(ids);
     if(status)status.textContent=errors
-      ?`${ids.length-errors} von ${ids.length} Wetterdatensätzen geladen · ${errors} Fehler.`
-      :`Wetterdaten für ${ids.length} Winterdienstobjekt${ids.length===1?'':'e'} aktuell.`;
+      ?`${ids.length-errors} von ${ids.length} Wetterdatensätzen geladen · ${errors} Datenfehler.`
+      :`${ids.length} Objekt${ids.length===1?'':'e'} · ${s.red} kritisch · ${s.yellow} beobachten · ${s.green} unkritisch.`;
   }finally{
     if(btn)btn.disabled=false;
   }
