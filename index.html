@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.64</title>
+<title>Duschl Service – Objektplattform v2.21.65</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -2868,7 +2868,15 @@ body.public-report-mode>#photoViewer{display:none!important}
       <label style="margin-top:10px">Ausgeführt von
         <select id="wsRunAssignee"><option value="">Mitarbeiter wählen …</option></select>
       </label>
-      <div class="muted" style="margin-top:5px">Es werden nur aktive Benutzer mit der Einsatzqualifikation „Winterdienst“ angezeigt. Der Verantwortliche erhält die Tagestour als persönlichen Auftrag und per E-Mail.</div>
+      <label style="margin-top:10px">Einsatzauftrag
+        <select id="wsRunServiceAction">
+          <option value="control">Kontrollfahrt</option>
+          <option value="grit">Streuen</option>
+          <option value="clear">Räumen</option>
+          <option value="clear_and_grit" selected>Räumen + Streuen</option>
+        </select>
+      </label>
+      <div class="muted" style="margin-top:5px">Die Einsatzart gilt zunächst für alle Stopps der Tagestour. Der zugewiesene Winterdienstmitarbeiter erhält einen persönlichen Auftrag; die E-Mail wird über die zentrale Versandqueue verarbeitet.</div>
       <div class="row" style="margin-top:10px"><button class="primary" type="button" onclick="wsCreateRun()">Tagestour erzeugen</button></div>
       <div id="wsRunList" style="margin-top:12px"></div>
     </div>
@@ -4481,7 +4489,15 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    AUSFÜHRUNG: vorhandene Leistungsumfänge/Flächen werden weiterhin beim Erzeugen/Öffnen der Tagestour automatisch verknüpft.
    UNVERÄNDERT: Wettercockpit, Forecast-Farben, GPS-Plausibilitätsprüfung, Wetter-Snapshot, Rollen/RLS, SOPs und allgemeine Tourplanung.
    BACKEND: keine SQL-/Edge-Function-Änderung erforderlich. */
-const APP_VERSION='2.21.64'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.21.65 | BASIS 2.21.64 | 27.09.2026
+   WINTERDIENST EINSATZAUFTRAG: Legacy-Leistungsumfang im Einsatz entfernt.
+   EINSATZART: Kontrollfahrt / Streuen / Räumen / Räumen + Streuen wird bei Tagestour-Erzeugung festgelegt und an alle Stopps geschrieben.
+   SOP: gültige Winterdienst-SOP wird automatisch aus object_service_assignments angezeigt.
+   WETTER-SNAPSHOT: Fehler wird persistent am Einsatz dokumentiert; Start bleibt operativ möglich.
+   MAIL: Tagestour wird nach Erzeugung explizit in die zentrale Notification-Outbox/Delivery-Queue eingestellt; UI behauptet Versand nicht mehr ohne Nachweis.
+   UNVERÄNDERT: Wettercockpit, Tourreihenfolge, GPS-Plausibilitätsprüfung, Rollen/RLS, allgemeine SOP-/Tourplanung.
+   BACKEND: SQL 2.21.65 + aktualisierte Edge Function winter-weather erforderlich. */
+const APP_VERSION='2.21.65'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -18081,10 +18097,14 @@ async function wsCreateRun(){
     const tid=document.getElementById('wsRunTemplate').value;
     const date=document.getElementById('wsRunDate').value||wsToday();
     const assignee=document.getElementById('wsRunAssignee').value;
+    const serviceAction=document.getElementById('wsRunServiceAction')?.value||'clear_and_grit';
     const template=wsState.templates.find(t=>t.id===tid);
+
     if(!template)throw new Error('Tourvorlage wählen.');
     if(!assignee)throw new Error('Verantwortlichen Mitarbeiter auswählen.');
-    const result=await cloudRequest('rpc/create_winter_service_run_v1',{
+    if(!['control','grit','clear','clear_and_grit'].includes(serviceAction))throw new Error('Gültigen Einsatzauftrag auswählen.');
+
+    await cloudRequest('rpc/create_winter_service_run_v1',{
       method:'POST',
       body:JSON.stringify({
         p_organization_id:wsOrg(),
@@ -18093,13 +18113,44 @@ async function wsCreateRun(){
         p_assigned_user_id:assignee
       })
     });
+
     await loadWinterService();
+
     const createdRun=wsState.runs
-      .filter(r=>String(r.tour_template_id)===String(tid) && String(r.service_date)===String(date))
+      .filter(r=>String(r.tour_template_id)===String(tid) && String(r.service_date)===String(date) && String(r.assigned_user_id||'')===String(assignee))
       .sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')))[0];
-    if(createdRun)await wsEnsureRunExecutionScopes(createdRun.id);
-    alert('Tagestour erzeugt, Leistungsumfänge verknüpft und Mitarbeiter informiert.');
-  }catch(e){alert('Tagestour konnte nicht erzeugt werden: '+(e.message||e))}
+
+    if(!createdRun)throw new Error('Die erzeugte Tagestour konnte nach dem Speichern nicht eindeutig geladen werden.');
+
+    // Einsatzauftrag an Tour und alle Stopps schreiben.
+    await cloudRequest(`winter_service_runs?id=eq.${encodeURIComponent(createdRun.id)}&organization_id=eq.${encodeURIComponent(wsOrg())}`,{
+      method:'PATCH',
+      headers:{Prefer:'return=minimal'},
+      body:JSON.stringify({service_action:serviceAction})
+    });
+    await cloudRequest(`winter_service_executions?run_id=eq.${encodeURIComponent(createdRun.id)}&organization_id=eq.${encodeURIComponent(wsOrg())}`,{
+      method:'PATCH',
+      headers:{Prefer:'return=minimal'},
+      body:JSON.stringify({service_action:serviceAction})
+    });
+
+    // Zentrale Mailqueue explizit anlegen. Rückgabe zeigt, ob ein Empfänger existiert.
+    const notify=await cloudRequest('rpc/queue_winter_service_run_notification_v1',{
+      method:'POST',
+      body:JSON.stringify({p_run_id:createdRun.id})
+    });
+
+    await loadWinterService();
+
+    const n=Array.isArray(notify)?notify[0]:notify;
+    const mailText=n?.delivery_created===true
+      ?`E-Mail für ${n.recipient_email||'den Mitarbeiter'} in Versandqueue eingestellt.`
+      :`Tagestour erstellt. E-Mail konnte nicht eingeplant werden: ${n?.message||'kein gültiger Empfänger'}.`;
+
+    alert(`Tagestour erzeugt · Einsatzauftrag: ${wsServiceActionLabel(serviceAction)}.\n${mailText}`);
+  }catch(e){
+    alert('Tagestour konnte nicht erzeugt werden: '+(e.message||e));
+  }
 }
 function wsRenderRuns(){
   const el=document.getElementById('wsRunList');if(!el)return;
@@ -18132,6 +18183,38 @@ async function wsGetOrCreateSeasonScope(objectId, season, validFrom, validUntil,
 }
 
 
+
+function wsServiceActionLabel(value){
+  return ({
+    control:'Kontrollfahrt',
+    grit:'Streuen',
+    clear:'Räumen',
+    clear_and_grit:'Räumen + Streuen'
+  })[String(value||'')]||'Winterdienst';
+}
+function wsWinterAssignmentForExecution(x){
+  if(!x)return null;
+  const run=wsState.runs.find(r=>String(r.id)===String(x.run_id));
+  const serviceDate=String(run?.service_date||wsToday());
+  return (wsState.objectAssignments||[])
+    .filter(a=>String(a.object_id)===String(x.object_id))
+    .filter(a=>a.active!==false && String(a.process_type||'')==='winter_service')
+    .filter(a=>(!a.valid_from || String(a.valid_from)<=serviceDate) &&
+               (!a.valid_until || String(a.valid_until)>=serviceDate))
+    .sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')))[0]||null;
+}
+function wsWinterSopLabelForExecution(x){
+  const a=wsWinterAssignmentForExecution(x);
+  if(!a?.managed_document_version_id)return 'Keine freigegebene SOP verknüpft';
+  const v=(wsState.managedVersions||[]).find(z=>String(z.id)===String(a.managed_document_version_id));
+  const d=v?(wsState.managedDocuments||[]).find(z=>String(z.id)===String(v.document_id)):null;
+  if(!v||!d)return 'SOP-Zuordnung nicht auflösbar';
+  return [d.document_number,d.title||d.name,v.version?`V${v.version}`:''].filter(Boolean).join(' · ');
+}
+function wsWinterAssignmentNoteForExecution(x){
+  const a=wsWinterAssignmentForExecution(x);
+  return String(a?.note||'').trim();
+}
 
 function wsRunStatus(r){
   const xs=wsState.executions.filter(x=>String(x.run_id)===String(r.id));
@@ -18316,36 +18399,41 @@ async function wsEnsureRunExecutionScopes(runId){
 
 async function wsOpenExecution(id){
   try{
-    wsExecutionPhotos.before=null; wsExecutionPhotos.after=null;
-    const x=wsState.executions.find(e=>e.id===id); if(!x)throw new Error('Einsatz nicht gefunden.');
-    const o=wsObjects().find(z=>z.id===x.object_id);
-    let scopeAreas=[];
-    const resolvedScope=wsScopeForExecution(x);
-    if(resolvedScope){
-      if(!x.scope_id){
-        try{
-          await cloudRequest(`winter_service_executions?id=eq.${encodeURIComponent(x.id)}&organization_id=eq.${encodeURIComponent(wsOrg())}`,{
-            method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({scope_id:resolvedScope.id})
-          });
-          x.scope_id=resolvedScope.id;
-        }catch(e){console.warn('Leistungsumfang konnte am Einsatz nicht dauerhaft verknüpft werden; Anzeige nutzt Fallback.',e)}
-      }
-      scopeAreas=await cloudRequest(`winter_service_scope_areas?select=*,object_areas(name)&scope_id=eq.${encodeURIComponent(resolvedScope.id)}&active=eq.true&order=sort_order.asc`);
-    }
+    wsExecutionPhotos.before=null;
+    wsExecutionPhotos.after=null;
+
+    const x=wsState.executions.find(e=>String(e.id)===String(id));
+    if(!x)throw new Error('Einsatz nicht gefunden.');
+
+    const o=wsObjects().find(z=>String(z.id)===String(x.object_id));
     const media=await cloudRequest(`winter_service_execution_media?select=*&execution_id=eq.${encodeURIComponent(id)}&order=created_at.asc`);
     const panel=document.getElementById('wsExecutionPanel');
+    const assignmentNote=wsWinterAssignmentNoteForExecution(x);
+
     panel.innerHTML=`
-      <div class="row space"><div><strong>${wsEsc(o?.name||'Objekt')}</strong><div class="muted">Status: ${wsEsc(wsStatusLabel(x.status))}</div></div>${x.status==='planned'?`<button class="primary" onclick="wsStartExecution('${id}')">Einsatz starten</button>`:''}</div>
+      <div class="row space">
+        <div>
+          <strong>${wsEsc(o?.name||'Objekt')}</strong>
+          <div class="muted">Status: ${wsEsc(wsStatusLabel(x.status))}</div>
+        </div>
+        ${x.status==='planned'?`<button class="primary" onclick="wsStartExecution('${id}')">Einsatz starten</button>`:''}
+      </div>
+
       ${x.status!=='planned'?`
       <div class="grid2" style="margin-top:12px">
-        <div><div class="muted">Beginn</div><strong>${wsEsc(x.started_at?new Date(x.started_at).toLocaleString('de-DE'):'—')}</strong></div>
+        <div>
+          <div class="muted">Beginn</div>
+          <strong>${wsEsc(x.started_at?new Date(x.started_at).toLocaleString('de-DE'):'—')}</strong>
+        </div>
         <div>
           <div class="muted">Wetter bei Einsatzstart</div>
           <strong>${wsEsc(x.weather_summary||'Wetterdaten beim Start nicht verfügbar')}</strong>
           ${x.weather_risk_level?`<div style="margin-top:5px"><span class="ws-weather-risk ${wsWeatherRiskClass(x.weather_risk_level)}">${wsEsc(wsWeatherRiskLabel(x.weather_risk_level))}</span></div>`:''}
           ${x.weather_captured_at?`<div class="muted" style="margin-top:4px">${wsEsc(wsWeatherFormatTime(x.weather_captured_at))}${x.weather_source?` · ${wsEsc(x.weather_source)}`:''}</div>`:''}
+          ${x.weather_snapshot_error?`<div class="muted" style="margin-top:5px">Hinweis: ${wsEsc(x.weather_snapshot_error)}</div>`:''}
         </div>
       </div>
+
       <div style="margin-top:14px">
         <strong>1. Vorherfoto</strong>
         <div class="muted" style="margin:4px 0 8px">Zustand vor Beginn der Arbeiten dokumentieren.</div>
@@ -18357,7 +18445,18 @@ async function wsOpenExecution(id){
         <input id="wsBeforeLibrary" type="file" accept="image/*" style="display:none" onchange="wsExecutionPhotoSelected('before',this)">
         <div id="wsBeforePreview" style="margin-top:10px"></div>
       </div>
-      <div style="margin-top:16px"><strong>2. Leistungsumfang</strong>${scopeAreas.length?scopeAreas.map(a=>`<label class="row" style="align-items:center;margin-top:7px"><input type="checkbox" data-ws-done="${wsEsc(a.id)}" style="width:auto"> <span>${wsEsc(a.area_name||a.object_areas?.name||'Bereich')} · ${a.clear_snow?'Räumen':''}${a.clear_snow&&a.grit?' + ':''}${a.grit?'Streuen':''}${a.notes?` · ${wsEsc(a.notes)}`:''}</span></label>`).join(''):'<div class="muted">Kein strukturierter Leistungsumfang hinterlegt.</div>'}</div>
+
+      <div class="card" style="margin-top:16px;padding:12px">
+        <strong>2. Einsatzauftrag</strong>
+        <div style="margin-top:8px;font-size:1.08em"><strong>${wsEsc(wsServiceActionLabel(x.service_action))}</strong></div>
+        <div class="muted" style="margin-top:5px">SOP: ${wsEsc(wsWinterSopLabelForExecution(x))}</div>
+        ${assignmentNote?`<div class="muted" style="margin-top:5px">Objekthinweis: ${wsEsc(assignmentNote)}</div>`:''}
+        <label class="row" style="align-items:center;margin-top:10px">
+          <input type="checkbox" data-ws-done="service_action" style="width:auto">
+          <span>Einsatzauftrag vollständig ausgeführt</span>
+        </label>
+      </div>
+
       <div style="margin-top:16px">
         <strong>3. Nachherfoto</strong>
         <div class="muted" style="margin:4px 0 8px">Ausgeführten Zustand nach Abschluss der Arbeiten dokumentieren.</div>
@@ -18369,11 +18468,14 @@ async function wsOpenExecution(id){
         <input id="wsAfterLibrary" type="file" accept="image/*" style="display:none" onchange="wsExecutionPhotoSelected('after',this)">
         <div id="wsAfterPreview" style="margin-top:10px"></div>
       </div>
+
       <label style="margin-top:16px"><strong>4. Besonderheiten / Abweichungen</strong><textarea id="wsExecutionNote" rows="3"></textarea></label>
       <div class="row" style="margin-top:12px;gap:8px"><button class="primary" onclick="wsCompleteExecution('${id}')">Einsatz abschließen</button></div>
-      <div class="muted" style="margin-top:8px">Vorher- und Nachherfoto sind für den Abschluss verpflichtend.</div>
+      <div class="muted" style="margin-top:8px">Vorher- und Nachherfoto sowie die Bestätigung des Einsatzauftrags sind für den Abschluss verpflichtend.</div>
       `:''}`;
-  }catch(e){alert(e.message||e)}
+  }catch(e){
+    alert(e.message||e);
+  }
 }
 async function wsStartExecution(id){
   try{
@@ -18384,22 +18486,23 @@ async function wsStartExecution(id){
     const payload={
       status:'active',
       started_at:startedAt,
-      assigned_user_id:currentUserId()
+      assigned_user_id:currentUserId(),
+      weather_snapshot_error:null
     };
 
     // Wetter darf den operativen Einsatzstart nicht blockieren.
-    // Bei Erfolg wird ein unveränderlicher Snapshot am Einsatz gespeichert.
     try{
       const w=await wsWeatherRequest(x.object_id,'snapshot',true);
-      if(w?.snapshot){
-        payload.weather_summary=w.summary||null;
-        payload.weather_snapshot=w.snapshot;
-        payload.weather_source=w.source||'DWD / Bright Sky';
-        payload.weather_captured_at=w.captured_at||startedAt;
-        payload.weather_risk_level=w.risk_level||null;
-        payload.weather_risk_reason=Array.isArray(w.reasons)?w.reasons.join(' · '):(w.risk_reason||null);
-      }
+      if(!w?.snapshot)throw new Error('Wetterdienst lieferte keinen Snapshot.');
+      payload.weather_summary=w.summary||null;
+      payload.weather_snapshot=w.snapshot;
+      payload.weather_source=w.source||'DWD / Bright Sky';
+      payload.weather_captured_at=w.captured_at||startedAt;
+      payload.weather_risk_level=w.risk_level||null;
+      payload.weather_risk_reason=Array.isArray(w.reasons)?w.reasons.join(' · '):(w.risk_reason||null);
     }catch(weatherError){
+      const message=String(weatherError?.message||weatherError||'Unbekannter Wetterfehler').slice(0,500);
+      payload.weather_snapshot_error=message;
       console.warn('Wetter-Snapshot beim Einsatzstart nicht verfügbar',weatherError);
     }
 
@@ -18410,7 +18513,7 @@ async function wsStartExecution(id){
     });
 
     Object.assign(x,payload);
-    wsOpenExecution(id);
+    await wsOpenExecution(id);
     wsRenderRuns();
   }catch(e){
     alert('Einsatz konnte nicht gestartet werden: '+(e.message||e));
