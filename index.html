@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.58</title>
+<title>Duschl Service – Objektplattform v2.21.59</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -4358,7 +4358,15 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    MOBILE: KPI-Leiste, Objektkarten und Stundenverlauf für schmale Displays optimiert.
    UNVERÄNDERT: Wetterlogik, DWD/Bright-Sky-Anbindung, Risikoheuristik, Snapshot, Rollen/RLS, SOPs und Tourplanung.
    BACKEND: keine SQL-/Edge-Function-Änderung erforderlich. */
-const APP_VERSION='2.21.58'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.21.59 | BASIS 2.21.58 | 27.09.2026
+   OBJEKT-GEODATEN UX: Breitengrad/Längengrad können im Objekt manuell gepflegt werden.
+   FALLBACK: Manuelle Koordinaten verhindern unnötige automatische Geocoding-Aufrufe.
+   SPEICHERN: Adresse zuerst, manuelle Koordinaten anschließend separat.
+   GOVERNANCE: geocode_source='manual' kennzeichnet manuell gepflegte Standorte.
+   FEHLERVERHALTEN: Automatischer Geocoder blockiert das Objektspeichern nicht.
+   UNVERÄNDERT: Winterdienst-Wetter, Risikoheuristik, Snapshot, Rollen/RLS, SOPs und Tourplanung.
+   BACKEND: keine SQL-Änderung erforderlich, sofern 2.21.56 bereits ausgeführt wurde. */
+const APP_VERSION='2.21.59'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -14899,6 +14907,31 @@ function objectAddressPartsForForm(o){
   }
   return {street,postalCode,city};
 }
+function objectManualCoordinatesFromForm(){
+  const latRaw=String(document.getElementById('oLatitude')?.value||'').trim().replace(',','.');
+  const lonRaw=String(document.getElementById('oLongitude')?.value||'').trim().replace(',','.');
+  if(!latRaw && !lonRaw)return {provided:false,latitude:null,longitude:null};
+  if(!latRaw || !lonRaw)throw new Error('Bitte Breitengrad und Längengrad vollständig eingeben.');
+  const latitude=Number(latRaw);
+  const longitude=Number(lonRaw);
+  if(!Number.isFinite(latitude) || latitude < -90 || latitude > 90)throw new Error('Breitengrad muss zwischen -90 und 90 liegen.');
+  if(!Number.isFinite(longitude) || longitude < -180 || longitude > 180)throw new Error('Längengrad muss zwischen -180 und 180 liegen.');
+  return {provided:true,latitude,longitude};
+}
+async function cloudSaveManualObjectCoordinates(objectId,latitude,longitude){
+  if(!objectId)throw new Error('Objekt-ID fehlt.');
+  await cloudRequest(`objects?id=eq.${encodeURIComponent(objectId)}`,{
+    method:'PATCH',
+    headers:{Prefer:'return=minimal'},
+    body:JSON.stringify({
+      latitude:Number(latitude),
+      longitude:Number(longitude),
+      geocoded_at:new Date().toISOString(),
+      geocode_source:'manual'
+    })
+  });
+}
+
 function objectGeocodeStatusHtml(o){
   const hasCoords=Number.isFinite(Number(o?.latitude))&&Number.isFinite(Number(o?.longitude));
   if(!hasCoords){
@@ -14973,15 +15006,26 @@ function openObjectModal(id=''){
   </div>
 
   <div class="card" style="margin-top:12px;padding:12px">
-    <div class="row space" style="gap:10px;align-items:flex-start">
+    <div class="row space" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
       <div>
         <strong>Geografischer Standort</strong>
         <div class="muted" style="margin-top:4px">Grundlage für Winterdienst-Wetter und spätere Routenplanung.</div>
       </div>
-      ${id?`<button id="oGeocodeBtn" type="button" onclick="geocodeObjectFromModal('${esc(id)}')">Standort neu ermitteln</button>`:''}
+      ${id?`<button id="oGeocodeBtn" type="button" onclick="geocodeObjectFromModal('${esc(id)}')">Automatisch ermitteln</button>`:''}
     </div>
+
+    <div class="grid2" style="margin-top:10px">
+      <label>Breitengrad
+        <input id="oLatitude" inputmode="decimal" value="${o.latitude==null?'':esc(String(o.latitude))}" placeholder="z. B. 48.187118">
+      </label>
+      <label>Längengrad
+        <input id="oLongitude" inputmode="decimal" value="${o.longitude==null?'':esc(String(o.longitude))}" placeholder="z. B. 11.592979">
+      </label>
+    </div>
+
+    <div class="muted" style="margin-top:7px">Manuelle Koordinaten haben Vorrang. Sind beide Felder gefüllt, wird beim Speichern kein automatischer Geocoder aufgerufen.</div>
     <div style="margin-top:8px">${objectGeocodeStatusHtml(o)}</div>
-    <div class="muted" style="margin-top:7px;font-size:12px">Geodaten © OpenStreetMap-Mitwirkende · Geocodierung über den konfigurierten Nominatim-Dienst. Bei „Standort neu ermitteln“ wird die zuletzt gespeicherte Adresse verwendet.</div>
+    <div class="muted" style="margin-top:7px;font-size:12px">Automatische Geocodierung bleibt als optionaler Fallback bestehen. Manuell gespeicherte Koordinaten werden mit Quelle „manual“ dokumentiert.</div>
   </div>
 
   <label>Notizen</label><textarea id="oNotes">${esc(o.notes)}</textarea>
@@ -15001,6 +15045,13 @@ async function saveObject(id){
   const postalCode=document.getElementById('oPostalCode')?.value.trim()||'';
   const city=document.getElementById('oCity')?.value.trim()||'';
 
+  let manualCoords;
+  try{
+    manualCoords=objectManualCoordinatesFromForm();
+  }catch(e){
+    return alert(e.message||e);
+  }
+
   const data={
     organizationId,
     name,
@@ -15016,12 +15067,19 @@ async function saveObject(id){
     if(!row)throw new Error('Keine Rückgabe aus Supabase.');
 
     let geocodeWarning='';
-    if(row.id && street && postalCode && city){
+
+    if(manualCoords.provided){
+      await cloudSaveManualObjectCoordinates(
+        row.id,
+        manualCoords.latitude,
+        manualCoords.longitude
+      );
+    }else if(row.id && street && postalCode && city){
       try{
         await cloudGeocodeObject(row.id,{force:false});
       }catch(e){
-        console.warn('Objekt gespeichert, Geocodierung fehlgeschlagen',e);
-        geocodeWarning='Objekt wurde gespeichert. Der geografische Standort konnte noch nicht automatisch ermittelt werden: '+(e.message||e);
+        console.warn('Objekt gespeichert, automatische Geocodierung fehlgeschlagen',e);
+        geocodeWarning='Objekt wurde gespeichert. Der geografische Standort konnte nicht automatisch ermittelt werden. Sie können Breitengrad und Längengrad im Objekt manuell eintragen.';
       }
     }
 
