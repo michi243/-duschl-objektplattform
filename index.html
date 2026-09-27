@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.65</title>
+<title>Duschl Service – Objektplattform v2.21.69</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -4497,7 +4497,18 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    MAIL: Tagestour wird nach Erzeugung explizit in die zentrale Notification-Outbox/Delivery-Queue eingestellt; UI behauptet Versand nicht mehr ohne Nachweis.
    UNVERÄNDERT: Wettercockpit, Tourreihenfolge, GPS-Plausibilitätsprüfung, Rollen/RLS, allgemeine SOP-/Tourplanung.
    BACKEND: SQL 2.21.65 + aktualisierte Edge Function winter-weather erforderlich. */
-const APP_VERSION='2.21.65'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.21.66 | BASIS 2.21.65 | 27.09.2026
+   MAILQUEUE-FEHLERBEHANDLUNG: eine bereits erzeugte Tagestour wird bei Mailfehler nicht mehr fälschlich als fehlgeschlagen gemeldet.
+   RETRY-SICHERHEIT UX: nach erfolgreicher Tourerzeugung wird die Tour geladen und separat über den Mailstatus informiert.
+   BACKEND: queue_winter_service_run_notification_v1 ohne mehrdeutige ON-CONFLICT-Spaltenreferenz.
+   UNVERÄNDERT: Einsatzauftrag, SOP-Anzeige, Wetter-Snapshot-Diagnose, Tourreihenfolge, Rollen/RLS. */
+/* RELEASE 2.21.69 | BASIS 2.21.66 | 27.09.2026
+   WINTERDIENST-MAILBRIEFING: Status, Forecast 24/48 h und Bereitschaftsindex werden beim Erzeugen der Tagestour eingefroren.
+   BEREITSCHAFTSINDEX: BEREIT / PRÜFEN / NICHT BEREIT auf Basis Route, Zuweisung, Winterdienst-Zuordnung, SOP, Geodaten und Wetterverfügbarkeit.
+   FORECAST: aggregiert die ungünstigste Risikostufe der Tour, Min.-Temperatur, Niederschlagswahrscheinlichkeit, DWD-Warnungen und erstes Winterrisiko.
+   MAILQUEUE: nutzt queue_winter_service_run_notification_v2(run_id, briefing_json).
+   UNVERÄNDERT: Touren, Einsatzauftrag, Wettercockpit, Einsatz-Snapshot, GPS-Plausibilitätsprüfung, Rollen/RLS. */
+const APP_VERSION='2.21.69'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -18092,7 +18103,130 @@ function wsRenderTours(){
   }).join(''):'<div class="empty">Noch keine Tourvorlage.</div>';
 }
 
+function wsWorstWeatherLevel(levels){
+  const rank={green:1,yellow:2,red:3};
+  return (levels||[])
+    .map(x=>String(x||'').toLowerCase())
+    .filter(x=>rank[x])
+    .sort((a,b)=>rank[b]-rank[a])[0]||null;
+}
+function wsEarliestWeatherRisk(values){
+  const valid=(values||[])
+    .filter(Boolean)
+    .map(v=>({raw:v,time:new Date(v).getTime()}))
+    .filter(x=>Number.isFinite(x.time))
+    .sort((a,b)=>a.time-b.time);
+  return valid[0]?.raw||null;
+}
+async function wsBuildRunBriefing(run,serviceAction){
+  const executions=(wsState.executions||[])
+    .filter(x=>String(x.run_id)===String(run.id))
+    .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+
+  const issues=[];
+  let hardFailure=false;
+
+  if(!run?.assigned_user_id){
+    hardFailure=true;
+    issues.push('Kein verantwortlicher Mitarbeiter zugewiesen.');
+  }
+  if(!executions.length){
+    hardFailure=true;
+    issues.push('Tour enthält keine Objektstopps.');
+  }
+  if(!['control','grit','clear','clear_and_grit'].includes(String(serviceAction||''))){
+    hardFailure=true;
+    issues.push('Kein gültiger Einsatzauftrag festgelegt.');
+  }
+
+  const weatherEntries=[];
+
+  for(const x of executions){
+    const o=wsObjects().find(z=>String(z.id)===String(x.object_id));
+    const assignment=(wsState.objectAssignments||[])
+      .filter(a=>String(a.object_id)===String(x.object_id))
+      .filter(a=>a.active!==false && String(a.process_type||'')==='winter_service')
+      .sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')))[0]||null;
+
+    if(!assignment){
+      hardFailure=true;
+      issues.push(`${o?.name||'Objekt'}: keine aktive Winterdienst-Leistungszuordnung.`);
+      continue;
+    }
+
+    if(!assignment.managed_document_version_id){
+      issues.push(`${o?.name||'Objekt'}: keine freigegebene Winterdienst-SOP verknüpft.`);
+    }else{
+      const v=(wsState.managedVersions||[]).find(z=>String(z.id)===String(assignment.managed_document_version_id));
+      const d=v?(wsState.managedDocuments||[]).find(z=>String(z.id)===String(v.document_id)):null;
+      if(!v||!d)issues.push(`${o?.name||'Objekt'}: SOP-Zuordnung nicht auflösbar.`);
+    }
+
+    if(!Number.isFinite(Number(o?.latitude)) || !Number.isFinite(Number(o?.longitude))){
+      issues.push(`${o?.name||'Objekt'}: Geokoordinaten fehlen.`);
+      continue;
+    }
+
+    try{
+      const weather=await wsWeatherRequest(x.object_id,'forecast',false);
+      wsState.weatherByObject[String(x.object_id)]=weather;
+      weatherEntries.push({objectId:String(x.object_id),objectName:o?.name||'Objekt',weather});
+    }catch(e){
+      issues.push(`${o?.name||'Objekt'}: Wetterdaten nicht verfügbar.`);
+    }
+  }
+
+  const f24=weatherEntries.map(x=>x.weather?.forecast_24h||{});
+  const f48=weatherEntries.map(x=>x.weather?.forecast_48h||{});
+
+  const risk24=wsWorstWeatherLevel(f24.map(x=>x.risk_level));
+  const risk48=wsWorstWeatherLevel(f48.map(x=>x.risk_level));
+
+  const minTemps=f24.map(x=>Number(x.min_temperature)).filter(Number.isFinite);
+  const precipProb=f24.map(x=>Number(x.max_precipitation_probability)).filter(Number.isFinite);
+  const warnings=weatherEntries.reduce((sum,x)=>sum+(Array.isArray(x.weather?.winter_alerts)?x.weather.winter_alerts.length:0),0);
+  const firstRisk=wsEarliestWeatherRisk([
+    ...f24.map(x=>x.first_risk_at),
+    ...f48.map(x=>x.first_risk_at)
+  ]);
+
+  const expectedWeatherCount=executions.filter(x=>{
+    const o=wsObjects().find(z=>String(z.id)===String(x.object_id));
+    return Number.isFinite(Number(o?.latitude)) && Number.isFinite(Number(o?.longitude));
+  }).length;
+
+  if(weatherEntries.length<expectedWeatherCount){
+    issues.push('Forecast ist nicht für alle georeferenzierten Stopps verfügbar.');
+  }
+
+  const readinessStatus=hardFailure?'not_ready':issues.length?'check':'ready';
+  const readinessLabel=readinessStatus==='ready'
+    ?'BEREIT'
+    :readinessStatus==='check'
+      ?'PRÜFEN'
+      :'NICHT BEREIT';
+
+  return {
+    run_status:'Geplant',
+    weather_24h_level:risk24,
+    weather_24h_label:risk24?wsWeatherRiskLabel(risk24):'Nicht verfügbar',
+    weather_48h_level:risk48,
+    weather_48h_label:risk48?wsWeatherRiskLabel(risk48):'Nicht verfügbar',
+    min_temperature_24h:minTemps.length?Math.min(...minTemps):null,
+    max_precipitation_probability_24h:precipProb.length?Math.max(...precipProb):null,
+    dwd_warning_count:warnings,
+    first_winter_risk_at:firstRisk,
+    weather_captured_at:new Date().toISOString(),
+    weather_object_count:weatherEntries.length,
+    route_object_count:executions.length,
+    readiness_status:readinessStatus,
+    readiness_label:readinessLabel,
+    readiness_details:issues
+  };
+}
+
 async function wsCreateRun(){
+  let createdRun=null;
   try{
     const tid=document.getElementById('wsRunTemplate').value;
     const date=document.getElementById('wsRunDate').value||wsToday();
@@ -18116,39 +18250,53 @@ async function wsCreateRun(){
 
     await loadWinterService();
 
-    const createdRun=wsState.runs
+    createdRun=wsState.runs
       .filter(r=>String(r.tour_template_id)===String(tid) && String(r.service_date)===String(date) && String(r.assigned_user_id||'')===String(assignee))
       .sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')))[0];
 
     if(!createdRun)throw new Error('Die erzeugte Tagestour konnte nach dem Speichern nicht eindeutig geladen werden.');
 
-    // Einsatzauftrag an Tour und alle Stopps schreiben.
     await cloudRequest(`winter_service_runs?id=eq.${encodeURIComponent(createdRun.id)}&organization_id=eq.${encodeURIComponent(wsOrg())}`,{
       method:'PATCH',
       headers:{Prefer:'return=minimal'},
       body:JSON.stringify({service_action:serviceAction})
     });
+
     await cloudRequest(`winter_service_executions?run_id=eq.${encodeURIComponent(createdRun.id)}&organization_id=eq.${encodeURIComponent(wsOrg())}`,{
       method:'PATCH',
       headers:{Prefer:'return=minimal'},
       body:JSON.stringify({service_action:serviceAction})
     });
 
-    // Zentrale Mailqueue explizit anlegen. Rückgabe zeigt, ob ein Empfänger existiert.
-    const notify=await cloudRequest('rpc/queue_winter_service_run_notification_v1',{
-      method:'POST',
-      body:JSON.stringify({p_run_id:createdRun.id})
-    });
+    let mailText='';
+    try{
+      const briefing=await wsBuildRunBriefing(createdRun,serviceAction);
+      const notify=await cloudRequest('rpc/queue_winter_service_run_notification_v2',{
+        method:'POST',
+        body:JSON.stringify({
+          p_run_id:createdRun.id,
+          p_briefing:briefing
+        })
+      });
+      const n=Array.isArray(notify)?notify[0]:notify;
+      mailText=n?.delivery_created===true
+        ?`E-Mail für ${n.recipient_email||'den Mitarbeiter'} in die Versandqueue eingestellt · Bereitschaft: ${briefing.readiness_label}.`
+        :`E-Mail wurde nicht eingeplant: ${n?.message||'kein gültiger Empfänger'}.`;
+    }catch(mailError){
+      console.error('Tagestour erstellt, Mailqueue fehlgeschlagen',mailError);
+      mailText=`Tagestour wurde erstellt. E-Mail konnte nicht eingeplant werden: ${mailError?.message||mailError}`;
+    }
 
     await loadWinterService();
-
-    const n=Array.isArray(notify)?notify[0]:notify;
-    const mailText=n?.delivery_created===true
-      ?`E-Mail für ${n.recipient_email||'den Mitarbeiter'} in Versandqueue eingestellt.`
-      :`Tagestour erstellt. E-Mail konnte nicht eingeplant werden: ${n?.message||'kein gültiger Empfänger'}.`;
-
     alert(`Tagestour erzeugt · Einsatzauftrag: ${wsServiceActionLabel(serviceAction)}.\n${mailText}`);
+
   }catch(e){
+    if(createdRun){
+      console.error('Fehler nach Tourerzeugung',e);
+      await loadWinterService().catch(()=>{});
+      alert(`Tagestour wurde bereits erzeugt, die Nachbearbeitung ist jedoch fehlgeschlagen: ${e.message||e}`);
+      return;
+    }
     alert('Tagestour konnte nicht erzeugt werden: '+(e.message||e));
   }
 }
