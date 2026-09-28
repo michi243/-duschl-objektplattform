@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.28</title>
+<title>Duschl Service – Objektplattform v2.24.29</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -6837,7 +6837,16 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Task-only-Fallback wird im Arbeitsauftrag sichtbar und kann direkt geöffnet werden.
    - Keine SQL-/RLS-/Backend-Änderung.
 */
-const APP_VERSION='2.24.28'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.29 | BASIS 2.24.28 | 28.09.2026
+   INTERNER AUFGABENTYP
+   - Neuer Typ "Aufgabe" neben Feststellung und Leistung.
+   - Aufgabe wird NICHT als Dokumentation/Finding gespeichert.
+   - Separate interne Aufgabenquelle; keine automatische Außenwirkung.
+   - Sichtbar im internen Arbeitsvorrat und beim zugehörigen Tourstopp.
+   - Verwalter/Auftraggeber laden diese interne Aufgabenquelle nicht.
+   BACKEND: benötigt SQL 2.24.29.
+*/
+const APP_VERSION='2.24.29'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -9384,6 +9393,7 @@ function cloudTaskToLocal(t){
     findingId:t.finding_id||'',
     title:t.title||'',
     taskType:t.task_type||'additional_measure',
+    priority:t.priority||'P4',
     status:t.status||'planned',
     ownerId:t.owner_id||null,
     ownerName:t.owner_name||'',
@@ -9393,7 +9403,31 @@ function cloudTaskToLocal(t){
     completedByName:t.completed_by_name||'',
     completedAt:t.completed_at||null,
     createdAt:t.created_at||null,
-    updatedAt:t.updated_at||null
+    updatedAt:t.updated_at||null,
+    source:'finding_task'
+  };
+}
+
+function cloudInternalTaskToLocal(t){
+  return {
+    id:t.id,
+    objectId:t.object_id,
+    findingId:'',
+    title:t.title||'Aufgabe',
+    taskType:'internal_task',
+    priority:t.priority||'P4',
+    status:t.status||'planned',
+    ownerId:null,
+    ownerName:'',
+    dueDate:t.due_date||'',
+    workNote:t.details||'',
+    completedBy:t.completed_by||null,
+    completedByName:t.completed_by_name||'',
+    completedAt:t.completed_at||null,
+    createdAt:t.created_at||null,
+    updatedAt:t.updated_at||null,
+    createdBy:t.created_by||null,
+    source:'internal'
   };
 }
 async function cloudLoadTasks(){
@@ -9407,14 +9441,30 @@ async function cloudLoadTasks(){
     console.warn('get_visible_tasks nicht verfügbar, Fallback auf direkte tasks-RLS',rpcError);
     rows=await cloudRequest('tasks?select=id,object_id,finding_id,title,task_type,status,owner_id,owner_name,due_date,work_note,completed_by,completed_by_name,completed_at,created_at,updated_at&order=due_date.asc.nullslast,created_at.desc');
   }
-  const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
-  const tasks=(rows||[]).filter(t=>accessibleObjectIds.has(t.object_id)).map(cloudTaskToLocal);
-  db.tasks=tasks;
+
+  let internalRows=[];
+  if(!isPropertyManagerRole()&&!isCustomerRole()){
+    try{
+      internalRows=await cloudRequest('rpc/get_visible_internal_tasks_v1',{
+        method:'POST',
+        body:JSON.stringify({p_organization_id:currentOrganizationId()||null})
+      });
+    }catch(err){
+      console.warn('Interne Aufgaben nicht verfügbar. SQL 2.24.29 installiert?',err);
+      internalRows=[];
+    }
+  }
+
+  const accessibleObjectIds=new Set((db.objects||[]).map(o=>String(o.id)));
+  const normal=(rows||[]).filter(t=>accessibleObjectIds.has(String(t.object_id))).map(cloudTaskToLocal);
+  const internal=(internalRows||[]).filter(t=>accessibleObjectIds.has(String(t.object_id))).map(cloudInternalTaskToLocal);
+  db.tasks=[...normal,...internal];
   applyTasksToFindings();
-  return tasks;
+  return db.tasks;
 }
+
 function applyTasksToFindings(){
-  const byFinding=new Map((db.tasks||[]).filter(t=>t.findingId).map(t=>[t.findingId,t]));
+  const byFinding=new Map((db.tasks||[]).filter(t=>t.source!=='internal'&&t.findingId).map(t=>[t.findingId,t]));
   for(const f of (db.findings||[])){
     const t=byFinding.get(f.id);
     if(t){
@@ -15083,6 +15133,8 @@ function renderWorkQueue(){
       dueDate:t.dueDate||'',
       workNote:t.workNote||'',
       sourceType:'task_only',
+      source:t.source||'finding_task',
+      priority:t.priority||'P4',
       hasTask:true,
       findingStatus:'Offen',
       concreteWork:true
@@ -15184,6 +15236,7 @@ function renderWorkQueue(){
         const f=(db.findings||[]).find(x=>x.id===t.findingId)||{};
         const o=(db.objects||[]).find(x=>x.id===t.objectId)||{};
         const taskOnly=t.sourceType==='task_only';
+        const internalTask=t.source==='internal';
         const due=t.dueDate?new Date(t.dueDate+'T00:00:00').toLocaleDateString('de-DE'):'Ohne Termin';
         const workStatus=t.hasTask
           ? (TASK_STATUS_LABELS[t.status]||t.status||'Geplant')
@@ -15223,6 +15276,7 @@ function renderWorkQueue(){
               </div>
               <div class="gf-statusstack">
                 <span class="gf-status">${esc(routedExternally?outgoingRouteStatusLabel(outgoingOrder):workStatus)}</span>
+                ${internalTask?`<span class="gf-status">Intern</span>`:''}
                 <span class="gf-status gf-status-decision">${esc(routedExternally?'Extern vergeben':decisionStatus)}</span>
               </div>
             </div>
@@ -17033,6 +17087,30 @@ function tourWorkQueueOpen(item){
 function openTourTaskOnly(taskId){
   const task=(db.tasks||[]).find(t=>String(t.id||'')===String(taskId||''));
   if(!task)return alert('Aufgabe nicht gefunden.');
+
+  if(task.source==='internal'){
+    const priorityOptions=['P1','P2','P3','P4']
+      .map(p=>`<option value="${p}" ${p===String(task.priority||'P4')?'selected':''}>${priorityLabel(p)}</option>`).join('');
+    const statusOptions=Object.entries(TASK_STATUS_LABELS)
+      .map(([v,l])=>`<option value="${v}" ${v===String(task.status||'planned')?'selected':''}>${esc(l)}</option>`).join('');
+
+    modal(`<div class="row space"><h2>Interne Aufgabe</h2><span class="badge">INTERN</span></div>
+      <div class="muted">${esc(objectName(task.objectId)||'Objekt')}</div>
+      <h3>${esc(task.title||'Aufgabe')}</h3>
+      <div class="muted" style="margin-bottom:12px">Nur interne Steuerung · keine automatische Sichtbarkeit für Verwalter oder Auftraggeber.</div>
+      <div class="grid g2">
+        <label>Status<select id="itStatus">${statusOptions}</select></label>
+        <label>Priorität<select id="itPriority">${priorityOptions}</select></label>
+      </div>
+      <label>Fällig am<input id="itDue" type="date" value="${esc(task.dueDate||'')}"></label>
+      <label>Arbeitsinformation<textarea id="itDetails">${esc(task.workNote||'')}</textarea></label>
+      <div class="row" style="margin-top:14px">
+        <button type="button" class="primary" onclick="saveInternalTaskUpdate('${esc(task.id)}')">Speichern</button>
+        <button type="button" onclick="closeModal()">Schließen</button>
+      </div>`);
+    return;
+  }
+
   const due=task.dueDate
     ? new Date(String(task.dueDate).slice(0,10)+'T00:00:00').toLocaleDateString('de-DE')
     : 'ohne Termin';
@@ -17043,7 +17121,6 @@ function openTourTaskOnly(taskId){
       <div style="margin-top:10px"><strong>Status:</strong> ${esc(TASK_STATUS_LABELS[task.status]||task.status||'Geplant')}</div>
       <div style="margin-top:6px"><strong>Fällig:</strong> ${esc(due)}</div>
       ${task.workNote?`<div style="margin-top:10px"><strong>Arbeitsinformation</strong><div style="margin-top:4px">${esc(task.workNote)}</div></div>`:''}
-      <div class="muted" style="margin-top:12px">Objektbezogene Aufgabe aus dem Arbeitsvorrat. Sie wird bei der Tour dieses Objekts eingeblendet.</div>
     </div>`;
   if(typeof openModal==='function')openModal('Aufgabe',body);
   else modal(`<h2>Aufgabe</h2>${body}<div class="row"><button onclick="closeModal()">Schließen</button></div>`);
@@ -19860,11 +19937,29 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   ${editId?findingCreatorMetaHtml(f):''}
   <label>Objekt *</label><select id="fObject" onchange="refreshInspectionOptions();refreshFindingAreaOptions();refreshFindingDecisionAccess()">${objOpts}</select>
   <input type="hidden" id="fInspection" value="${f.inspectionId||''}">
-  <label>Dokumentationstyp *</label><select id="fType" onchange="toggleDocType()">${['Feststellung','Leistung'].map(x=>`<option ${x===f.type?'selected':''}>${x}</option>`).join('')}</select>
-  <label>Bereich</label><select id="fAreaSelect" onchange="toggleFindingAreaCustom()"></select>
-  <div id="fAreaCustomWrap"><label>Anderer Bereich</label><input id="fAreaCustom" value="${esc(f.areaId?'':f.area)}" placeholder="Bereich frei eingeben"></div>
-  <label>Genauer Ort / Zusatz</label><input id="fAreaDetail" value="${esc(f.areaDetail||'')}" placeholder="z. B. Stellplatz 18, 2. OG (optional)">
-  <label>Titel *</label><input id="fTitle" value="${esc(f.title)}" placeholder="z. B. Handlauf locker / Rasen gemäht / Winterdienst">
+  <label>Typ *</label><select id="fType" onchange="toggleDocType()">${['Feststellung','Leistung','Aufgabe'].map(x=>`<option ${x===f.type?'selected':''}>${x}</option>`).join('')}</select>
+  <div id="findingLocationFields">
+    <label>Bereich</label><select id="fAreaSelect" onchange="toggleFindingAreaCustom()"></select>
+    <div id="fAreaCustomWrap"><label>Anderer Bereich</label><input id="fAreaCustom" value="${esc(f.areaId?'':f.area)}" placeholder="Bereich frei eingeben"></div>
+    <label>Genauer Ort / Zusatz</label><input id="fAreaDetail" value="${esc(f.areaDetail||'')}" placeholder="z. B. Stellplatz 18, 2. OG (optional)">
+  </div>
+  <label>Titel *</label><input id="fTitle" value="${esc(f.title)}" placeholder="z. B. Handlauf locker / Rasen gemäht / Foto vom Spielplatz">
+  <div id="internalTaskFields" class="card hidden" style="margin-top:12px;background:#101f2a">
+    <div class="row space">
+      <div>
+        <h3 style="margin:0">Interne Aufgabe</h3>
+        <div class="muted" style="margin-top:5px">Nur interne Steuerung. Keine automatische Sichtbarkeit für Verwalter oder Auftraggeber.</div>
+      </div>
+      <span class="badge">INTERN</span>
+    </div>
+    <div class="grid g2" style="margin-top:12px">
+      <div><label>Priorität</label><select id="fTaskPriority">${['P1','P2','P3','P4'].map(x=>`<option value="${x}" ${x==='P4'?'selected':''}>${priorityLabel(x)}</option>`).join('')}</select></div>
+      <div><label>Fällig am</label><input id="fTaskDue" type="date"></div>
+    </div>
+    <label>Arbeitsinformation</label>
+    <textarea id="fTaskDetails" placeholder="z. B. Bitte bei der nächsten Tour drei Fotos vom Spielplatz machen."></textarea>
+    <div class="muted" style="margin-top:6px">Die Aufgabe folgt dem Objekt und erscheint beim zuständigen Objektbetreuer im Arbeitsvorrat bzw. an der nächsten Tour.</div>
+  </div>
   <div id="findingFields">
     <div class="grid g2">
       <div><label>Kategorie</label><select id="fCategory">${['Sicherheit','Funktion','Werterhalt','Optik','Komfort'].map(x=>`<option ${x===f.category?'selected':''}>${x}</option>`).join('')}</select></div>
@@ -19961,7 +20056,9 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
     <input type="file" id="fAfterPhoto" accept="image/*" multiple onchange="handlePhotoSelection('after',this)"><div class="muted" id="afterPhotoCount">Max. 5 Bilder</div><div class="muted">Über „In Fotos sichern“ an die Fotomediathek übergeben.</div><div id="afterPhotoPreview" class="photo-grid"></div>
     ${f.afterPhoto?`${mediaImg(f.afterPhoto,'Foto nachher','thumb','margin-top:8px')}`:''}
   </div>
-  <label>Status</label><select id="fStatus" onchange="toggleCompletion()">${['Offen','In Bearbeitung','Erledigt'].map(x=>`<option ${x===(forceClose?'Erledigt':f.status)?'selected':''}>${x}</option>`).join('')}</select>
+  <div id="findingStatusBlock">
+    <label>Status</label><select id="fStatus" onchange="toggleCompletion()">${['Offen','In Bearbeitung','Erledigt'].map(x=>`<option ${x===(forceClose?'Erledigt':f.status)?'selected':''}>${x}</option>`).join('')}</select>
+  </div>
   <div id="completionFields" class="card" style="margin-top:12px;background:#f7f9fa">
     ${isResidentRouteDocumentation
       ? `<strong>Abschluss: Erledigt</strong><div class="muted" style="margin-top:6px">Die oben dokumentierte Tätigkeit und die durchgeführte Maßnahme werden als Abschlussnachweis am Arbeitsauftrag gespeichert.</div><input type="hidden" id="fCompletionType" value="Leistung durchgeführt">`
@@ -20021,9 +20118,16 @@ function residentRouteActivityPresets(){
 
 function toggleDocType(){
   const type=document.getElementById('fType')?.value||'Feststellung';
+  const isTask=type==='Aufgabe';
   document.getElementById('findingFields')?.classList.toggle('hidden',type!=='Feststellung');
   document.getElementById('findingActionFields')?.classList.toggle('hidden',type!=='Feststellung');
   document.getElementById('serviceFields')?.classList.toggle('hidden',type!=='Leistung');
+  document.getElementById('internalTaskFields')?.classList.toggle('hidden',!isTask);
+  document.getElementById('findingLocationFields')?.classList.toggle('hidden',isTask);
+  document.getElementById('currentPhotoBlock')?.classList.toggle('hidden',isTask);
+  document.getElementById('afterPhotoBlock')?.classList.toggle('hidden',isTask);
+  document.getElementById('findingStatusBlock')?.classList.toggle('hidden',isTask);
+  document.getElementById('completionFields')?.classList.toggle('hidden',isTask || document.getElementById('fStatus')?.value!=='Erledigt');
   toggleDecisionRequired();
 }
 function toggleDecisionRequired(){
@@ -20130,6 +20234,65 @@ async function handlePhotoSelection(w,input){
  }
  input.value='';renderPhotoDraft(w);hydrateMediaImages();
 }
+async function saveStandaloneInternalTaskFromModal(){
+  const objectId=document.getElementById('fObject')?.value||'';
+  const title=document.getElementById('fTitle')?.value.trim()||'';
+  const priority=document.getElementById('fTaskPriority')?.value||'P4';
+  const dueDate=document.getElementById('fTaskDue')?.value||null;
+  const details=document.getElementById('fTaskDetails')?.value.trim()||null;
+  if(!objectId)return alert('Bitte Objekt auswählen.');
+  if(!title)return alert('Bitte Titel eingeben.');
+
+  try{
+    cloudSetStatus('Interne Aufgabe wird gespeichert …','wait');
+    const rows=await cloudRequest('rpc/create_internal_task_v1',{
+      method:'POST',
+      body:JSON.stringify({
+        p_organization_id:currentOrganizationId()||null,
+        p_object_id:objectId,
+        p_title:title,
+        p_details:details,
+        p_priority:priority,
+        p_due_date:dueDate
+      })
+    });
+    const row=Array.isArray(rows)?rows[0]:rows;
+    if(!row?.id)throw new Error('Keine Aufgabe zurückgegeben.');
+    closeModal();
+    await cloudLoadTasks();
+    renderAll();
+    showSection('workqueue');
+    cloudSetStatus('Verbunden · interne Aufgabe gespeichert','ok');
+  }catch(e){
+    console.error(e);
+    alert('Interne Aufgabe konnte nicht gespeichert werden: '+(e.message||e));
+  }
+}
+
+async function saveInternalTaskUpdate(taskId){
+  const status=document.getElementById('itStatus')?.value||'planned';
+  const dueDate=document.getElementById('itDue')?.value||null;
+  const priority=document.getElementById('itPriority')?.value||'P4';
+  const details=document.getElementById('itDetails')?.value.trim()||null;
+  try{
+    await cloudRequest('rpc/update_internal_task_v1',{
+      method:'POST',
+      body:JSON.stringify({
+        p_task_id:taskId,
+        p_status:status,
+        p_due_date:dueDate,
+        p_priority:priority,
+        p_details:details
+      })
+    });
+    closeModal();
+    await cloudLoadTasks();
+    renderAll();
+  }catch(e){
+    alert('Aufgabe konnte nicht aktualisiert werden: '+(e.message||e));
+  }
+}
+
 async function saveFinding(id){
   // v2.19.85: Bei einem automatisch gerouteten Bewohnerauftrag immer die bereits
   // verknüpfte operative Dokumentation weiterverwenden. Dadurch erzeugt ein
@@ -20178,6 +20341,10 @@ async function saveFinding(id){
 
   const title=document.getElementById('fTitle').value.trim();if(!title)return alert('Bitte Titel eingeben.');
   const type=document.getElementById('fType').value, status=document.getElementById('fStatus').value;
+  if(type==='Aufgabe'){
+    if(id)return alert('Eine bestehende Dokumentation kann nicht in eine interne Aufgabe umgewandelt werden.');
+    return saveStandaloneInternalTaskFromModal();
+  }
   if(type==='Feststellung'&&mayEditDecision&&!decisionRequiredValue)return alert('Bitte auswählen, ob eine Entscheidung des Auftraggebers erforderlich ist.');
   if(type!=='Feststellung'){decisionRequired=false;decisionStatus='not_required';decisionBy='';decisionDate='';decisionImplementation='';decisionComment='';decisionAmount=''}
   if(type==='Feststellung'&&!decisionRequired){decisionStatus='not_required';decisionBy='';decisionDate='';decisionImplementation='';decisionComment='';decisionAmount=''}
