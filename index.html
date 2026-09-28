@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.07</title>
+<title>Duschl Service – Objektplattform v2.24.08</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3111,6 +3111,19 @@ table td,table th{
   #operationalDashboard.om-dashboard-mode .tenant-kpi-grid-v260{grid-template-columns:1fr!important}
 }
 </style>
+
+<style id="duschl-object-manager-dashboard-hotfix-v22408">
+#operationalDashboard.om-dashboard-mode #objectManagerQuickActions{
+  margin:10px 0 14px!important;
+}
+#operationalDashboard.om-dashboard-mode #objectManagerQuickActions .om-quick-action{
+  min-height:40px;
+  padding:9px 13px;
+}
+#operationalDashboard.om-dashboard-mode #dashboardWinterPanel{
+  display:block;
+}
+</style>
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -6050,7 +6063,15 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Management-KPIs werden im Objektbetreuer-Dashboard ausgeblendet.
    - Keine SQL-/RLS-/Backend-Änderung.
 */
-const APP_VERSION='2.24.07'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.08 | BASIS 2.24.07 | 28.09.2026
+   OBJEKTBETREUER DASHBOARD HOTFIX
+   - Winterdienst wird für Objektbetreuer nicht mehr durch den Saisonmodus versteckt.
+   - Wetterlage der eigenen Winterdienst-Tour wird immer geladen.
+   - Touren & Einsätze sowie Winterdienst sind als feste operative Schnellzugriffe sichtbar.
+   - Generische Touren laden für operative Benutzer nur eigene Runs/Stopps.
+   - Keine SQL-/RLS-/Backend-Änderung.
+*/
+const APP_VERSION='2.24.08'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -7998,6 +8019,8 @@ function applyRoleUI(){
   show('navFindings',hasAppRole && !platformMode && canCreateDocumentationUI());
   show('navResidentReports',hasAppRole && !platformMode && !isCustomerRole() && !isPropertyManagerRole());
   show('navWorkqueue',hasAppRole && !platformMode && canUseWorkQueueUI());
+  show('navOperations',hasAppRole && !platformMode);
+  show('navWinterService',hasAppRole && !platformMode);
   show('navExternalOrders',hasAppRole && !platformMode && (hasOperationalAdminAccess()||isPropertyManagerRole()||isObjectManagerRole()));
   show('navReports',hasAppRole && !platformMode);
   show('navPartnerDirectory',hasAppRole);
@@ -15469,6 +15492,22 @@ function applyDashboardSeasonMode(){
     settingsStatus.innerHTML=`<strong>Aktiv: ${esc(dashboardSeasonLabel(effective))}</strong><span>${esc(source)}</span>`;
   }
 
+  const operativeObjectManager=isObjectManagerDashboardRole();
+
+  // Objektbetreuer arbeiten aufgabengeführt, nicht saisongeführt.
+  // Eine zugewiesene Winterdienst-Tour darf im September oder bei manuell
+  // gesetztem Standardmodus niemals aus dem Dashboard verschwinden.
+  if(operativeObjectManager){
+    panel.style.display='block';
+    const summerPanel=document.getElementById('dashboardSummerPanel');
+    if(summerPanel)summerPanel.style.display=isWinter?'none':'block';
+    document.getElementById('operationalDashboard')?.classList.toggle('is-winter-dashboard',true);
+
+    loadDashboardWinterSummary();
+    if(!isWinter)loadDashboardSummerSummary();
+    return;
+  }
+
   panel.style.display=isWinter?'block':'none';
   const summerPanel=document.getElementById('dashboardSummerPanel');
   if(summerPanel)summerPanel.style.display=isWinter?'none':'block';
@@ -15772,6 +15811,8 @@ async function loadDashboardWinterSummary(){
   const status=document.getElementById('dashboardWinterStatus');
   const planningBtn=document.querySelector('#dashboardWinterPanel .tenant-action-btn');
   if(status)status.textContent='Winterdaten und Wetterlage werden geladen …';
+  const winterTitle=document.querySelector('#dashboardWinterPanel .dashboard-winter-title');
+  if(winterTitle)winterTitle.textContent=isObjectManagerDashboardRole()?'Mein Winterdienst · Wetter & Einsatzlage':'Winterdienst · Einsatzlage';
   if(planningBtn)planningBtn.textContent=isObjectManagerDashboardRole()?'Meine Tour öffnen ›':'Einsatz planen ›';
 
   try{
@@ -15948,11 +15989,11 @@ function renderObjectManagerDashboardFocus(){
   if(action){action.textContent=primary.label;action.onclick=primary.action;}
 
   const chips=[];
-  if(winterRuns.length)chips.push(`<button class="om-quick-action is-alert" type="button" onclick="openWinterPlanning()">❄ Winterdienst <strong>${winterRuns.length}</strong></button>`);
+  chips.push(`<button class="om-quick-action" type="button" onclick="showSection('operations');setTimeout(()=>opsLoad(),0)">⇄ Touren & Einsätze</button>`);
+  chips.push(`<button class="om-quick-action ${winterRuns.length?'is-alert':''}" type="button" onclick="openWinterPlanning()">❄ Winterdienst${winterRuns.length?` <strong>${winterRuns.length}</strong>`:''}</button>`);
   if(work>0)chips.push(`<button class="om-quick-action ${work>2?'is-alert':''}" type="button" onclick="openDashboardWorkQueue()">☰ Arbeitsvorrat <strong>${work}</strong></button>`);
   if(reports>0)chips.push(`<button class="om-quick-action is-alert" type="button" onclick="openDashboardResidentReports()">✉ Meldungen <strong>${reports}</strong></button>`);
   if(urgent>0)chips.push(`<button class="om-quick-action is-critical" type="button" onclick="openCriticalFindings()">! Dringend <strong>${urgent}</strong></button>`);
-  if(!chips.length)chips.push(`<span class="om-quick-action">✓ Keine priorisierten offenen Aufgaben</span>`);
   if(quick)quick.innerHTML=chips.join('');
 }
 
@@ -21532,7 +21573,54 @@ async function opsLoad(){
   opsApplyViewMode();
   const org=opsOrg();if(!org)return;
   try{
-    if(opsIsPlanningRole())try{await cloudRequest('rpc/generate_recurring_operations_v1',{method:'POST',body:JSON.stringify({p_organization_id:org,p_horizon_days:21})});}catch(e){console.warn(e);}
+    if(!opsIsPlanningRole()){
+      const uid=String(currentUserId()||'');
+      const runs=await cloudRequest(
+        `operation_runs?select=*&organization_id=eq.${encodeURIComponent(org)}&assigned_user_id=eq.${encodeURIComponent(uid)}&order=service_date.asc`
+      )||[];
+
+      const runIds=(runs||[]).map(r=>String(r.id||'')).filter(Boolean);
+      let runStops=[];
+      if(runIds.length){
+        const inList=runIds.map(id=>id.replace(/[^0-9a-fA-F-]/g,'')).join(',');
+        runStops=await cloudRequest(
+          `operation_run_stops?select=*&organization_id=eq.${encodeURIComponent(org)}&run_id=in.(${inList})&order=sort_order.asc`
+        )||[];
+      }
+
+      // Nur für die Anzeige der Stopps erforderliche Stammdaten.
+      let services=[];
+      try{
+        services=await cloudRequest(
+          `service_types?select=id,name&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=name.asc`
+        )||[];
+      }catch(e){console.warn('Leistungsarten für operative Touransicht konnten nicht geladen werden',e)}
+
+      opsState={
+        ...opsState,
+        services:Array.isArray(services)?services:[],
+        plans:[],
+        tours:[],
+        stops:[],
+        runs:Array.isArray(runs)?runs:[],
+        runStops:Array.isArray(runStops)?runStops:[],
+        assignments:[],
+        documents:[],
+        versions:[]
+      };
+
+      opsApplyViewMode();
+      opsRenderMyRuns();
+      return;
+    }
+
+    try{
+      await cloudRequest('rpc/generate_recurring_operations_v1',{
+        method:'POST',
+        body:JSON.stringify({p_organization_id:org,p_horizon_days:21})
+      });
+    }catch(e){console.warn(e);}
+
     const a=await Promise.all([
       cloudRequest(`service_types?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=name.asc`),
       cloudRequest(`recurring_service_plans?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=created_at.desc`),
@@ -21546,9 +21634,13 @@ async function opsLoad(){
     ]);
     [opsState.services,opsState.plans,opsState.tours,opsState.stops,opsState.runs,opsState.runStops,opsState.assignments,opsState.documents,opsState.versions]=a.map(x=>x||[]);
     opsApplyViewMode();
-    if(opsIsPlanningRole()){opsPopulate();opsRender();}else opsRenderMyRuns();
-  }catch(e){alert('Touren & Einsätze konnten nicht geladen werden: '+(e.message||e));}
+    opsPopulate();
+    opsRender();
+  }catch(e){
+    alert('Touren & Einsätze konnten nicht geladen werden: '+(e.message||e));
+  }
 }
+
 function opsPopulate(){
   const s=document.getElementById('opsPlanAssignment');
   if(s){
