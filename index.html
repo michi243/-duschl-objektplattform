@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.23.06</title>
+<title>Duschl Service – Objektplattform v2.24.00</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -2986,6 +2986,11 @@ table td,table th{
   display:none!important;
 }
 </style>
+
+<style id="duschl-generic-object-model-v22400">
+#oObjectType,#newAreaKind{min-height:44px}
+.area-manage-main .muted{font-weight:600}
+</style>
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -3540,7 +3545,7 @@ table td,table th{
 <div class="row space">
 <div>
 <div class="ds-section-eyebrow">EINGANG</div><h2>Meldungen</h2>
-<div class="muted">Bewohnermeldungen nach Handlungsbedarf steuern: neu prüfen, Dienstleisterstatus verfolgen, Entscheidungen treffen und Abnahmen durchführen</div>
+<div class="muted">Meldungen nach Handlungsbedarf steuern: neu prüfen, Dienstleisterstatus verfolgen, Entscheidungen treffen und Abnahmen durchführen</div>
 </div>
 </div>
 <div id="wsOperativeView" class="hidden"></div>
@@ -5865,7 +5870,15 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Bei bestehender SOP kann die Leistungsart umbenannt werden; bestehende ID bleibt erhalten
    - Objektzuordnung zeigt ausschließlich vorhandene Leistungsarten/SOPs; keine Stammdatenanlage mehr
    - Keine RLS-Änderung; keine neue Tabelle / kein neues Backend */
-const APP_VERSION='2.23.06'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.00 | BASIS 2.23.06 | 28.09.2026
+   BRANCHENOFFENE OBJEKTSTRUKTUR
+   - Objekttyp für Wohnanlage, Mietobjekt, Hotel, Gewerbe, Kommune usw.
+   - Bestehende object_areas werden generisch als Einheiten & Bereiche genutzt
+   - Einheitstypen für Wohnung, Zimmer, Etage, Technik, Außenbereich, Asset usw.
+   - Nutzeroberfläche verwendet generisch „Meldung“ statt „Bewohnermeldung“
+   - Bestehende Routing-/SOP-/Arbeitsvorratslogik bleibt unverändert
+   - Additive SQL-Migration: objects.object_type + object_areas.area_kind */
+const APP_VERSION='2.24.00'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -6541,7 +6554,7 @@ async function loadPublicResidentReportContext(){
   const box=document.getElementById('prContext');
   if(!publicResidentObjectId)return;
   try{
-    // v2.20.54: Bewohner-QR identifiziert ausschließlich das Objekt.
+    // v2.20.54: Objekt-QR identifiziert ausschließlich das Objekt.
     // Der Bereich wird immer bewusst im Formular gewählt.
     const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_public_report_context`,{
       method:'POST',
@@ -8223,6 +8236,7 @@ function cloudObjectToLocal(o){
     postalCode,
     city,
     address,
+    objectType:o.object_type||'property',
     latitude:o.latitude==null?null:Number(o.latitude),
     longitude:o.longitude==null?null:Number(o.longitude),
     geocodedAt:o.geocoded_at||null,
@@ -8937,8 +8951,17 @@ async function cloudLoadSharedObjects(){
     }else{
       rows=await cloudRequest('rpc/get_shared_objects',{method:'POST',body:JSON.stringify({})});
     }
-    cloudSharedObjects=(Array.isArray(rows)?rows:[]).map(o=>({
-      id:o.object_id,organizationId:o.owner_organization_id||'',name:o.object_name||'',address:o.object_address||'',notes:o.notes||'',isTest:false,
+    const sharedRows=Array.isArray(rows)?rows:[];
+    let typeMap=new Map();
+    try{
+      const ids=[...new Set(sharedRows.map(o=>String(o.object_id||'')).filter(Boolean))];
+      if(ids.length){
+        const typeRows=await cloudRequest(`objects?select=id,object_type&id=in.(${ids.map(encodeURIComponent).join(',')})`);
+        typeMap=new Map((typeRows||[]).map(r=>[String(r.id),r.object_type||'property']));
+      }
+    }catch(_e){}
+    cloudSharedObjects=sharedRows.map(o=>({
+      id:o.object_id,organizationId:o.owner_organization_id||'',name:o.object_name||'',address:o.object_address||'',objectType:typeMap.get(String(o.object_id))||'property',notes:o.notes||'',isTest:false,
       createdAt:Date.now(),updatedAt:Date.now(),cloud:true,externalManaged:true,ownerOrganizationName:o.owner_organization_name||'Partnerunternehmen',collaborationId:o.collaboration_id||'',serviceScope:o.service_scope||''
     }));
   }catch(e){console.warn('Extern betreute Objekte konnten nicht geladen werden',e);cloudSharedObjects=[];}
@@ -9554,7 +9577,7 @@ function externalOrderIsAutoResidentRoute(order){
 // v2.20.46: Herkunft eines Vorgangs mit objektbezogener PII-Sicht.
 // Bewohnerdaten werden ausschließlich beim Auftraggeber angezeigt: Mandanten-Admin,
 // Admin-Vertretung und zuständiger Verwalter. Operative Rollen und externe
-// Dienstleister sehen weiterhin ausschließlich den Meldekanal "Bewohner-QR".
+// Dienstleister sehen weiterhin ausschließlich den Meldekanal "Objekt-QR".
 function residentReporterDetailsForOrder(order){
   const residentReportId=externalOrderResidentReportId(order);
   if(!residentReportId)return null;
@@ -9577,7 +9600,7 @@ function externalOrderReporterLabel(order){
   const snap=order.source_snapshot||{};
   if(externalOrderIsResidentOrigin(order)){
     const resident=residentReporterDetailsForOrder(order);
-    return resident?.name||'Bewohner-QR';
+    return resident?.name||'Objekt-QR';
   }
   const fid=String(order.source_finding_id||'');
   const f=fid?(db.findings||[]).find(x=>String(x.id||'')===fid):null;
@@ -10010,11 +10033,11 @@ function residentRouteOriginHtmlForFinding(f,includePhoto=true){
   if(!order&&!reportId)return '';
   const text=order
     ? 'Automatisch übernommen und als Objektdokumentation fortgeführt.'
-    : 'Aus einer Bewohnermeldung in die Objektdokumentation übernommen.';
+    : 'Aus einer Meldung in die Objektdokumentation übernommen.';
   const reference=residentReportReference(reportId);
   const routedAt=order?.created_at||'';
   return `<div class="card" style="margin-top:10px;padding:10px 12px">
-    <strong>Ursprung: Bewohnermeldung</strong>
+    <strong>Ursprung: Meldung</strong>
     ${reference?`<div style="margin-top:6px"><strong>Meldungsreferenz:</strong> ${esc(reference)}</div>`:''}
     ${routedAt?`<div class="muted" style="margin-top:3px">Erfasst / automatisch weitergeleitet: ${esc(fmt(routedAt))}</div>`:''}
     <div class="muted" style="margin-top:3px">${esc(text)}</div>
@@ -10046,7 +10069,7 @@ function residentRouteOrderForReport(reportId){
 
 function ticketTimelineForResidentReport(r){
   if(!r)return '';
-  const events=[{when:r.received_at||r.created_at,label:'Bewohnermeldung eingegangen',note:r.category||''}];
+  const events=[{when:r.received_at||r.created_at,label:'Meldung eingegangen',note:r.category||''}];
   const order=residentRouteOrderForReport(r.id);
   if(order){
     (cloudExternalOrderResidentEvents||[]).filter(e=>String(e.resident_report_id||'')===String(r.id||'')).forEach(e=>events.push({when:e.created_at,label:residentRouteEventLabel(e.event_type),note:e.internal_note||''}));
@@ -10107,7 +10130,7 @@ function residentRouteTimelineHtml(order){
 
   const has=(label)=>events.some(e=>e.label===label);
   const reportRef=residentReportReference(residentReportId);
-  if(order.created_at&&!has('Bewohnermeldung eingegangen'))events.push({when:order.created_at,label:'Bewohnermeldung eingegangen',note:reportRef?`Meldungsreferenz ${reportRef}`:''});
+  if(order.created_at&&!has('Meldung eingegangen'))events.push({when:order.created_at,label:'Meldung eingegangen',note:reportRef?`Meldungsreferenz ${reportRef}`:''});
   const isAutoResidentRoute=String(snapshot.route_type||'')==='resident_report_auto';
   if(isAutoResidentRoute){
     if(order.created_at&&!has('Automatisch zugeordnet'))events.push({when:order.created_at,label:'Automatisch zugeordnet',note:'Bewohnermeldung automatisch an den zuständigen Dienstleister weitergeleitet.'});
@@ -10757,14 +10780,14 @@ function objectAreasFor(objectId,{includeInactive=false}={}){
 function objectAreaById(id){return (cloudObjectAreas||[]).find(a=>a.id===id)||null;}
 async function cloudLoadObjectAreas(){
   if(!cloudSession?.access_token){cloudObjectAreas=[];return cloudObjectAreas;}
-  const rows=await cloudRequest('object_areas?select=id,object_id,name,active,sort_order,created_at,updated_at&order=object_id.asc,sort_order.asc,name.asc');
+  const rows=await cloudRequest('object_areas?select=id,object_id,name,area_kind,active,sort_order,created_at,updated_at&order=object_id.asc,sort_order.asc,name.asc');
   const accessibleObjectIds=new Set((db.objects||[]).map(o=>o.id));
   cloudObjectAreas=(Array.isArray(rows)?rows:[]).filter(a=>accessibleObjectIds.has(a.object_id));
-  db.objectAreas=cloudObjectAreas.map(a=>({id:a.id,objectId:a.object_id,name:a.name,active:a.active!==false,sortOrder:Number(a.sort_order||0)}));
+  db.objectAreas=cloudObjectAreas.map(a=>({id:a.id,objectId:a.object_id,name:a.name,areaKind:a.area_kind||'area',active:a.active!==false,sortOrder:Number(a.sort_order||0)}));
   return cloudObjectAreas;
 }
-async function cloudSaveObjectArea(objectId,id,name,sortOrder=0){
-  const payload={object_id:objectId,name:(name||'').trim(),sort_order:Number(sortOrder||0),active:true,updated_at:new Date().toISOString()};
+async function cloudSaveObjectArea(objectId,id,name,sortOrder=0,areaKind='area'){
+  const payload={object_id:objectId,name:(name||'').trim(),area_kind:areaKind||'area',sort_order:Number(sortOrder||0),active:true,updated_at:new Date().toISOString()};
   if(id){
     const rows=await cloudRequest(`object_areas?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{'Prefer':'return=representation'},body:JSON.stringify(payload)});
     return rows?.[0];
@@ -11974,6 +11997,7 @@ async function cloudReloadObjects(){
         rows=await cloudRequest(path);
       }
     }
+    rows=await enrichObjectRowsWithType(rows);
     console.info('Objektladen Mandant',{
       organization_id:currentOrganizationId(),
       organization_role:effectiveOrganizationRole(),
@@ -12067,6 +12091,7 @@ async function cloudSaveObject(id,data){
     street:data.street||null,
     postal_code:data.postalCode||null,
     city:data.city||null,
+    object_type:data.objectType||'property',
     notes:data.notes||null,
     is_test:data.isTest===true,
     updated_at:new Date().toISOString()
@@ -12096,7 +12121,12 @@ async function cloudSaveObject(id,data){
   });
   const objectId=typeof result==='string'?result:(Array.isArray(result)?result[0]:result);
   if(!objectId)throw new Error('Objekt wurde serverseitig nicht angelegt.');
-  const rows=await cloudRequest(`objects?id=eq.${encodeURIComponent(objectId)}&select=id,organization_id,name,street,postal_code,city,latitude,longitude,geocoded_at,geocode_source,notes,is_test,created_at,updated_at`);
+  await cloudRequest(`objects?id=eq.${encodeURIComponent(objectId)}`,{
+    method:'PATCH',
+    headers:{'Prefer':'return=minimal'},
+    body:JSON.stringify({object_type:payload.object_type})
+  });
+  const rows=await cloudRequest(`objects?id=eq.${encodeURIComponent(objectId)}&select=id,organization_id,name,street,postal_code,city,object_type,latitude,longitude,geocoded_at,geocode_source,notes,is_test,created_at,updated_at`);
   return rows?.[0];
 }
 async function cloudDeleteObject(id){
@@ -12218,7 +12248,7 @@ async function openNotificationDeepLink(){
         try{await cloudLoadResidentReports();}catch(_){/* RLS entscheidet. */}
         r=(cloudResidentReports||[]).find(x=>String(x.id||'')===link.id);
       }
-      if(!r)throw new Error('Die Bewohnermeldung ist für diesen Benutzer nicht verfügbar.');
+      if(!r)throw new Error('Die Meldung ist für diesen Benutzer nicht verfügbar.');
       showSection('residentReports');
       await new Promise(res=>setTimeout(res,120));
       openResidentReportDetails(r.id);
@@ -15684,7 +15714,7 @@ function renderObjects(){
               <div class="ds-object-card-titleline">
                 <h3>${esc(o.name||'Objekt')}</h3>${externalLabel}
               </div>
-              <div class="ds-object-card-address">${esc(o.address||'Keine Adresse hinterlegt')}</div>
+              <div class="ds-object-card-address">${esc(objectTypeLabel(o.objectType))}${o.address?' · '+esc(o.address):' · Keine Adresse hinterlegt'}</div>
               ${o.externalManaged?`<div class="ds-object-card-owner">Auftraggeber: ${esc(o.ownerOrganizationName||'Partnerunternehmen')}</div>`:''}
             </div>
           </div>
@@ -15705,7 +15735,7 @@ function renderObjects(){
           <button class="primary ds-object-primary-action" onclick="openFindingModal('${esc(o.id)}','')">+ Dokumentation erfassen</button>
           <div class="ds-object-secondary-actions">
             ${!o.externalManaged&&!isCustomerRole()?`<button onclick="openObjectQrCode('${esc(o.id)}')">QR-Code</button>`:''}
-            ${!o.externalManaged&&canManageObjectsUI()?`<button onclick="openObjectAreasModal('${esc(o.id)}')">Bereiche</button><button onclick="openObjectServicesModal('${esc(o.id)}')">Leistungen &amp; SOPs</button><button onclick="openObjectModal('${esc(o.id)}')">Objekt bearbeiten</button>`:''}
+            ${!o.externalManaged&&canManageObjectsUI()?`<button onclick="openObjectAreasModal('${esc(o.id)}')">Einheiten &amp; Bereiche</button><button onclick="openObjectServicesModal('${esc(o.id)}')">Leistungen &amp; SOPs</button><button onclick="openObjectModal('${esc(o.id)}')">Objekt bearbeiten</button>`:''}
             ${o.externalManaged&&slTenantAdmin()?`<button onclick="openObjectServicesModal('${esc(o.id)}')">Leistungen &amp; SOPs</button>`:''}
             <button onclick="showObjectReport('${esc(o.id)}')">Bericht</button>
             ${o.externalManaged?`<button onclick="showSection('externalOrders')">Externe Aufträge</button>`:''}
@@ -16340,7 +16370,7 @@ async function deleteResidentReport(id){
   if(!(isAdminRole() || hasOperationalAdminAccess()))return alert('Keine Berechtigung zum Löschen dieser Meldung.');
 
   const ok=confirm(
-    `Bewohnermeldung „${r.report_no||''}“ dauerhaft löschen?\n\n`+
+    `Meldung „${r.report_no||''}“ dauerhaft löschen?\n\n`+
     `Die Meldung und zugehörige Meldungsmedien werden entfernt. `+
     `Eine bereits daraus erzeugte Dokumentation bleibt als eigenständiger Vorgang erhalten.`
   );
@@ -16369,10 +16399,10 @@ async function deleteResidentReport(id){
 
     alert(storageErrors.length
       ? `Meldung gelöscht. ${storageErrors.length} Storage-Datei(en) konnten nicht entfernt werden.`
-      : 'Bewohnermeldung wurde dauerhaft gelöscht.');
+      : 'Meldung wurde dauerhaft gelöscht.');
   }catch(e){
     console.error('Bewohnermeldung löschen fehlgeschlagen',e);
-    alert('Bewohnermeldung konnte nicht gelöscht werden: '+(e?.message||e));
+    alert('Meldung konnte nicht gelöscht werden: '+(e?.message||e));
   }
 }
 
@@ -17081,7 +17111,7 @@ function renderObjectAreaRows(objectId){
   if(!rows.length)return '<div class="empty">Noch keine Bereiche angelegt.</div>';
   return `<div class="area-manage-list">${rows.map(a=>`<div class="area-manage-row ${a.active===false?'is-inactive':''}">
     <div class="area-manage-icon" aria-hidden="true">${objectAreaIcon(a.name)}</div>
-    <div class="area-manage-main"><strong>${esc(a.name)}</strong><span class="area-status"><i></i>${a.active===false?'Deaktiviert':'Aktiv'}</span></div>
+    <div class="area-manage-main"><strong>${esc(a.name)}</strong><div class="muted" style="font-size:11px;margin-top:2px">${esc(objectAreaKindLabel(a.areaKind||'area'))}</div><span class="area-status"><i></i>${a.active===false?'Deaktiviert':'Aktiv'}</span></div>
     <div class="area-manage-actions">
       <button class="area-icon-btn" title="Bearbeiten" aria-label="${esc(a.name)} bearbeiten" onclick="renameObjectArea('${objectId}','${a.id}')">✎</button>
       <button class="area-icon-btn ${a.active===false?'':'area-danger'}" title="${a.active===false?'Aktivieren':'Deaktivieren'}" aria-label="${esc(a.name)} ${a.active===false?'aktivieren':'deaktivieren'}" onclick="toggleObjectArea('${objectId}','${a.id}',${a.active===false?'true':'false'})">${a.active===false?'↻':'⌫'}</button>
@@ -17089,12 +17119,18 @@ function renderObjectAreaRows(objectId){
   </div>`).join('')}</div>`;
 }
 function openObjectAreasModal(objectId){
-  if(!requireOperationalAdminUI('Bereiche verwalten'))return;
+  if(!requireOperationalAdminUI('Einheiten & Bereiche verwalten'))return;
   const o=(db.objects||[]).find(x=>x.id===objectId); if(!o)return alert('Objekt wurde nicht gefunden.');
-  modal(`<div class="row space"><div><h2 style="margin-bottom:2px">Bereiche</h2><div class="muted">${esc(o.name)}</div></div><button onclick="closeModal()">✕</button></div>
-    <div class="muted" style="margin-top:14px">Bereiche werden in Dokumentationen und bei Bewohnermeldungen zur Auswahl angeboten.</div>
-    <button class="primary area-add-btn" onclick="showObjectAreaAddForm('${objectId}')">＋ Bereich hinzufügen</button>
-    <div id="objectAreaAddForm" class="card area-add-form" style="display:none"><label>Bezeichnung</label><div class="row"><input id="newAreaName" placeholder="z. B. Tiefgarage" style="flex:1"><button class="primary" onclick="addObjectArea('${objectId}')">Hinzufügen</button></div></div>
+  modal(`<div class="row space"><div><h2 style="margin-bottom:2px">Einheiten &amp; Bereiche</h2><div class="muted">${esc(o.name)} · ${esc(objectTypeLabel(o.objectType))}</div></div><button onclick="closeModal()">✕</button></div>
+    <div class="muted" style="margin-top:14px">Untergliedert ein Objekt flexibel, z. B. in Wohnungen, Hotelzimmer, Etagen, Technikräume, Außenbereiche oder kommunale Assets. Diese Struktur wird in Dokumentationen und Meldungen verwendet.</div>
+    <button class="primary area-add-btn" onclick="showObjectAreaAddForm('${objectId}')">＋ Einheit / Bereich hinzufügen</button>
+    <div id="objectAreaAddForm" class="card area-add-form" style="display:none">
+      <div class="grid2">
+        <label>Typ<select id="newAreaKind">${objectAreaKindOptions('area')}</select></label>
+        <label>Bezeichnung<input id="newAreaName" placeholder="z. B. Zimmer 214, Wohnung 3.OG links, Tiefgarage, Brunnen Marienplatz"></label>
+      </div>
+      <div class="row" style="margin-top:8px"><button class="primary" onclick="addObjectArea('${objectId}')">Hinzufügen</button></div>
+    </div>
     <div style="margin-top:12px">${renderObjectAreaRows(objectId)}</div>`);
 }
 function showObjectAreaAddForm(objectId){
@@ -17103,21 +17139,66 @@ function showObjectAreaAddForm(objectId){
   const input=document.getElementById('newAreaName'); if(input){input.focus();input.onkeydown=e=>{if(e.key==='Enter')addObjectArea(objectId)}}
 }
 async function addObjectArea(objectId){
-  const name=(document.getElementById('newAreaName')?.value||'').trim(); if(!name)return alert('Bitte Bereichsbezeichnung eingeben.');
-  if(objectAreasFor(objectId,{includeInactive:true}).some(a=>String(a.name).trim().toLowerCase()===name.toLowerCase()))return alert('Dieser Bereich ist bereits vorhanden.');
-  try{await cloudSaveObjectArea(objectId,'',name,objectAreasFor(objectId,{includeInactive:true}).length+1);await cloudLoadObjectAreas();openObjectAreasModal(objectId);}
-  catch(e){alert('Bereich konnte nicht gespeichert werden: '+(e.message||e));}
+  const name=(document.getElementById('newAreaName')?.value||'').trim(); if(!name)return alert('Bitte eine Bezeichnung eingeben.');
+  const areaKind=document.getElementById('newAreaKind')?.value||'area';
+  if(objectAreasFor(objectId,{includeInactive:true}).some(a=>String(a.name).trim().toLowerCase()===name.toLowerCase()))return alert('Diese Einheit / dieser Bereich ist bereits vorhanden.');
+  try{await cloudSaveObjectArea(objectId,'',name,objectAreasFor(objectId,{includeInactive:true}).length+1,areaKind);await cloudLoadObjectAreas();openObjectAreasModal(objectId);}
+  catch(e){alert('Einheit / Bereich konnte nicht gespeichert werden: '+(e.message||e));}
 }
 async function renameObjectArea(objectId,areaId){
   const a=objectAreaById(areaId); if(!a)return;
   const name=prompt('Bereichsbezeichnung:',a.name||''); if(name===null)return;
   const clean=name.trim(); if(!clean)return alert('Die Bereichsbezeichnung darf nicht leer sein.');
-  try{await cloudSaveObjectArea(objectId,areaId,clean,a.sort_order||0);await cloudLoadObjectAreas();openObjectAreasModal(objectId);}
+  try{await cloudSaveObjectArea(objectId,areaId,clean,a.sort_order||0,a.areaKind||'area');await cloudLoadObjectAreas();openObjectAreasModal(objectId);}
   catch(e){alert('Bereich konnte nicht geändert werden: '+(e.message||e));}
 }
 async function toggleObjectArea(objectId,areaId,active){
   try{await cloudSetObjectAreaActive(areaId,active);await cloudLoadObjectAreas();openObjectAreasModal(objectId);}
   catch(e){alert('Bereich konnte nicht geändert werden: '+(e.message||e));}
+}
+
+
+const OBJECT_TYPE_LABELS={
+  property:'Immobilie / Objekt',
+  residential:'Wohnanlage / WEG',
+  rental:'Mietobjekt',
+  hotel:'Hotel / Beherbergung',
+  commercial:'Gewerbe / Büro',
+  municipal:'Kommune / öffentlicher Raum',
+  facility:'Betriebsstätte / Standort',
+  other:'Sonstiges'
+};
+const OBJECT_AREA_KIND_LABELS={
+  area:'Bereich',
+  apartment:'Wohnung / Einheit',
+  room:'Zimmer / Raum',
+  floor:'Etage',
+  technical:'Technikbereich',
+  outdoor:'Außenbereich',
+  parking:'Stellplatz / Garage',
+  asset:'Anlage / Asset',
+  other:'Sonstiges'
+};
+function objectTypeLabel(v){return OBJECT_TYPE_LABELS[String(v||'property')]||OBJECT_TYPE_LABELS.property}
+function objectAreaKindLabel(v){return OBJECT_AREA_KIND_LABELS[String(v||'area')]||OBJECT_AREA_KIND_LABELS.area}
+function objectTypeOptions(selected='property'){
+  return Object.entries(OBJECT_TYPE_LABELS).map(([v,l])=>`<option value="${esc(v)}" ${String(selected||'property')===v?'selected':''}>${esc(l)}</option>`).join('');
+}
+function objectAreaKindOptions(selected='area'){
+  return Object.entries(OBJECT_AREA_KIND_LABELS).map(([v,l])=>`<option value="${esc(v)}" ${String(selected||'area')===v?'selected':''}>${esc(l)}</option>`).join('');
+}
+async function enrichObjectRowsWithType(rows){
+  const list=Array.isArray(rows)?rows:[];
+  const missing=list.filter(r=>r && r.id && !r.object_type).map(r=>String(r.id));
+  if(!missing.length)return list;
+  try{
+    const typeRows=await cloudRequest(`objects?select=id,object_type&id=in.(${missing.map(encodeURIComponent).join(',')})`);
+    const typeMap=new Map((typeRows||[]).map(r=>[String(r.id),r.object_type||'property']));
+    return list.map(r=>({...r,object_type:r.object_type||typeMap.get(String(r.id))||'property'}));
+  }catch(e){
+    console.warn('Objekttypen konnten nicht ergänzt werden',e);
+    return list.map(r=>({...r,object_type:r.object_type||'property'}));
+  }
 }
 
 function objectAddressPartsForForm(o){
@@ -17356,7 +17437,7 @@ async function geocodeObjectFromModal(objectId){
 
 function openObjectModal(id=''){
   if(!canManageObjectsUI())return alert('Objektverwaltung ist für diese Rolle nicht freigegeben.');
-  const o=db.objects.find(x=>x.id===id)||{id:'',organizationId:currentOrganizationId(),name:'',street:'',postalCode:'',city:'',address:'',latitude:null,longitude:null,geocodedAt:null,geocodeSource:null,notes:'',isTest:false};
+  const o=db.objects.find(x=>x.id===id)||{id:'',organizationId:currentOrganizationId(),name:'',street:'',postalCode:'',city:'',address:'',objectType:'property',latitude:null,longitude:null,geocodedAt:null,geocodeSource:null,notes:'',isTest:false};
   const addressParts=objectAddressPartsForForm(o);
   const allowedOrgs=isAdminRole()?cloudOrganizations.filter(x=>x.active!==false):(currentOrganization?[currentOrganization]:[]);
   const fixedOrgId=id?o.organizationId:(o.organizationId||allowedOrgs[0]?.id||'');
@@ -17366,7 +17447,14 @@ function openObjectModal(id=''){
 
   modal(`<div class="row space"><h2>${id?'Objekt bearbeiten':'Objekt anlegen'}</h2><button onclick="closeModal()">✕</button></div>
   ${orgControl}
-  <label>Objektbezeichnung *</label><input id="oName" value="${esc(o.name)}" placeholder="z. B. WEG Musterstraße 12">
+  <div class="grid2" style="margin-top:10px">
+    <label>Objekttyp *
+      <select id="oObjectType">${objectTypeOptions(o.objectType||'property')}</select>
+    </label>
+    <label>Objektbezeichnung *
+      <input id="oName" value="${esc(o.name)}" placeholder="z. B. WEG Musterstraße 12, Hotel Zentrum, Stadtbezirk Nord">
+    </label>
+  </div>
 
   <div class="grid2" style="margin-top:10px">
     <label>Straße / Hausnummer
@@ -17458,6 +17546,7 @@ async function saveObject(id){
   const data={
     organizationId,
     name,
+    objectType:document.getElementById('oObjectType')?.value||'property',
     street,
     postalCode,
     city,
