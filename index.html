@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.36</title>
+<title>Duschl Service – Objektplattform v2.24.37</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -7007,7 +7007,19 @@ BACKEND: keine neue SQL-/RLS-Änderung.
      Verknüpfung fehlschlägt.
    BACKEND: SQL 2.24.36 erforderlich.
 */
-const APP_VERSION='2.24.36'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.37 | BASIS 2.24.36 | 28.09.2026
+   ATOMARE 1:1-WINTERDIENST-DOKUMENTATION + DUBLETTENBEREINIGUNG
+   - Beim ersten Klick auf "Leistungsdokumentation erstellen" wird serverseitig
+     atomar genau eine zentrale Leistungsdokumentation für den Winterdienst-Stopp
+     erzeugt und sofort verknüpft.
+   - Wiederholte Klicks/Teilfehler öffnen immer dieselbe Dokumentation.
+   - Einzigartigkeit wird zusätzlich DB-seitig über findings.winter_execution_id
+     abgesichert.
+   - Lindenhof-Dubletten vom 28.09. werden bereinigt; führend bleibt
+     06c8ff2f-afa0-4edc-94f0-2d7398522d6d.
+   BACKEND: SQL 2.24.37 erforderlich.
+*/
+const APP_VERSION='2.24.37'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -20146,12 +20158,14 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   }
 
   if(!db.objects.length){alert('Bitte zuerst ein Objekt anlegen.');showSection('objects');return}
-  const winterCtx=(!editId && winterDocumentationContext && String(winterDocumentationContext.objectId||'')===String(prefObj||''))
+  const winterCtx=(winterDocumentationContext
+    && String(winterDocumentationContext.objectId||'')===String(prefObj||'')
+    && (!editId || !winterDocumentationContext.findingId || String(winterDocumentationContext.findingId)===String(editId)))
     ? winterDocumentationContext
     : null;
   const f=db.findings.find(x=>x.id===editId)||{objectId:prefObj,inspectionId:prefInsp,type:'Feststellung',title:'',areaId:'',area:'',areaDetail:'',category:'Sicherheit',priority:'P3',description:'',action:'',activity:'',status:'Offen',beforePhoto:'',afterPhoto:'',beforePhotos:[],afterPhotos:[],completionType:'',completionNote:'',decisionRequired:editId?true:'',decisionStatus:'pending',decisionBy:'',decisionDate:'',decisionComment:'',decisionAmount:''};
 
-  if(winterCtx){
+  if(winterCtx && !editId){
     f.type='Leistung';
     f.title=`Winterdienst · ${winterCtx.serviceDate||''}`.replace(/ · $/,'');
     f.activity=winterCtx.activity||'Winterdienst durchgeführt';
@@ -20702,11 +20716,12 @@ async function saveFinding(id){
     let winterLinkError=null;
     if(winterReturnContext?.executionId){
       try{
-        await linkWinterDocumentationAfterSave(row,data);
+        // Die 1:1-Verknüpfung existiert seit dem Öffnen bereits atomar.
+        // Nach dem Speichern wird nur noch der Stop-Status synchronisiert.
         await syncWinterExecutionFromFinding(row.id);
       }catch(e){
         winterLinkError=e;
-        console.error('Dokumentation gespeichert, Winterdienst-Verknüpfung fehlgeschlagen',e);
+        console.error('Dokumentation gespeichert, Winterdienst-Status-Synchronisierung fehlgeschlagen',e);
       }
     }else{
       await syncWinterExecutionFromFinding(row.id);
@@ -20817,7 +20832,7 @@ async function saveFinding(id){
       }
       if(winterLinkError){
         alert(
-          'Die Leistungsdokumentation wurde gespeichert, aber die Verknüpfung mit dem Winterdienst-Stopp ist fehlgeschlagen.\n\n' +
+          'Die Leistungsdokumentation wurde gespeichert, aber der Winterdienst-Status konnte nicht synchronisiert werden.\n\n' +
           (winterLinkError?.message||winterLinkError)
         );
       }
@@ -23718,40 +23733,49 @@ async function wsOpenOrCreateDocumentation(executionId){
   const x=wsState.executions.find(e=>String(e.id||'')===String(executionId||''));
   if(!x)return alert('Winterdienst-Objektstopp nicht gefunden.');
 
-  const linkedId=String(x.documentation_finding_id||'');
-  if(linkedId){
-    let linked=(db.findings||[]).find(f=>String(f.id||'')===linkedId)||null;
-    if(!linked){
-      try{await cloudReloadFindings();}catch(_e){}
-      linked=(db.findings||[]).find(f=>String(f.id||'')===linkedId)||null;
-    }
-    if(linked){
-      winterDocumentationContext={
-        executionId:x.id,
-        runId:x.run_id,
-        objectId:x.object_id,
-        findingId:linkedId
-      };
-      openFindingModal(x.object_id,'',linkedId,false);
-      return;
-    }
-    return alert('Die verknüpfte Leistungsdokumentation konnte nicht geladen werden.');
-  }
-
   const run=wsState.runs.find(r=>String(r.id||'')===String(x.run_id||''))||null;
   const object=(db.objects||[]).find(o=>String(o.id||'')===String(x.object_id||''))||null;
 
-  winterDocumentationContext={
-    executionId:x.id,
-    runId:x.run_id,
-    objectId:x.object_id,
-    objectName:object?.name||'Objekt',
-    serviceDate:run?.service_date||'',
-    tourName:run?.tour_name||run?.name||run?.template_name||'Winterdiensttour',
-    activity:wsServiceActionLabel(x.service_action)
-  };
+  try{
+    // 2.24.37: Die Dokumentation wird nicht mehr erst beim späteren Speichern
+    // erzeugt. Diese RPC erzeugt/verknüpft sie atomar und ist idempotent.
+    const rows=await cloudRequest('rpc/ensure_winter_execution_documentation_v1',{
+      method:'POST',
+      body:JSON.stringify({
+        p_execution_id:x.id
+      })
+    });
+    const ensured=Array.isArray(rows)?rows[0]:rows;
+    const findingId=String(ensured?.finding_id||x.documentation_finding_id||'');
 
-  openFindingModal(x.object_id,'','',false);
+    if(!findingId){
+      throw new Error('Die zentrale Leistungsdokumentation konnte nicht erzeugt oder gefunden werden.');
+    }
+
+    x.documentation_finding_id=findingId;
+
+    winterDocumentationContext={
+      executionId:x.id,
+      runId:x.run_id,
+      objectId:x.object_id,
+      objectName:object?.name||'Objekt',
+      serviceDate:run?.service_date||'',
+      tourName:run?.tour_name||run?.name||run?.template_name||'Winterdiensttour',
+      activity:wsServiceActionLabel(x.service_action),
+      findingId
+    };
+
+    await cloudReloadFindings();
+    const linked=(db.findings||[]).find(f=>String(f.id||'')===findingId)||null;
+    if(!linked){
+      throw new Error('Die angelegte Leistungsdokumentation konnte nicht geladen werden.');
+    }
+
+    openFindingModal(x.object_id,'',findingId,false);
+  }catch(e){
+    console.error('Winterdienst-Leistungsdokumentation konnte nicht geöffnet werden',e);
+    alert('Leistungsdokumentation konnte nicht geöffnet werden: '+(e.message||e));
+  }
 }
 
 async function wsOpenExecution(id){
