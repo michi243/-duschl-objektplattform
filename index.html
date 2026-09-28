@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.37</title>
+<title>Duschl Service – Objektplattform v2.24.38</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3775,6 +3775,32 @@ table td,table th{
 }
 </style>
 
+
+<style id="duschl-operation-tour-close-v22438">
+.ops-run-progress-summary{
+  margin:12px 0 2px;
+  padding:10px 12px;
+  border-radius:10px;
+  background:rgba(148,163,184,.08);
+}
+.ops-tour-finish-bar{
+  margin-top:18px;
+  padding-top:16px;
+  border-top:1px solid rgba(148,163,184,.22);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  flex-wrap:wrap;
+}
+.ops-unfinished-stop{
+  border:1px solid rgba(229,177,63,.35);
+}
+.ops-stop-closure-info{
+  border:1px solid rgba(229,177,63,.3);
+}
+</style>
+
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -7019,7 +7045,20 @@ BACKEND: keine neue SQL-/RLS-Änderung.
      06c8ff2f-afa0-4edc-94f0-2d7398522d6d.
    BACKEND: SQL 2.24.37 erforderlich.
 */
-const APP_VERSION='2.24.37'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.38 | BASIS 2.24.37 | 28.09.2026
+   STANDARDTOUR: STOPP- UND TOURABSCHLUSS
+   - Jeder Stopp kann operativ als erledigt markiert werden.
+   - "Tour beenden" ist immer möglich.
+   - Sind Stopps offen, wird je Stopp ein Abschlussgrund verlangt.
+   - Die Tour wird revisionssicher abgeschlossen; offene Stopps werden als
+     nicht ausgeführt dokumentiert und als interne Nacharbeit in den
+     objektbezogenen Arbeitsvorrat übernommen.
+   - Zusatzaufgaben am Objekt blockieren den Tourabschluss ausdrücklich nicht.
+   - Run-Status bleibt kompatibel: completed/cancelled/planned/active.
+   - Fachlicher Abschluss wird zusätzlich über closure_outcome dokumentiert.
+   BACKEND: SQL 2.24.38 erforderlich.
+*/
+const APP_VERSION='2.24.38'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -24199,6 +24238,8 @@ function opsRunStopDuration(stop){
 }
 function opsRunStopStatusLabel(stop){
   const s=String(stop?.status||'planned').toLowerCase();
+  const outcome=String(stop?.closure_outcome||'').toLowerCase();
+  if(s==='cancelled'&&outcome==='not_completed')return 'Nicht ausgeführt';
   return ({
     planned:'Geplant',
     active:'In Bearbeitung',
@@ -24207,6 +24248,164 @@ function opsRunStopStatusLabel(stop){
     cancelled:'Storniert'
   })[s]||String(stop?.status||'Geplant');
 }
+function opsRunStopsForRun(runId){
+  return (opsState.runStops||[])
+    .filter(x=>String(x.run_id||'')===String(runId||''))
+    .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+}
+
+function opsOpenStopsForRun(runId){
+  return opsRunStopsForRun(runId)
+    .filter(x=>!['completed','cancelled'].includes(String(x.status||'planned').toLowerCase()));
+}
+
+function opsRunClosureLabel(run){
+  const outcome=String(run?.closure_outcome||'').toLowerCase();
+  if(outcome==='partial')return 'Teilweise abgeschlossen';
+  if(outcome==='aborted')return 'Abgebrochen';
+  if(outcome==='completed')return 'Abgeschlossen';
+  return omTourStatusLabel(run?.status||'planned');
+}
+
+async function opsCompleteRunStop(stopId){
+  try{
+    const rows=await cloudRequest('rpc/complete_operation_run_stop_v1',{
+      method:'POST',
+      body:JSON.stringify({p_run_stop_id:stopId})
+    });
+    const updated=Array.isArray(rows)?rows[0]:rows;
+    const local=(opsState.runStops||[]).find(x=>String(x.id)===String(stopId));
+    if(local){
+      local.status='completed';
+      local.closure_outcome='completed';
+      local.closed_at=updated?.closed_at||new Date().toISOString();
+    }
+    await opsLoad();
+  }catch(e){
+    alert('Stopp konnte nicht abgeschlossen werden: '+(e.message||e));
+  }
+}
+
+function opsTourCloseReasonOptions(selected=''){
+  const rows=[
+    ['time','Zeit nicht ausreichend'],
+    ['access','Kein Zugang'],
+    ['weather','Wetter / Bedingungen'],
+    ['material','Material / Werkzeug fehlt'],
+    ['customer','Durch Kunde / Bewohner verhindert'],
+    ['technical','Technischer Grund'],
+    ['other','Sonstiges']
+  ];
+  return rows.map(([v,l])=>`<option value="${v}" ${v===selected?'selected':''}>${l}</option>`).join('');
+}
+
+function opsOpenFinishTourModal(runId){
+  const run=(opsState.runs||[]).find(r=>String(r.id)===String(runId));
+  if(!run)return alert('Tour nicht gefunden.');
+
+  const stops=opsRunStopsForRun(runId);
+  const open=opsOpenStopsForRun(runId);
+  const done=stops.filter(x=>String(x.status||'')==='completed');
+
+  if(!stops.length)return alert('Diese Tour enthält keine Stopps.');
+
+  if(!open.length){
+    modal(`<div class="row space"><h2>Tour abschließen</h2><button onclick="closeModal()">✕</button></div>
+      <div class="card" style="margin-top:12px">
+        <strong>${opsEsc(run.name||'Tour')}</strong>
+        <div class="muted" style="margin-top:5px">${done.length}/${stops.length} Stopps erledigt.</div>
+        <div style="margin-top:10px">Alle Stopps sind abgeschlossen. Die Tour wird ins Archiv verschoben.</div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button class="primary" onclick="opsFinishTour('${opsEsc(runId)}')">Tour abschließen</button>
+        <button onclick="closeModal()">Abbrechen</button>
+      </div>`);
+    return;
+  }
+
+  modal(`<div class="row space"><h2>Tour beenden</h2><button onclick="closeModal()">✕</button></div>
+    <div class="card" style="margin-top:12px">
+      <strong>${done.length}/${stops.length} Stopps erledigt</strong>
+      <div class="muted" style="margin-top:5px">
+        ${open.length} ${open.length===1?'Stopp konnte':'Stopps konnten'} nicht abgeschlossen werden.
+        Die Tour kann trotzdem beendet werden.
+      </div>
+    </div>
+
+    <div style="margin-top:14px">
+      ${open.map((stop,i)=>`
+        <div class="card ops-unfinished-stop" data-stop-id="${opsEsc(stop.id)}" style="margin:10px 0">
+          <strong>${i+1}. ${opsEsc(opsObjName(stop.object_id))}</strong>
+          <div class="muted">${opsEsc(opsServiceName(stop.service_type_id))}</div>
+          <label>Grund *</label>
+          <select data-ops-close-reason="${opsEsc(stop.id)}">
+            <option value="">Bitte wählen …</option>
+            ${opsTourCloseReasonOptions()}
+          </select>
+          <label>Bemerkung</label>
+          <textarea data-ops-close-note="${opsEsc(stop.id)}" placeholder="Optional konkretisieren"></textarea>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <strong>Folgeprozess</strong>
+      <div class="muted" style="margin-top:5px">
+        Nicht ausgeführte Stopps werden als interne Nacharbeit am jeweiligen Objekt angelegt.
+        Sie erscheinen damit im Arbeitsvorrat und bei einer späteren Tour am Objekt.
+        Zusätzliche Aufgaben im Arbeitsvorrat blockieren den Abschluss dieser Tour nicht.
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:14px">
+      <button class="primary" onclick="opsFinishTour('${opsEsc(runId)}')">Tour teilweise abschließen</button>
+      <button class="danger" onclick="opsFinishTour('${opsEsc(runId)}','aborted')">Tour abbrechen</button>
+      <button onclick="closeModal()">Abbrechen</button>
+    </div>`);
+}
+
+async function opsFinishTour(runId,forcedOutcome=''){
+  const open=opsOpenStopsForRun(runId);
+  const reasons=[];
+
+  for(const stop of open){
+    const reason=document.querySelector(`[data-ops-close-reason="${CSS.escape(String(stop.id))}"]`)?.value||'';
+    const note=document.querySelector(`[data-ops-close-note="${CSS.escape(String(stop.id))}"]`)?.value.trim()||'';
+    if(!reason){
+      alert(`Bitte für ${opsObjName(stop.object_id)} einen Grund auswählen.`);
+      return;
+    }
+    reasons.push({
+      run_stop_id:stop.id,
+      reason_code:reason,
+      reason_text:note||null
+    });
+  }
+
+  try{
+    const rows=await cloudRequest('rpc/finish_operation_run_v1',{
+      method:'POST',
+      body:JSON.stringify({
+        p_run_id:runId,
+        p_outcome:forcedOutcome||null,
+        p_open_stop_reasons:reasons
+      })
+    });
+    const result=Array.isArray(rows)?rows[0]:rows;
+    closeModal();
+    opsFocusRunId='';
+    await opsLoad();
+    try{await refreshObjectManagerTours();}catch(_e){}
+    alert(result?.closure_outcome==='partial'
+      ? 'Tour teilweise abgeschlossen. Offene Stopps wurden als Nacharbeit in den Arbeitsvorrat übernommen.'
+      : result?.closure_outcome==='aborted'
+        ? 'Tour abgebrochen. Offene Stopps wurden als Nacharbeit gesichert.'
+        : 'Tour abgeschlossen.');
+  }catch(e){
+    alert('Tour konnte nicht beendet werden: '+(e.message||e));
+  }
+}
+
 function opsRunStopWorkHtml(stop,index){
   const duration=opsRunStopDuration(stop);
   const instruction=opsRunStopInstruction(stop);
@@ -24236,7 +24435,18 @@ function opsRunStopWorkHtml(stop,index){
       <div>${opsEsc(instruction)}</div>
     </div>
 
+    ${String(stop.status||'planned').toLowerCase()==='cancelled'&&stop.closure_reason_code?`
+      <div class="card ops-stop-closure-info" style="margin-top:12px">
+        <strong>Nicht ausgeführt</strong>
+        <div class="muted" style="margin-top:4px">${opsEsc(stop.closure_reason_text||stop.closure_reason_code)}</div>
+      </div>`:''}
+
     ${tourObjectWorkQueueHtml(stop.object_id,{compact:false})}
+
+    ${!['completed','cancelled'].includes(String(stop.status||'planned').toLowerCase())?`
+      <div class="row" style="margin-top:14px">
+        <button type="button" class="primary" onclick="opsCompleteRunStop('${opsEsc(stop.id)}')">Stopp erledigt</button>
+      </div>`:''}
   </div>`;
 }
 
@@ -24281,6 +24491,8 @@ function opsRenderMyRuns(){
     const focused=String(opsFocusRunId)===String(r.id);
 
     if(focused && !archived){
+      const completedCount=xs.filter(x=>String(x.status||'')==='completed').length;
+      const unfinishedCount=xs.filter(x=>!['completed','cancelled'].includes(String(x.status||'planned').toLowerCase())).length;
       return `<div class="card ops-focus-run ops-work-run" data-ops-run-id="${opsEsc(r.id)}">
         <div class="ops-work-run-head">
           <div>
@@ -24291,8 +24503,25 @@ function opsRenderMyRuns(){
           <span class="badge">${overdueFlag?'ÜBERFÄLLIG':'TOUR'}</span>
         </div>
         <div class="ops-work-run-copy">Arbeite die Stopps in Reihenfolge ab. Pro Stopp siehst du den konkreten Leistungsumfang und die verbindliche Arbeitsanweisung.</div>
+        <div class="ops-run-progress-summary">
+          <strong>${completedCount}/${xs.length} Stopps erledigt</strong>
+          ${unfinishedCount?`<span class="muted"> · ${unfinishedCount} offen</span>`:''}
+        </div>
         <div class="ops-work-stop-list">
           ${xs.map((x,i)=>opsRunStopWorkHtml(x,i)).join('')||'<div class="muted">Keine Stopps in dieser Tour.</div>'}
+        </div>
+        <div class="ops-tour-finish-bar">
+          <div>
+            <strong>Tour beenden</strong>
+            <div class="muted">
+              ${unfinishedCount
+                ? 'Auch mit offenen Stopps möglich. Für jeden offenen Stopp ist ein Grund erforderlich.'
+                : 'Alle Stopps sind erledigt. Die Tour kann abgeschlossen werden.'}
+            </div>
+          </div>
+          <button type="button" class="primary" onclick="opsOpenFinishTourModal('${opsEsc(r.id)}')">
+            ${unfinishedCount?'Tour beenden':'Tour abschließen'}
+          </button>
         </div>
       </div>`;
     }
@@ -24301,7 +24530,7 @@ function opsRenderMyRuns(){
       <div class="row space" style="gap:10px;align-items:flex-start">
         <div>
           <strong>${opsEsc(r.service_date)} · ${opsEsc(r.name||'Tour')}</strong>
-          <div class="muted" style="margin-top:4px">${start?`${opsEsc(start)} Uhr · `:''}${xs.length} ${xs.length===1?'Stopp':'Stopps'} · ${overdueFlag?'Überfällig':opsEsc(omTourStatusLabel(status))}</div>
+          <div class="muted" style="margin-top:4px">${start?`${opsEsc(start)} Uhr · `:''}${xs.length} ${xs.length===1?'Stopp':'Stopps'} · ${overdueFlag?'Überfällig':opsEsc(archived?opsRunClosureLabel(r):omTourStatusLabel(status))}</div>
         </div>
         <button type="button" onclick="opsFocusRunId='${opsEsc(r.id)}';opsRenderMyRuns()">Arbeitsauftrag öffnen</button>
       </div>
