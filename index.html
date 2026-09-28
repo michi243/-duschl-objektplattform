@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.32</title>
+<title>Duschl Service – Objektplattform v2.24.33</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3718,6 +3718,42 @@ table td,table th{
 }
 </style>
 
+
+<style id="duschl-winter-run-ux-v22433">
+.ws-run-object-list{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.ws-run-object-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  min-width:210px;
+}
+.ws-run-object-number{
+  display:inline-flex;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  align-items:center;
+  justify-content:center;
+  font-weight:800;
+  border:1px solid rgba(148,163,184,.35);
+  flex:0 0 28px;
+}
+.ws-run-object-text{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  align-items:flex-start;
+}
+.ws-run-object-text small{
+  font-weight:500;
+  opacity:.75;
+}
+</style>
+
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -6908,7 +6944,16 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Standardtour und Winterdienst nutzen dieselbe robuste Dateiöffnungslogik.
    BACKEND: SQL 2.24.32 erforderlich.
 */
-const APP_VERSION='2.24.32'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.33 | BASIS 2.24.32 | 28.09.2026
+   WINTERDIENST-TOUREN UX + STATUS
+   - Objektbuttons zeigen echte Objektnamen statt "1. Objekt / 2. Objekt".
+   - Pro Objekt werden Einsatzart und Status direkt sichtbar.
+   - Run-Fortschritt zeigt erledigte Stopps.
+   - Nach Abschluss des letzten Stopps wird der Winterdienst-Run automatisch
+     auf completed gesetzt und wandert in das Archiv.
+   - Kein breiterer Datenzugriff / keine RLS-Änderung.
+*/
+const APP_VERSION='2.24.33'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -23161,15 +23206,19 @@ function wsWinterAssignmentNoteForExecution(x){
 
 function wsRunStatus(r){
   const xs=wsState.executions.filter(x=>String(x.run_id)===String(r.id));
-  if(xs.some(x=>String(x.status)==='active'))return 'active';
+  const persisted=String(r?.status||'').toLowerCase();
   if(xs.length && xs.every(x=>String(x.status)==='completed'))return 'completed';
+  if(xs.some(x=>String(x.status)==='active'))return 'active';
+  if(persisted==='completed')return 'completed';
+  if(persisted==='active'||persisted==='in_progress')return 'active';
   return 'planned';
 }
 function wsRunStatusLabel(s){ return s==='active'?'Läuft':s==='completed'?'Abgeschlossen':'Geplant'; }
 function wsRunCard(r){
   const xs=wsState.executions.filter(x=>String(x.run_id)===String(r.id))
     .sort((a,b)=>(Number(a.sort_order||0)-Number(b.sort_order||0)));
-  const objName=id=>wsState.objects?.find(o=>String(o.id)===String(id))?.name||'Objekt';
+
+  const objName=id=>(db.objects||[]).find(o=>String(o.id)===String(id))?.name||'Objekt';
   const assignedToCurrentUser=String(r.assigned_user_id||'')===String(currentUserId()||'');
   const currentUserName=assignedToCurrentUser
     ? (currentUserProfile?.full_name||cloudSession?.user?.user_metadata?.full_name||cloudSession?.user?.email||'Zugewiesen')
@@ -23178,17 +23227,36 @@ function wsRunCard(r){
     ||r.assignee_name
     ||currentUserName
     ||(r.assigned_user_id?'Zugewiesen':'Nicht zugewiesen');
+
   const status=wsRunStatus(r);
   const title=r.tour_name||r.name||r.template_name||'Tagestour';
+  const completed=xs.filter(x=>String(x.status)==='completed').length;
+
+  const stopButtons=xs.map((x,i)=>{
+    const name=objName(x.object_id);
+    const stopStatus=String(x.status||'planned');
+    const statusLabel=wsStatusLabel(stopStatus);
+    const action=wsServiceActionLabel(x.service_action);
+    return `<button class="btn secondary ws-run-object-btn" style="margin:3px 6px 3px 0;text-align:left" onclick="wsOpenExecution('${x.id}')">
+      <span class="ws-run-object-number">${i+1}</span>
+      <span class="ws-run-object-text">
+        <strong>${wsEsc(name)}</strong>
+        <small>${wsEsc(action)} · ${wsEsc(statusLabel)}</small>
+      </span>
+    </button>`;
+  }).join('');
+
   return `<div class="card" style="margin:10px 0;padding:14px">
     <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
       <div>
         <strong>${wsEsc(r.service_date||'')} · ${wsEsc(title)}</strong>
-        <div class="muted" style="margin-top:4px">${xs.length} Objekt${xs.length===1?'':'e'} · Ausgeführt von: ${wsEsc(assignee)}</div>
+        <div class="muted" style="margin-top:4px">
+          ${xs.length} Objekt${xs.length===1?'':'e'} · ${completed}/${xs.length} erledigt · Ausgeführt von: ${wsEsc(assignee)}
+        </div>
       </div>
       <span class="badge">${wsEsc(wsRunStatusLabel(status))}</span>
     </div>
-    <div style="margin-top:10px">${xs.map((x,i)=>`<button class="btn secondary" style="margin:3px 6px 3px 0" onclick="wsOpenExecution('${x.id}')">${i+1}. ${wsEsc(objName(x.object_id))}</button>`).join('')}</div>
+    <div class="ws-run-object-list" style="margin-top:10px">${stopButtons}</div>
   </div>`;
 }
 function wsRenderGroupedRuns(){
@@ -23578,17 +23646,93 @@ async function wsStoreExecutionPhoto(executionId,objectId,phase,file){
   await cloudMediaPut(path,file);
   await cloudRequest('winter_service_execution_media',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({id:mid,organization_id:wsOrg(),execution_id:executionId,object_id:objectId,phase,storage_path:path,original_filename:file.name||null,mime_type:file.type||null,created_by:currentUserId()})});
 }
+async function wsSyncRunCompletion(runId){
+  const run=wsState.runs.find(r=>String(r.id)===String(runId));
+  if(!run)return false;
+
+  const xs=wsState.executions.filter(x=>String(x.run_id)===String(runId));
+  if(!xs.length)return false;
+
+  const allCompleted=xs.every(x=>String(x.status)==='completed');
+  if(!allCompleted)return false;
+
+  try{
+    await cloudRequest(`winter_service_runs?id=eq.${encodeURIComponent(runId)}`,{
+      method:'PATCH',
+      headers:{Prefer:'return=minimal'},
+      body:JSON.stringify({
+        status:'completed',
+        completed_at:new Date().toISOString()
+      })
+    });
+    run.status='completed';
+    run.completed_at=new Date().toISOString();
+    return true;
+  }catch(e){
+    // Einige ältere Schemas besitzen completed_at ggf. nicht.
+    // Dann zumindest den Status sauber zurückschreiben.
+    console.warn('Run-Abschluss mit completed_at fehlgeschlagen, Retry nur Status',e);
+    await cloudRequest(`winter_service_runs?id=eq.${encodeURIComponent(runId)}`,{
+      method:'PATCH',
+      headers:{Prefer:'return=minimal'},
+      body:JSON.stringify({status:'completed'})
+    });
+    run.status='completed';
+    return true;
+  }
+}
+
 async function wsCompleteExecution(id){
   try{
-    const x=wsState.executions.find(e=>e.id===id);if(!x)throw new Error('Einsatz nicht gefunden.');
-    const before=wsExecutionPhotos.before, after=wsExecutionPhotos.after;
+    const x=wsState.executions.find(e=>e.id===id);
+    if(!x)throw new Error('Einsatz nicht gefunden.');
+
+    const before=wsExecutionPhotos.before;
+    const after=wsExecutionPhotos.after;
     if(!before||!after)throw new Error('Vorher- und Nachherfoto sind verpflichtend.');
-    const required=[...document.querySelectorAll('[data-ws-done]')]; if(required.length&&required.some(c=>!c.checked))throw new Error('Bitte alle beauftragten Bereiche bestätigen.');
-    await wsStoreExecutionPhoto(id,x.object_id,'before',before); await wsStoreExecutionPhoto(id,x.object_id,'after',after);
+
+    const required=[...document.querySelectorAll('[data-ws-done]')];
+    if(required.length&&required.some(c=>!c.checked)){
+      throw new Error('Bitte alle beauftragten Bereiche bestätigen.');
+    }
+
+    await wsStoreExecutionPhoto(id,x.object_id,'before',before);
+    await wsStoreExecutionPhoto(id,x.object_id,'after',after);
+
     const note=document.getElementById('wsExecutionNote').value.trim();
-    await cloudRequest(`winter_service_executions?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:'completed',completed_at:new Date().toISOString(),completion_note:note||null,completed_by:currentUserId()})});
-    await loadWinterService(); document.getElementById('wsExecutionPanel').innerHTML='<div class="empty">Einsatz abgeschlossen. Nächstes Objekt aus der Tagestour öffnen.</div>';
-  }catch(e){alert('Einsatz konnte nicht abgeschlossen werden: '+(e.message||e))}
+    const completedAt=new Date().toISOString();
+
+    await cloudRequest(`winter_service_executions?id=eq.${encodeURIComponent(id)}`,{
+      method:'PATCH',
+      headers:{Prefer:'return=minimal'},
+      body:JSON.stringify({
+        status:'completed',
+        completed_at:completedAt,
+        completion_note:note||null,
+        completed_by:currentUserId()
+      })
+    });
+
+    Object.assign(x,{
+      status:'completed',
+      completed_at:completedAt,
+      completion_note:note||null,
+      completed_by:currentUserId()
+    });
+
+    const runCompleted=await wsSyncRunCompletion(x.run_id);
+
+    await loadWinterService();
+
+    const panel=document.getElementById('wsExecutionPanel');
+    if(panel){
+      panel.innerHTML=runCompleted
+        ? '<div class="empty">Tagestour vollständig abgeschlossen und ins Archiv verschoben.</div>'
+        : '<div class="empty">Einsatz abgeschlossen. Nächstes Objekt aus der Tagestour öffnen.</div>';
+    }
+  }catch(e){
+    alert('Einsatz konnte nicht abgeschlossen werden: '+(e.message||e));
+  }
 }
 
 
