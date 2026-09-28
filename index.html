@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.00</title>
+<title>Duschl Service – Objektplattform v2.24.01</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -2991,6 +2991,66 @@ table td,table th{
 #oObjectType,#newAreaKind{min-height:44px}
 .area-manage-main .muted{font-weight:600}
 </style>
+
+<style id="duschl-workqueue-visibility-v22401">
+.ds-queue-owner{
+  grid-template-columns:190px minmax(0,1fr)!important;
+  grid-template-areas:"label viewers"!important;
+  align-items:start!important;
+}
+.ds-queue-owner>span{
+  grid-area:label!important;
+  padding-top:4px;
+}
+.ds-queue-viewers{
+  grid-area:viewers;
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+}
+.ds-queue-viewer{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  min-width:190px;
+  padding:7px 9px;
+  border-radius:9px;
+  background:rgba(255,255,255,.035);
+  border:1px solid rgba(255,255,255,.08);
+}
+.ds-queue-viewer>strong{
+  color:#F5F8FA!important;
+  font-size:13px!important;
+}
+.ds-queue-viewer>small{
+  color:#8FA1AE!important;
+  font-size:10px!important;
+}
+.ds-queue-owner-empty{
+  grid-template-areas:
+    "label name"
+    ". meta"!important;
+}
+.ds-queue-owner-empty>strong{grid-area:name}
+.ds-queue-owner-empty>small{grid-area:meta}
+
+@media(max-width:680px){
+  .ds-queue-owner,
+  .ds-queue-owner-empty{
+    grid-template-columns:1fr!important;
+    grid-template-areas:
+      "label"
+      "viewers"!important;
+  }
+  .ds-queue-owner-empty{
+    grid-template-areas:
+      "label"
+      "name"
+      "meta"!important;
+  }
+  .ds-queue-viewer{min-width:100%}
+}
+</style>
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -5878,7 +5938,14 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Nutzeroberfläche verwendet generisch „Meldung“ statt „Bewohnermeldung“
    - Bestehende Routing-/SOP-/Arbeitsvorratslogik bleibt unverändert
    - Additive SQL-Migration: objects.object_type + object_areas.area_kind */
-const APP_VERSION='2.24.00'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.01 | BASIS 2.24.00 | 28.09.2026
+   ARBEITSVORRAT / SICHTBARKEIT
+   - Arbeitsvorrat zeigt alle objektbezogen berechtigten Benutzer statt einer Einzelperson
+   - Source of Truth: aktive object_user_assignments bzw. Shared-Object-Zuweisungen
+   - Mehrere Objektbetreuer sehen denselben Vorgang und werden vollständig angezeigt
+   - Ausführung bleibt weiterhin genau einer Person beim Abschluss zugeordnet
+   - Keine SQL-/RLS-/Backend-Änderung */
+const APP_VERSION='2.24.01'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -9484,32 +9551,86 @@ async function saveSharedObjectAssignment(collaborationId){
 }
 
 
-function workQueueResponsibilityForObject(objectId){
-  const oid=String(objectId||'');
-  if(!oid)return null;
+function workQueueVisibilityForObject(objectId,order=null){
+  const oid=String(objectId||order?.source_object_id||order?.object_id||'');
+  if(!oid)return [];
 
-  const rows=(db.objectAssignments||[]).filter(a=>
-    a.active!==false &&
-    String(a.objectId||a.object_id||'')===oid
+  const rows=[];
+  const seen=new Set();
+
+  const pushUser=(uid,name,role,source)=>{
+    const id=String(uid||'').trim();
+    const display=String(name||profileDisplayName(id)||'').trim();
+    const key=id||`${source}:${display}`;
+    if(!key||seen.has(key))return;
+    seen.add(key);
+    rows.push({
+      id,
+      name:display||'Objektbetreuer',
+      role:String(role||'object_operator'),
+      source:String(source||'object')
+    });
+  };
+
+  // 1) Eigene Objektzuweisungen des aktuell ausführenden Mandanten.
+  (db.objectAssignments||[])
+    .filter(a=>
+      a.active!==false &&
+      String(a.objectId||a.object_id||'')===oid
+    )
+    .forEach(a=>{
+      const uid=a.userId||a.user_id;
+      pushUser(
+        uid,
+        profileDisplayName(uid),
+        a.object_role||'object_operator',
+        'object'
+      );
+    });
+
+  // 2) Extern freigegebene Objekte: alle aktiven Shared-Object-Zuweisungen
+  // der Zusammenarbeit mit dem aktuell aktiven Dienstleister-Mandanten.
+  const collab=(cloudObjectCollaborations||[]).find(c=>
+    String(c.object_id||'')===oid &&
+    String(c.service_organization_id||'')===String(currentOrganizationId()||'') &&
+    c.active!==false &&
+    String(c.status||'active')==='active'
   );
 
-  if(rows.length){
-    const roleRank={object_operator:1,object_responsible:2,object_deputy:3};
-    rows.sort((a,b)=>
-      (roleRank[String(a.object_role||'object_operator')]||9)-
-      (roleRank[String(b.object_role||'object_operator')]||9)
-    );
-    const row=rows[0];
-    const uid=row.userId||row.user_id;
-    return {
-      id:uid,
-      name:profileDisplayName(uid)||'Objektbetreuer',
-      source:'object',
-      role:String(row.object_role||'object_operator')
-    };
+  if(collab){
+    (cloudSharedObjectAssignees||[])
+      .filter(a=>
+        String(a.collaboration_id||'')===String(collab.id||'') &&
+        a.active!==false
+      )
+      .forEach(a=>{
+        const uid=a.user_id||a.id;
+        pushUser(
+          uid,
+          a.display_name||a.full_name||a.email||profileDisplayName(uid),
+          a.object_role||'object_operator',
+          'shared_object'
+        );
+      });
   }
 
-  return null;
+  // 3) Legacy-Einzelzuweisung nur ergänzend, falls sie nicht bereits
+  // über die heutige Objektzuweisung enthalten ist.
+  if(order?.assigned_user_id){
+    pushUser(
+      order.assigned_user_id,
+      profileDisplayName(order.assigned_user_id),
+      'object_operator',
+      'legacy_order'
+    );
+  }
+
+  const roleRank={object_operator:1,object_responsible:2,object_deputy:3};
+  return rows.sort((a,b)=>{
+    const rr=(roleRank[a.role]||9)-(roleRank[b.role]||9);
+    if(rr!==0)return rr;
+    return String(a.name||'').localeCompare(String(b.name||''),'de');
+  });
 }
 
 function workQueueResponsibilityRoleLabel(role){
@@ -9520,22 +9641,38 @@ function workQueueResponsibilityRoleLabel(role){
   })[String(role||'')]||'Objektzuordnung';
 }
 
-function workQueueResponsibilityHtml(responsibility, options={}){
+function workQueueVisibilityHtml(users, options={}){
+  const list=Array.isArray(users)?users:[];
   const orgName=String(options.organizationName||'').trim();
-  const fallback=String(options.fallback||'Nicht personenbezogen zugewiesen').trim();
-  const name=responsibility?.name||fallback;
-  const role=responsibility?.role
-    ? workQueueResponsibilityRoleLabel(responsibility.role)
-    : responsibility?.source==='legacy_order'
-      ? 'Bestehende Einzelzuweisung'
-      : responsibility?.source==='object'
-        ? 'Aus Objektzuordnung'
-        : '';
+  const fallback=String(options.fallback||'Keine personenbezogene Objektzuordnung vorhanden').trim();
+
+  if(!list.length){
+    return `<div class="ds-queue-owner ds-queue-owner-empty">
+      <span>Sichtbar im Arbeitsvorrat für</span>
+      <strong>${esc(fallback)}</strong>
+      ${orgName?`<small>${esc(orgName)}</small>`:''}
+    </div>`;
+  }
+
   return `<div class="ds-queue-owner">
-    <span>Im Arbeitsvorrat bei</span>
-    <strong>${esc(name)}</strong>
-    ${(role||orgName)?`<small>${[role,orgName].filter(Boolean).map(esc).join(' · ')}</small>`:''}
+    <span>Sichtbar im Arbeitsvorrat für</span>
+    <div class="ds-queue-viewers">
+      ${list.map(u=>`<div class="ds-queue-viewer">
+        <strong>${esc(u.name||'Objektbetreuer')}</strong>
+        <small>${esc(workQueueResponsibilityRoleLabel(u.role))}${orgName?` · ${esc(orgName)}`:''}</small>
+      </div>`).join('')}
+    </div>
   </div>`;
+}
+
+function workQueueResponsibilityForObject(objectId){
+  // Abwärtskompatibilität für ältere UI-Stellen:
+  // gibt weiterhin den ersten sichtberechtigten Benutzer zurück.
+  return workQueueVisibilityForObject(objectId)[0]||null;
+}
+
+function workQueueResponsibilityHtml(responsibility, options={}){
+  return workQueueVisibilityHtml(responsibility?[responsibility]:[],options);
 }
 
 function externalOrderResponsibilityHtml(order){
@@ -13815,12 +13952,12 @@ function externalWorkQueueItemHtml(x){
     ? `<button type="button" class="primary" onclick="openExternalOrderDocumentation('${esc(x.id)}')">Bearbeiten / Dokumentieren</button>${hasOperationalAdminAccess()?`<button type="button" onclick="openExternalOrderReturnModal('${esc(x.id)}')">An Auftraggeber zurückgeben</button>`:''}`
     : `<button type="button" class="primary" onclick="openExternalOrderById('${esc(x.id)}')">Auftrag ansehen</button>`;
   const nextStep=gfWorkNextStepInfo(null,null,x);
-  const responsibility=objectResponsibilityForWorkOrder(x);
-  const queueOwnerHtml=workQueueResponsibilityHtml(
-    responsibility,
+  const visibilityUsers=workQueueVisibilityForObject(x.source_object_id||x.object_id,x);
+  const queueOwnerHtml=workQueueVisibilityHtml(
+    visibilityUsers,
     {
       organizationName: partnerName(x.executor_organization_id),
-      fallback: 'Noch kein Objektbetreuer zugewiesen'
+      fallback: 'Keine personenbezogene Objektzuordnung vorhanden'
     }
   );
   const workTone=String(x.priority||'P3')==='P1'?'is-critical':String(x.priority||'P3')==='P2'?'is-attention':'';
@@ -13841,7 +13978,6 @@ function externalWorkQueueItemHtml(x){
       ${snapshot.area?`<div><b>Bereich:</b> ${esc(snapshot.area)}${snapshot.area_detail?` · ${esc(snapshot.area_detail)}`:''}</div>`:''}
       ${x.description?`<div><b>Auftrag:</b> ${esc(x.description)}</div>`:''}
       ${queueOwnerHtml}
-      ${assignedName&&(!responsibility||String(responsibility.id||'')!==String(x.assigned_user_id||''))?`<div><b>Direkte Alt-Zuweisung:</b> ${esc(assignedName)}</div>`:''}
       ${subcontractInfo}
       ${executionSummary}
       <div><b>Priorität:</b> ${esc(priorityLabel(x.priority||'P3'))}</div>
@@ -14013,15 +14149,16 @@ function renderWorkQueue(){
             || (t.workRequired===true && t.decisionStatus==='not_required')
           );
         const nextStep=gfWorkNextStepInfo(t,f,outgoingOrder);
-        const responsibility=outgoingOrder
-          ? objectResponsibilityForWorkOrder(outgoingOrder)
-          : workQueueResponsibilityForObject(t.objectId||f.objectId);
-        const queueOwnerHtml=workQueueResponsibilityHtml(
-          responsibility,
+        const visibilityUsers=workQueueVisibilityForObject(
+          t.objectId||f.objectId,
+          outgoingOrder||null
+        );
+        const queueOwnerHtml=workQueueVisibilityHtml(
+          visibilityUsers,
           {
             organizationName: currentOrganization?.name||organizationName(currentOrganizationId())||'',
             fallback: hasOperationalAdminAccess()
-              ? 'Mandanten-Administration / noch kein Objektbetreuer'
+              ? 'Keine personenbezogene Objektzuordnung vorhanden'
               : 'Objektzuordnung nicht geladen'
           }
         );
