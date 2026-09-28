@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.23</title>
+<title>Duschl Service – Objektplattform v2.24.24</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3563,6 +3563,51 @@ table td,table th{
 }
 </style>
 
+
+<style id="duschl-sop-links-v22424">
+.ops-sop-link{
+  appearance:none;
+  border:0!important;
+  background:transparent!important;
+  padding:0!important;
+  margin:0!important;
+  color:#DCEAF3!important;
+  font:inherit;
+  font-weight:850!important;
+  text-decoration:underline;
+  text-decoration-color:rgba(220,234,243,.38);
+  text-underline-offset:3px;
+  cursor:pointer;
+  box-shadow:none!important;
+  min-height:0!important;
+}
+.ops-sop-link:hover{
+  color:#FFFFFF!important;
+  text-decoration-color:#FFFFFF;
+}
+.ops-work-sop-row{
+  margin-top:10px;
+  padding:9px 11px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(255,255,255,.025);
+}
+.ops-work-sop-row .ops-work-order-title{margin-bottom:5px}
+.om-tour-sop{
+  display:inline-flex;
+  align-items:baseline;
+  gap:4px;
+  flex-wrap:wrap;
+}
+.ops-run-stop-sop{
+  font-size:11px;
+  color:#91A5B4;
+}
+.ops-run-stop-row{
+  grid-template-columns:22px minmax(0,1fr)!important;
+}
+</style>
+
 </style>
 </head>
 <body>
@@ -6660,7 +6705,17 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - scope_snapshot des Run-Stops hat Vorrang; danach scope_text des Leistungsplans.
    - Keine SQL-/RLS-/Backend-Änderung.
 */
-const APP_VERSION='2.24.23'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.24 | BASIS 2.24.23 | 28.09.2026
+   SOP-NAME OPERATIV SICHTBAR + DIREKT VERLINKT
+   - Standardtouren zeigen nicht mehr nur "SOP verknüpft", sondern Dokument-Nr.,
+     SOP-Name und Version.
+   - Der SOP-Name ist direkt klickbar und öffnet die vorhandene Read-only-SOP.
+   - Gilt im Dashboard beim nächsten Stopp und im geöffneten Arbeitsauftrag je Stopp.
+   - SOP-Metadaten werden über die bestehende autorisierte RPC get_operation_sop_v1
+     pro Run-Stop geladen und zwischengespeichert.
+   - Keine SQL-/RLS-/Backend-Änderung.
+*/
+const APP_VERSION='2.24.24'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -16568,6 +16623,49 @@ function omTourStatusLabel(status){
   })[s]||status||'Geplant';
 }
 
+let operationSopByRunStop={};
+
+function operationSopDisplayName(d){
+  if(!d)return 'Keine freigegebene SOP';
+  const parts=[
+    String(d.sop_code||'').trim(),
+    String(d.sop_title||'').trim(),
+    d.sop_version?`V${String(d.sop_version).trim()}`:''
+  ].filter(Boolean);
+  return parts.join(' · ')||'SOP / Arbeitsanweisung';
+}
+
+async function loadOperationSopMetaForStops(stops){
+  const list=(Array.isArray(stops)?stops:[])
+    .map(s=>String(s?.id||''))
+    .filter(Boolean)
+    .filter(id=>!Object.prototype.hasOwnProperty.call(operationSopByRunStop,id));
+
+  if(!list.length)return;
+
+  const results=await Promise.allSettled(list.map(async id=>{
+    const rows=await cloudRequest('rpc/get_operation_sop_v1',{
+      method:'POST',
+      body:JSON.stringify({p_run_stop_id:id})
+    });
+    const d=Array.isArray(rows)?rows[0]:rows;
+    return {id,data:d||null};
+  }));
+
+  results.forEach((r,i)=>{
+    const id=list[i];
+    operationSopByRunStop[id]=r.status==='fulfilled' ? r.value.data : null;
+  });
+}
+
+function operationSopLinkHtml(runStopId,escFn=esc){
+  const id=String(runStopId||'');
+  const d=operationSopByRunStop[id]||null;
+  if(!d)return '<span class="muted">Keine freigegebene SOP</span>';
+  const label=operationSopDisplayName(d);
+  return `<button type="button" class="ops-sop-link" onclick="openAssignedOperationSop('${escFn(id)}')">${escFn(label)}</button>`;
+}
+
 function omTourDateTimeKey(run){
   return `${String(run?.service_date||'9999-99-99')} ${String(run?.planned_start_time||run?.start_time||'23:59')}`;
 }
@@ -16638,8 +16736,7 @@ function omNormalOperationalHtml(item){
     ? `${windowStart||'—'}–${windowEnd||'—'} Uhr`
     : (plannedStart?`Start ${plannedStart} Uhr`:'ohne feste Zeit');
   const duration=Number(plan?.planned_duration_minutes||0);
-  const sopVersionId=next.sop_version_id||plan?.sop_version_id||'';
-  const sop=sopVersionId?'SOP verknüpft':'Keine SOP verknüpft';
+  const sopHtml=operationSopLinkHtml(next.id,esc);
 
   return `
     <div class="om-tour-progress">
@@ -16653,7 +16750,7 @@ function omNormalOperationalHtml(item){
         <span><strong>Leistung:</strong> ${esc(omNormalServiceName(next.service_type_id))}</span>
         <span><strong>Zeit:</strong> ${esc(timeWindow)}</span>
         ${duration?`<span><strong>Dauer:</strong> ${duration} Min.</span>`:''}
-        <span><strong>SOP:</strong> ${esc(sop)}</span>
+        <span class="om-tour-sop"><strong>SOP:</strong> ${sopHtml}</span>
       </div>
     </div>`;
 }
@@ -16773,6 +16870,8 @@ async function refreshObjectManagerTours(){
         ).catch(e=>{console.warn('Leistungspläne für Dashboard-Touren konnten nicht geladen werden',e);return [];});
       }
     }
+
+    await loadOperationSopMetaForStops(normalStops);
 
     if(winterIds.length){
       const inList=winterIds.map(id=>id.replace(/[^0-9a-fA-F-]/g,'')).join(',');
@@ -22915,7 +23014,8 @@ function opsRunStopStatusLabel(stop){
 function opsRunStopWorkHtml(stop,index){
   const duration=opsRunStopDuration(stop);
   const instruction=opsRunStopInstruction(stop);
-  const hasSop=!!stop?.sop_version_id;
+  const sopHtml=operationSopLinkHtml(stop.id,opsEsc);
+
   return `<div class="ops-work-stop">
     <div class="ops-work-stop-head">
       <div>
@@ -22929,15 +23029,19 @@ function opsRunStopWorkHtml(stop,index){
       <span><strong>Zeit:</strong> ${opsEsc(opsRunStopTimeLabel(stop))}</span>
       ${duration?`<span><strong>Dauer:</strong> ${duration} Min.</span>`:''}
     </div>
+
+    <div class="ops-work-sop-row">
+      <div class="ops-work-order-title">SOP / Arbeitsanweisung</div>
+      <div>${sopHtml}</div>
+    </div>
+
     <div class="ops-work-order">
       <div class="ops-work-order-title">Was ist zu tun?</div>
       <div>${opsEsc(instruction)}</div>
     </div>
-    <div class="ops-work-stop-actions">
-      <button type="button" class="primary" onclick="openAssignedOperationSop('${opsEsc(stop.id)}')">${hasSop?'SOP / Arbeitsanweisung öffnen':'Arbeitsanweisung prüfen'}</button>
-    </div>
   </div>`;
 }
+
 function opsRenderMyRuns(){
   const host=document.getElementById('opsMyRunList');if(!host)return;
   const today=wsToday();
@@ -23086,6 +23190,8 @@ async function opsLoad(){
         }
       }catch(e){console.warn('Leistungspläne für operative Touransicht konnten nicht geladen werden',e)}
 
+      await loadOperationSopMetaForStops(runStops);
+
       opsState={
         ...opsState,
         services:Array.isArray(services)?services:[],
@@ -23136,6 +23242,7 @@ async function opsLoad(){
       }).catch(e=>{console.warn('Benutzer für Tourzuweisung konnten nicht geladen werden',e);return [];})
     ]);
     [opsState.services,opsState.plans,opsState.tours,opsState.stops,opsState.runs,opsState.runStops,opsState.assignments,opsState.documents,opsState.versions,opsState.tenantUsers]=a.map(x=>x||[]);
+    await loadOperationSopMetaForStops(opsState.runStops);
     opsApplyViewMode();
     opsPopulate();
     opsRender();
@@ -23297,8 +23404,11 @@ function opsRender(){
       const stopsHtml=xs.map(x=>`
         <div class="ops-run-stop-row">
           <span>${opsEsc(x.sort_order)}.</span>
-          <strong>${opsEsc(opsObjName(x.object_id))}</strong>
-          <span class="muted">${opsEsc(opsServiceName(x.service_type_id))}</span>
+          <div>
+            <strong>${opsEsc(opsObjName(x.object_id))}</strong>
+            <div class="muted" style="margin-top:2px">${opsEsc(opsServiceName(x.service_type_id))}</div>
+            <div class="ops-run-stop-sop" style="margin-top:3px">SOP: ${operationSopLinkHtml(x.id,opsEsc)}</div>
+          </div>
         </div>`).join('');
 
       return `<div class="card ops-admin-run-card ${compact?'is-compact':''}">
