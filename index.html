@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.25</title>
+<title>Duschl Service – Objektplattform v2.24.26</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3621,6 +3621,63 @@ table td,table th{
 }
 </style>
 
+
+<style id="duschl-tour-workqueue-v22426">
+.ops-tour-workqueue-compact{
+  margin-top:9px;
+  padding-top:8px;
+  border-top:1px solid rgba(255,255,255,.08);
+  font-size:11px;
+  color:#B8C7D1;
+}
+.ops-tour-workqueue-urgent{color:#E6B84A;font-weight:900}
+.ops-tour-workqueue{
+  margin-top:11px;
+  padding:10px 11px;
+  border:1px solid rgba(230,184,74,.22);
+  border-radius:9px;
+  background:rgba(230,184,74,.035);
+}
+.ops-tour-workqueue-head{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:flex-start;
+}
+.ops-tour-workqueue-list{
+  display:grid;
+  gap:5px;
+  margin-top:8px;
+}
+.ops-tour-workqueue-item{
+  width:100%;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:center;
+  text-align:left;
+  padding:8px 9px!important;
+  min-height:0!important;
+  border:1px solid rgba(255,255,255,.08)!important;
+  background:rgba(255,255,255,.025)!important;
+  box-shadow:none!important;
+}
+.ops-tour-workqueue-item-main{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  min-width:0;
+}
+.ops-tour-workqueue-item-main strong{
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.ops-tour-workqueue-item-main small{color:#91A5B4}
+.ops-tour-workqueue-arrow{font-size:20px;color:#AFC0CC}
+.ops-sop-link-error{color:#E6B84A!important}
+</style>
+
 </style>
 </head>
 <body>
@@ -6738,7 +6795,18 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - SOP-Name ist klickbar; bei hinterlegter Datei wird die freigegebene Datei geöffnet.
    - Keine Änderung an Tour-/Winterdienst-Datenmodell oder RLS der Fachtabellen.
 */
-const APP_VERSION='2.24.25'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.26 | BASIS 2.24.25 | 28.09.2026
+   TOUR + ARBEITSVORRAT + SOP-CACHE-FIX
+   - Offene operative Arbeiten am Objekt werden direkt in Tourübersicht und
+     Arbeitsauftrag angezeigt, ohne sie automatisch zum Tour-Pflichtumfang zu machen.
+   - Je Stopp: Anzahl offener Zusatzarbeiten; im Arbeitsauftrag zusätzlich Titel,
+     Fälligkeit/Priorität und Direktlink.
+   - SOP-Cache korrigiert: fehlgeschlagene/null RPC-Auflösungen werden nicht mehr
+     dauerhaft als "keine SOP" gecacht. Refresh/Öffnen lädt die SOP erneut.
+   - SOP-Ladefehler werden sichtbar von "keine freigegebene SOP" unterschieden.
+   - Keine SQL-/RLS-/Backend-Änderung gegenüber 2.24.25.
+*/
+const APP_VERSION='2.24.26'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -16647,6 +16715,7 @@ function omTourStatusLabel(status){
 }
 
 let operationSopByRunStop={};
+let operationSopLoadErrorByRunStop={};
 
 function operationSopDisplayName(d){
   if(!d)return 'Keine freigegebene SOP';
@@ -16658,11 +16727,11 @@ function operationSopDisplayName(d){
   return parts.join(' · ')||'SOP / Arbeitsanweisung';
 }
 
-async function loadOperationSopMetaForStops(stops){
+async function loadOperationSopMetaForStops(stops,{force=false}={}){
   const list=(Array.isArray(stops)?stops:[])
     .map(s=>String(s?.id||''))
     .filter(Boolean)
-    .filter(id=>!Object.prototype.hasOwnProperty.call(operationSopByRunStop,id));
+    .filter(id=>force || !operationSopByRunStop[id]);
 
   if(!list.length)return;
 
@@ -16677,16 +16746,43 @@ async function loadOperationSopMetaForStops(stops){
 
   results.forEach((r,i)=>{
     const id=list[i];
-    operationSopByRunStop[id]=r.status==='fulfilled' ? r.value.data : null;
+    if(r.status==='fulfilled'){
+      delete operationSopLoadErrorByRunStop[id];
+      if(r.value.data){
+        operationSopByRunStop[id]=r.value.data;
+      }else{
+        // Null bewusst NICHT dauerhaft cachen. Eine nachgelagerte Freigabe/
+        // SQL-Aktualisierung soll nach Refresh sofort sichtbar werden.
+        delete operationSopByRunStop[id];
+      }
+    }else{
+      delete operationSopByRunStop[id];
+      operationSopLoadErrorByRunStop[id]=String(r.reason?.message||r.reason||'SOP konnte nicht geladen werden.');
+      console.warn('Operative SOP konnte nicht geladen werden',id,r.reason);
+    }
   });
 }
 
 function operationSopLinkHtml(runStopId,escFn=esc){
   const id=String(runStopId||'');
   const d=operationSopByRunStop[id]||null;
+  const loadError=operationSopLoadErrorByRunStop[id]||'';
+  if(loadError){
+    return `<button type="button" class="ops-sop-link ops-sop-link-error" onclick="reloadOperationSop('${escFn(id)}')">SOP erneut laden</button>`;
+  }
   if(!d)return '<span class="muted">Keine freigegebene SOP</span>';
   const label=operationSopDisplayName(d);
   return `<button type="button" class="ops-sop-link" onclick="openAssignedOperationSop('${escFn(id)}')">${escFn(label)}</button>`;
+}
+
+async function reloadOperationSop(runStopId){
+  try{
+    await loadOperationSopMetaForStops([{id:runStopId}],{force:true});
+    renderObjectManagerUnifiedTours();
+    opsRenderMyRuns();
+  }catch(e){
+    alert('SOP konnte nicht erneut geladen werden: '+(e.message||e));
+  }
 }
 
 function omTourDateTimeKey(run){
@@ -16740,6 +16836,134 @@ function omNormalPlan(planId){
 function omTime(v){
   return String(v||'').slice(0,5);
 }
+function tourWorkQueueItemsForObject(objectId){
+  const oid=String(objectId||'');
+  if(!oid)return [];
+
+  const externalFindingIds=typeof externallyRoutedFindingIdsForCurrentTenant==='function'
+    ? externallyRoutedFindingIdsForCurrentTenant()
+    : new Set();
+  const thirdPartyIds=typeof thirdPartyFindingIdsForCurrentTenant==='function'
+    ? thirdPartyFindingIdsForCurrentTenant()
+    : new Set();
+  const pendingReviewIds=typeof pendingExternalReviewFindingIds==='function'
+    ? pendingExternalReviewFindingIds()
+    : new Set();
+
+  const taskByFinding=new Map((db.tasks||[]).filter(t=>t.findingId).map(t=>[String(t.findingId),t]));
+
+  const internal=(db.findings||[])
+    .filter(f=>String(f.objectId||'')===oid)
+    .filter(f=>(f.type||'Feststellung')==='Feststellung')
+    .filter(f=>typeof findingVisibleInCurrentTenantUI!=='function'||findingVisibleInCurrentTenantUI(f))
+    .filter(f=>!externalFindingIds.has(String(f.id||'')))
+    .filter(f=>!thirdPartyIds.has(String(f.id||'')))
+    .filter(f=>!pendingReviewIds.has(String(f.id||'')))
+    .filter(f=>hasOperationalAdminAccess()||currentUserOwnsOperationalObject(f.objectId))
+    .map(f=>{
+      const task=taskByFinding.get(String(f.id));
+      const concrete=typeof internalFindingIsConcreteWork==='function'
+        ? internalFindingIsConcreteWork(f,task)
+        : !!task;
+      const openTask=!!task&&!['completed','cancelled'].includes(String(task.status||'').toLowerCase());
+      if(!(concrete===true||openTask))return null;
+      return {
+        kind:'internal',
+        id:String(task?.id||f.id),
+        findingId:String(f.id),
+        objectId:oid,
+        title:task?.title||f.title||'Offene Arbeit',
+        dueDate:task?.dueDate||f.workDueDate||'',
+        priority:f.priority||task?.priority||'',
+        status:task?.status||f.status||'Offen',
+        workNote:task?.workNote||f.workNote||''
+      };
+    })
+    .filter(Boolean);
+
+  const external=(cloudExternalOrders||[])
+    .filter(x=>String(x.source_object_id||x.object_id||'')===oid)
+    .filter(x=>String(x.executor_organization_id||'')===String(currentOrganizationId()||''))
+    .filter(x=>typeof externalOrderIsOpen==='function'?externalOrderIsOpen(x.status):!['completed','rejected','cancelled'].includes(String(x.status||'')))
+    .filter(x=>String(x.status||'').toLowerCase()!=='requested')
+    .filter(x=>hasOperationalAdminAccess() || currentUserOwnsOperationalObject(oid) || String(x.assigned_user_id||'')===String(currentUserId()||''))
+    .map(x=>({
+      kind:'external',
+      id:String(x.id),
+      objectId:oid,
+      title:x.title||'Externer Arbeitsauftrag',
+      dueDate:String(x.due_date||x.target_date||''),
+      priority:x.priority||'',
+      status:x.status||'',
+      workNote:x.description||''
+    }));
+
+  return [...internal,...external].sort((a,b)=>{
+    const pa=String(a.priority||'').toLowerCase();
+    const pb=String(b.priority||'').toLowerCase();
+    const rank={critical:0,urgent:0,hoch:1,high:1,normal:2,medium:2,niedrig:3,low:3};
+    const ar=rank[pa]??2,br=rank[pb]??2;
+    if(ar!==br)return ar-br;
+    const ad=a.dueDate||'9999-99-99',bd=b.dueDate||'9999-99-99';
+    return String(ad).localeCompare(String(bd));
+  });
+}
+
+function tourWorkQueuePriorityLabel(v){
+  const s=String(v||'').toLowerCase();
+  if(['critical','urgent','hoch','high'].includes(s))return 'Dringend';
+  if(['low','niedrig'].includes(s))return 'Niedrig';
+  return 'Normal';
+}
+
+function tourWorkQueueOpen(item){
+  if(!item)return;
+  if(item.kind==='external'){
+    if(typeof openExternalOrderById==='function')openExternalOrderById(item.id);
+    return;
+  }
+  if(typeof openWorkItem==='function')openWorkItem(item.findingId);
+}
+
+function tourObjectWorkQueueHtml(objectId,{compact=false}={}){
+  const items=tourWorkQueueItemsForObject(objectId);
+  if(!items.length)return '';
+
+  if(compact){
+    const urgent=items.filter(x=>tourWorkQueuePriorityLabel(x.priority)==='Dringend').length;
+    return `<div class="ops-tour-workqueue-compact">
+      <strong>Arbeitsvorrat:</strong> ${items.length} offene ${items.length===1?'Arbeit':'Arbeiten'} am Objekt
+      ${urgent?` · <span class="ops-tour-workqueue-urgent">${urgent} dringend</span>`:''}
+    </div>`;
+  }
+
+  const rows=items.slice(0,5).map(x=>{
+    const due=x.dueDate?new Date(String(x.dueDate).slice(0,10)+'T00:00:00').toLocaleDateString('de-DE'):'ohne Termin';
+    return `<button type="button" class="ops-tour-workqueue-item" onclick='tourWorkQueueOpen(${JSON.stringify({
+      kind:x.kind,id:x.id,findingId:x.findingId||''
+    })})'>
+      <span class="ops-tour-workqueue-item-main">
+        <strong>${opsEsc(x.title)}</strong>
+        <small>${opsEsc(tourWorkQueuePriorityLabel(x.priority))} · ${opsEsc(due)}</small>
+      </span>
+      <span class="ops-tour-workqueue-arrow">›</span>
+    </button>`;
+  }).join('');
+
+  return `<div class="ops-tour-workqueue">
+    <div class="ops-tour-workqueue-head">
+      <div>
+        <div class="ops-work-order-title">Zusätzlicher Arbeitsvorrat am Objekt</div>
+        <strong>${items.length} offene ${items.length===1?'Arbeit':'Arbeiten'}</strong>
+      </div>
+      <span class="badge">ZUSATZARBEIT</span>
+    </div>
+    <div class="muted" style="margin-top:4px">Nicht automatisch Bestandteil dieses Tourauftrags.</div>
+    <div class="ops-tour-workqueue-list">${rows}</div>
+    ${items.length>5?`<div class="muted" style="margin-top:6px">+ ${items.length-5} weitere im Arbeitsvorrat</div>`:''}
+  </div>`;
+}
+
 function omNormalOperationalHtml(item){
   const next=omTourNextStop(item);
   const progress=omTourProgress(item);
@@ -16775,6 +16999,7 @@ function omNormalOperationalHtml(item){
         ${duration?`<span><strong>Dauer:</strong> ${duration} Min.</span>`:''}
         <span class="om-tour-sop"><strong>SOP:</strong> ${sopHtml}</span>
       </div>
+      ${tourObjectWorkQueueHtml(next.object_id,{compact:true})}
     </div>`;
 }
 
@@ -16894,7 +17119,7 @@ async function refreshObjectManagerTours(){
       }
     }
 
-    await loadOperationSopMetaForStops(normalStops);
+    await loadOperationSopMetaForStops(normalStops,{force:true});
 
     if(winterIds.length){
       const inList=winterIds.map(id=>id.replace(/[^0-9a-fA-F-]/g,'')).join(',');
@@ -23062,6 +23287,8 @@ function opsRunStopWorkHtml(stop,index){
       <div class="ops-work-order-title">Was ist zu tun?</div>
       <div>${opsEsc(instruction)}</div>
     </div>
+
+    ${tourObjectWorkQueueHtml(stop.object_id,{compact:false})}
   </div>`;
 }
 
@@ -23213,7 +23440,7 @@ async function opsLoad(){
         }
       }catch(e){console.warn('Leistungspläne für operative Touransicht konnten nicht geladen werden',e)}
 
-      await loadOperationSopMetaForStops(runStops);
+      await loadOperationSopMetaForStops(runStops,{force:true});
 
       opsState={
         ...opsState,
