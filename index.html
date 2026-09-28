@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.23.01</title>
+<title>Duschl Service – Objektplattform v2.23.02</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -2514,6 +2514,110 @@ table td,table th{
   .ds-menu-group-label{margin-top:12px}
 }
 </style>
+
+<style id="duschl-object-cockpit-v22302">
+.ds-section-head{align-items:flex-end!important}
+.ds-section-eyebrow{
+  color:#8194A4;font-size:10px;font-weight:900;letter-spacing:.16em;margin-bottom:4px
+}
+.ds-object-list-status{
+  display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+  margin:14px 0 10px;padding:9px 12px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:10px;background:rgba(255,255,255,.025);
+  color:#AAB8C3;font-size:12px
+}
+.ds-object-list-status strong{color:#fff!important}
+.ds-object-status-sep{color:#526777}
+.ds-object-status-urgent{color:#F0CC73}
+.ds-object-grid{margin-top:0!important;gap:12px!important}
+
+.ds-object-card{
+  position:relative;overflow:hidden;
+  background:linear-gradient(145deg,#0E2232,#091A27);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:16px;padding:16px;
+  box-shadow:0 8px 20px rgba(0,0,0,.12);
+}
+.ds-object-card:before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#8497A7
+}
+.ds-object-card-critical:before{background:var(--ds-danger)}
+.ds-object-card-open:before{background:var(--ds-warning)}
+.ds-object-card-stable:before{background:#7FAF94}
+
+.ds-object-card-head{
+  display:flex;justify-content:space-between;gap:14px;align-items:flex-start
+}
+.ds-object-card-titlewrap{display:flex;gap:12px;min-width:0}
+.ds-object-card-icon{
+  width:42px;height:42px;flex:0 0 42px;border-radius:11px;
+  display:grid;place-items:center;background:#fff;color:var(--ds-navy);
+  font-size:20px;font-weight:900
+}
+.ds-object-card-titleline{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ds-object-card-titleline h3{margin:0!important;font-size:20px!important;letter-spacing:-.02em}
+.ds-object-card-address{margin-top:3px;color:#A8B6C1;font-size:13px}
+.ds-object-card-owner{margin-top:4px;color:#899CAA;font-size:12px}
+.ds-object-type-badge{
+  display:inline-flex;align-items:center;padding:3px 7px;border-radius:999px;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);
+  color:#BFCAD2;font-size:9px;font-weight:900;letter-spacing:.08em
+}
+.ds-object-state{
+  display:flex;align-items:center;gap:6px;white-space:nowrap;
+  color:#A9B6C0;font-size:11px;font-weight:800
+}
+.ds-state-dot{width:7px;height:7px;border-radius:50%;background:#7FAF94}
+.ds-state-dot.critical{background:var(--ds-danger)}
+.ds-state-dot.attention{background:var(--ds-warning)}
+
+.ds-object-metrics{
+  display:flex;gap:8px;flex-wrap:wrap;margin-top:14px
+}
+.ds-object-metric{
+  min-width:98px!important;display:grid!important;grid-template-columns:auto 1fr!important;
+  grid-template-rows:auto!important;align-items:baseline!important;gap:6px!important;
+  padding:8px 10px!important;border-radius:10px!important;
+  background:rgba(255,255,255,.035)!important;border:1px solid rgba(255,255,255,.09)!important;
+  text-align:left!important
+}
+.ds-object-metric span{font-size:20px;font-weight:950;color:#fff}
+.ds-object-metric small{font-size:10px;color:#97A8B5!important;font-weight:750}
+.ds-object-metric-critical{border-color:rgba(233,109,115,.35)!important}
+.ds-object-metric-critical span{color:#F28A8F!important}
+.ds-object-metric-open{border-color:rgba(230,184,74,.28)!important}
+.ds-object-metric-open span{color:#F0CC73!important}
+.ds-object-metric-external span{color:#C5D7E4!important}
+.ds-object-metric-muted{opacity:.55}
+
+.ds-object-note,.ds-object-context{
+  margin-top:12px;padding:10px 11px;border-radius:10px;
+  background:rgba(255,255,255,.025);color:#A8B6C1;font-size:12px
+}
+.ds-object-context:empty{display:none}
+.ds-object-context>.card{
+  margin:0!important;padding:0!important;background:transparent!important;
+  border:0!important;box-shadow:none!important
+}
+
+.ds-object-actions{
+  display:flex;justify-content:space-between;gap:10px;align-items:center;
+  margin-top:14px;padding-top:13px;border-top:1px solid rgba(255,255,255,.08)
+}
+.ds-object-primary-action{white-space:nowrap}
+.ds-object-secondary-actions{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap}
+.ds-object-secondary-actions button{font-size:12px!important;padding:8px 10px!important}
+
+@media(max-width:760px){
+  .ds-object-card-head{flex-direction:column}
+  .ds-object-state{white-space:normal}
+  .ds-object-actions{align-items:stretch;flex-direction:column}
+  .ds-object-primary-action{width:100%}
+  .ds-object-secondary-actions{justify-content:flex-start}
+  .ds-object-metric{min-width:calc(50% - 4px)!important}
+}
+</style>
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -2983,9 +3087,16 @@ table td,table th{
 </div>
 </section>
 <section class="section" id="objects">
-<div class="row space"><div><h2>Objekte</h2><div class="muted">Objektbestand · Build v<span data-app-version>2.20.82</span></div></div><button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt</button></div>
-<div id="objectListStatus" class="muted" style="margin-top:12px">Objektmodul v<span data-app-version>2.20.82</span> geladen</div>
-<div class="grid g2" id="objectList" style="margin-top:14px;display:grid!important;visibility:visible!important;opacity:1!important"></div>
+<div class="row space ds-section-head">
+  <div>
+    <div class="ds-section-eyebrow">BETRIEB</div>
+    <h2>Objekte</h2>
+    <div class="muted">Zentrale Arbeitsoberfläche für Dokumentation, Leistungen und Objektsteuerung.</div>
+  </div>
+  <button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt anlegen</button>
+</div>
+<div id="objectListStatus" class="ds-object-list-status">Objekte werden geladen …</div>
+<div class="grid g2 ds-object-grid" id="objectList" style="display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section" id="findings">
 <div class="card" id="customerObjectContext" style="display:none;margin-bottom:14px">
@@ -5326,7 +5437,14 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Aufgabenblöcke erhalten klare Reihenfolge und visuelle Trennung
    - Sekundärbereiche bewusst zurückgenommen
    - Keine SQL-/RLS-/Backend-Änderung */
-const APP_VERSION='2.23.01'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.23.02 | BASIS 2.23.01 | 28.09.2026
+   OBJEKTE ALS ARBEITSCOCKPIT
+   - Objektkarten mit klarer Kopf-, Status- und Aktionshierarchie
+   - Sofort/Dringend wird direkt am Objekt hervorgehoben
+   - Primäraktion „Dokumentation erfassen“ klar von Verwaltung getrennt
+   - Bestands-/Statusinformationen kompakter und scanbarer
+   - Keine SQL-/RLS-/Backend-Änderung */
+const APP_VERSION='2.23.02'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -14997,9 +15115,13 @@ function renderObjects(){
   if(!el)return;
 
   const objects=Array.isArray(db.objects)?db.objects:[];
+  const visibleFindings=Array.isArray(db.findings)?db.findings.filter(f=>findingVisibleInCurrentTenantUI(f)):[];
+  const totalOpen=visibleFindings.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt').length;
+  const totalUrgent=visibleFindings.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt'&&['P1','P2'].includes(f.priority)).length;
+
   if(status){
-    status.textContent=`${objects.length} Objekt${objects.length===1?'':'e'} geladen`;
-    status.style.display='block';
+    status.innerHTML=`<span><strong>${objects.length}</strong> Objekt${objects.length===1?'':'e'} im Zugriff</span><span class="ds-object-status-sep">·</span><span><strong>${totalOpen}</strong> offene Feststellung${totalOpen===1?'':'en'}</span>${totalUrgent?`<span class="ds-object-status-sep">·</span><span class="ds-object-status-urgent"><strong>${totalUrgent}</strong> sofort/dringend</span>`:''}`;
+    status.style.display='flex';
   }
   el.style.setProperty('display','grid','important');
   el.style.setProperty('visibility','visible','important');
@@ -15012,19 +15134,11 @@ function renderObjects(){
 
   const cards=objects.map(o=>{
     try{
-      const fs=(Array.isArray(db.findings)?db.findings:[]).filter(f=>findingVisibleInCurrentTenantUI(f)&&f.objectId===o.id);
+      const fs=visibleFindings.filter(f=>f.objectId===o.id);
       const open=fs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt').length;
+      const urgent=fs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt'&&['P1','P2'].includes(f.priority)).length;
       const documentationCount=fs.length;
       const externalInProgressCount=externalMonitoringOrdersForObject(o.id).length+pendingAtOwnerForObject(o.id).length;
-      const documentationBadge=documentationCount
-        ? `<span class="badge badge-action" role="button" tabindex="0" aria-label="${documentationCount} Dokumentationen für ${esc(o.name||'Objekt')} anzeigen" title="Alle Dokumentationen anzeigen" onclick="openObjectDocumentation('${esc(o.id)}')">${documentationCount} Dokumentation${documentationCount===1?'':'en'}</span>`
-        : `<span class="badge" aria-disabled="true">0 Dokumentationen</span>`;
-      const openBadge=open
-        ? `<span class="badge badge-action" role="button" tabindex="0" aria-label="${open} offene Feststellungen für ${esc(o.name||'Objekt')} anzeigen" title="Offene Feststellungen anzeigen" onclick="openObjectOpenFindings('${esc(o.id)}')">${open} offen</span>`
-        : `<span class="badge" aria-disabled="true">0 offen</span>`;
-      const externalBadge=externalInProgressCount
-        ? `<span class="badge badge-action" role="button" tabindex="0" aria-label="${externalInProgressCount} Vorgänge bei Dritten für ${esc(o.name||'Objekt')} anzeigen" title="Bei Dritten anzeigen" onclick="openObjectExternalMonitoring('${esc(o.id)}')">${externalInProgressCount} extern in Bearbeitung</span>`
-        : '';
 
       let collaborationHtml='';
       if(!o.externalManaged){
@@ -15032,31 +15146,52 @@ function renderObjects(){
         catch(e){ console.warn('Betreuungsstatus für Objekt konnte nicht gerendert werden',o.id,e); }
       }
 
-      return `<div class="card">
-        <div class="row space">
-          <div>
-            <h3 style="margin:0">${esc(o.name||'Objekt')} ${o.externalManaged?'<span class="badge" style="margin-left:6px">EXTERN BETREUT</span>':''}</h3>
-            <div class="muted">${esc(o.address||'')}</div>
-            ${o.externalManaged?`<div class="muted" style="margin-top:4px">Auftraggeber: ${esc(o.ownerOrganizationName||'Partnerunternehmen')}</div>`:''}
+      const stateClass=urgent>0?'ds-object-card-critical':open>0?'ds-object-card-open':'ds-object-card-stable';
+      const externalLabel=o.externalManaged?'<span class="ds-object-type-badge">EXTERN BETREUT</span>':'';
+      const urgentChip=urgent?`<button class="ds-object-metric ds-object-metric-critical" type="button" onclick="openObjectOpenFindings('${esc(o.id)}')" title="Sofort/Dringend anzeigen"><span>${urgent}</span><small>Sofort/Dringend</small></button>`:'';
+      const openChip=`<button class="ds-object-metric ${open?'ds-object-metric-open':'ds-object-metric-muted'}" type="button" ${open?`onclick="openObjectOpenFindings('${esc(o.id)}')"`:'disabled'}><span>${open}</span><small>offen</small></button>`;
+      const docChip=`<button class="ds-object-metric ${documentationCount?'':'ds-object-metric-muted'}" type="button" ${documentationCount?`onclick="openObjectDocumentation('${esc(o.id)}')"`:'disabled'}><span>${documentationCount}</span><small>Dokumentationen</small></button>`;
+      const extChip=externalInProgressCount?`<button class="ds-object-metric ds-object-metric-external" type="button" onclick="openObjectExternalMonitoring('${esc(o.id)}')"><span>${externalInProgressCount}</span><small>bei Dritten</small></button>`:'';
+
+      return `<article class="ds-object-card ${stateClass}">
+        <div class="ds-object-card-head">
+          <div class="ds-object-card-titlewrap">
+            <div class="ds-object-card-icon">⌂</div>
+            <div>
+              <div class="ds-object-card-titleline">
+                <h3>${esc(o.name||'Objekt')}</h3>${externalLabel}
+              </div>
+              <div class="ds-object-card-address">${esc(o.address||'Keine Adresse hinterlegt')}</div>
+              ${o.externalManaged?`<div class="ds-object-card-owner">Auftraggeber: ${esc(o.ownerOrganizationName||'Partnerunternehmen')}</div>`:''}
+            </div>
           </div>
-          <div class="row" style="justify-content:flex-end">${documentationBadge}${openBadge}${externalBadge}</div>
+          <div class="ds-object-state">${urgent?'<span class="ds-state-dot critical"></span>Sofort/Dringend':open?'<span class="ds-state-dot attention"></span>Offene Punkte':'<span class="ds-state-dot stable"></span>Kein akuter Handlungsbedarf'}</div>
         </div>
-        ${o.notes?`<p>${esc(o.notes)}</p>`:''}
+
+        <div class="ds-object-metrics">
+          ${urgentChip}${openChip}${docChip}${extChip}
+        </div>
+
+        ${o.notes?`<div class="ds-object-note">${esc(o.notes)}</div>`:''}
+
         ${o.externalManaged
-          ? `${o.serviceScope?`<div class="muted" style="margin-top:6px"><strong>Freigegebener Leistungsumfang:</strong> ${esc(o.serviceScope)}</div>`:''}<div class="muted" style="margin-top:6px">Dieses Objekt wurde deinem Unternehmen zur Betreuung freigegeben.</div>`
-          : collaborationHtml}
-        <div class="row">
-          <button onclick="openFindingModal('${esc(o.id)}','')">Dokumentation erfassen</button>
-          ${!o.externalManaged&&!isCustomerRole()?`<button onclick="openObjectQrCode('${esc(o.id)}')">Objekt-QR</button>`:''}
-          ${!o.externalManaged&&canManageObjectsUI()?`<button onclick="openObjectAreasModal('${esc(o.id)}')">Bereiche</button><button onclick="openObjectServicesModal('${esc(o.id)}')">Leistungen &amp; SOPs</button><button onclick="openObjectModal('${esc(o.id)}')">Bearbeiten</button>`:''}
-          ${o.externalManaged&&slTenantAdmin()?`<button onclick="openObjectServicesModal('${esc(o.id)}')">Leistungen &amp; SOPs</button>`:''}
-          <button onclick="showObjectReport('${esc(o.id)}')">Bericht</button>
-          ${o.externalManaged?`<button onclick="showSection('externalOrders')">Externe Aufträge</button>`:''}
+          ? `<div class="ds-object-context">${o.serviceScope?`<div><strong>Leistungsumfang:</strong> ${esc(o.serviceScope)}</div>`:''}<div>Zur Betreuung durch dein Unternehmen freigegeben.</div></div>`
+          : `<div class="ds-object-context">${collaborationHtml}</div>`}
+
+        <div class="ds-object-actions">
+          <button class="primary ds-object-primary-action" onclick="openFindingModal('${esc(o.id)}','')">+ Dokumentation erfassen</button>
+          <div class="ds-object-secondary-actions">
+            ${!o.externalManaged&&!isCustomerRole()?`<button onclick="openObjectQrCode('${esc(o.id)}')">QR-Code</button>`:''}
+            ${!o.externalManaged&&canManageObjectsUI()?`<button onclick="openObjectAreasModal('${esc(o.id)}')">Bereiche</button><button onclick="openObjectServicesModal('${esc(o.id)}')">Leistungen &amp; SOPs</button><button onclick="openObjectModal('${esc(o.id)}')">Objekt bearbeiten</button>`:''}
+            ${o.externalManaged&&slTenantAdmin()?`<button onclick="openObjectServicesModal('${esc(o.id)}')">Leistungen &amp; SOPs</button>`:''}
+            <button onclick="showObjectReport('${esc(o.id)}')">Bericht</button>
+            ${o.externalManaged?`<button onclick="showSection('externalOrders')">Externe Aufträge</button>`:''}
+          </div>
         </div>
-      </div>`;
+      </article>`;
     }catch(e){
       console.error('Objektkarte konnte nicht gerendert werden',o,e);
-      return `<div class="card" style="display:block!important;visibility:visible!important;opacity:1!important"><h3 style="margin:0">${esc(o?.name||'Objekt')}</h3><div class="muted">${esc(o?.address||'')}</div><div class="muted" style="margin-top:8px">Objekt geladen – Detaildarstellung konnte nicht vollständig aufgebaut werden.</div></div>`;
+      return `<article class="ds-object-card"><h3>${esc(o?.name||'Objekt')}</h3><div class="muted">${esc(o?.address||'')}</div><div class="muted" style="margin-top:8px">Objekt geladen – Detaildarstellung konnte nicht vollständig aufgebaut werden.</div></article>`;
     }
   });
 
