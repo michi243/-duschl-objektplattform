@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.19</title>
+<title>Duschl Service – Objektplattform v2.24.20</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3360,6 +3360,26 @@ table td,table th{
 }
 </style>
 
+
+<style id="duschl-operative-dashboard-hotfix-v22420">
+.om-tour-card.is-overdue{
+  border-color:rgba(230,184,74,.42)!important;
+  box-shadow:inset 3px 0 0 #E6B84A,0 10px 22px rgba(0,0,0,.14)!important;
+}
+.om-tour-overdue-badge{
+  display:inline-flex;
+  align-items:center;
+  padding:3px 7px;
+  border-radius:999px;
+  border:1px solid rgba(230,184,74,.45);
+  color:#E6B84A;
+  background:rgba(230,184,74,.08);
+  font-size:10px;
+  font-weight:950;
+  letter-spacing:.06em;
+}
+</style>
+
 </style>
 </head>
 <body>
@@ -6420,7 +6440,16 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Weitere Zukunftstouren bleiben außerhalb des Dashboard-Fokus.
    - Keine SQL-/RLS-/Backend-Änderung.
 */
-const APP_VERSION='2.24.19'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.20 | BASIS 2.24.19 | 28.09.2026
+   HOTFIX OPERATIVES DASHBOARD
+   - Heutige Touren werden nach tatsächlicher geplanter Startzeit sortiert.
+   - service_types werden per ID ohne fehlerhaften Organisationsfilter geladen.
+   - SOP-Anzeige nutzt Run-Stop oder Fallback aus recurring_service_plan.
+   - Reguläre Tour zeigt geplante Startzeit statt irreführend "kein Zeitfenster".
+   - Bereits verstrichene, noch nicht gestartete heutige Touren erhalten "Überfällig".
+   - Keine SQL-/RLS-/Backend-Änderung.
+*/
+const APP_VERSION='2.24.20'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -16329,7 +16358,7 @@ function omTourStatusLabel(status){
 }
 
 function omTourDateTimeKey(run){
-  return `${String(run?.service_date||'9999-99-99')} ${String(run?.start_time||'23:59')}`;
+  return `${String(run?.service_date||'9999-99-99')} ${String(run?.planned_start_time||run?.start_time||'23:59')}`;
 }
 
 function objectManagerUnifiedTours(){
@@ -16382,6 +16411,7 @@ function omTime(v){
 function omNormalOperationalHtml(item){
   const next=omTourNextStop(item);
   const progress=omTourProgress(item);
+  const run=item?.run||{};
   if(!next){
     return `<div class="om-tour-operational">
       <div class="om-tour-operational-title">Operativer Stand</div>
@@ -16392,11 +16422,13 @@ function omNormalOperationalHtml(item){
   const plan=omNormalPlan(next.recurring_plan_id);
   const windowStart=omTime(plan?.time_window_start);
   const windowEnd=omTime(plan?.time_window_end);
+  const plannedStart=omTime(run.planned_start_time||run.start_time);
   const timeWindow=windowStart||windowEnd
     ? `${windowStart||'—'}–${windowEnd||'—'} Uhr`
-    : 'kein Zeitfenster';
+    : (plannedStart?`Start ${plannedStart} Uhr`:'ohne feste Zeit');
   const duration=Number(plan?.planned_duration_minutes||0);
-  const sop=next.sop_version_id?'SOP verknüpft':'Keine SOP verknüpft';
+  const sopVersionId=next.sop_version_id||plan?.sop_version_id||'';
+  const sop=sopVersionId?'SOP verknüpft':'Keine SOP verknüpft';
 
   return `
     <div class="om-tour-progress">
@@ -16408,7 +16440,7 @@ function omNormalOperationalHtml(item){
       <div class="om-tour-next-stop">${esc(omObjectName(next.object_id))}</div>
       <div class="om-tour-op-meta">
         <span><strong>Leistung:</strong> ${esc(omNormalServiceName(next.service_type_id))}</span>
-        <span><strong>Zeitfenster:</strong> ${esc(timeWindow)}</span>
+        <span><strong>Zeit:</strong> ${esc(timeWindow)}</span>
         ${duration?`<span><strong>Dauer:</strong> ${duration} Min.</span>`:''}
         <span><strong>SOP:</strong> ${esc(sop)}</span>
       </div>
@@ -16519,7 +16551,7 @@ async function refreshObjectManagerTours(){
       if(serviceIds.length){
         const ids=serviceIds.map(id=>id.replace(/[^0-9a-fA-F-]/g,'')).join(',');
         normalServices=await cloudRequest(
-          `service_types?select=id,name&organization_id=eq.${encodeURIComponent(org)}&id=in.(${ids})`
+          `service_types?select=id,name&id=in.(${ids})`
         ).catch(e=>{console.warn('Leistungsarten für Dashboard-Touren konnten nicht geladen werden',e);return [];});
       }
 
@@ -16599,6 +16631,22 @@ function openObjectManagerUnifiedTour(kind,runId){
   setTimeout(()=>opsLoad(),0);
 }
 
+function omTodayTourTimingState(run){
+  const today=wsToday();
+  if(String(run?.service_date||'')!==today)return {overdue:false};
+  const status=String(run?.status||'planned').toLowerCase();
+  if(['active','in_progress','completed','cancelled'].includes(status))return {overdue:false};
+
+  const t=String(run?.planned_start_time||run?.start_time||'').slice(0,5);
+  if(!t)return {overdue:false};
+
+  const now=new Date();
+  const nowMinutes=now.getHours()*60+now.getMinutes();
+  const parts=t.split(':').map(Number);
+  const plannedMinutes=(parts[0]||0)*60+(parts[1]||0);
+  return {overdue:nowMinutes>plannedMinutes, plannedTime:t};
+}
+
 function renderObjectManagerUnifiedTours(){
   const panel=document.getElementById('objectManagerToursPanel');
   const list=document.getElementById('objectManagerToursList');
@@ -16662,17 +16710,20 @@ function renderObjectManagerUnifiedTours(){
       : omNormalOperationalHtml(item);
 
     const status=String(run.status||'planned').toLowerCase();
+    const timing=omTodayTourTimingState(run);
+    const statusLabel=timing.overdue?'Überfällig':omTourStatusLabel(run.status);
     const buttonLabel=['active','in_progress'].includes(status)
       ? 'Tour fortsetzen'
-      : (date===today?'Tour öffnen':'Tour ansehen');
+      : (date===today?(timing.overdue?'Jetzt öffnen':'Tour öffnen'):'Tour ansehen');
 
-    return `<div class="om-tour-card ${mode==='today'?'is-today':'is-next'}">
+    return `<div class="om-tour-card ${mode==='today'?'is-today':'is-next'} ${timing.overdue?'is-overdue':''}">
       <div class="om-tour-main">
         <div class="om-tour-top">
           <div class="om-tour-name">${esc(title)}</div>
           <span class="om-tour-badge ${item.kind==='winter'?'winter':''}">${item.kind==='winter'?'Winterdienst':'Tour'}</span>
+          ${timing.overdue?'<span class="om-tour-overdue-badge">ÜBERFÄLLIG</span>':''}
         </div>
-        <div class="om-tour-meta">${esc(when)} · ${item.stops.length} Stopp${item.stops.length===1?'':'s'} · ${esc(omTourStatusLabel(run.status))}</div>
+        <div class="om-tour-meta">${esc(when)} · ${item.stops.length} Stopp${item.stops.length===1?'':'s'} · ${esc(statusLabel)}</div>
         ${detailHtml}
       </div>
       <div class="om-tour-actions">
