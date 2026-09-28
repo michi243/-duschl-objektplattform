@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.29</title>
+<title>Duschl Service – Objektplattform v2.24.30</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3688,6 +3688,36 @@ table td,table th{
 </style>
 
 </style>
+
+<style id="duschl-tour-workqueue-cleanup-v22430">
+.ops-tour-workqueue-overdue{
+  font-weight:700;
+}
+.ops-tour-workqueue-overdue-summary{
+  margin-top:3px;
+  font-size:12px;
+}
+.ops-tour-workqueue-overdue-details{
+  margin-top:12px;
+  border-top:1px solid rgba(148,163,184,.18);
+  padding-top:10px;
+}
+.ops-tour-workqueue-overdue-details summary{
+  cursor:pointer;
+}
+.ops-tour-workqueue-item.is-overdue{
+  opacity:.82;
+}
+.ops-task-internal-badge{
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.08em;
+}
+.ops-tour-workqueue-empty-current{
+  margin-top:10px;
+}
+</style>
+
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -6846,7 +6876,18 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Verwalter/Auftraggeber laden diese interne Aufgabenquelle nicht.
    BACKEND: benötigt SQL 2.24.29.
 */
-const APP_VERSION='2.24.29'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.30 | BASIS 2.24.29 | 28.09.2026
+   TOUR-ARBEITSVORRAT BEREINIGT
+   - Überfällige Alt-Aufgaben blockieren nicht mehr die ersten sichtbaren Plätze
+     im Tourauftrag.
+   - Aktuelle/fällige/terminlose Aufgaben stehen zuerst.
+   - Überfällige Aufgaben bleiben revisionssicher sichtbar, aber separat eingeklappt.
+   - Tour-Kopf trennt aktuelle und überfällige offene Aufgaben.
+   - Interne Aufgaben erhalten eine klare INTERN-Kennzeichnung.
+   - Keine Daten werden gelöscht oder stillschweigend ausgeblendet.
+   - Keine SQL-/RLS-/Backend-Änderung.
+*/
+const APP_VERSION='2.24.30'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -16979,10 +17020,11 @@ function tourWorkQueueItemsForObject(objectId){
       objectId:oid,
       title:task.title||finding?.title||'Offene Aufgabe',
       dueDate:task.dueDate||finding?.workDueDate||'',
-      priority:finding?.priority||'',
+      priority:task.priority||finding?.priority||'P4',
       status:task.status||'planned',
       workNote:task.workNote||finding?.workNote||'',
-      findingAvailable:!!finding
+      findingAvailable:!!finding,
+      source:task.source||'finding_task'
     });
     if(task.id)seenTaskIds.add(String(task.id));
     if(task.findingId)seenFindingIds.add(String(task.findingId));
@@ -17126,43 +17168,108 @@ function openTourTaskOnly(taskId){
   else modal(`<h2>Aufgabe</h2>${body}<div class="row"><button onclick="closeModal()">Schließen</button></div>`);
 }
 
+function tourWorkQueueDueState(item){
+  const raw=String(item?.dueDate||'').slice(0,10);
+  if(!raw)return 'no_due';
+  const today=typeof wsToday==='function'?wsToday():new Date().toISOString().slice(0,10);
+  if(raw<today)return 'overdue';
+  if(raw===today)return 'today';
+  return 'future';
+}
+
+function tourWorkQueueDueText(item){
+  const state=tourWorkQueueDueState(item);
+  if(state==='no_due')return 'ohne Termin';
+  const raw=String(item?.dueDate||'').slice(0,10);
+  const formatted=new Date(raw+'T00:00:00').toLocaleDateString('de-DE');
+  if(state==='overdue')return `überfällig · ${formatted}`;
+  if(state==='today')return `heute · ${formatted}`;
+  return formatted;
+}
+
+function tourWorkQueueRowHtml(x){
+  const internal=x.source==='internal';
+  const state=tourWorkQueueDueState(x);
+  return `<button type="button" class="ops-tour-workqueue-item ${state==='overdue'?'is-overdue':''}" onclick='tourWorkQueueOpen(${JSON.stringify({
+    kind:x.kind,id:x.id,taskId:x.taskId||'',findingId:x.findingId||''
+  })})'>
+    <span class="ops-tour-workqueue-item-main">
+      <strong>${opsEsc(x.title)}</strong>
+      <small>
+        ${internal?'<span class="ops-task-internal-badge">INTERN</span> · ':''}
+        ${opsEsc(tourWorkQueuePriorityLabel(x.priority))} · ${opsEsc(tourWorkQueueDueText(x))}
+      </small>
+    </span>
+    <span class="ops-tour-workqueue-arrow">›</span>
+  </button>`;
+}
+
 function tourObjectWorkQueueHtml(objectId,{compact=false}={}){
   const items=tourWorkQueueItemsForObject(objectId);
   if(!items.length)return '';
 
+  const currentItems=items
+    .filter(x=>tourWorkQueueDueState(x)!=='overdue')
+    .sort((a,b)=>{
+      const stateRank={today:0,future:1,no_due:2};
+      const sa=stateRank[tourWorkQueueDueState(a)]??9;
+      const sb=stateRank[tourWorkQueueDueState(b)]??9;
+      if(sa!==sb)return sa-sb;
+      const ad=a.dueDate||'9999-99-99';
+      const bd=b.dueDate||'9999-99-99';
+      return String(ad).localeCompare(String(bd));
+    });
+
+  const overdueItems=items
+    .filter(x=>tourWorkQueueDueState(x)==='overdue')
+    .sort((a,b)=>String(b.dueDate||'').localeCompare(String(a.dueDate||'')));
+
   if(compact){
-    const urgent=items.filter(x=>tourWorkQueuePriorityLabel(x.priority)==='Dringend').length;
+    const urgent=currentItems.filter(x=>tourWorkQueuePriorityLabel(x.priority)==='Dringend').length;
     return `<div class="ops-tour-workqueue-compact">
-      <strong>Arbeitsvorrat:</strong> ${items.length} offene ${items.length===1?'Arbeit':'Arbeiten'} am Objekt
+      <strong>Arbeitsvorrat:</strong>
+      ${currentItems.length} ${currentItems.length===1?'aktuelle Aufgabe':'aktuelle Aufgaben'}
+      ${overdueItems.length?` · <span class="ops-tour-workqueue-overdue">${overdueItems.length} überfällig</span>`:''}
       ${urgent?` · <span class="ops-tour-workqueue-urgent">${urgent} dringend</span>`:''}
       <span class="ops-tour-workqueue-live"> · aktuell geladen</span>
     </div>`;
   }
 
-  const rows=items.slice(0,5).map(x=>{
-    const due=x.dueDate?new Date(String(x.dueDate).slice(0,10)+'T00:00:00').toLocaleDateString('de-DE'):'ohne Termin';
-    return `<button type="button" class="ops-tour-workqueue-item" onclick='tourWorkQueueOpen(${JSON.stringify({
-      kind:x.kind,id:x.id,taskId:x.taskId||'',findingId:x.findingId||''
-    })})'>
-      <span class="ops-tour-workqueue-item-main">
-        <strong>${opsEsc(x.title)}</strong>
-        <small>${opsEsc(tourWorkQueuePriorityLabel(x.priority))} · ${opsEsc(due)}</small>
-      </span>
-      <span class="ops-tour-workqueue-arrow">›</span>
-    </button>`;
-  }).join('');
+  const visibleCurrent=currentItems.slice(0,5);
+  const currentRows=visibleCurrent.map(tourWorkQueueRowHtml).join('');
+
+  const overdueRows=overdueItems.map(tourWorkQueueRowHtml).join('');
 
   return `<div class="ops-tour-workqueue">
     <div class="ops-tour-workqueue-head">
       <div>
         <div class="ops-work-order-title">Zusätzlicher Arbeitsvorrat am Objekt</div>
-        <strong>${items.length} offene ${items.length===1?'Arbeit':'Arbeiten'}</strong>
+        <strong>${currentItems.length} ${currentItems.length===1?'aktuelle Aufgabe':'aktuelle Aufgaben'}</strong>
+        ${overdueItems.length?`<div class="muted ops-tour-workqueue-overdue-summary">${overdueItems.length} überfällige ${overdueItems.length===1?'Alt-Aufgabe':'Alt-Aufgaben'}</div>`:''}
       </div>
       <span class="badge">ZUSATZARBEIT</span>
     </div>
-    <div class="muted" style="margin-top:4px">Nicht automatisch Bestandteil dieses Tourauftrags.</div>
-    <div class="ops-tour-workqueue-list">${rows}</div>
-    ${items.length>5?`<div class="muted" style="margin-top:6px">+ ${items.length-5} weitere im Arbeitsvorrat</div>`:''}
+
+    <div class="muted" style="margin-top:4px">
+      Nicht automatisch Bestandteil dieses Tourauftrags. Aktuelle Aufgaben zuerst; überfällige Alt-Aufgaben separat.
+    </div>
+
+    ${currentRows
+      ? `<div class="ops-tour-workqueue-list">${currentRows}</div>`
+      : `<div class="empty ops-tour-workqueue-empty-current">Keine aktuelle Zusatzaufgabe für diesen Tourstopp.</div>`}
+
+    ${currentItems.length>5
+      ? `<div class="muted" style="margin-top:6px">+ ${currentItems.length-5} weitere aktuelle Aufgaben im Arbeitsvorrat</div>`
+      : ''}
+
+    ${overdueItems.length?`
+      <details class="ops-tour-workqueue-overdue-details">
+        <summary><strong>Überfällige Alt-Aufgaben (${overdueItems.length})</strong></summary>
+        <div class="muted" style="margin:7px 0 8px">
+          Bleiben sichtbar, werden aber nicht mehr vor aktuelle Touraufgaben sortiert.
+        </div>
+        <div class="ops-tour-workqueue-list">${overdueRows}</div>
+      </details>`:''}
   </div>`;
 }
 
