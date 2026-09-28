@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.75</title>
+<title>Duschl Service – Objektplattform v2.22.00</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1884,6 +1884,42 @@ body.public-report-mode>#photoViewer{display:none!important}
 #operations.ops-operative-mode .ops-planning-only{display:none!important}
 #operations:not(.ops-operative-mode) #opsOperativeView{display:none!important}
 </style>
+
+<style id="dashboard-season-mode-v22200">
+.dashboard-season-bar{
+  display:flex;justify-content:space-between;gap:14px;align-items:center;
+  padding:12px 14px;margin:0 0 14px;border:1px solid #31536d;border-radius:14px;
+  background:linear-gradient(145deg,#0c2232,#091d2b)
+}
+.dashboard-season-main{display:flex;gap:10px;align-items:center;min-width:0}
+.dashboard-season-icon{font-size:22px}
+.dashboard-season-title{font-weight:900}
+.dashboard-season-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.dashboard-season-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.dashboard-season-controls select{min-width:170px}
+.dashboard-winter-panel{
+  border:1px solid #416b88;border-radius:18px;padding:16px;margin:0 0 18px;
+  background:linear-gradient(145deg,#102b3f,#0a1f2e);box-shadow:0 12px 26px rgba(0,0,0,.16)
+}
+.dashboard-winter-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.dashboard-winter-title{font-size:21px;font-weight:950}
+.dashboard-winter-sub{color:var(--muted);margin-top:4px}
+.dashboard-winter-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:14px}
+.dashboard-winter-kpi{
+  padding:12px;border:1px solid #31536d;border-radius:13px;background:#0b2030;min-width:0
+}
+.dashboard-winter-kpi .value{font-size:26px;font-weight:950;line-height:1}
+.dashboard-winter-kpi .label{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.25}
+.dashboard-winter-risk-red{color:#ff9a9a}
+.dashboard-winter-risk-yellow{color:#f2d27b}
+.dashboard-winter-risk-green{color:#9dd9ad}
+@media(max-width:700px){
+  .dashboard-season-bar{align-items:flex-start;flex-direction:column}
+  .dashboard-season-controls{width:100%}
+  .dashboard-season-controls select{flex:1;min-width:0}
+  .dashboard-winter-grid{grid-template-columns:1fr 1fr}
+}
+</style>
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -2179,6 +2215,51 @@ body.public-report-mode>#photoViewer{display:none!important}
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
+  </div>
+
+  <div id="dashboardSeasonBar" class="dashboard-season-bar">
+    <div class="dashboard-season-main">
+      <div id="dashboardSeasonIcon" class="dashboard-season-icon">○</div>
+      <div>
+        <div id="dashboardSeasonTitle" class="dashboard-season-title">Dashboard-Modus</div>
+        <div id="dashboardSeasonMeta" class="dashboard-season-meta">Modus wird ermittelt …</div>
+      </div>
+    </div>
+    <div id="dashboardSeasonAdminControls" class="dashboard-season-controls" style="display:none">
+      <select id="dashboardSeasonOverride" onchange="saveDashboardSeasonOverride(this.value)">
+        <option value="auto">Automatisch</option>
+        <option value="winter">Wintermodus erzwingen</option>
+        <option value="standard">Standardmodus erzwingen</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="dashboardWinterPanel" class="dashboard-winter-panel" style="display:none">
+    <div class="dashboard-winter-head">
+      <div>
+        <div class="dashboard-winter-title">Winterdienst · Einsatzlage</div>
+        <div id="dashboardWinterStatus" class="dashboard-winter-sub">Winterdaten werden geladen …</div>
+      </div>
+      <button class="tenant-action-btn" type="button" onclick="showSection('winterService')">Winterdienst öffnen ›</button>
+    </div>
+    <div class="dashboard-winter-grid">
+      <div class="dashboard-winter-kpi">
+        <div class="value" id="dashboardWinterCritical">—</div>
+        <div class="label">kritische Wetterlagen</div>
+      </div>
+      <div class="dashboard-winter-kpi">
+        <div class="value" id="dashboardWinterWarnings">—</div>
+        <div class="label">DWD-Warnungen</div>
+      </div>
+      <div class="dashboard-winter-kpi">
+        <div class="value" id="dashboardWinterTours">—</div>
+        <div class="label">heutige offene Touren</div>
+      </div>
+      <div class="dashboard-winter-kpi">
+        <div class="value" id="dashboardWinterObjects">—</div>
+        <div class="label">aktive Winterdienstobjekte</div>
+      </div>
+    </div>
   </div>
 
   <div class="tenant-kpi-grid tenant-kpi-grid-v260">
@@ -4556,7 +4637,14 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    für neu angelegte eigene Objekte serverseitig automatisch als
    object_responsible gesetzt. Bestehende Rollen-/RLS-/Login-/Winterdienst-/
    Notification-/CC-Logik bleibt unverändert. */
-const APP_VERSION='2.21.75'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.22.00 | BASIS 2.21.75 | 28.09.2026
+   UI: saisonales Dashboard.
+   AUTO = Wintermodus 01.10.–30.04., Standardmodus 01.05.–30.09.
+   Mandanten-Admin/Admin-Vertretung kann zentral pro Mandant auf Winter oder Standard überschreiben.
+   Wintermodus priorisiert Wetterlage, DWD-Warnungen, heutige Wintertouren und Winterdienstobjekte.
+   Kein zweites Dashboard: nur Priorisierung/Sichtbarkeit innerhalb derselben Oberfläche.
+   Bestehende Rollen, RLS, Winterdienst, Notification/CC und Objektrollen bleiben erhalten. */
+const APP_VERSION='2.22.00'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -9784,6 +9872,7 @@ async function enterPlatformTenantMode(orgId){
 
   // Synthetischer Mandantenkontext: globale Identität bleibt platform_admin,
   // die operative UI arbeitet für diesen Mandanten wie ein tenant_admin.
+  dashboardSeasonSetting={mode:'auto',loaded:false};
   currentOrganization=org;
   currentOrganizationMembership={
     id:'platform-tenant-mode',
@@ -13615,6 +13704,169 @@ function renderGlobalPlatformMessages(){
   box.innerHTML=`${unreadHtml?`<div style="font-weight:800;margin-top:4px">Ungelesen (${unread.length})</div>${unreadHtml}`:''}${sentHtml?`<div style="font-weight:800;margin-top:16px">Zuletzt gesendet</div>${sentHtml}`:''}`;
 }
 
+
+let dashboardSeasonSetting={mode:'auto',loaded:false};
+let dashboardWinterLoadToken=0;
+
+function dashboardCalendarWinterMode(now=new Date()){
+  const month=now.getMonth()+1;
+  return month>=10 || month<=4;
+}
+function dashboardEffectiveSeasonMode(){
+  const configured=String(dashboardSeasonSetting?.mode||'auto').toLowerCase();
+  if(configured==='winter')return 'winter';
+  if(configured==='standard')return 'standard';
+  return dashboardCalendarWinterMode()?'winter':'standard';
+}
+function dashboardSeasonCanAdmin(){
+  return !!currentOrganizationId() && hasOperationalAdminAccess();
+}
+function dashboardSeasonLabel(mode){
+  return mode==='winter'?'Wintermodus':'Standardmodus';
+}
+async function loadDashboardSeasonSetting(){
+  const orgId=currentOrganizationId();
+  if(!orgId){
+    dashboardSeasonSetting={mode:'auto',loaded:true};
+    applyDashboardSeasonMode();
+    return;
+  }
+  try{
+    const rows=await cloudRequest('rpc/get_organization_dashboard_settings_v1',{
+      method:'POST',
+      body:JSON.stringify({p_organization_id:orgId})
+    })||[];
+    const r=Array.isArray(rows)?rows[0]:rows;
+    dashboardSeasonSetting={
+      mode:String(r?.season_mode||'auto').toLowerCase(),
+      loaded:true
+    };
+  }catch(e){
+    console.warn('Dashboard-Saisonmodus konnte nicht geladen werden; Auto-Modus wird verwendet.',e);
+    dashboardSeasonSetting={mode:'auto',loaded:true};
+  }
+  applyDashboardSeasonMode();
+}
+async function saveDashboardSeasonOverride(value){
+  if(!dashboardSeasonCanAdmin()){
+    alert('Nur Mandanten-Administration oder Platform-Admin im Mandantenmodus kann den Dashboard-Modus ändern.');
+    return;
+  }
+  const mode=['auto','winter','standard'].includes(String(value||''))?String(value):'auto';
+  const select=document.getElementById('dashboardSeasonOverride');
+  if(select)select.disabled=true;
+  try{
+    await cloudRequest('rpc/set_organization_dashboard_settings_v1',{
+      method:'POST',
+      body:JSON.stringify({
+        p_organization_id:currentOrganizationId(),
+        p_season_mode:mode
+      })
+    });
+    dashboardSeasonSetting={mode,loaded:true};
+    applyDashboardSeasonMode();
+  }catch(e){
+    alert('Dashboard-Modus konnte nicht gespeichert werden: '+(e.message||e));
+    await loadDashboardSeasonSetting();
+  }finally{
+    if(select)select.disabled=false;
+  }
+}
+function applyDashboardSeasonMode(){
+  const bar=document.getElementById('dashboardSeasonBar');
+  const panel=document.getElementById('dashboardWinterPanel');
+  if(!bar||!panel)return;
+
+  const configured=String(dashboardSeasonSetting?.mode||'auto');
+  const effective=dashboardEffectiveSeasonMode();
+  const isWinter=effective==='winter';
+
+  const icon=document.getElementById('dashboardSeasonIcon');
+  const title=document.getElementById('dashboardSeasonTitle');
+  const meta=document.getElementById('dashboardSeasonMeta');
+  const controls=document.getElementById('dashboardSeasonAdminControls');
+  const select=document.getElementById('dashboardSeasonOverride');
+
+  if(icon)icon.textContent=isWinter?'❄':'○';
+  if(title)title.textContent=dashboardSeasonLabel(effective);
+  if(meta){
+    const source=configured==='auto'
+      ?'Automatisch · Winter 01.10.–30.04. · Standard 01.05.–30.09.'
+      :`Manuell durch Administration · ${configured==='winter'?'Wintermodus':'Standardmodus'}`;
+    meta.textContent=source;
+  }
+  if(controls)controls.style.display=dashboardSeasonCanAdmin()?'flex':'none';
+  if(select)select.value=['auto','winter','standard'].includes(configured)?configured:'auto';
+
+  panel.style.display=isWinter?'block':'none';
+  document.getElementById('operationalDashboard')?.classList.toggle('is-winter-dashboard',isWinter);
+
+  if(isWinter)loadDashboardWinterSummary();
+}
+async function loadDashboardWinterSummary(){
+  const orgId=currentOrganizationId();
+  if(!orgId)return;
+  const token=++dashboardWinterLoadToken;
+  const status=document.getElementById('dashboardWinterStatus');
+  if(status)status.textContent='Winterdaten und Wetterlage werden geladen …';
+
+  try{
+    const today=wsToday();
+    const [assignments,runs,executions]=await Promise.all([
+      cloudRequest(`object_service_assignments?select=*&organization_id=eq.${encodeURIComponent(orgId)}&process_type=eq.winter_service&active=eq.true&order=created_at.desc`),
+      cloudRequest(`winter_service_runs?select=*&organization_id=eq.${encodeURIComponent(orgId)}&service_date=eq.${encodeURIComponent(today)}&order=created_at.desc`),
+      cloudRequest(`winter_service_executions?select=*&organization_id=eq.${encodeURIComponent(orgId)}&order=created_at.desc`)
+    ]);
+    if(token!==dashboardWinterLoadToken)return;
+
+    wsState={...wsState,
+      objectAssignments:assignments||[],
+      runs:Array.isArray(runs)?runs:[],
+      executions:Array.isArray(executions)?executions:[]
+    };
+
+    const objectIds=wsWinterObjectIds();
+    const weatherResults=await Promise.allSettled(
+      objectIds.map(id=>wsWeatherRequest(id,'forecast',false))
+    );
+    if(token!==dashboardWinterLoadToken)return;
+
+    weatherResults.forEach((r,i)=>{
+      const id=objectIds[i];
+      wsState.weatherByObject[id]=r.status==='fulfilled'
+        ?r.value
+        :{error:r.reason?.message||String(r.reason||'Wetterdaten nicht verfügbar.')};
+    });
+
+    const summary=wsWeatherSummaryData(objectIds);
+    const todayRuns=(runs||[]).filter(r=>String(r.service_date||'')===today);
+    const openRuns=todayRuns.filter(r=>!['completed','cancelled'].includes(String(r.status||'').toLowerCase()));
+
+    const critical=document.getElementById('dashboardWinterCritical');
+    const warnings=document.getElementById('dashboardWinterWarnings');
+    const tours=document.getElementById('dashboardWinterTours');
+    const objects=document.getElementById('dashboardWinterObjects');
+
+    if(critical){
+      critical.textContent=summary.red;
+      critical.className='value '+(summary.red?'dashboard-winter-risk-red':summary.yellow?'dashboard-winter-risk-yellow':'dashboard-winter-risk-green');
+    }
+    if(warnings)warnings.textContent=summary.warnings;
+    if(tours)tours.textContent=openRuns.length;
+    if(objects)objects.textContent=objectIds.length;
+
+    const dataErrors=summary.errors||0;
+    if(status){
+      status.textContent=objectIds.length
+        ?`${objectIds.length} Winterdienstobjekt${objectIds.length===1?'':'e'} · ${summary.red} kritisch · ${summary.yellow} beobachten${dataErrors?` · ${dataErrors} Wetterdatenfehler`:''}`
+        :'Keine aktiven Winterdienstobjekte im Mandanten.';
+    }
+  }catch(e){
+    console.error('Winter-Dashboard konnte nicht geladen werden',e);
+    if(status)status.textContent='Winterdaten konnten nicht vollständig geladen werden.';
+  }
+}
+
 function renderDashboard(){
   const greetingName=document.getElementById('dashboardGreetingName');
   if(greetingName){
@@ -13625,6 +13877,15 @@ function renderDashboard(){
   renderGlobalPlatformMessages();
   renderDashboardMessages();
   renderDashboardCareRequests();
+
+  // 2.22.00: Saisonale Priorisierung nur im operativen Mandanten-Dashboard.
+  if(currentOrganizationId()){
+    if(!dashboardSeasonSetting.loaded){
+      loadDashboardSeasonSetting();
+    }else{
+      applyDashboardSeasonMode();
+    }
+  }
   document.getElementById('kpiObjects').textContent=db.objects.length;
   // v2.20.23: Dashboard-KPI bildet die vollständige Dokumentation ab, nicht nur offene Punkte.
   const visibleDocumentation=(db.findings||[]).filter(f=>findingVisibleInCurrentTenantUI(f));
