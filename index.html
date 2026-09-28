@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.21</title>
+<title>Duschl Service – Objektplattform v2.24.22</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -6552,7 +6552,16 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Dropdown zeigt zulässige Objektbetreuer und selektiert die bestehende Zuweisung.
    - Keine SQL-/RLS-/Backend-Änderung.
 */
-const APP_VERSION='2.24.21'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.22 | BASIS 2.24.21 | 28.09.2026
+   OPERATIVE DETAILANSICHTEN VEREINHEITLICHT
+   - Standardtouren und Winterdienst bleiben fachlich getrennt.
+   - Beide operativen Ansichten folgen aber derselben Priorisierungslogik:
+     Heute/Aktiv -> Nächster Einsatz -> Weitere geplante -> Alt-Touren -> Archiv.
+   - Die nächste Zukunftstour steht nicht mehr im Block "Aktueller Einsatz".
+   - Winterdienst behält Wetter-/Fachprozesslogik unverändert.
+   - Keine SQL-/RLS-/Backend-Änderung.
+*/
+const APP_VERSION='2.24.22'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -22330,26 +22339,32 @@ function wsRenderMyWinterOrders(){
   const runs=wsMyRuns();
   const buckets=wsRunBuckets(runs);
 
-  const current=[...buckets.active,...buckets.todayOpen];
+  const current=[...buckets.active,...buckets.todayOpen]
+    .filter((r,i,a)=>a.findIndex(z=>String(z.id)===String(r.id))===i);
   const next=buckets.future.slice(0,1);
   const furtherPlanned=buckets.future.slice(1);
-  const currentAndNext=[...current,...next]
-    .filter((r,i,a)=>a.findIndex(z=>String(z.id)===String(r.id))===i);
 
   root.innerHTML=`<section class="panel">
     <div class="eyebrow">WINTERDIENST</div>
     <h2>Mein Winterdienst</h2>
-    <p class="muted">Aktueller Einsatz zuerst. Vergangene Touren werden nach unten archiviert.</p>
+    <p class="muted">Heute zuerst, danach der nächste geplante Einsatz. Wetter und Einsatzdokumentation bleiben im Winterdienst-Fachprozess.</p>
 
     <div class="ws-operative-current">
-      <div class="ws-operative-section-title">Aktueller Einsatz</div>
-      ${currentAndNext.length
-        ? currentAndNext.map((r,index)=>`
+      <div class="ws-operative-section-title">${current.length?'Heutiger / aktiver Einsatz':'Heutiger Einsatz'}</div>
+      ${current.length
+        ? current.map((r,index)=>`
             <div class="${index===0?'ws-current-run':''}">
               ${wsRunCard(r)}
             </div>`).join('')
-        : '<div class="empty">Aktuell ist Ihnen kein Winterdienstauftrag zugewiesen.</div>'}
+        : '<div class="empty">Für heute ist kein Winterdienstauftrag zugewiesen.</div>'}
     </div>
+
+    ${next.length?`
+      <div style="margin-top:18px">
+        <div class="ws-operative-section-title">Nächster Einsatz</div>
+        ${next.map(wsRunCard).join('')}
+      </div>
+    `:''}
 
     ${furtherPlanned.length?`
       <details class="ws-operative-planned" style="margin-top:18px">
@@ -22768,7 +22783,11 @@ function opsRenderMyRuns(){
   const host=document.getElementById('opsMyRunList');if(!host)return;
   const today=wsToday();
 
-  const all=opsMyRuns().sort((a,b)=>String(a.service_date||'').localeCompare(String(b.service_date||'')));
+  const all=opsMyRuns().sort((a,b)=>{
+    const ak=`${String(a.service_date||'')} ${String(a.planned_start_time||'23:59')}`;
+    const bk=`${String(b.service_date||'')} ${String(b.planned_start_time||'23:59')}`;
+    return ak.localeCompare(bk);
+  });
 
   const active=all.filter(r=>['active','in_progress'].includes(String(r.status||'').toLowerCase()));
   const todayOpen=all.filter(r=>
@@ -22786,10 +22805,10 @@ function opsRenderMyRuns(){
   const archive=all.filter(r=>['completed','cancelled'].includes(String(r.status||'').toLowerCase()))
     .sort((a,b)=>String(b.service_date||'').localeCompare(String(a.service_date||'')));
 
-  const nextFuture=future.slice(0,1);
-  const furtherFuture=future.slice(1);
-  const current=[...active,...todayOpen,...nextFuture]
+  const current=[...active,...todayOpen]
     .filter((r,i,a)=>a.findIndex(z=>String(z.id)===String(r.id))===i);
+  const next=future.slice(0,1);
+  const furtherFuture=future.slice(1);
 
   const card=(r,archived=false)=>{
     const xs=(opsState.runStops||[])
@@ -22797,25 +22816,37 @@ function opsRenderMyRuns(){
       .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
     const status=String(r.status||'planned').toLowerCase();
     const overdueFlag=String(r.service_date||'')<today && !['completed','cancelled'].includes(status);
+    const start=String(r.planned_start_time||'').slice(0,5);
+
     return `<div class="card ${archived?'ops-archived-run':''} ${String(opsFocusRunId)===String(r.id)?'ops-focus-run':''}" data-ops-run-id="${opsEsc(r.id)}" style="padding:12px;margin:8px 0">
       <div class="row space" style="gap:10px;align-items:flex-start">
         <div>
           <strong>${opsEsc(r.service_date)} · ${opsEsc(r.name||'Tour')}</strong>
-          <div class="muted" style="margin-top:4px">${xs.length} Stopps · ${overdueFlag?'Überfällig':opsEsc(omTourStatusLabel(status))}</div>
+          <div class="muted" style="margin-top:4px">${start?`${opsEsc(start)} Uhr · `:''}${xs.length} ${xs.length===1?'Stopp':'Stopps'} · ${overdueFlag?'Überfällig':opsEsc(omTourStatusLabel(status))}</div>
         </div>
         <span class="badge">${overdueFlag?'ÜBERFÄLLIG':archived?'ARCHIV':'TOUR'}</span>
       </div>
-      <div style="margin-top:9px">
-        ${xs.map(x=>`<div style="margin-top:6px"><strong>${x.sort_order}. ${opsEsc(opsObjName(x.object_id))}</strong> · ${opsEsc(opsServiceName(x.service_type_id))}</div>`).join('')}
-      </div>
+      <details style="margin-top:8px" ${xs.length<=2?'open':''}>
+        <summary>${xs.length} ${xs.length===1?'Stopp':'Stopps'} anzeigen</summary>
+        <div style="margin-top:6px">
+          ${xs.map(x=>`<div style="margin-top:5px"><strong>${x.sort_order}. ${opsEsc(opsObjName(x.object_id))}</strong> · ${opsEsc(opsServiceName(x.service_type_id))}</div>`).join('')}
+        </div>
+      </details>
     </div>`;
   };
 
   host.innerHTML=`
     <div class="ops-current-runs">
-      <div class="ws-operative-section-title">Aktueller Einsatz</div>
-      ${current.map(r=>card(r,false)).join('')||'<div class="muted">Aktuell sind dir keine offenen Touren oder Einsätze zugewiesen.</div>'}
+      <div class="ws-operative-section-title">${current.length?'Heutiger / aktiver Einsatz':'Heutiger Einsatz'}</div>
+      ${current.map(r=>card(r,false)).join('')||'<div class="muted">Für heute ist kein regulärer Einsatz zugewiesen.</div>'}
     </div>
+
+    ${next.length?`
+      <div style="margin-top:18px">
+        <div class="ws-operative-section-title">Nächster Einsatz</div>
+        ${next.map(r=>card(r,false)).join('')}
+      </div>
+    `:''}
 
     ${furtherFuture.length?`
       <details style="margin-top:18px">
