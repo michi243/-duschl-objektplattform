@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.22.01</title>
+<title>Duschl Service – Objektplattform v2.22.02</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1927,6 +1927,29 @@ body.public-report-mode>#photoViewer{display:none!important}
   outline:2px solid #4da3d9;
   outline-offset:3px;
 }
+
+.dashboard-summer-panel{
+  border:1px solid #416b88;border-radius:18px;padding:16px;margin:0 0 18px;
+  background:linear-gradient(145deg,#102b3f,#0a1f2e);box-shadow:0 12px 26px rgba(0,0,0,.16);
+  cursor:pointer
+}
+.dashboard-summer-panel:focus-visible{outline:3px solid #4da3d9;outline-offset:3px}
+.dashboard-summer-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.dashboard-summer-title{font-size:21px;font-weight:950}
+.dashboard-summer-sub{color:var(--muted);margin-top:4px}
+.dashboard-summer-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:14px}
+.dashboard-summer-kpi{
+  padding:12px;border:1px solid #31536d;border-radius:13px;background:#0b2030;min-width:0
+}
+.dashboard-summer-kpi .value{font-size:26px;font-weight:950;line-height:1}
+.dashboard-summer-kpi .label{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.25}
+.dashboard-summer-good{color:#9dd9ad}
+.dashboard-summer-check{color:#f2d27b}
+.dashboard-summer-avoid{color:#ff9a9a}
+.dashboard-summer-panel .dashboard-summer-kpi{pointer-events:none}
+@media(max-width:700px){
+  .dashboard-summer-grid{grid-template-columns:1fr 1fr}
+}
 </style>
 </head>
 <body>
@@ -2269,6 +2292,37 @@ body.public-report-mode>#photoViewer{display:none!important}
       <div class="dashboard-winter-kpi">
         <div class="value" id="dashboardWinterObjects">—</div>
         <div class="label">aktive Winterdienstobjekte</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="dashboardSummerPanel" class="dashboard-summer-panel" style="display:none" role="button" tabindex="0"
+    aria-label="Außenanlagenpflege in Touren und Einsätze öffnen"
+    onclick="if(!event.target.closest('button,select,input,a'))openSummerCarePlanning()"
+    onkeydown="if((event.key==='Enter'||event.key===' ')&&!event.target.closest('button,select,input,a')){event.preventDefault();openSummerCarePlanning();}">
+    <div class="dashboard-summer-head">
+      <div>
+        <div class="dashboard-summer-title">Außenanlagenpflege · Wetterlage</div>
+        <div id="dashboardSummerStatus" class="dashboard-summer-sub">Pflegewetter wird geladen …</div>
+      </div>
+      <button class="tenant-action-btn" type="button" onclick="openSummerCarePlanning()">Außenpflege planen ›</button>
+    </div>
+    <div class="dashboard-summer-grid">
+      <div class="dashboard-summer-kpi">
+        <div class="value" id="dashboardSummerWindow">—</div>
+        <div class="label">Pflegefenster</div>
+      </div>
+      <div class="dashboard-summer-kpi">
+        <div class="value" id="dashboardSummerTemp">—</div>
+        <div class="label">Max. Temperatur · 24 h</div>
+      </div>
+      <div class="dashboard-summer-kpi">
+        <div class="value" id="dashboardSummerRain">—</div>
+        <div class="label">Max. Niederschlagswahr. · 24 h</div>
+      </div>
+      <div class="dashboard-summer-kpi">
+        <div class="value" id="dashboardSummerWarnings">—</div>
+        <div class="label">DWD-Warnungen</div>
       </div>
     </div>
   </div>
@@ -4660,7 +4714,14 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    Klick auf die Einsatzlage oder „Einsatz planen“ öffnet Winterdienst,
    lädt die Winterdaten und scrollt gezielt zum Planungsbereich.
    Keine Backend-/SQL-Änderung. */
-const APP_VERSION='2.22.01'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.22.02 | BASIS 2.22.01 | 28.09.2026
+   SOMMERMODUS: Wettersteuerung für Außenanlagen-/Grünpflege.
+   Relevante Objekte werden aus aktiven Objekt-Leistungszuordnungen GRUENPFLEGE ermittelt.
+   Dashboard zeigt Pflegefenster, Max.-Temperatur, Niederschlagswahrscheinlichkeit und DWD-Warnungen.
+   Klick führt direkt zu Touren & Einsätze.
+   BACKEND: neue Edge Function object-weather + SQL 2.22.02 erforderlich.
+   Wintermodus, Login, Rollen, Objektrollen, Notification/CC bleiben unverändert. */
+const APP_VERSION='2.22.02'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -13815,9 +13876,15 @@ function applyDashboardSeasonMode(){
   if(select)select.value=['auto','winter','standard'].includes(configured)?configured:'auto';
 
   panel.style.display=isWinter?'block':'none';
+  const summerPanel=document.getElementById('dashboardSummerPanel');
+  if(summerPanel)summerPanel.style.display=isWinter?'none':'block';
   document.getElementById('operationalDashboard')?.classList.toggle('is-winter-dashboard',isWinter);
 
-  if(isWinter)loadDashboardWinterSummary();
+  if(isWinter){
+    loadDashboardWinterSummary();
+  }else{
+    loadDashboardSummerSummary();
+  }
 }
 
 async function openWinterPlanning(){
@@ -13836,6 +13903,155 @@ async function openWinterPlanning(){
   }catch(e){
     console.error('Winterdienst-Einsatzplanung konnte nicht geöffnet werden',e);
     alert('Die Winterdienst-Einsatzplanung konnte nicht vollständig geöffnet werden: '+(e.message||e));
+  }
+}
+
+
+let dashboardSummerLoadToken=0;
+
+function summerCareServiceMatches(st){
+  try{
+    return osaServiceScopeCode(st)==='GRUENPFLEGE';
+  }catch(_e){
+    const q=String(st?.qualification_code||'').toLowerCase();
+    const n=String(st?.name||'').toLowerCase();
+    return ['gartenpflege','gruenpflege','aussenpflege'].includes(q)
+      || n.includes('gartenpflege')
+      || n.includes('grünpflege')
+      || n.includes('gruenpflege')
+      || n.includes('außenpflege')
+      || n.includes('aussenpflege')
+      || n.includes('grünanlagen')
+      || n.includes('gruenanlagen');
+  }
+}
+
+async function objectWeatherRequest(objectId,scope='green_care',force=false){
+  if(!cloudSession?.access_token)throw new Error('Keine aktive Anmeldung.');
+  const r=await fetch(`${SUPABASE_URL}/functions/v1/object-weather`,{
+    method:'POST',
+    headers:{
+      'apikey':SUPABASE_PUBLISHABLE_KEY,
+      'Authorization':`Bearer ${cloudSession.access_token}`,
+      'Content-Type':'application/json'
+    },
+    body:JSON.stringify({
+      organization_id:currentOrganizationId(),
+      object_id:objectId,
+      scope,
+      force:force===true
+    })
+  });
+  const raw=await r.text();
+  let data={};
+  try{data=raw?JSON.parse(raw):{}}catch(_e){}
+  if(!r.ok||data?.success!==true)throw new Error(data?.error||raw||`HTTP ${r.status}`);
+  return data;
+}
+
+function summerWorstStatus(entries){
+  const rank={good:1,check:2,avoid:3};
+  let worst='good';
+  for(const e of entries){
+    const s=String(e?.care_24h?.status||'good').toLowerCase();
+    if((rank[s]||1)>(rank[worst]||1))worst=s;
+  }
+  return worst;
+}
+
+function summerStatusLabel(status){
+  return status==='avoid'?'VERSCHIEBEN':status==='check'?'PRÜFEN':'GUT';
+}
+
+function summerStatusClass(status){
+  return status==='avoid'?'dashboard-summer-avoid':status==='check'?'dashboard-summer-check':'dashboard-summer-good';
+}
+
+async function openSummerCarePlanning(){
+  try{
+    showSection('operations');
+    await new Promise(resolve=>setTimeout(resolve,100));
+    const section=document.getElementById('operations');
+    section?.scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){
+    console.error('Außenanlagenplanung konnte nicht geöffnet werden',e);
+    alert('Touren & Einsätze konnten nicht vollständig geöffnet werden: '+(e.message||e));
+  }
+}
+
+async function loadDashboardSummerSummary(){
+  const orgId=currentOrganizationId();
+  if(!orgId)return;
+
+  const token=++dashboardSummerLoadToken;
+  const status=document.getElementById('dashboardSummerStatus');
+  if(status)status.textContent='Außenanlagen-Leistungen und Wetter werden geladen …';
+
+  try{
+    const [assignments,services]=await Promise.all([
+      cloudRequest(`object_service_assignments?select=id,object_id,service_type_id,process_type,active,valid_from,valid_until&organization_id=eq.${encodeURIComponent(orgId)}&active=eq.true&order=created_at.desc`),
+      cloudRequest(`service_types?select=id,name,qualification_code,active&organization_id=eq.${encodeURIComponent(orgId)}&active=eq.true&order=name.asc`)
+    ]);
+    if(token!==dashboardSummerLoadToken)return;
+
+    const serviceById=new Map((services||[]).map(s=>[String(s.id),s]));
+    const today=wsToday();
+    const ids=[...new Set((assignments||[])
+      .filter(a=>a.active!==false)
+      .filter(a=>!a.valid_from || String(a.valid_from)<=today)
+      .filter(a=>!a.valid_until || String(a.valid_until)>=today)
+      .filter(a=>summerCareServiceMatches(serviceById.get(String(a.service_type_id))))
+      .map(a=>String(a.object_id||''))
+      .filter(Boolean)
+    )];
+
+    const windowEl=document.getElementById('dashboardSummerWindow');
+    const tempEl=document.getElementById('dashboardSummerTemp');
+    const rainEl=document.getElementById('dashboardSummerRain');
+    const warningEl=document.getElementById('dashboardSummerWarnings');
+
+    if(!ids.length){
+      if(windowEl){windowEl.textContent='—';windowEl.className='value';}
+      if(tempEl)tempEl.textContent='—';
+      if(rainEl)rainEl.textContent='—';
+      if(warningEl)warningEl.textContent='0';
+      if(status)status.textContent='Keine aktive Außenanlagen-/Grünpflege-Leistung im Mandanten.';
+      return;
+    }
+
+    const results=await Promise.allSettled(ids.map(id=>objectWeatherRequest(id,'green_care',false)));
+    if(token!==dashboardSummerLoadToken)return;
+
+    const entries=results.filter(r=>r.status==='fulfilled').map(r=>r.value);
+    const errors=results.filter(r=>r.status==='rejected').length;
+
+    const maxTemps=entries
+      .map(e=>Number(e?.care_24h?.max_temperature))
+      .filter(Number.isFinite);
+    const maxRainProb=entries
+      .map(e=>Number(e?.care_24h?.max_precipitation_probability))
+      .filter(Number.isFinite);
+    const warnings=entries.reduce((sum,e)=>sum+(Array.isArray(e?.alerts)?e.alerts.length:0),0);
+    const worst=entries.length?summerWorstStatus(entries):'check';
+
+    if(windowEl){
+      windowEl.textContent=summerStatusLabel(worst);
+      windowEl.className='value '+summerStatusClass(worst);
+    }
+    if(tempEl)tempEl.textContent=maxTemps.length?`${Math.round(Math.max(...maxTemps))} °C`:'—';
+    if(rainEl)rainEl.textContent=maxRainProb.length?`${Math.round(Math.max(...maxRainProb))} %`:'—';
+    if(warningEl)warningEl.textContent=String(warnings);
+
+    const hints=[...new Set(entries.flatMap(e=>Array.isArray(e?.care_24h?.recommendations)?e.care_24h.recommendations:[]))];
+    if(status){
+      status.textContent=
+        `${ids.length} Außenpflegeobjekt${ids.length===1?'':'e'} · Pflegefenster ${summerStatusLabel(worst)}`
+        +(hints.length?` · ${hints.slice(0,2).join(' · ')}`:'')
+        +(errors?` · ${errors} Wetterdatenfehler`:'');
+    }
+  }catch(e){
+    console.error('Sommer-Dashboard konnte nicht geladen werden',e);
+    if(status)status.textContent='Pflegewetter konnte nicht vollständig geladen werden.';
   }
 }
 
