@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.18</title>
+<title>Duschl Service – Objektplattform v2.24.19</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3261,6 +3261,105 @@ table td,table th{
 .ops-archived-run{
   opacity:.88;
 }
+
+<style id="duschl-operative-dashboard-v22419">
+.om-tour-section{
+  margin-top:12px;
+}
+.om-tour-section:first-child{margin-top:0}
+.om-tour-section-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin:0 0 8px;
+}
+.om-tour-section-label{
+  font-size:11px;
+  font-weight:950;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:#9FB2C1;
+}
+.om-tour-section-date{
+  font-size:11px;
+  color:#7F93A3;
+}
+.om-tour-card.is-today{
+  border-color:rgba(255,255,255,.22);
+  box-shadow:inset 3px 0 0 #FFFFFF,0 10px 22px rgba(0,0,0,.14);
+}
+.om-tour-card.is-next{
+  opacity:.96;
+}
+.om-tour-progress{
+  margin-top:10px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  align-items:center;
+}
+.om-tour-progress-track{
+  height:7px;
+  border-radius:999px;
+  background:rgba(255,255,255,.07);
+  overflow:hidden;
+}
+.om-tour-progress-fill{
+  height:100%;
+  border-radius:999px;
+  background:rgba(255,255,255,.78);
+}
+.om-tour-progress-label{
+  font-size:11px;
+  color:#AAB9C4;
+  white-space:nowrap;
+}
+.om-tour-operational{
+  margin-top:10px;
+  padding:10px 11px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:10px;
+  background:rgba(255,255,255,.025);
+}
+.om-tour-operational-title{
+  font-size:10px;
+  font-weight:950;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+  color:#8FA5B5;
+  margin-bottom:6px;
+}
+.om-tour-next-stop{
+  font-size:14px;
+  font-weight:900;
+  color:#F4F7F9;
+}
+.om-tour-op-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px 12px;
+  margin-top:6px;
+  font-size:11px;
+  color:#9BAEBC;
+}
+.om-tour-op-meta strong{color:#DCE6EC;font-weight:800}
+.om-tour-actions{
+  align-self:stretch;
+  display:flex;
+  align-items:center;
+}
+.om-tour-actions button{min-width:130px}
+.ops-focus-run{
+  border-color:rgba(255,255,255,.30)!important;
+  box-shadow:inset 3px 0 0 #FFFFFF,0 12px 24px rgba(0,0,0,.16)!important;
+}
+@media(max-width:700px){
+  .om-tour-progress{grid-template-columns:1fr}
+  .om-tour-progress-label{white-space:normal}
+}
+</style>
+
 </style>
 </head>
 <body>
@@ -6310,7 +6409,18 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Winterdienst bleibt ausschließlich im spezialisierten Winterdienst-Fachprozess.
    - SQL 2.24.18 bereinigt den bestätigten Legacy-Winterdienstplan und dessen zukünftige geplante Runs.
 */
-const APP_VERSION='2.24.18'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.19 | BASIS 2.24.18 | 28.09.2026
+   OPERATIVES OBJEKTBETREUER-DASHBOARD
+   - Dashboard trennt klar zwischen "Heutige Tour" und "Nächste Tour".
+   - Winterdienst zeigt weiterhin Wetter & Einsatzlage.
+   - Reguläre Touren zeigen Fortschritt, nächsten Stopp, Leistung, Zeitfenster,
+     geplante Dauer und SOP-Verknüpfung.
+   - Klick aus dem Dashboard öffnet bei Standardtouren gezielt den gewählten Run
+     und hebt ihn in "Meine Touren & Einsätze" hervor.
+   - Weitere Zukunftstouren bleiben außerhalb des Dashboard-Fokus.
+   - Keine SQL-/RLS-/Backend-Änderung.
+*/
+const APP_VERSION='2.24.19'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -16200,6 +16310,8 @@ let objectManagerTourDashboardState={
   loaded:false,
   normalRuns:[],
   normalStops:[],
+  normalServices:[],
+  normalPlans:[],
   winterRuns:[],
   winterExecutions:[],
   winterWeatherByRun:{}
@@ -16234,6 +16346,73 @@ function objectManagerUnifiedTours(){
   return [...normal,...winter]
     .filter(x=>!['completed','cancelled'].includes(String(x.run?.status||'').toLowerCase()))
     .sort((a,b)=>omTourDateTimeKey(a.run).localeCompare(omTourDateTimeKey(b.run)));
+}
+
+function omStopIsCompleted(stop){
+  const s=String(stop?.status||'planned').toLowerCase();
+  return ['completed','done','finished','closed'].includes(s);
+}
+function omTourProgress(item){
+  const stops=item?.stops||[];
+  const completed=stops.filter(omStopIsCompleted).length;
+  return {
+    total:stops.length,
+    completed,
+    pct:stops.length?Math.round((completed/stops.length)*100):0
+  };
+}
+function omTourNextStop(item){
+  const stops=[...(item?.stops||[])].sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+  return stops.find(s=>!omStopIsCompleted(s))||stops[0]||null;
+}
+function omObjectName(objectId){
+  return (db.objects||[]).find(o=>String(o.id||'')===String(objectId||''))?.name||'Objekt';
+}
+function omNormalServiceName(serviceTypeId){
+  return (objectManagerTourDashboardState.normalServices||[])
+    .find(s=>String(s.id||'')===String(serviceTypeId||''))?.name||'Leistung';
+}
+function omNormalPlan(planId){
+  return (objectManagerTourDashboardState.normalPlans||[])
+    .find(p=>String(p.id||'')===String(planId||''))||null;
+}
+function omTime(v){
+  return String(v||'').slice(0,5);
+}
+function omNormalOperationalHtml(item){
+  const next=omTourNextStop(item);
+  const progress=omTourProgress(item);
+  if(!next){
+    return `<div class="om-tour-operational">
+      <div class="om-tour-operational-title">Operativer Stand</div>
+      <div class="muted">Keine Stopps in dieser Tour.</div>
+    </div>`;
+  }
+
+  const plan=omNormalPlan(next.recurring_plan_id);
+  const windowStart=omTime(plan?.time_window_start);
+  const windowEnd=omTime(plan?.time_window_end);
+  const timeWindow=windowStart||windowEnd
+    ? `${windowStart||'—'}–${windowEnd||'—'} Uhr`
+    : 'kein Zeitfenster';
+  const duration=Number(plan?.planned_duration_minutes||0);
+  const sop=next.sop_version_id?'SOP verknüpft':'Keine SOP verknüpft';
+
+  return `
+    <div class="om-tour-progress">
+      <div class="om-tour-progress-track"><div class="om-tour-progress-fill" style="width:${Math.max(0,Math.min(100,progress.pct))}%"></div></div>
+      <div class="om-tour-progress-label">${progress.completed}/${progress.total} Stopps erledigt</div>
+    </div>
+    <div class="om-tour-operational">
+      <div class="om-tour-operational-title">Nächster Stopp</div>
+      <div class="om-tour-next-stop">${esc(omObjectName(next.object_id))}</div>
+      <div class="om-tour-op-meta">
+        <span><strong>Leistung:</strong> ${esc(omNormalServiceName(next.service_type_id))}</span>
+        <span><strong>Zeitfenster:</strong> ${esc(timeWindow)}</span>
+        ${duration?`<span><strong>Dauer:</strong> ${duration} Min.</span>`:''}
+        <span><strong>SOP:</strong> ${esc(sop)}</span>
+      </div>
+    </div>`;
 }
 
 async function loadObjectManagerWinterWeatherForRun(run,executions){
@@ -16324,6 +16503,8 @@ async function refreshObjectManagerTours(){
     const winterIds=(winterRuns||[]).map(r=>String(r.id||'')).filter(Boolean);
 
     let normalStops=[];
+    let normalServices=[];
+    let normalPlans=[];
     let winterExecutions=[];
 
     if(normalIds.length){
@@ -16331,6 +16512,23 @@ async function refreshObjectManagerTours(){
       normalStops=await cloudRequest(
         `operation_run_stops?select=*&organization_id=eq.${encodeURIComponent(org)}&run_id=in.(${inList})&order=sort_order.asc`
       ).catch(e=>{console.warn('Standardtour-Stopps konnten nicht geladen werden',e);return [];});
+
+      const serviceIds=[...new Set((normalStops||[]).map(x=>String(x.service_type_id||'')).filter(Boolean))];
+      const planIds=[...new Set((normalStops||[]).map(x=>String(x.recurring_plan_id||'')).filter(Boolean))];
+
+      if(serviceIds.length){
+        const ids=serviceIds.map(id=>id.replace(/[^0-9a-fA-F-]/g,'')).join(',');
+        normalServices=await cloudRequest(
+          `service_types?select=id,name&organization_id=eq.${encodeURIComponent(org)}&id=in.(${ids})`
+        ).catch(e=>{console.warn('Leistungsarten für Dashboard-Touren konnten nicht geladen werden',e);return [];});
+      }
+
+      if(planIds.length){
+        const ids=planIds.map(id=>id.replace(/[^0-9a-fA-F-]/g,'')).join(',');
+        normalPlans=await cloudRequest(
+          `recurring_service_plans?select=id,planned_duration_minutes,time_window_start,time_window_end,scope_text,sop_version_id&id=in.(${ids})`
+        ).catch(e=>{console.warn('Leistungspläne für Dashboard-Touren konnten nicht geladen werden',e);return [];});
+      }
     }
 
     if(winterIds.length){
@@ -16356,6 +16554,8 @@ async function refreshObjectManagerTours(){
       loaded:true,
       normalRuns:Array.isArray(normalRuns)?normalRuns:[],
       normalStops:Array.isArray(normalStops)?normalStops:[],
+      normalServices:Array.isArray(normalServices)?normalServices:[],
+      normalPlans:Array.isArray(normalPlans)?normalPlans:[],
       winterRuns:Array.isArray(winterRuns)?winterRuns:[],
       winterExecutions:Array.isArray(winterExecutions)?winterExecutions:[],
       winterWeatherByRun:weatherByRun
@@ -16394,6 +16594,7 @@ function openObjectManagerUnifiedTour(kind,runId){
     return;
   }
 
+  opsFocusRunId=String(runId||'');
   showSection('operations');
   setTimeout(()=>opsLoad(),0);
 }
@@ -16414,17 +16615,21 @@ function renderObjectManagerUnifiedTours(){
   }
 
   const today=wsToday();
-  const visible=tours.filter(x=>String(x.run?.service_date||'')===today).concat(
-    tours.filter(x=>String(x.run?.service_date||'')>today).slice(0,2)
-  );
+  const todayTours=tours.filter(x=>String(x.run?.service_date||'')===today);
+  const nextTour=tours.find(x=>String(x.run?.service_date||'')>today)||null;
 
-  list.innerHTML=visible.map(item=>{
+  const renderCard=(item,mode)=>{
     const run=item.run||{};
     const title=run.name||run.tour_name||run.template_name||(item.kind==='winter'?'Winterdiensttour':'Tour');
     const date=String(run.service_date||'');
-    const start=String(run.start_time||'').slice(0,5);
+    const start=String(run.planned_start_time||run.start_time||'').slice(0,5);
     const when=date===today?`Heute${start?` · ${start} Uhr`:''}`:`${date}${start?` · ${start} Uhr`:''}`;
-    const weather=item.kind==='winter'?objectManagerTourDashboardState.winterWeatherByRun?.[run.id]:null;
+    const progress=omTourProgress(item);
+
+    const weather=item.kind==='winter'
+      ? objectManagerTourDashboardState.winterWeatherByRun?.[run.id]
+      : null;
+
     const riskLabel=weather?wsWeatherRiskLabel(weather.risk_level):'';
     const tempLabel=weather&&Number.isFinite(Number(weather.min_temperature))
       ? `${Number(weather.min_temperature).toFixed(1)} °C`
@@ -16435,7 +16640,8 @@ function renderObjectManagerUnifiedTours(){
     const firstRiskLabel=weather?.first_risk_at
       ? wsWeatherFormatTime(weather.first_risk_at)
       : '—';
-    const weatherHtml=item.kind==='winter'
+
+    const detailHtml=item.kind==='winter'
       ? (weather
         ? `<div class="om-tour-weather">
             <div class="om-tour-weather-title">Wetter &amp; Einsatzlage</div>
@@ -16446,25 +16652,59 @@ function renderObjectManagerUnifiedTours(){
               <span><small>Erstes Risiko</small><strong>${esc(firstRiskLabel)}</strong></span>
               <span><small>DWD-Warnungen</small><strong>${weather.warnings}</strong></span>
             </div>
+            <div class="om-tour-progress">
+              <div class="om-tour-progress-track"><div class="om-tour-progress-fill" style="width:${Math.max(0,Math.min(100,progress.pct))}%"></div></div>
+              <div class="om-tour-progress-label">${progress.completed}/${progress.total} Stopps erledigt</div>
+            </div>
             ${weather.errors?`<div class="om-tour-weather-error">${weather.errors} Wetterdatensatz${weather.errors===1?'':'s'} nicht verfügbar</div>`:''}
           </div>`
         : `<div class="om-tour-weather"><span class="muted">Wetterdaten werden geladen …</span></div>`)
-      : '';
+      : omNormalOperationalHtml(item);
 
-    return `<div class="om-tour-card">
+    const status=String(run.status||'planned').toLowerCase();
+    const buttonLabel=['active','in_progress'].includes(status)
+      ? 'Tour fortsetzen'
+      : (date===today?'Tour öffnen':'Tour ansehen');
+
+    return `<div class="om-tour-card ${mode==='today'?'is-today':'is-next'}">
       <div class="om-tour-main">
         <div class="om-tour-top">
           <div class="om-tour-name">${esc(title)}</div>
           <span class="om-tour-badge ${item.kind==='winter'?'winter':''}">${item.kind==='winter'?'Winterdienst':'Tour'}</span>
         </div>
         <div class="om-tour-meta">${esc(when)} · ${item.stops.length} Stopp${item.stops.length===1?'':'s'} · ${esc(omTourStatusLabel(run.status))}</div>
-        ${weatherHtml}
+        ${detailHtml}
       </div>
       <div class="om-tour-actions">
-        <button class="primary" type="button" onclick="openObjectManagerUnifiedTour('${item.kind}','${esc(run.id)}')">Tour öffnen</button>
+        <button class="primary" type="button" onclick="openObjectManagerUnifiedTour('${item.kind}','${esc(run.id)}')">${esc(buttonLabel)}</button>
       </div>
     </div>`;
-  }).join('');
+  };
+
+  const todayHtml=todayTours.length
+    ? `<div class="om-tour-section">
+        <div class="om-tour-section-head">
+          <div class="om-tour-section-label">Heutige Tour${todayTours.length>1?'en':''}</div>
+          <div class="om-tour-section-date">${esc(today)}</div>
+        </div>
+        ${todayTours.map(item=>renderCard(item,'today')).join('')}
+      </div>`
+    : `<div class="om-tour-section">
+        <div class="om-tour-section-head"><div class="om-tour-section-label">Heutige Tour</div></div>
+        <div class="empty">Für heute ist keine Tour zugewiesen.</div>
+      </div>`;
+
+  const nextHtml=nextTour
+    ? `<div class="om-tour-section">
+        <div class="om-tour-section-head">
+          <div class="om-tour-section-label">Nächste Tour</div>
+          <div class="om-tour-section-date">${esc(String(nextTour.run?.service_date||''))}</div>
+        </div>
+        ${renderCard(nextTour,'next')}
+      </div>`
+    : '';
+
+  list.innerHTML=todayHtml+nextHtml;
 }
 
 function isObjectManagerDashboardRole(){
@@ -22172,6 +22412,7 @@ async function wsCompleteExecution(id){
 
 let opsState={services:[],plans:[],tours:[],stops:[],runs:[],runStops:[],assignments:[],documents:[],versions:[],tenantUsers:[]};
 let opsEditingPlanId=null;
+let opsFocusRunId='';
 
 function opsEsc(v){return String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));}
 function opsOrg(){return currentOrganizationId();}
@@ -22335,7 +22576,7 @@ function opsRenderMyRuns(){
       .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
     const status=String(r.status||'planned').toLowerCase();
     const overdueFlag=String(r.service_date||'')<today && !['completed','cancelled'].includes(status);
-    return `<div class="card ${archived?'ops-archived-run':''}" style="padding:12px;margin:8px 0">
+    return `<div class="card ${archived?'ops-archived-run':''} ${String(opsFocusRunId)===String(r.id)?'ops-focus-run':''}" data-ops-run-id="${opsEsc(r.id)}" style="padding:12px;margin:8px 0">
       <div class="row space" style="gap:10px;align-items:flex-start">
         <div>
           <strong>${opsEsc(r.service_date)} · ${opsEsc(r.name||'Tour')}</strong>
@@ -22374,6 +22615,13 @@ function opsRenderMyRuns(){
       ${archive.map(r=>card(r,true)).join('')||'<div class="muted" style="margin-top:10px">Noch keine abgeschlossenen Touren.</div>'}
     </details>
   `;
+
+  if(opsFocusRunId){
+    const target=host.querySelector(`[data-ops-run-id="${CSS.escape(String(opsFocusRunId))}"]`);
+    if(target){
+      setTimeout(()=>target.scrollIntoView({behavior:'smooth',block:'center'}),60);
+    }
+  }
 }
 
 async function opsLoad(){
