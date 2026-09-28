@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.22</title>
+<title>Duschl Service – Objektplattform v2.24.23</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3473,6 +3473,96 @@ table td,table th{
 }
 </style>
 
+
+<style id="duschl-operation-workorder-v22423">
+.ops-work-run{
+  padding:14px!important;
+  margin:8px 0!important;
+}
+.ops-work-run-head{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:flex-start;
+}
+.ops-work-run-kicker,
+.ops-work-stop-kicker,
+.ops-work-order-title{
+  font-size:10px;
+  font-weight:950;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:#91A6B6;
+}
+.ops-work-run-head h3{
+  margin:3px 0 4px;
+  font-size:20px;
+}
+.ops-work-run-copy{
+  margin-top:10px;
+  padding:9px 10px;
+  border-radius:9px;
+  background:rgba(255,255,255,.035);
+  color:#B8C7D1;
+  font-size:12px;
+}
+.ops-work-stop-list{
+  display:grid;
+  gap:10px;
+  margin-top:12px;
+}
+.ops-work-stop{
+  border:1px solid rgba(255,255,255,.11);
+  border-radius:11px;
+  padding:12px;
+  background:rgba(255,255,255,.02);
+}
+.ops-work-stop-head{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:flex-start;
+}
+.ops-work-stop-object{
+  margin-top:3px;
+  font-size:16px;
+  font-weight:900;
+}
+.ops-work-stop-service{
+  margin-top:2px;
+  color:#AFC0CC;
+  font-size:12px;
+}
+.ops-work-stop-meta{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-top:9px;
+  font-size:11px;
+  color:#9FB0BC;
+}
+.ops-work-order{
+  margin-top:10px;
+  padding:10px 11px;
+  border-left:3px solid rgba(255,255,255,.55);
+  border-radius:8px;
+  background:rgba(255,255,255,.035);
+  line-height:1.45;
+  font-size:13px;
+}
+.ops-work-order-title{margin-bottom:5px}
+.ops-work-stop-actions{
+  margin-top:10px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+@media(max-width:700px){
+  .ops-work-run-head,.ops-work-stop-head{flex-direction:column}
+  .ops-work-stop-actions button{width:100%}
+}
+</style>
+
 </style>
 </head>
 <body>
@@ -6561,7 +6651,16 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Winterdienst behält Wetter-/Fachprozesslogik unverändert.
    - Keine SQL-/RLS-/Backend-Änderung.
 */
-const APP_VERSION='2.24.22'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.23 | BASIS 2.24.22 | 28.09.2026
+   OPERATIVE STANDARDTOUR: ARBEITSAUFTRAG SICHTBAR
+   - "Tour öffnen" zeigt den gewählten Run jetzt als Arbeitsauftrag, nicht nur als Termin.
+   - Je Stopp: Objekt, Leistung, Status, Zeitfenster, geplante Dauer,
+     konkreter Objekthinweis/Scope und SOP-Schaltfläche.
+   - Operative Nutzer laden dafür die zugehörigen recurring_service_plans mit.
+   - scope_snapshot des Run-Stops hat Vorrang; danach scope_text des Leistungsplans.
+   - Keine SQL-/RLS-/Backend-Änderung.
+*/
+const APP_VERSION='2.24.23'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -22779,6 +22878,66 @@ function opsApplyViewMode(){
   section.querySelectorAll('.ops-planning-only').forEach(el=>el.style.display=planning?'':'none');
 }
 function opsMyRuns(){const uid=String(currentUserId()||'');return (opsState.runs||[]).filter(r=>String(r.assigned_user_id||'')===uid);}
+
+function opsPlanForRunStop(stop){
+  return (opsState.plans||[]).find(p=>String(p.id||'')===String(stop?.recurring_plan_id||''))||null;
+}
+function opsRunStopInstruction(stop){
+  const plan=opsPlanForRunStop(stop);
+  const snap=String(stop?.scope_snapshot||'').trim();
+  const planText=String(plan?.scope_text||'').trim();
+  return snap||planText||'Kein zusätzlicher Objekthinweis hinterlegt. Verbindliche Ausführung gemäß SOP.';
+}
+function opsRunStopTimeLabel(stop){
+  const p=opsPlanForRunStop(stop);
+  const a=String(p?.time_window_start||'').slice(0,5);
+  const b=String(p?.time_window_end||'').slice(0,5);
+  if(a&&b)return `${a}–${b} Uhr`;
+  if(a)return `ab ${a} Uhr`;
+  if(b)return `bis ${b} Uhr`;
+  return 'kein festes Zeitfenster';
+}
+function opsRunStopDuration(stop){
+  const p=opsPlanForRunStop(stop);
+  const n=Number(p?.planned_duration_minutes||0);
+  return Number.isFinite(n)&&n>0?n:null;
+}
+function opsRunStopStatusLabel(stop){
+  const s=String(stop?.status||'planned').toLowerCase();
+  return ({
+    planned:'Geplant',
+    active:'In Bearbeitung',
+    in_progress:'In Bearbeitung',
+    completed:'Erledigt',
+    cancelled:'Storniert'
+  })[s]||String(stop?.status||'Geplant');
+}
+function opsRunStopWorkHtml(stop,index){
+  const duration=opsRunStopDuration(stop);
+  const instruction=opsRunStopInstruction(stop);
+  const hasSop=!!stop?.sop_version_id;
+  return `<div class="ops-work-stop">
+    <div class="ops-work-stop-head">
+      <div>
+        <div class="ops-work-stop-kicker">Stopp ${index+1}</div>
+        <div class="ops-work-stop-object">${opsEsc(opsObjName(stop.object_id))}</div>
+        <div class="ops-work-stop-service">${opsEsc(opsServiceName(stop.service_type_id))}</div>
+      </div>
+      <span class="badge">${opsEsc(opsRunStopStatusLabel(stop))}</span>
+    </div>
+    <div class="ops-work-stop-meta">
+      <span><strong>Zeit:</strong> ${opsEsc(opsRunStopTimeLabel(stop))}</span>
+      ${duration?`<span><strong>Dauer:</strong> ${duration} Min.</span>`:''}
+    </div>
+    <div class="ops-work-order">
+      <div class="ops-work-order-title">Was ist zu tun?</div>
+      <div>${opsEsc(instruction)}</div>
+    </div>
+    <div class="ops-work-stop-actions">
+      <button type="button" class="primary" onclick="openAssignedOperationSop('${opsEsc(stop.id)}')">${hasSop?'SOP / Arbeitsanweisung öffnen':'Arbeitsanweisung prüfen'}</button>
+    </div>
+  </div>`;
+}
 function opsRenderMyRuns(){
   const host=document.getElementById('opsMyRunList');if(!host)return;
   const today=wsToday();
@@ -22817,21 +22976,33 @@ function opsRenderMyRuns(){
     const status=String(r.status||'planned').toLowerCase();
     const overdueFlag=String(r.service_date||'')<today && !['completed','cancelled'].includes(status);
     const start=String(r.planned_start_time||'').slice(0,5);
+    const focused=String(opsFocusRunId)===String(r.id);
 
-    return `<div class="card ${archived?'ops-archived-run':''} ${String(opsFocusRunId)===String(r.id)?'ops-focus-run':''}" data-ops-run-id="${opsEsc(r.id)}" style="padding:12px;margin:8px 0">
+    if(focused && !archived){
+      return `<div class="card ops-focus-run ops-work-run" data-ops-run-id="${opsEsc(r.id)}">
+        <div class="ops-work-run-head">
+          <div>
+            <div class="ops-work-run-kicker">ARBEITSAUFTRAG</div>
+            <h3>${opsEsc(r.name||'Tour')}</h3>
+            <div class="muted">${opsEsc(r.service_date)}${start?` · ${opsEsc(start)} Uhr`:''} · ${xs.length} ${xs.length===1?'Stopp':'Stopps'} · ${opsEsc(omTourStatusLabel(status))}</div>
+          </div>
+          <span class="badge">${overdueFlag?'ÜBERFÄLLIG':'TOUR'}</span>
+        </div>
+        <div class="ops-work-run-copy">Arbeite die Stopps in Reihenfolge ab. Pro Stopp siehst du den konkreten Leistungsumfang und die verbindliche Arbeitsanweisung.</div>
+        <div class="ops-work-stop-list">
+          ${xs.map((x,i)=>opsRunStopWorkHtml(x,i)).join('')||'<div class="muted">Keine Stopps in dieser Tour.</div>'}
+        </div>
+      </div>`;
+    }
+
+    return `<div class="card ${archived?'ops-archived-run':''}" data-ops-run-id="${opsEsc(r.id)}" style="padding:12px;margin:8px 0">
       <div class="row space" style="gap:10px;align-items:flex-start">
         <div>
           <strong>${opsEsc(r.service_date)} · ${opsEsc(r.name||'Tour')}</strong>
           <div class="muted" style="margin-top:4px">${start?`${opsEsc(start)} Uhr · `:''}${xs.length} ${xs.length===1?'Stopp':'Stopps'} · ${overdueFlag?'Überfällig':opsEsc(omTourStatusLabel(status))}</div>
         </div>
-        <span class="badge">${overdueFlag?'ÜBERFÄLLIG':archived?'ARCHIV':'TOUR'}</span>
+        <button type="button" onclick="opsFocusRunId='${opsEsc(r.id)}';opsRenderMyRuns()">Arbeitsauftrag öffnen</button>
       </div>
-      <details style="margin-top:8px" ${xs.length<=2?'open':''}>
-        <summary>${xs.length} ${xs.length===1?'Stopp':'Stopps'} anzeigen</summary>
-        <div style="margin-top:6px">
-          ${xs.map(x=>`<div style="margin-top:5px"><strong>${x.sort_order}. ${opsEsc(opsObjName(x.object_id))}</strong> · ${opsEsc(opsServiceName(x.service_type_id))}</div>`).join('')}
-        </div>
-      </details>
     </div>`;
   };
 
@@ -22870,9 +23041,7 @@ function opsRenderMyRuns(){
 
   if(opsFocusRunId){
     const target=host.querySelector(`[data-ops-run-id="${CSS.escape(String(opsFocusRunId))}"]`);
-    if(target){
-      setTimeout(()=>target.scrollIntoView({behavior:'smooth',block:'center'}),60);
-    }
+    if(target)setTimeout(()=>target.scrollIntoView({behavior:'smooth',block:'start'}),60);
   }
 }
 
@@ -22895,18 +23064,32 @@ async function opsLoad(){
         )||[];
       }
 
-      // Nur für die Anzeige der Stopps erforderliche Stammdaten.
+      // Für den operativen Arbeitsauftrag werden nur die Stammdaten der
+      // tatsächlich zugewiesenen Run-Stopps geladen.
       let services=[];
+      let plans=[];
       try{
-        services=await cloudRequest(
-          `service_types?select=id,name&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=name.asc`
-        )||[];
+        const serviceIds=[...new Set((runStops||[]).map(x=>String(x.service_type_id||'')).filter(Boolean))];
+        if(serviceIds.length){
+          const ids=serviceIds.map(id=>id.replace(/[^0-9a-fA-F-]/g,'')).join(',');
+          services=await cloudRequest(`service_types?select=id,name&id=in.(${ids})`)||[];
+        }
       }catch(e){console.warn('Leistungsarten für operative Touransicht konnten nicht geladen werden',e)}
+
+      try{
+        const planIds=[...new Set((runStops||[]).map(x=>String(x.recurring_plan_id||'')).filter(Boolean))];
+        if(planIds.length){
+          const ids=planIds.map(id=>id.replace(/[^0-9a-fA-F-]/g,'')).join(',');
+          plans=await cloudRequest(
+            `recurring_service_plans?select=id,scope_text,planned_duration_minutes,time_window_start,time_window_end,sop_version_id&id=in.(${ids})`
+          )||[];
+        }
+      }catch(e){console.warn('Leistungspläne für operative Touransicht konnten nicht geladen werden',e)}
 
       opsState={
         ...opsState,
         services:Array.isArray(services)?services:[],
-        plans:[],
+        plans:Array.isArray(plans)?plans:[],
         tours:[],
         stops:[],
         runs:Array.isArray(runs)?runs:[],
