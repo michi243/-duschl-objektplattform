@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.23.02</title>
+<title>Duschl Service – Objektplattform v2.23.03</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -2618,6 +2618,207 @@ table td,table th{
   .ds-object-metric{min-width:calc(50% - 4px)!important}
 }
 </style>
+
+<style id="duschl-work-surfaces-v22303">
+/* Arbeitsoberflächen: ein gemeinsames visuelles System */
+.ds-work-section{
+  --work-border:rgba(255,255,255,.10);
+  --work-muted:#9EAFBC;
+}
+.ds-work-section>.row.space:first-child{
+  align-items:flex-end!important;
+  margin-bottom:4px;
+}
+.ds-work-section>.row.space:first-child h2{
+  margin:0!important;
+}
+.ds-work-section>.row.space:first-child .muted{
+  max-width:900px;
+}
+
+/* Filter = Werkzeug, nicht Inhalt */
+.ds-filter-toolbar,
+.ds-filter-panel{
+  background:rgba(255,255,255,.025)!important;
+  border:1px solid rgba(255,255,255,.09)!important;
+  border-radius:14px!important;
+  padding:12px!important;
+  box-shadow:none!important;
+}
+.ds-filter-toolbar{
+  gap:10px!important;
+}
+.ds-filter-toolbar label,
+.ds-filter-panel label,
+.gf-filterbox label{
+  color:#9EAFBC!important;
+  font-size:11px!important;
+  letter-spacing:.035em;
+  margin-top:0!important;
+}
+.ds-filter-toolbar select,
+.ds-filter-panel select,
+.gf-filterbox select{
+  min-height:42px;
+}
+
+/* Entscheidungs-KPIs: kompakter, Bedeutung durch Zahl */
+.ds-work-stats{
+  gap:10px!important;
+}
+.ds-work-stats>.card{
+  min-height:72px;
+  padding:12px 14px!important;
+  background:rgba(255,255,255,.025)!important;
+  border:1px solid rgba(255,255,255,.09)!important;
+  box-shadow:none!important;
+}
+.ds-work-stats .big{
+  margin-top:4px;
+  font-size:28px!important;
+  font-weight:950!important;
+  color:#fff!important;
+}
+#decisionImmediateCount{color:#F28A8F!important}
+#decisionUrgentCount{color:#F0CC73!important}
+
+/* Einheitliche Vorgangskarten */
+#decisionList>.card,
+#residentReportList>.card,
+#findingList>.card,
+.gf-workitem{
+  position:relative;
+  overflow:hidden;
+  background:linear-gradient(145deg,#0E2232,#091A27)!important;
+  border:1px solid rgba(255,255,255,.105)!important;
+  border-radius:14px!important;
+  box-shadow:0 7px 18px rgba(0,0,0,.11)!important;
+  padding:14px!important;
+}
+#decisionList>.card:before,
+#residentReportList>.card:before,
+#findingList>.card:before,
+.gf-workitem:before{
+  content:"";
+  position:absolute;
+  left:0;top:0;bottom:0;
+  width:3px;
+  background:#7E93A3;
+}
+
+/* Prioritätsinformationen bleiben punktuell */
+#findingList>.finding[data-priority="P1"]:before{background:var(--ds-danger)!important}
+#findingList>.finding[data-priority="P2"]:before{background:var(--ds-warning)!important}
+#findingList>.finding[data-priority="P3"]:before{background:#9AABB8!important}
+#findingList>.finding[data-priority="P4"]:before{background:#7FAF94!important}
+
+#decisionList>.card{
+  border-left-color:transparent!important;
+}
+#decisionList>.card:has(.p1):before,
+#decisionList>.card:has(.P1):before{background:var(--ds-danger)}
+#decisionList>.card:has(.p2):before,
+#decisionList>.card:has(.P2):before{background:var(--ds-warning)}
+
+.gf-workitem.is-overdue:before{
+  background:var(--ds-danger)!important;
+}
+.gf-workitem:not(.is-overdue):before{
+  background:#95A7B5;
+}
+
+/* Überschrift / Meta auf Vorgangskarten */
+#decisionList>.card h3,
+#residentReportList>.card h3,
+#findingList>.card h3,
+.gf-workitem strong{
+  color:#F7F9FB!important;
+}
+#decisionList>.card>.row:first-child,
+#residentReportList>.card>.row:first-child,
+#findingList>.card>.row:first-child,
+.gf-workhead{
+  padding-bottom:9px;
+  border-bottom:1px solid rgba(255,255,255,.065);
+}
+
+/* Aktionen klar vom Inhalt trennen */
+#decisionList>.card>.row:last-child,
+#residentReportList>.card>.row:last-child,
+#findingList>.card .ticket-actions,
+.gf-workitem>.row:last-child{
+  margin-top:12px!important;
+  padding-top:11px;
+  border-top:1px solid rgba(255,255,255,.07);
+}
+
+/* Workqueue vorhandene eigene Styles in CI ziehen */
+.gf-kpis{
+  gap:10px!important;
+}
+.gf-kpi{
+  background:rgba(255,255,255,.025)!important;
+  border:1px solid rgba(255,255,255,.09)!important;
+  box-shadow:none!important;
+}
+.gf-kpi.is-action{
+  border-color:rgba(255,255,255,.16)!important;
+}
+.gf-kpi strong{
+  color:#fff!important;
+}
+.gf-filterbox{
+  margin-top:12px!important;
+  padding:12px!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.025)!important;
+  border:1px solid rgba(255,255,255,.09)!important;
+}
+
+/* Meldungen: Beschreibung lesbar, Metadaten zurückhaltend */
+#residentReportList>.card>div[style*="margin-top:10px"]{
+  line-height:1.5;
+}
+#residentReportList>.card .photo-grid{
+  margin-top:8px!important;
+}
+
+/* Leere Zustände sind neutral statt wie Fehler */
+.ds-work-section .empty,
+.ds-work-section .empty-state{
+  background:rgba(255,255,255,.018)!important;
+  border:1px dashed rgba(255,255,255,.12)!important;
+  color:#93A4B1!important;
+}
+
+/* Desktop / Mobile */
+@media(min-width:900px){
+  #decisionList,
+  #residentReportList,
+  #findingList,
+  .gf-worklist{
+    max-width:1180px;
+  }
+}
+@media(max-width:680px){
+  .ds-filter-toolbar,
+  .ds-filter-panel{
+    padding:10px!important;
+  }
+  .ds-work-stats{
+    grid-template-columns:1fr 1fr!important;
+  }
+  .ds-work-stats>.card:first-child{
+    grid-column:1/-1;
+  }
+  #decisionList>.card,
+  #residentReportList>.card,
+  #findingList>.card,
+  .gf-workitem{
+    padding:12px!important;
+  }
+}
+</style>
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -3098,7 +3299,7 @@ table td,table th{
 <div id="objectListStatus" class="ds-object-list-status">Objekte werden geladen …</div>
 <div class="grid g2 ds-object-grid" id="objectList" style="display:grid!important;visibility:visible!important;opacity:1!important"></div>
 </section>
-<section class="section" id="findings">
+<section class="section ds-work-section" id="findings">
 <div class="card" id="customerObjectContext" style="display:none;margin-bottom:14px">
 <div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em">Aktuelles Objekt</div>
 <div id="customerObjectContextName" style="font-size:20px;font-weight:800;margin-top:4px">—</div>
@@ -3108,8 +3309,8 @@ table td,table th{
 <select id="customerObjectSelect" onchange="setCustomerObjectContext(this.value)"></select>
 </div>
 </div>
-<div class="row space"><div><h2>Dokumentation</h2><div class="muted" style="margin-top:-4px;margin-bottom:12px">Übersicht und Filter aller Dokumentationen. Neue Dokumentationen werden über „Objekte“ angelegt.</div><div class="muted">Feststellungen und Leistungsnachweise</div></div></div>
-<div class="grid g3" style="margin:14px 0">
+<div class="row space"><div><div class="ds-section-eyebrow">DOKUMENTATION</div><h2>Dokumentation</h2><div class="muted" style="margin-top:-4px;margin-bottom:12px">Übersicht und Filter aller Dokumentationen. Neue Dokumentationen werden über „Objekte“ angelegt.</div><div class="muted">Feststellungen und Leistungsnachweise</div></div></div>
+<div class="grid g3 ds-filter-toolbar" style="margin:14px 0">
 <div><label>Objekt</label><select id="filterObject" onchange="renderFindings()"><option value="">Alle</option></select></div>
 <div><label>Status</label><select id="filterStatus" onchange="renderFindings()"><option value="active">Offen + In Bearbeitung</option><option value="">Alle</option><option>Offen</option><option>In Bearbeitung</option><option>Erledigt</option></select>
 <select id="filterDecision" onchange="renderFindings()">
@@ -3127,19 +3328,19 @@ table td,table th{
 </div>
 <div class="grid" id="findingList"></div>
 </section>
-<section class="section" id="decisions">
+<section class="section ds-work-section" id="decisions">
 <div class="row space">
 <div>
-<h2>Entscheidungen</h2>
+<div class="ds-section-eyebrow">STEUERUNG</div><h2>Entscheidungen</h2>
 <div class="muted">Arbeitsvorrat für Feststellungen, bei denen eine Entscheidung des Auftraggebers erforderlich ist.</div>
 </div>
 </div>
-<div class="grid stats" style="margin-top:14px">
+<div class="grid stats ds-work-stats" style="margin-top:14px">
 <div class="card"><div class="muted">Offene Entscheidungen</div><div class="big" id="decisionOpenCount">0</div></div>
 <div class="card"><div class="muted">Sofort</div><div class="big" id="decisionImmediateCount">0</div></div>
 <div class="card"><div class="muted">Dringend</div><div class="big" id="decisionUrgentCount">0</div></div>
 </div>
-<div class="card" style="margin-top:14px">
+<div class="card ds-filter-panel" style="margin-top:14px">
 <div class="grid">
 <div>
 <label>Objekt</label>
@@ -3175,24 +3376,24 @@ table td,table th{
 </div>
 <div id="decisionList" style="margin-top:14px"></div>
 </section>
-<section class="section" id="workqueue">
+<section class="section ds-work-section" id="workqueue">
 <div class="row space">
 <div>
-<h2>Arbeitsvorrat</h2>
+<div class="ds-section-eyebrow">ARBEIT</div><h2>Arbeitsvorrat</h2>
 <div class="muted">Alle offenen operativen Arbeiten und konkreten Aufträge. Erledigt gemeldete Fremdleistungen zur Bestätigung liegen unter „Entscheidungen“.</div>
 </div>
 </div>
 <div id="workQueue"></div>
 </section>
-<section class="section" id="residentReports">
+<section class="section ds-work-section" id="residentReports">
 <div class="row space">
 <div>
-<h2>Meldungen</h2>
+<div class="ds-section-eyebrow">EINGANG</div><h2>Meldungen</h2>
 <div class="muted">Bewohnermeldungen nach Handlungsbedarf steuern: neu prüfen, Dienstleisterstatus verfolgen, Entscheidungen treffen und Abnahmen durchführen</div>
 </div>
 </div>
 <div id="wsOperativeView" class="hidden"></div>
-   <div class="grid g2" style="margin-top:14px">
+   <div class="grid g2 ds-filter-toolbar" style="margin-top:14px">
 <div>
 <label>Objekt</label>
 <select id="residentReportObjectFilter" onchange="renderResidentReports()">
@@ -5444,7 +5645,14 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Primäraktion „Dokumentation erfassen“ klar von Verwaltung getrennt
    - Bestands-/Statusinformationen kompakter und scanbarer
    - Keine SQL-/RLS-/Backend-Änderung */
-const APP_VERSION='2.23.02'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.23.03 | BASIS 2.23.02 | 28.09.2026
+   ARBEITSOBERFLÄCHEN / VISUELLE KONSOLIDIERUNG
+   - Dokumentation, Entscheidungen, Arbeitsvorrat und Meldungen vereinheitlicht
+   - Filter als kompakte Steuerleiste statt konkurrierender Inhaltsblöcke
+   - Vorgangskarten mit klarer Statuskante, konsistenten Abständen und Aktionshierarchie
+   - Kritische Arbeit visuell hervorgehoben, Verwaltungsinformationen zurückgenommen
+   - Keine SQL-/RLS-/Backend-Änderung */
+const APP_VERSION='2.23.03'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
