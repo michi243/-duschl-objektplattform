@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.22.05</title>
+<title>Duschl Service – Objektplattform v2.23.00</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1984,6 +1984,400 @@ body.public-report-mode>#photoViewer{display:none!important}
 .dashboard-summer-detail-warnings{margin-top:9px;font-size:12px;color:#f2d27b}
 @media(max-width:700px){
   .dashboard-summer-detail-grid{grid-template-columns:1fr}
+}
+</style>
+
+<style id="duschl-ci-v22300">
+/* ==========================================================
+   DUSCHL SERVICE CI · 2.23.00
+   Struktur = Navy / Service Grey / Weiß
+   Status = Grün / Gelb / Rot
+   ========================================================== */
+:root{
+  --ds-navy:#0F2133;
+  --ds-navy-950:#06111A;
+  --ds-navy-900:#091925;
+  --ds-navy-850:#0C1C2A;
+  --ds-navy-800:#122A3E;
+  --ds-navy-700:#18354C;
+  --ds-steel:#8FA1B2;
+  --ds-grey:#666A6F;
+  --ds-grey-soft:#A9B0B6;
+  --ds-white:#FFFFFF;
+  --ds-line:rgba(255,255,255,.13);
+  --ds-line-strong:rgba(255,255,255,.22);
+
+  --ds-success:#53B67A;
+  --ds-warning:#E6B84A;
+  --ds-danger:#E96D73;
+
+  --bg:var(--ds-navy-950)!important;
+  --bg-soft:var(--ds-navy-900)!important;
+  --panel:var(--ds-navy-850)!important;
+  --panel-2:var(--ds-navy-800)!important;
+  --panel-3:var(--ds-navy-700)!important;
+  --line:var(--ds-line)!important;
+  --line-soft:rgba(255,255,255,.08)!important;
+  --text:#F7F9FB!important;
+  --muted:#AEBBC6!important;
+  --accent:#FFFFFF!important;
+  --accent-2:#D8E2EA!important;
+  --success:var(--ds-success)!important;
+  --warning:var(--ds-warning)!important;
+  --danger:var(--ds-danger)!important;
+  --shadow:0 10px 26px rgba(0,0,0,.20)!important;
+}
+
+/* Grundfläche: ruhig, klar, CI-dominant */
+html,body{
+  background:var(--ds-navy-950)!important;
+  color:var(--text)!important;
+}
+body{
+  background:
+    radial-gradient(circle at 16% -4%,rgba(255,255,255,.045),transparent 30rem),
+    linear-gradient(180deg,var(--ds-navy-950) 0%,#081723 100%)!important;
+}
+
+/* Topbar / Brand */
+.app-topbar,
+header,
+.topbar{
+  background:rgba(15,33,51,.97)!important;
+  border-bottom:1px solid var(--ds-line)!important;
+  box-shadow:0 6px 18px rgba(0,0,0,.16)!important;
+}
+.app-brand-mark{
+  background:#fff!important;
+  border-color:#fff!important;
+  color:var(--ds-navy)!important;
+  box-shadow:none!important;
+}
+.app-brand h1{
+  color:#fff!important;
+  letter-spacing:.055em!important;
+  text-transform:uppercase;
+}
+.app-brand small{
+  color:#C5CED6!important;
+  letter-spacing:.08em;
+}
+
+/* Seitennavigation: weniger visuelles Rauschen, klare aktive Spur */
+.app-menu{
+  background:linear-gradient(180deg,var(--ds-navy) 0%,#0B1B29 100%)!important;
+  border-right:1px solid var(--ds-line)!important;
+}
+.app-menu nav{
+  background:transparent!important;
+}
+.app-menu nav button{
+  position:relative;
+  min-height:44px;
+  margin:2px 0!important;
+  padding:10px 12px!important;
+  border:1px solid transparent!important;
+  border-radius:10px!important;
+  color:#BAC5CE!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.app-menu nav button:hover{
+  color:#fff!important;
+  background:rgba(255,255,255,.055)!important;
+}
+.app-menu nav button.primary,
+.app-menu nav button.active{
+  color:#fff!important;
+  background:rgba(255,255,255,.09)!important;
+  border-color:rgba(255,255,255,.12)!important;
+  box-shadow:none!important;
+}
+.app-menu nav button.primary:before,
+.app-menu nav button.active:before{
+  content:"";
+  position:absolute;
+  left:-1px;
+  top:8px;
+  bottom:8px;
+  width:3px;
+  border-radius:0 3px 3px 0;
+  background:#fff;
+}
+.nav-icon{color:#DDE5EB!important}
+
+/* Seitenüberschriften */
+.section:not(#dashboard) h2{
+  color:#fff!important;
+  font-size:32px!important;
+  letter-spacing:-.025em!important;
+}
+.section:not(#dashboard)>.row.space{
+  padding-bottom:10px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+
+/* Dashboard Header */
+.tenant-eyebrow{
+  color:#B9C5CE!important;
+  letter-spacing:.16em!important;
+  font-weight:850!important;
+}
+.tenant-dashboard-title{
+  color:#fff!important;
+  letter-spacing:-.035em!important;
+}
+.tenant-dashboard-subtitle{
+  color:#A9B7C3!important;
+}
+
+/* Saisonumschaltung = Steuerleiste, nicht Hauptinhalt */
+.dashboard-season-bar{
+  background:rgba(15,33,51,.72)!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+  box-shadow:none!important;
+}
+.dashboard-season-title{
+  color:#fff!important;
+}
+.dashboard-season-icon{
+  width:38px;height:38px;border-radius:11px;
+  display:grid;place-items:center;
+  background:#fff;color:var(--ds-navy)!important;
+}
+.dashboard-season-controls select{
+  background:#0A1B29!important;
+  border-color:rgba(255,255,255,.22)!important;
+}
+
+/* Saisonale Lage = wichtigster Informationsblock */
+.dashboard-winter-panel,
+.dashboard-summer-panel{
+  background:linear-gradient(145deg,#102A3D,#0B1F2E)!important;
+  border:1px solid rgba(255,255,255,.20)!important;
+  box-shadow:0 14px 30px rgba(0,0,0,.18)!important;
+}
+.dashboard-winter-panel:before,
+.dashboard-summer-panel:before{
+  content:"";
+  display:block;
+  height:3px;
+  margin:-16px -16px 14px;
+  border-radius:18px 18px 0 0;
+  background:#fff;
+  opacity:.9;
+}
+.dashboard-winter-title,
+.dashboard-summer-title{
+  color:#fff!important;
+}
+.dashboard-winter-sub,
+.dashboard-summer-sub{
+  color:#B7C4CE!important;
+}
+
+/* Lage-KPIs kompakt, Zahlen führen */
+.dashboard-winter-kpi,
+.dashboard-summer-kpi{
+  background:rgba(255,255,255,.035)!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+}
+.dashboard-winter-kpi .value,
+.dashboard-summer-kpi .value{
+  color:#fff;
+}
+.dashboard-winter-kpi .label,
+.dashboard-summer-kpi .label{
+  color:#9FADB9!important;
+}
+
+/* Dashboard-Karten: neutral in CI, Statusfarbe nur als Signal */
+.tenant-kpi-grid-v260 .tenant-kpi-card{
+  background:linear-gradient(145deg,#10283A,#0B1D2B)!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  box-shadow:0 8px 20px rgba(0,0,0,.12)!important;
+  transition:transform .14s ease,border-color .14s ease,background .14s ease!important;
+}
+@media (hover:hover) and (pointer:fine){
+  .tenant-kpi-grid-v260 .tenant-kpi-card:hover{
+    transform:translateY(-1px);
+    border-color:rgba(255,255,255,.24)!important;
+    background:linear-gradient(145deg,#143047,#0D2232)!important;
+  }
+}
+.tenant-kpi-grid-v260 .tenant-kpi-icon{
+  background:rgba(255,255,255,.08)!important;
+  color:#fff!important;
+}
+.tenant-kpi-grid-v260 .tenant-kpi-value{
+  color:#fff!important;
+}
+.tenant-kpi-grid-v260 .tenant-kpi-sub{
+  color:#9FAEBA!important;
+}
+.tenant-kpi-grid-v260 .tenant-kpi-arrow{
+  color:#8798A6!important;
+}
+
+/* Status-/Handlungs-Priorität */
+.tenant-kpi-card.ds-attention{
+  border-left:4px solid var(--ds-warning)!important;
+}
+.tenant-kpi-card.ds-attention .tenant-kpi-value{
+  color:#F2C75C!important;
+}
+.tenant-kpi-card.ds-critical{
+  border-left:4px solid var(--ds-danger)!important;
+}
+.tenant-kpi-card.ds-critical .tenant-kpi-value{
+  color:#F28A8F!important;
+}
+.tenant-kpi-card.ds-active{
+  border-left:4px solid #DCE6ED!important;
+}
+.tenant-kpi-card.is-disabled{
+  opacity:.58!important;
+  filter:saturate(.65);
+}
+
+/* Gruppenüberschriften = klare Lesereihenfolge */
+.tenant-kpi-grid-v260 .tenant-kpi-group-label{
+  color:#B4C0CA!important;
+  font-size:11px!important;
+  letter-spacing:.16em!important;
+  text-transform:uppercase;
+}
+
+/* Panels */
+.tenant-panel,
+.card,
+.panel,
+.box,
+section .card{
+  background:linear-gradient(145deg,#0E2232,#0A1B28)!important;
+  border:1px solid rgba(255,255,255,.11)!important;
+  box-shadow:0 8px 20px rgba(0,0,0,.12)!important;
+}
+.tenant-panel-title{
+  color:#fff!important;
+}
+.tenant-panel-icon{
+  color:#fff!important;
+  opacity:.9;
+}
+
+/* Primäre und sekundäre Aktionen */
+button,
+.tenant-action-btn{
+  border-color:rgba(255,255,255,.18)!important;
+  background:#11283A!important;
+  color:#EDF3F7!important;
+  box-shadow:none!important;
+}
+button.primary,
+.primary,
+.tenant-action-btn.primary{
+  background:#fff!important;
+  border-color:#fff!important;
+  color:var(--ds-navy)!important;
+  font-weight:850!important;
+  box-shadow:0 6px 16px rgba(0,0,0,.16)!important;
+}
+button.primary:hover,
+.primary:hover{
+  background:#E9EEF2!important;
+}
+button.danger,.danger{
+  background:rgba(233,109,115,.12)!important;
+  border-color:rgba(233,109,115,.48)!important;
+  color:#F4A0A4!important;
+}
+
+/* Inputs / Filter */
+input,select,textarea{
+  background:#091A27!important;
+  color:#F4F7F9!important;
+  border:1px solid rgba(255,255,255,.18)!important;
+}
+input:focus,select:focus,textarea:focus{
+  border-color:#D7E1E8!important;
+  box-shadow:0 0 0 2px rgba(255,255,255,.10)!important;
+}
+
+/* Badges */
+.badge{
+  background:rgba(255,255,255,.08)!important;
+  color:#DDE5EB!important;
+  border:1px solid rgba(255,255,255,.10);
+}
+.badge.P1,.badge.p1,.p1{
+  background:rgba(233,109,115,.13)!important;color:#F29BA0!important
+}
+.badge.P2,.badge.p2,.p2{
+  background:rgba(230,184,74,.13)!important;color:#F0CC73!important
+}
+.badge.P3,.badge.p3,.p3{
+  background:rgba(255,255,255,.08)!important;color:#D8E1E8!important
+}
+.badge.P4,.badge.p4,.p4{
+  background:rgba(83,182,122,.11)!important;color:#86D5A6!important
+}
+
+/* Modals */
+.modal-backdrop{
+  background:rgba(3,10,16,.74)!important;
+}
+.modal-dialog-dark,
+.modal>.sheet{
+  background:linear-gradient(180deg,#11283A,#091A27)!important;
+  border:1px solid rgba(255,255,255,.16)!important;
+  box-shadow:0 24px 70px rgba(0,0,0,.48)!important;
+}
+
+/* Tabellen */
+table th{
+  color:#AEBBC6!important;
+  font-size:11px!important;
+  text-transform:uppercase;
+  letter-spacing:.07em;
+}
+table td,table th{
+  border-color:rgba(255,255,255,.08)!important;
+}
+
+/* Objekte: ruhiger, konsistenter, klarer Fokus */
+#objectList .card{
+  border-left:3px solid rgba(255,255,255,.24)!important;
+}
+#objectList .card:hover{
+  border-left-color:#fff!important;
+}
+
+/* Sommer-/Winter-Statusfarben bleiben rein funktional */
+.dashboard-summer-good,
+.ws-risk-green{color:#86D5A6!important}
+.dashboard-summer-check,
+.ws-risk-yellow{color:#F0CC73!important}
+.dashboard-summer-avoid,
+.ws-risk-red{color:#F29BA0!important}
+
+/* Mandantenmodus: Governance-Hinweis, nicht Alarm */
+.platform-tenant-mode-banner{
+  background:linear-gradient(145deg,#2A2618,#1C1B14)!important;
+  border-color:#665A2A!important;
+  color:#E9D789!important;
+  box-shadow:none!important;
+}
+
+/* Mobile: Hierarchie erhalten, nicht alles gleichzeitig dominant */
+@media(max-width:680px){
+  .tenant-dashboard-title{font-size:34px!important}
+  .dashboard-season-bar{padding:11px!important}
+  .dashboard-winter-panel,
+  .dashboard-summer-panel{padding:14px!important}
+  .tenant-kpi-grid-v260 .tenant-kpi-card{
+    min-height:80px!important;
+  }
 }
 </style>
 </head>
@@ -4778,7 +5172,14 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    Klick auf Pflegefenster bzw. „Wetterdetails“ zeigt Wetter je Außenpflegeobjekt:
    24h-Status, Temperatur, Niederschlag, Wind, Warnungen und Empfehlungen.
    Keine SQL-/RLS-/Edge-Function-Änderung. */
-const APP_VERSION='2.22.05'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.23.00 | BASIS 2.22.05 | 28.09.2026
+   UI-REDESIGN DUSCHL SERVICE CI
+   CI-Basis: Duschl Navy #0F2133, Service Grey #666A6F, Weiß.
+   Farbe führt: CI-Farben für Struktur/Aktionen, Grün/Gelb/Rot ausschließlich für Status.
+   Dashboard-Hierarchie geschärft, Navigation ruhiger, Karten/Buttons/Badges/Modals vereinheitlicht.
+   Offene Aufgaben/Entscheidungen/Meldungen erhalten gezielte visuelle Priorität.
+   Keine SQL-/RLS-/Backend-Änderung. */
+const APP_VERSION='2.23.00'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -14304,6 +14705,11 @@ function renderDashboard(){
   const openDocsEl=document.getElementById('kpiOpenDocs'); if(openDocsEl)openDocsEl.textContent=visibleDocumentation.length;
   const criticalCount=open.filter(f=>['P1','P2'].includes(f.priority)).length;
   document.getElementById('kpiCritical').textContent=criticalCount;
+  const documentationCard=document.getElementById('kpiDocumentationCard');
+  if(documentationCard){
+    documentationCard.classList.toggle('ds-critical',criticalCount>0);
+    documentationCard.classList.toggle('ds-active',criticalCount===0&&visibleDocumentation.length>0);
+  }
   const criticalCard=document.getElementById('kpiCriticalCard');
   if(criticalCard){criticalCard.classList.toggle('is-disabled',criticalCount===0);criticalCard.setAttribute('aria-disabled',criticalCount===0?'true':'false');}
 
@@ -14317,6 +14723,7 @@ function renderDashboard(){
   const reportCard=document.getElementById('kpiResidentReportsCard');
   if(reportCard){
     reportCard.classList.toggle('is-disabled',residentReportCount===0);
+    reportCard.classList.toggle('ds-attention',residentReportCount>0);
     reportCard.setAttribute('aria-disabled',residentReportCount===0?'true':'false');
     reportCard.style.display=isCustomerRole()?'none':'';
   }
@@ -14336,6 +14743,7 @@ function renderDashboard(){
   if(decisionCard){
     decisionCard.style.display=canUseDecisionsUI()?'':'none';
     decisionCard.classList.toggle('is-disabled',openDecisionCount===0);
+    decisionCard.classList.toggle('ds-critical',openDecisionCount>0);
     decisionCard.setAttribute('aria-disabled',openDecisionCount===0?'true':'false');
   }
 
@@ -14363,6 +14771,7 @@ function renderDashboard(){
   if(workCard){
     workCard.style.display=canUseWorkQueueUI()?'':'none';
     workCard.classList.toggle('is-disabled',openWorkCount===0);
+    workCard.classList.toggle('ds-attention',openWorkCount>0);
     workCard.setAttribute('aria-disabled',openWorkCount===0?'true':'false');
   }
 
@@ -14378,6 +14787,7 @@ function renderDashboard(){
     // So kann der Mandant die Monitoring-Ansicht bewusst öffnen und sieht dort
     // den eindeutigen Leerzustand statt einer scheinbar funktionslosen Kachel.
     externalMonitoringCard.classList.remove('is-disabled');
+    externalMonitoringCard.classList.toggle('ds-active',externalMonitoringCount>0);
     externalMonitoringCard.setAttribute('aria-disabled','false');
     externalMonitoringCard.disabled=false;
   }
