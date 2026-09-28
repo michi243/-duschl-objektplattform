@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.39</title>
+<title>Duschl Service – Objektplattform v2.24.42</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3801,6 +3801,41 @@ table td,table th{
 }
 </style>
 
+
+<style id="duschl-winter-fallback-v22440">
+.ws-fallback-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:rgba(148,163,184,.10);
+  font-size:12px;
+}
+</style>
+
+
+<style id="duschl-resource-planning-v22441">
+.resource-source-note,.resource-calculation-note{
+  padding:11px 13px;
+  border:1px solid rgba(148,163,184,.22);
+  border-radius:12px;
+  background:rgba(148,163,184,.07);
+  color:var(--muted);
+  line-height:1.45;
+}
+.resource-table-wrap{overflow:auto}
+.resource-table{width:100%;border-collapse:collapse;min-width:900px}
+.resource-table th,.resource-table td{
+  padding:10px 12px;
+  border-bottom:1px solid var(--line);
+  text-align:left;
+  white-space:nowrap;
+}
+.resource-table th{font-size:12px;color:var(--muted);font-weight:800}
+.resource-table tr.resource-over td{background:rgba(244,63,94,.08)}
+</style>
+
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -3926,6 +3961,7 @@ table td,table th{
 <button id="navPartnerDirectory" onclick="showSection('partnerDirectory')"><span class="nav-icon">⌘</span><span>Partnerverzeichnis</span></button>
 <button id="navOrganizations" onclick="showSection('organizations')"><span class="nav-icon">▣</span><span>Unternehmen / Mandanten</span></button>
 <button id="navUsers" onclick="showSection('users')"><span class="nav-icon">♙</span><span>Benutzer &amp; Berechtigungen</span></button>
+<button id="navResourcePlanning" onclick="showSection('resourcePlanning')"><span class="nav-icon">▥</span><span>Ressourcenplanung</span></button>
 <button id="navSettings" onclick="showSection('settings')"><span class="nav-icon">⚙</span><span>Einstellungen</span></button>
 <button id="navNotifications" onclick="showSection('notificationSettings')"><span class="nav-icon">✉</span><span>Benachrichtigungen</span></button>
 </nav>
@@ -4897,8 +4933,19 @@ table td,table th{
         <label>Datum<input id="wsRunDate" type="date"/></label>
       </div>
       <label style="margin-top:10px">Ausgeführt von
-        <select id="wsRunAssignee"><option value="">Mitarbeiter wählen …</option></select>
+        <select id="wsRunAssignee" onchange="wsRefreshFallbackSelects()"><option value="">Mitarbeiter wählen …</option></select>
       </label>
+      <div class="grid2" style="margin-top:10px">
+        <label>Fallback 1
+          <select id="wsRunFallback1" onchange="wsRefreshFallbackSelects()"><option value="">Keine Vertretung …</option></select>
+        </label>
+        <label>Fallback 2
+          <select id="wsRunFallback2" onchange="wsRefreshFallbackSelects()"><option value="">Keine weitere Vertretung …</option></select>
+        </label>
+      </div>
+      <div class="muted" style="margin-top:5px">
+        Fallbacks übernehmen die Tour nicht automatisch. Sie werden als vorbereitete Vertretung hinterlegt und können bei Ausfall mit einem Schritt aktiviert werden.
+      </div>
       <label style="margin-top:10px">Einsatzauftrag
         <select id="wsRunServiceAction">
           <option value="control">Kontrollfahrt</option>
@@ -4919,6 +4966,130 @@ table td,table th{
   </div>
 </section>
 
+
+
+<section class="section" id="resourcePlanning">
+  <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
+    <div>
+      <div class="ds-section-eyebrow">STEUERUNG</div>
+      <h2 style="margin:0">Ressourcenplanung</h2>
+      <div class="muted" style="margin-top:6px">Kapazität, Auslastung und Personalkosten auf Basis der Businessplan-Parameter.</div>
+    </div>
+    <button type="button" onclick="loadResourcePlanning()">↻ Aktualisieren</button>
+  </div>
+
+  <div class="resource-source-note" style="margin-top:14px">
+    <strong>Planbasis:</strong> Wird mandantenspezifisch geladen.
+  </div>
+
+  <div class="grid g4 resource-kpi-grid" style="margin-top:14px">
+    <div class="card"><div class="muted">Verfügbare Kapazität / Woche</div><div class="big" id="rpKpiAvailable">—</div></div>
+    <div class="card"><div class="muted">Geplant / Woche</div><div class="big" id="rpKpiPlanned">—</div></div>
+    <div class="card"><div class="muted">Freie Kapazität</div><div class="big" id="rpKpiFree">—</div></div>
+    <div class="card"><div class="muted">Auslastung</div><div class="big" id="rpKpiUtilization">—</div></div>
+  </div>
+
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card">
+      <div class="row space" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
+        <div>
+          <h3 style="margin:0">Businessplan-Parameter</h3>
+          <div class="muted" style="margin-top:5px">Zentrale Annahmen für die Kapazitätsberechnung.</div>
+        </div>
+        <button type="button" onclick="saveResourcePlanningSettings()">Planparameter speichern</button>
+      </div>
+
+      <div class="grid2" style="margin-top:12px">
+        <label>Arbeitstage / Jahr<input id="rpWorkingDays" type="number" min="1" step="1" value="240"></label>
+        <label>Arbeitsstunden / Tag<input id="rpHoursPerDay" type="number" min="0" step="0.25" value="8"></label>
+        <label>Urlaubstage<input id="rpVacationDays" type="number" min="0" step="1" value="24"></label>
+        <label>Krankheitstage Plan<input id="rpSicknessDays" type="number" min="0" step="1" value="10"></label>
+        <label>Feiertage<input id="rpHolidayDays" type="number" min="0" step="1" value="13"></label>
+        <label>Weiterbildungstage<input id="rpTrainingDays" type="number" min="0" step="1" value="2"></label>
+        <label>Verrechnungsquote %<input id="rpBillableRatio" type="number" min="0" max="100" step="1" value="82"></label>
+        <label>Minijob-Kapazität h/Jahr<input id="rpMinijobCapacity" type="number" min="0" step="1" value="360"></label>
+        <label>Personal-Leistungsumsatz %<input id="rpPersonnelRevenueShare" type="number" min="0" max="100" step="1" value="90"></label>
+      </div>
+
+      <div class="resource-calculation-note" id="rpModelCalculation" style="margin-top:12px">
+        FTE-Modell: 240 × 8 h − Ausfallzeiten = 1.528 produktive Stunden; × 82 % = 1.252,96 verrechenbare Stunden/Jahr.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row space" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
+        <div>
+          <h3 style="margin:0">Ressource konfigurieren</h3>
+          <div class="muted" style="margin-top:5px">Mitarbeiter auswählen und Businessplan-Modell zuordnen.</div>
+        </div>
+      </div>
+
+      <label style="margin-top:12px">Mitarbeiter
+        <select id="rpUserSelect" onchange="rpLoadSelectedProfile()"><option value="">Mitarbeiter wählen …</option></select>
+      </label>
+      <label style="margin-top:10px">Ressourcenmodell
+        <select id="rpResourceModel" onchange="rpApplyModelDefaults()">
+          <option value="operative_employee">Operativer Mitarbeiter</option>
+          <option value="minijob">Minijobber</option>
+          <option value="team_lead">Objektbetreuer / Teamleiter</option>
+          <option value="management">Geschäftsführung</option>
+          <option value="administration">Verwaltung / Disposition</option>
+          <option value="custom">Individuell</option>
+        </select>
+      </label>
+      <div class="grid2" style="margin-top:10px">
+        <label>Vertragsstunden / Woche<input id="rpWeeklyHours" type="number" min="0" step="0.25" value="40"></label>
+        <label>Operativer Anteil %<input id="rpOperationalShare" type="number" min="0" max="100" step="1" value="100"></label>
+        <label>Personalkosten / Jahr €<input id="rpAnnualCost" type="number" min="0" step="1"></label>
+        <label>Kapazität h/Jahr Override<input id="rpAnnualCapacityOverride" type="number" min="0" step="1" placeholder="leer = Modell"></label>
+      </div>
+      <div class="muted" style="margin-top:6px">
+        Personalkosten = Arbeitgeber-Gesamtkosten aus der Planung, nicht individueller Stundenlohn.
+      </div>
+      <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">
+        <button class="primary" type="button" onclick="saveResourceProfile()">Ressource speichern</button>
+        <button type="button" onclick="deactivateResourceProfile()">Aus Planung entfernen</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div class="row space" style="gap:10px;align-items:end;flex-wrap:wrap">
+      <div>
+        <h3 style="margin:0">Wochensteuerung</h3>
+        <div class="muted" style="margin-top:5px">Verfügbare und bereits durch Standardtouren gebundene Kapazität je Ressource.</div>
+      </div>
+      <label style="min-width:180px">Woche ab
+        <input id="rpWeekStart" type="date" onchange="loadResourcePlanningOverview()">
+      </label>
+    </div>
+
+    <div class="resource-table-wrap" style="margin-top:12px">
+      <table class="resource-table">
+        <thead>
+          <tr>
+            <th>Mitarbeiter</th>
+            <th>Modell</th>
+            <th>verfügbar</th>
+            <th>geplant</th>
+            <th>frei</th>
+            <th>Auslastung</th>
+            <th>Vollkosten/h</th>
+            <th>Wintertouren</th>
+          </tr>
+        </thead>
+        <tbody id="rpOverviewBody">
+          <tr><td colspan="8" class="muted">Ressourcenplanung wird geladen …</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="resource-calculation-note" style="margin-top:12px">
+      <strong>Steuerungslogik:</strong> Standardtouren werden über die hinterlegte Soll-Dauer der Leistungspläne in Stunden bewertet.
+      Winterdiensttouren werden separat gezählt und noch nicht pauschal in Stunden umgerechnet, weil dafür aktuell keine belastbare Soll-Dauer je Winterstopp hinterlegt ist.
+    </div>
+  </div>
+</section>
 
 <section class="section" id="settings">
   <div class="row space ds-section-head">
@@ -7067,7 +7238,47 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Frontend-Funktionalität unverändert.
    BACKEND: SQL 2.24.39 erforderlich.
 */
-const APP_VERSION='2.24.39'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.40 | BASIS 2.24.39 | 28.09.2026
+   WINTERDIENST-FALLBACK / VERTRETUNG
+   - Tagestour erhält neben dem verantwortlichen Mitarbeiter bis zu zwei
+     vorbereitete Fallback-Mitarbeiter.
+   - Fallbacks sind keine Parallelverantwortlichen: assigned_user_id bleibt
+     der einzige operative Verantwortliche.
+   - Mandanten-/Plattform-Admin kann geplante oder laufende Wintertouren
+     revisionssicher auf einen berechtigten Mitarbeiter umstellen.
+   - Kandidaten müssen winterdienstqualifiziert sein und alle noch offenen
+     Objekte der Tour operativ bearbeiten dürfen.
+   - Umbesetzungen werden mit Grund und Historie protokolliert.
+   - Bereits abgeschlossene Objektstopps behalten ihren tatsächlichen
+     Ausführer; nur offene Stopps wechseln mit der Tour.
+   BACKEND: SQL 2.24.40 erforderlich.
+*/
+/* RELEASE 2.24.41 | BASIS 2.24.40 | 28.09.2026
+   RESSOURCENPLANUNG FÜR MANDANTEN-ADMIN
+   - Neues, ausschließlich administratives Modul "Ressourcenplanung".
+   - Businessplan-/Monitoring-Parameter werden als steuerbare Planbasis hinterlegt:
+     240 Arbeitstage, 8 h/Tag, 24 Urlaubstage, 10 Krankheitstage,
+     13 Feiertage, 2 Weiterbildungstage, 82 % Verrechnungsquote,
+     360 h/Jahr Minijob-Kapazität, 90 % Personal-Leistungsumsatz.
+   - Ressourcenprofile je Mitarbeiter: Modell, operative Quote,
+     Vertragsstunden, Jahrespersonalkosten und optionale Kapazitätsüberschreibung.
+   - Wochenansicht: verfügbare Kapazität, geplante Standardtourstunden,
+     freie Kapazität, Auslastung, Vollkosten je verrechenbare Stunde.
+   - Winterdiensttouren werden separat gezählt; sie reduzieren Stunden erst,
+     sobald dafür ein belastbares Dauer-/Kapazitätsmodell vorliegt.
+   - Sichtbarkeit und Backendzugriff nur Mandanten-Admin bzw. Plattform-Admin.
+   BACKEND: SQL 2.24.41 erforderlich.
+*/
+/* RELEASE 2.24.42 | BASIS 2.24.41 | 28.09.2026
+   RESSOURCENPLANUNG: MANDANTENSPEZIFISCHE INITIALWERTE
+   - Duschl Service erhält weiterhin die Businessplan-Werte als Initialvorgabe.
+   - Andere Mandanten erhalten KEINE Duschl-Service-spezifischen Businessplan-Werte.
+   - Fremde Mandanten starten mit neutraler/unkonfigurierter Ressourcenplanung.
+   - Businessplan-Quelle wird nur für Duschl Service angezeigt.
+   - Speichern bleibt vollständig mandantenspezifisch.
+   BACKEND: SQL 2.24.42 erforderlich.
+*/
+const APP_VERSION='2.24.42'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -9024,6 +9235,7 @@ function applyRoleUI(){
   show('navDecisions',hasAppRole && !platformMode && canUseDecisionsUI());
   show('navOrganizations',hasAppRole && platformMode);
   show('navUsers',hasAppRole && !platformMode && canManageUsersUI());
+  show('navResourcePlanning',hasAppRole && !platformMode && resourcePlanningCanAdmin());
   show('navNotifications',hasAppRole && !platformMode && !!currentOrganization && !isPlatformOperatorRole());
   show('navSettings',hasAppRole && !platformMode && !!currentOrganization && dashboardSeasonCanAdmin());
   show('headerTenantSwitchBtn',hasAppRole && !platformMode && (currentUserMemberships||[]).length>1);
@@ -14382,6 +14594,399 @@ async function saveNotificationPreferences(){
   }
 }
 
+
+const RESOURCE_DUSCHL_BUSINESS_PLAN_DEFAULTS={
+  working_days_per_year:240,
+  hours_per_day:8,
+  vacation_days:24,
+  sickness_days:10,
+  holiday_days:13,
+  training_days:2,
+  billable_ratio:0.82,
+  minijob_capacity_hours_year:360,
+  personnel_revenue_share:0.90,
+  source_label:'AKT Business Monitoring · Property Operations FINAL'
+};
+
+const RESOURCE_NEUTRAL_DEFAULTS={
+  working_days_per_year:null,
+  hours_per_day:null,
+  vacation_days:null,
+  sickness_days:null,
+  holiday_days:null,
+  training_days:null,
+  billable_ratio:null,
+  minijob_capacity_hours_year:null,
+  personnel_revenue_share:null,
+  source_label:''
+};
+
+function resourcePlanningUsesDuschlDefaults(){
+  const org=currentOrganization||{};
+  const name=String(org.name||'').trim().toLowerCase();
+  const code=String(org.public_code||'').trim().toLowerCase();
+  return name==='duschl service'
+      || name==='duschl service gmbh'
+      || code==='duschl-service'
+      || code==='duschl_service';
+}
+
+function resourcePlanningInitialDefaults(){
+  return resourcePlanningUsesDuschlDefaults()
+    ? RESOURCE_DUSCHL_BUSINESS_PLAN_DEFAULTS
+    : RESOURCE_NEUTRAL_DEFAULTS;
+}
+
+const RESOURCE_MODEL_DEFAULTS={
+  operative_employee:{
+    label:'Operativer Mitarbeiter',
+    weekly_hours:40,
+    operational_share:1.00,
+    annual_cost:50812,
+    capacity_override:null
+  },
+  minijob:{
+    label:'Minijobber',
+    weekly_hours:8.7,
+    operational_share:1.00,
+    annual_cost:10279.16,
+    capacity_override:360
+  },
+  team_lead:{
+    label:'Objektbetreuer / Teamleiter',
+    weekly_hours:40,
+    operational_share:0.75,
+    annual_cost:64488,
+    capacity_override:null
+  },
+  management:{
+    label:'Geschäftsführung',
+    weekly_hours:40,
+    operational_share:0.90,
+    annual_cost:64200,
+    capacity_override:null
+  },
+  administration:{
+    label:'Verwaltung / Disposition',
+    weekly_hours:40,
+    operational_share:0.00,
+    annual_cost:53040,
+    capacity_override:0
+  },
+  custom:{
+    label:'Individuell',
+    weekly_hours:40,
+    operational_share:1.00,
+    annual_cost:null,
+    capacity_override:null
+  }
+};
+
+let resourcePlanningState={
+  settings:null,
+  users:[],
+  profiles:[],
+  overview:[]
+};
+
+function resourcePlanningCanAdmin(){
+  return !!currentOrganization && (isTenantAdminRole() || isPlatformTenantMode());
+}
+
+function rpMonday(dateValue){
+  const d=dateValue?new Date(`${dateValue}T12:00:00`):new Date();
+  const day=d.getDay();
+  const diff=(day===0?-6:1-day);
+  d.setDate(d.getDate()+diff);
+  return d.toISOString().slice(0,10);
+}
+
+function rpNumber(id,fallback=0){
+  const el=document.getElementById(id);
+  const n=Number(el?.value);
+  return Number.isFinite(n)?n:fallback;
+}
+
+function rpEuro(v){
+  const n=Number(v);
+  if(!Number.isFinite(n))return '—';
+  return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+}
+
+function rpHours(v){
+  const n=Number(v);
+  if(!Number.isFinite(n))return '—';
+  return n.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})+' h';
+}
+
+function rpPct(v){
+  const n=Number(v);
+  if(!Number.isFinite(n))return '—';
+  return Math.round(n*100)+' %';
+}
+
+function rpModelLabel(code){
+  return RESOURCE_MODEL_DEFAULTS[code]?.label||code||'—';
+}
+
+function rpUpdateModelCalculation(){
+  const defaultSet=resourcePlanningInitialDefaults();
+  const days=rpNumber('rpWorkingDays',defaultSet.working_days_per_year??0);
+  const hours=rpNumber('rpHoursPerDay',defaultSet.hours_per_day??0);
+  const vacation=rpNumber('rpVacationDays',defaultSet.vacation_days??0);
+  const sickness=rpNumber('rpSicknessDays',defaultSet.sickness_days??0);
+  const holidays=rpNumber('rpHolidayDays',defaultSet.holiday_days??0);
+  const training=rpNumber('rpTrainingDays',defaultSet.training_days??0);
+  const billable=rpNumber('rpBillableRatio',(defaultSet.billable_ratio??0)*100)/100;
+  const productive=Math.max(0,(days-vacation-sickness-holidays-training)*hours);
+  const billableHours=productive*billable;
+  const el=document.getElementById('rpModelCalculation');
+  if(el){
+    el.textContent=`FTE-Modell: ${days} × ${hours.toLocaleString('de-DE')} h − Ausfallzeiten = ${productive.toLocaleString('de-DE',{maximumFractionDigits:2})} produktive Stunden; × ${Math.round(billable*100)} % = ${billableHours.toLocaleString('de-DE',{maximumFractionDigits:2})} verrechenbare Stunden/Jahr.`;
+  }
+}
+
+function rpFillSettings(settings){
+  const base=resourcePlanningInitialDefaults();
+  const s=settings?{...base,...settings}:{...base};
+  const set=(id,v)=>{
+    const el=document.getElementById(id);
+    if(el)el.value=(v===null||v===undefined)?'':String(v);
+  };
+  set('rpWorkingDays',s.working_days_per_year);
+  set('rpHoursPerDay',s.hours_per_day);
+  set('rpVacationDays',s.vacation_days);
+  set('rpSicknessDays',s.sickness_days);
+  set('rpHolidayDays',s.holiday_days);
+  set('rpTrainingDays',s.training_days);
+  set('rpBillableRatio',s.billable_ratio==null?'':Number(s.billable_ratio)*100);
+  set('rpMinijobCapacity',s.minijob_capacity_hours_year);
+  set('rpPersonnelRevenueShare',s.personnel_revenue_share==null?'':Number(s.personnel_revenue_share)*100);
+
+  const note=document.querySelector('#resourcePlanning .resource-source-note');
+  if(note){
+    if(resourcePlanningUsesDuschlDefaults()){
+      note.innerHTML='<strong>Planbasis:</strong> Duschl Service · Property Operations · finale Business-Monitoring-/Businessplan-Logik. Die Parameter sind Mandantenwerte und können vom Mandanten-Admin angepasst werden.';
+    }else if(settings){
+      note.innerHTML='<strong>Planbasis:</strong> Eigene mandantenspezifische Ressourcenparameter.';
+    }else{
+      note.innerHTML='<strong>Planbasis:</strong> Noch nicht konfiguriert. Dieser Mandant übernimmt keine Duschl-Service-Businessplanwerte.';
+    }
+  }
+
+  rpUpdateModelCalculation();
+}
+
+function rpApplyModelDefaults(force=true){
+  const model=document.getElementById('rpResourceModel')?.value||'operative_employee';
+  const d=RESOURCE_MODEL_DEFAULTS[model]||RESOURCE_MODEL_DEFAULTS.custom;
+  const set=(id,v)=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    if(force || !el.value)el.value=v==null?'':String(v);
+  };
+  set('rpWeeklyHours',d.weekly_hours);
+  set('rpOperationalShare',Math.round(Number(d.operational_share||0)*100));
+  set('rpAnnualCost',d.annual_cost);
+  set('rpAnnualCapacityOverride',d.capacity_override);
+}
+
+function rpLoadSelectedProfile(){
+  const uid=String(document.getElementById('rpUserSelect')?.value||'');
+  const p=(resourcePlanningState.profiles||[]).find(x=>String(x.user_id||'')===uid);
+  if(!uid)return;
+  if(!p){
+    document.getElementById('rpResourceModel').value='operative_employee';
+    rpApplyModelDefaults(true);
+    return;
+  }
+  document.getElementById('rpResourceModel').value=p.resource_model||'custom';
+  document.getElementById('rpWeeklyHours').value=String(p.weekly_contract_hours??40);
+  document.getElementById('rpOperationalShare').value=String(Math.round(Number(p.operational_share??1)*100));
+  document.getElementById('rpAnnualCost').value=p.annual_personnel_cost_eur??'';
+  document.getElementById('rpAnnualCapacityOverride').value=p.annual_capacity_override_hours??'';
+}
+
+async function loadResourcePlanning(){
+  if(!resourcePlanningCanAdmin())return;
+  const org=currentOrganizationId();
+  if(!org)return;
+
+  const week=document.getElementById('rpWeekStart');
+  if(week&&!week.value)week.value=rpMonday();
+
+  try{
+    const [settingsRows,users,profiles]=await Promise.all([
+      cloudRequest(`resource_planning_settings?organization_id=eq.${encodeURIComponent(org)}&select=*`).catch(()=>[]),
+      cloudRequest('rpc/get_tenant_users',{
+        method:'POST',
+        body:JSON.stringify({p_organization_id:org})
+      }),
+      cloudRequest(`resource_capacity_profiles?organization_id=eq.${encodeURIComponent(org)}&select=*&order=created_at.asc`).catch(()=>[])
+    ]);
+
+    resourcePlanningState.settings=(settingsRows||[])[0]||null;
+    resourcePlanningState.users=(Array.isArray(users)?users:[]).filter(u=>u.active!==false);
+    resourcePlanningState.profiles=Array.isArray(profiles)?profiles:[];
+
+    rpFillSettings(resourcePlanningState.settings);
+
+    const sel=document.getElementById('rpUserSelect');
+    if(sel){
+      const keep=sel.value;
+      sel.innerHTML='<option value="">Mitarbeiter wählen …</option>'+
+        resourcePlanningState.users.map(u=>{
+          const name=u.full_name||u.email||u.user_id;
+          const p=resourcePlanningState.profiles.find(x=>String(x.user_id)===String(u.user_id));
+          return `<option value="${esc(u.user_id)}">${esc(name)}${p&&p.active!==false?' · geplant':''}</option>`;
+        }).join('');
+      if(resourcePlanningState.users.some(u=>String(u.user_id)===String(keep)))sel.value=keep;
+    }
+
+    await loadResourcePlanningOverview();
+  }catch(e){
+    console.error('Ressourcenplanung konnte nicht geladen werden',e);
+    alert('Ressourcenplanung konnte nicht geladen werden: '+(e.message||e));
+  }
+}
+
+async function saveResourcePlanningSettings(){
+  if(!resourcePlanningCanAdmin())return alert('Nur der Mandanten-Admin darf Ressourcenparameter ändern.');
+  try{
+    const requiredIds=['rpWorkingDays','rpHoursPerDay','rpVacationDays','rpSicknessDays','rpHolidayDays','rpTrainingDays','rpBillableRatio','rpMinijobCapacity','rpPersonnelRevenueShare'];
+    const missing=requiredIds.filter(id=>String(document.getElementById(id)?.value||'').trim()==='');
+    if(missing.length)throw new Error('Bitte alle Ressourcenparameter vollständig erfassen.');
+    await cloudRequest('rpc/save_resource_planning_settings_v1',{
+      method:'POST',
+      body:JSON.stringify({
+        p_organization_id:currentOrganizationId(),
+        p_working_days_per_year:rpNumber('rpWorkingDays',240),
+        p_hours_per_day:rpNumber('rpHoursPerDay',8),
+        p_vacation_days:rpNumber('rpVacationDays',24),
+        p_sickness_days:rpNumber('rpSicknessDays',10),
+        p_holiday_days:rpNumber('rpHolidayDays',13),
+        p_training_days:rpNumber('rpTrainingDays',2),
+        p_billable_ratio:rpNumber('rpBillableRatio',82)/100,
+        p_minijob_capacity_hours_year:rpNumber('rpMinijobCapacity',360),
+        p_personnel_revenue_share:rpNumber('rpPersonnelRevenueShare',90)/100
+      })
+    });
+    await loadResourcePlanning();
+    alert('Businessplan-Parameter gespeichert.');
+  }catch(e){
+    alert('Planparameter konnten nicht gespeichert werden: '+(e.message||e));
+  }
+}
+
+async function saveResourceProfile(){
+  if(!resourcePlanningCanAdmin())return alert('Nur der Mandanten-Admin darf Ressourcenprofile ändern.');
+  const uid=String(document.getElementById('rpUserSelect')?.value||'');
+  if(!uid)return alert('Mitarbeiter auswählen.');
+  const model=String(document.getElementById('rpResourceModel')?.value||'custom');
+  try{
+    await cloudRequest('rpc/upsert_resource_capacity_profile_v1',{
+      method:'POST',
+      body:JSON.stringify({
+        p_organization_id:currentOrganizationId(),
+        p_user_id:uid,
+        p_resource_model:model,
+        p_weekly_contract_hours:rpNumber('rpWeeklyHours',40),
+        p_operational_share:rpNumber('rpOperationalShare',100)/100,
+        p_annual_personnel_cost_eur:document.getElementById('rpAnnualCost')?.value===''?null:rpNumber('rpAnnualCost',0),
+        p_annual_capacity_override_hours:document.getElementById('rpAnnualCapacityOverride')?.value===''?null:rpNumber('rpAnnualCapacityOverride',0),
+        p_active:true
+      })
+    });
+    await loadResourcePlanning();
+    if(document.getElementById('rpUserSelect'))document.getElementById('rpUserSelect').value=uid;
+    rpLoadSelectedProfile();
+  }catch(e){
+    alert('Ressourcenprofil konnte nicht gespeichert werden: '+(e.message||e));
+  }
+}
+
+async function deactivateResourceProfile(){
+  if(!resourcePlanningCanAdmin())return;
+  const uid=String(document.getElementById('rpUserSelect')?.value||'');
+  if(!uid)return alert('Mitarbeiter auswählen.');
+  const existing=resourcePlanningState.profiles.find(x=>String(x.user_id||'')===uid);
+  if(!existing)return alert('Für diesen Mitarbeiter existiert noch kein Ressourcenprofil.');
+  if(!confirm('Mitarbeiter aus der aktiven Ressourcenplanung entfernen? Benutzerkonto und Berechtigungen bleiben unverändert.'))return;
+  try{
+    await cloudRequest('rpc/upsert_resource_capacity_profile_v1',{
+      method:'POST',
+      body:JSON.stringify({
+        p_organization_id:currentOrganizationId(),
+        p_user_id:uid,
+        p_resource_model:existing.resource_model||'custom',
+        p_weekly_contract_hours:Number(existing.weekly_contract_hours||0),
+        p_operational_share:Number(existing.operational_share||0),
+        p_annual_personnel_cost_eur:existing.annual_personnel_cost_eur,
+        p_annual_capacity_override_hours:existing.annual_capacity_override_hours,
+        p_active:false
+      })
+    });
+    await loadResourcePlanning();
+  }catch(e){
+    alert('Ressource konnte nicht deaktiviert werden: '+(e.message||e));
+  }
+}
+
+async function loadResourcePlanningOverview(){
+  if(!resourcePlanningCanAdmin())return;
+  const host=document.getElementById('rpOverviewBody');
+  const weekStart=rpMonday(document.getElementById('rpWeekStart')?.value||'');
+  const week=document.getElementById('rpWeekStart');if(week)week.value=weekStart;
+  if(host)host.innerHTML='<tr><td colspan="8" class="muted">Kapazitäten werden berechnet …</td></tr>';
+
+  try{
+    const rows=await cloudRequest('rpc/get_resource_capacity_overview_v1',{
+      method:'POST',
+      body:JSON.stringify({
+        p_organization_id:currentOrganizationId(),
+        p_week_start:weekStart
+      })
+    })||[];
+
+    resourcePlanningState.overview=Array.isArray(rows)?rows:[];
+
+    const active=resourcePlanningState.overview.filter(x=>x.profile_active===true);
+    const available=active.reduce((s,x)=>s+Number(x.weekly_available_hours||0),0);
+    const planned=active.reduce((s,x)=>s+Number(x.standard_planned_hours||0),0);
+    const free=available-planned;
+    const util=available>0?planned/available:0;
+
+    const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
+    set('rpKpiAvailable',rpHours(available));
+    set('rpKpiPlanned',rpHours(planned));
+    set('rpKpiFree',rpHours(free));
+    set('rpKpiUtilization',rpPct(util));
+
+    if(host){
+      host.innerHTML=active.length?active.map(r=>{
+        const freeHours=Number(r.weekly_available_hours||0)-Number(r.standard_planned_hours||0);
+        const utilization=Number(r.weekly_available_hours||0)>0
+          ?Number(r.standard_planned_hours||0)/Number(r.weekly_available_hours||0)
+          :0;
+        const cls=utilization>1?'resource-over':'';
+        return `<tr class="${cls}">
+          <td><strong>${esc(r.full_name||r.email||'Mitarbeiter')}</strong></td>
+          <td>${esc(rpModelLabel(r.resource_model))}</td>
+          <td>${esc(rpHours(r.weekly_available_hours))}</td>
+          <td>${esc(rpHours(r.standard_planned_hours))}</td>
+          <td>${esc(rpHours(freeHours))}</td>
+          <td><span class="badge">${esc(rpPct(utilization))}</span></td>
+          <td>${esc(rpEuro(r.cost_per_billable_hour))}</td>
+          <td>${Number(r.winter_run_count||0)}</td>
+        </tr>`;
+      }).join(''):'<tr><td colspan="8" class="muted">Noch keine aktive Ressource konfiguriert.</td></tr>';
+    }
+  }catch(e){
+    console.error('Ressourcenübersicht konnte nicht geladen werden',e);
+    if(host)host.innerHTML=`<tr><td colspan="8" class="bad">Fehler: ${esc(e.message||e)}</td></tr>`;
+  }
+}
+
 function showSection(id){
  if(id==='sopServices'){setTimeout(()=>slLoad(),0);}
 
@@ -14399,6 +15004,7 @@ function showSection(id){
     }
   }
   if(id==='users'&&!canManageUsersUI())return requireAdminUI('Benutzer & Berechtigungen');
+  if(id==='resourcePlanning'&&!resourcePlanningCanAdmin())return requireAdminUI('Ressourcenplanung');
   if(id==='settings'&&!canUseSettingsUI())return requireAdminUI('Daten & Administration');
   closeAppMenu();
   document.querySelectorAll('.section').forEach(x=>{
@@ -14433,7 +15039,7 @@ function showSection(id){
   document.querySelectorAll('#platformBottomNav [data-pa-nav]').forEach(b=>b.classList.toggle('active',b.getAttribute('data-pa-nav')===id));
   if(id==='objects'){renderObjectsDirect();try{renderObjects();}catch(e){console.error('Detail-Renderer Objektseite fehlgeschlagen',e);}}
   if(id==='platformUsers' && isAdminRole() && !isPlatformTenantMode()){refreshPlatformOrphanUserCard();}
-  if(id==='dashboard'&&isAdminRole()){loadPlatformSystemStatus();}if(id==='partnerDirectory'){loadPartnerDirectory();}if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='externalOrders')cloudLoadExternalOrders();if(id==='users')loadUserAdminData();if(id==='winterService'){wsApplyWinterServiceViewMode();loadWinterService();}
+  if(id==='dashboard'&&isAdminRole()){loadPlatformSystemStatus();}if(id==='resourcePlanning'){loadResourcePlanning();}if(id==='partnerDirectory'){loadPartnerDirectory();}if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='externalOrders')cloudLoadExternalOrders();if(id==='users')loadUserAdminData();if(id==='winterService'){wsApplyWinterServiceViewMode();loadWinterService();}
 }
 function priorityLabel(p){
   return ({P1:'Sofort',P2:'Dringend',P3:'Planbar',P4:'Beobachten'})[p]||p||'';
@@ -22562,17 +23168,50 @@ function wsTourRemoveObject(index){
   wsTourDraftObjectIds.splice(index,1);
   wsRenderTourDraft();
 }
+function wsQualifiedWinterUsers(){
+  return (wsState.tenantUsers||[])
+    .filter(u=>u.active!==false && u.winter_service_qualified===true)
+    .sort((a,b)=>String(a.full_name||a.email||'').localeCompare(String(b.full_name||b.email||''),'de'));
+}
+function wsWinterUserLabel(userId){
+  const u=wsQualifiedWinterUsers().find(x=>String(x.user_id||'')===String(userId||''));
+  return u?.full_name||u?.email||profileDisplayName(userId)||'Mitarbeiter';
+}
 function wsPopulateRunAssignees(){
   const el=document.getElementById('wsRunAssignee');if(!el)return;
   const keep=el.value;
-  const users=(wsState.tenantUsers||[])
-    .filter(u=>u.active!==false && u.winter_service_qualified===true)
-    .sort((a,b)=>String(a.full_name||a.email||'').localeCompare(String(b.full_name||b.email||''),'de'));
+  const users=wsQualifiedWinterUsers();
   el.innerHTML='<option value="">Mitarbeiter wählen …</option>'+users.map(u=>{
     const label=String(u.full_name||u.email||'Mitarbeiter');
     return `<option value="${wsEsc(u.user_id)}">${wsEsc(label)}${u.email&&u.full_name?` · ${wsEsc(u.email)}`:''}</option>`;
   }).join('');
   if(users.some(u=>String(u.user_id)===String(keep)))el.value=keep;
+  wsRefreshFallbackSelects();
+}
+function wsRefreshFallbackSelects(){
+  const primary=String(document.getElementById('wsRunAssignee')?.value||'');
+  const f1=document.getElementById('wsRunFallback1');
+  const f2=document.getElementById('wsRunFallback2');
+  if(!f1||!f2)return;
+
+  const keep1=String(f1.value||'');
+  const keep2=String(f2.value||'');
+  const users=wsQualifiedWinterUsers();
+
+  const options=(exclude,placeholder)=>'<option value="">'+placeholder+'</option>'+
+    users
+      .filter(u=>!exclude.has(String(u.user_id||'')))
+      .map(u=>{
+        const label=String(u.full_name||u.email||'Mitarbeiter');
+        return `<option value="${wsEsc(u.user_id)}">${wsEsc(label)}</option>`;
+      }).join('');
+
+  f1.innerHTML=options(new Set([primary,keep2].filter(Boolean)),'Keine Vertretung …');
+  if(keep1 && users.some(u=>String(u.user_id)===keep1) && keep1!==primary && keep1!==keep2)f1.value=keep1;
+
+  const actual1=String(f1.value||'');
+  f2.innerHTML=options(new Set([primary,actual1].filter(Boolean)),'Keine weitere Vertretung …');
+  if(keep2 && users.some(u=>String(u.user_id)===keep2) && keep2!==primary && keep2!==actual1)f2.value=keep2;
 }
 function wsRenderSops(){
   const el=document.getElementById('wsSopList'); if(!el)return;
@@ -23185,11 +23824,17 @@ async function wsCreateRun(){
     const tid=document.getElementById('wsRunTemplate').value;
     const date=document.getElementById('wsRunDate').value||wsToday();
     const assignee=document.getElementById('wsRunAssignee').value;
+    const fallbackIds=[
+      document.getElementById('wsRunFallback1')?.value||'',
+      document.getElementById('wsRunFallback2')?.value||''
+    ].map(String).filter(Boolean);
     const serviceAction=document.getElementById('wsRunServiceAction')?.value||'clear_and_grit';
     const template=wsState.templates.find(t=>t.id===tid);
 
     if(!template)throw new Error('Tourvorlage wählen.');
     if(!assignee)throw new Error('Verantwortlichen Mitarbeiter auswählen.');
+    if(fallbackIds.some(id=>id===String(assignee)))throw new Error('Der verantwortliche Mitarbeiter darf nicht zugleich als Fallback hinterlegt sein.');
+    if(new Set(fallbackIds).size!==fallbackIds.length)throw new Error('Fallback-Mitarbeiter dürfen nicht doppelt hinterlegt sein.');
     if(!['control','grit','clear','clear_and_grit'].includes(serviceAction))throw new Error('Gültigen Einsatzauftrag auswählen.');
 
     await cloudRequest('rpc/create_winter_service_run_v1',{
@@ -23215,6 +23860,16 @@ async function wsCreateRun(){
       headers:{Prefer:'return=minimal'},
       body:JSON.stringify({service_action:serviceAction})
     });
+
+    if(fallbackIds.length){
+      await cloudRequest('rpc/set_winter_run_fallbacks_v1',{
+        method:'POST',
+        body:JSON.stringify({
+          p_run_id:createdRun.id,
+          p_fallback_user_ids:fallbackIds
+        })
+      });
+    }
 
     await cloudRequest(`winter_service_executions?run_id=eq.${encodeURIComponent(createdRun.id)}&organization_id=eq.${encodeURIComponent(wsOrg())}`,{
       method:'PATCH',
@@ -23261,7 +23916,20 @@ function wsRenderRuns(){
     const ex=wsState.executions.filter(x=>x.run_id===r.id).sort((a,b)=>a.sort_order-b.sort_order);
     const au=(wsState.tenantUsers||[]).find(u=>String(u.user_id)===String(r.assigned_user_id||''));
     const assigneeName=au?.full_name||au?.email||'Nicht zugewiesen';
-    return `<div class="card" style="padding:10px;margin:8px 0"><strong>${wsEsc(r.service_date)} · ${wsEsc(t?.name||'Tour')}</strong><div class="muted">${wsEsc(wsStatusLabel(r.status))} · ${ex.length} Objekte · Ausgeführt von: ${wsEsc(assigneeName)}</div><div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">${ex.map(x=>{const o=wsObjects().find(z=>z.id===x.object_id);return `<button type="button" onclick="wsOpenExecution('${wsEsc(x.id)}')">${x.sort_order}. ${wsEsc(o?.name||'Objekt')} · ${wsEsc(wsStatusLabel(x.status))}</button>`}).join('')}</div></div>`;
+    const fallbackNames=wsRunFallbackNames(r);
+    return `<div class="card" style="padding:10px;margin:8px 0">
+      <div class="row space" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
+        <div>
+          <strong>${wsEsc(r.service_date)} · ${wsEsc(t?.name||'Tour')}</strong>
+          <div class="muted">${wsEsc(wsStatusLabel(r.status))} · ${ex.length} Objekte · Ausgeführt von: ${wsEsc(assigneeName)}</div>
+          ${fallbackNames.length?`<div class="muted" style="margin-top:3px">Fallback: ${fallbackNames.map(wsEsc).join(' · ')}</div>`:''}
+        </div>
+        ${wsCanManageWinterRunAssignment()&&!['completed','cancelled'].includes(String(r.status||'').toLowerCase())
+          ?`<button type="button" onclick="wsOpenReassignRunModal('${wsEsc(r.id)}')">Vertretung / neu zuweisen</button>`
+          :''}
+      </div>
+      <div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">${ex.map(x=>{const o=wsObjects().find(z=>z.id===x.object_id);return `<button type="button" onclick="wsOpenExecution('${wsEsc(x.id)}')">${x.sort_order}. ${wsEsc(o?.name||'Objekt')} · ${wsEsc(wsStatusLabel(x.status))}</button>`}).join('')}</div>
+    </div>`;
   }).join(''):'<div class="empty">Noch keine Tagestour.</div>';
 }
 async function wsGetOrCreateSeasonScope(objectId, season, validFrom, validUntil, sopVersionId=null){
@@ -23426,6 +24094,132 @@ function wsRunStatus(r){
   return 'planned';
 }
 function wsRunStatusLabel(s){ return s==='active'?'Läuft':s==='completed'?'Abgeschlossen':'Geplant'; }
+function wsRunFallbackIds(run){
+  const raw=run?.fallback_user_ids;
+  if(Array.isArray(raw))return raw.map(String).filter(Boolean);
+  if(typeof raw==='string'){
+    return raw.replace(/[{}]/g,'').split(',').map(x=>x.trim()).filter(Boolean);
+  }
+  return [];
+}
+function wsRunFallbackNames(run){
+  return wsRunFallbackIds(run).map(wsWinterUserLabel).filter(Boolean);
+}
+function wsCanManageWinterRunAssignment(){
+  return hasOperationalAdminAccess() && !wsIsWinterOperative();
+}
+function wsReassignmentReasonLabel(code){
+  return ({
+    illness:'Krankheit / kurzfristiger Ausfall',
+    vacation:'Urlaub / Abwesenheit',
+    capacity:'Kapazitätsengpass',
+    availability:'Nicht verfügbar',
+    emergency:'Notfall / Bereitschaft',
+    planning:'Disposition / Umplanung',
+    other:'Sonstiges'
+  })[String(code||'')]||String(code||'');
+}
+async function wsOpenReassignRunModal(runId){
+  const run=(wsState.runs||[]).find(r=>String(r.id||'')===String(runId||''));
+  if(!run)return alert('Winterdiensttour nicht gefunden.');
+  if(!wsCanManageWinterRunAssignment())return alert('Keine Berechtigung zur Umbesetzung.');
+
+  try{
+    const rows=await cloudRequest('rpc/get_winter_run_reassignment_candidates_v1',{
+      method:'POST',
+      body:JSON.stringify({p_run_id:runId})
+    });
+    const candidates=Array.isArray(rows)?rows:[];
+
+    if(!candidates.length){
+      return alert('Für diese Tour ist aktuell kein weiterer berechtigter Winterdienstmitarbeiter verfügbar.');
+    }
+
+    const fallbackIds=new Set(wsRunFallbackIds(run));
+    const current=String(run.assigned_user_id||'');
+    const eligible=candidates
+      .filter(x=>x.eligible===true && String(x.user_id||'')!==current)
+      .sort((a,b)=>{
+        const af=fallbackIds.has(String(a.user_id||''))?0:1;
+        const bf=fallbackIds.has(String(b.user_id||''))?0:1;
+        if(af!==bf)return af-bf;
+        return String(a.full_name||a.email||'').localeCompare(String(b.full_name||b.email||''),'de');
+      });
+
+    if(!eligible.length){
+      return alert('Kein anderer Mitarbeiter erfüllt für alle offenen Tourstopps die Winterdienst- und Objektberechtigungen.');
+    }
+
+    modal(`<div class="row space"><h2>Winterdiensttour neu zuweisen</h2><button type="button" onclick="closeModal()">✕</button></div>
+      <div class="card" style="margin-top:12px">
+        <strong>${wsEsc(run.service_date||'')} · ${wsEsc(run.tour_name||run.name||run.template_name||'Winterdiensttour')}</strong>
+        <div class="muted" style="margin-top:5px">Aktuell verantwortlich: ${wsEsc(wsWinterUserLabel(current))}</div>
+      </div>
+
+      <label style="margin-top:14px">Neue verantwortliche Person
+        <select id="wsReassignUser">
+          ${eligible.map(u=>`<option value="${wsEsc(u.user_id)}">${fallbackIds.has(String(u.user_id||''))?'Fallback · ':''}${wsEsc(u.full_name||u.email||'Mitarbeiter')}</option>`).join('')}
+        </select>
+      </label>
+
+      <label style="margin-top:10px">Grund *
+        <select id="wsReassignReason">
+          <option value="">Bitte wählen …</option>
+          <option value="illness">Krankheit / kurzfristiger Ausfall</option>
+          <option value="vacation">Urlaub / Abwesenheit</option>
+          <option value="capacity">Kapazitätsengpass</option>
+          <option value="availability">Nicht verfügbar</option>
+          <option value="emergency">Notfall / Bereitschaft</option>
+          <option value="planning">Disposition / Umplanung</option>
+          <option value="other">Sonstiges</option>
+        </select>
+      </label>
+
+      <label style="margin-top:10px">Bemerkung
+        <textarea id="wsReassignNote" placeholder="Optional konkretisieren"></textarea>
+      </label>
+
+      <div class="card" style="margin-top:12px">
+        <strong>Wirkung</strong>
+        <div class="muted" style="margin-top:5px">
+          Die Tour erhält genau einen neuen Verantwortlichen. Nur noch offene Objektstopps werden auf die Vertretung umgestellt.
+          Bereits abgeschlossene Stopps behalten ihren bisherigen Ausführer. Die Umbesetzung wird protokolliert.
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:14px;gap:8px">
+        <button type="button" class="primary" onclick="wsReassignRun('${wsEsc(runId)}')">Tour neu zuweisen</button>
+        <button type="button" onclick="closeModal()">Abbrechen</button>
+      </div>`);
+  }catch(e){
+    alert('Vertretungen konnten nicht geladen werden: '+(e.message||e));
+  }
+}
+async function wsReassignRun(runId){
+  const userId=String(document.getElementById('wsReassignUser')?.value||'');
+  const reason=String(document.getElementById('wsReassignReason')?.value||'');
+  const note=String(document.getElementById('wsReassignNote')?.value||'').trim();
+  if(!userId)return alert('Neue verantwortliche Person auswählen.');
+  if(!reason)return alert('Grund für die Umbesetzung auswählen.');
+
+  try{
+    await cloudRequest('rpc/reassign_winter_service_run_v1',{
+      method:'POST',
+      body:JSON.stringify({
+        p_run_id:runId,
+        p_new_user_id:userId,
+        p_reason_code:reason,
+        p_note:note||null
+      })
+    });
+    closeModal();
+    await loadWinterService();
+    objectManagerTourDashboardState.loaded=false;
+    alert(`Winterdiensttour wurde ${wsWinterUserLabel(userId)} zugewiesen.`);
+  }catch(e){
+    alert('Tour konnte nicht neu zugewiesen werden: '+(e.message||e));
+  }
+}
 function wsRunCard(r){
   const xs=wsState.executions.filter(x=>String(x.run_id)===String(r.id))
     .sort((a,b)=>(Number(a.sort_order||0)-Number(b.sort_order||0)));
@@ -23435,10 +24229,12 @@ function wsRunCard(r){
   const currentUserName=assignedToCurrentUser
     ? (currentUserProfile?.full_name||cloudSession?.user?.user_metadata?.full_name||cloudSession?.user?.email||'Zugewiesen')
     : '';
-  const assignee=wsState.assignees?.find(u=>String(u.id)===String(r.assigned_user_id))?.full_name
+  const assignee=(wsState.tenantUsers||[]).find(u=>String(u.user_id||'')===String(r.assigned_user_id||''))?.full_name
+    ||wsState.assignees?.find(u=>String(u.id)===String(r.assigned_user_id))?.full_name
     ||r.assignee_name
     ||currentUserName
     ||(r.assigned_user_id?'Zugewiesen':'Nicht zugewiesen');
+  const fallbackNames=wsRunFallbackNames(r);
 
   const status=wsRunStatus(r);
   const title=r.tour_name||r.name||r.template_name||'Tagestour';
@@ -23467,9 +24263,15 @@ function wsRunCard(r){
         <div class="muted" style="margin-top:4px">
           ${xs.length} Objekt${xs.length===1?'':'e'} · ${completed}/${xs.length} erledigt · Ausgeführt von: ${wsEsc(assignee)}
         </div>
+        ${fallbackNames.length?`<div class="muted" style="margin-top:3px"><strong>Fallback:</strong> ${fallbackNames.map(wsEsc).join(' · ')}</div>`:''}
         ${nextOpenName?`<div class="muted" style="margin-top:3px"><strong>Nächster Stopp:</strong> ${wsEsc(nextOpenName)}</div>`:''}
       </div>
-      <span class="badge">${wsEsc(wsRunStatusLabel(status))}</span>
+      <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+        <span class="badge">${wsEsc(wsRunStatusLabel(status))}</span>
+        ${wsCanManageWinterRunAssignment()&&!['completed','cancelled'].includes(String(r.status||'').toLowerCase())
+          ?`<button type="button" onclick="wsOpenReassignRunModal('${wsEsc(r.id)}')">Vertretung / neu zuweisen</button>`
+          :''}
+      </div>
     </div>
     <div class="ws-run-object-list" style="margin-top:10px">${stopButtons}</div>
   </div>`;
