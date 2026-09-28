@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.26</title>
+<title>Duschl Service – Objektplattform v2.24.27</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3678,6 +3678,15 @@ table td,table th{
 .ops-sop-link-error{color:#E6B84A!important}
 </style>
 
+
+<style id="duschl-tour-workqueue-live-v22427">
+.ops-tour-workqueue-live{
+  color:#7890A1;
+  font-size:10px;
+  font-weight:500;
+}
+</style>
+
 </style>
 </head>
 <body>
@@ -6806,7 +6815,18 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - SOP-Ladefehler werden sichtbar von "keine freigegebene SOP" unterschieden.
    - Keine SQL-/RLS-/Backend-Änderung gegenüber 2.24.25.
 */
-const APP_VERSION='2.24.26'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.27 | BASIS 2.24.26 | 28.09.2026
+   TOUR-ARBEITSVORRAT LIVE-AKTUALISIERUNG
+   - Ursache behoben: Touransicht verwendete bisher nur den beim Login geladenen
+     db.findings/db.tasks-Stand. Neu angelegte Aufgaben anderer Benutzer blieben
+     deshalb in einer bereits geöffneten Mitarbeiter-Sitzung unsichtbar.
+   - Dashboard-Tour-Refresh lädt jetzt Dokumentationen + sichtbare Tasks neu.
+   - Operatives "Touren & Einsätze"-Öffnen lädt Arbeitsvorrat ebenfalls neu.
+   - Globales Aktualisieren lädt nun tatsächlich Dokumentationen/Aufgaben, wie
+     die bestehende UI-Beschriftung bereits behauptete.
+   - Keine SQL-/RLS-/Backend-Änderung.
+*/
+const APP_VERSION='2.24.27'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -9850,6 +9870,11 @@ async function refreshAllCloudData(){
     // Zentrale Fachdaten: Objekte, Dokumentationen, Entscheidungen, Aufgaben, Fotos und Meldungen.
     await cloudReloadObjects();
     await cloudLoadOrganizations();
+
+    // Dokumentationen + Entscheidungen + Aufgaben serverseitig neu laden.
+    // cloudReloadFindings() ruft cloudLoadTasks() bereits intern auf.
+    await cloudReloadFindings();
+
     // Benutzer/Zuweisungen nur laden, wenn die aktuelle Berechtigung dies zulässt.
     if(canManageUsersUI())await loadUserAdminData();
     if(isAdminRole())await cloudLoadOrganizations();
@@ -16934,6 +16959,7 @@ function tourObjectWorkQueueHtml(objectId,{compact=false}={}){
     return `<div class="ops-tour-workqueue-compact">
       <strong>Arbeitsvorrat:</strong> ${items.length} offene ${items.length===1?'Arbeit':'Arbeiten'} am Objekt
       ${urgent?` · <span class="ops-tour-workqueue-urgent">${urgent} dringend</span>`:''}
+      <span class="ops-tour-workqueue-live"> · aktuell geladen</span>
     </div>`;
   }
 
@@ -17063,6 +17089,30 @@ async function loadObjectManagerWinterWeatherForRun(run,executions){
   };
 }
 
+let tourWorkQueueRefreshInFlight=null;
+
+async function refreshTourWorkQueueContext(){
+  if(!cloudSession?.access_token)return;
+
+  if(tourWorkQueueRefreshInFlight)return tourWorkQueueRefreshInFlight;
+
+  tourWorkQueueRefreshInFlight=(async()=>{
+    try{
+      // cloudReloadFindings lädt anschließend bereits cloudLoadTasks().
+      // Damit verwenden Tour, Dashboard und Arbeitsvorrat dieselbe serverseitig
+      // autorisierte Datenbasis.
+      await cloudReloadFindings();
+      try{await cloudLoadExternalOrders(false);}catch(e){
+        console.warn('Externe Arbeitsaufträge für Tourkontext konnten nicht aktualisiert werden',e);
+      }
+    }finally{
+      tourWorkQueueRefreshInFlight=null;
+    }
+  })();
+
+  return tourWorkQueueRefreshInFlight;
+}
+
 async function refreshObjectManagerTours(){
   if(!isObjectManagerDashboardRole()||!currentOrganizationId())return;
   if(objectManagerTourDashboardState.loading)return;
@@ -17074,6 +17124,10 @@ async function refreshObjectManagerTours(){
 
   objectManagerTourDashboardState.loading=true;
   try{
+    // Neue Aufgaben müssen in einer bereits geöffneten Mitarbeiter-Sitzung
+    // vor der Tourdarstellung vom Server nachgeladen werden.
+    await refreshTourWorkQueueContext();
+
     const org=currentOrganizationId();
     const uid=currentUserId();
     const today=wsToday();
@@ -23404,6 +23458,8 @@ async function opsLoad(){
   const org=opsOrg();if(!org)return;
   try{
     if(!opsIsPlanningRole()){
+      await refreshTourWorkQueueContext();
+
       const uid=String(currentUserId()||'');
       const runs=await cloudRequest(
         `operation_runs?select=*&organization_id=eq.${encodeURIComponent(org)}&assigned_user_id=eq.${encodeURIComponent(uid)}&order=service_date.asc`
