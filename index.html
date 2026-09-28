@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.30</title>
+<title>Duschl Service – Objektplattform v2.24.31</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -6887,7 +6887,17 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Keine Daten werden gelöscht oder stillschweigend ausgeblendet.
    - Keine SQL-/RLS-/Backend-Änderung.
 */
-const APP_VERSION='2.24.30'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.31 | BASIS 2.24.30 | 28.09.2026
+   SOP + WINTERDIENST-ZUWEISUNGSANZEIGE
+   - Standardtour-SOP nutzt neue robuste RPC get_operation_sop_v3; Fallback auf v2.
+   - Winterdienst-SOP wird im operativen Modus über get_winter_operation_sop_v1 geladen
+     und als benannte, klickbare Arbeitsanweisung angezeigt.
+   - Operative Winterdienstansicht zeigt bei persönlichem Run nicht mehr fälschlich
+     "Nicht zugewiesen", wenn der Mitarbeiterkatalog im Operativmodus bewusst leer ist.
+   - Keine Änderung an fachlicher Winterdienst-Zuweisung; reine Anzeige wird korrigiert.
+   BACKEND: benötigt SQL 2.24.31 für die neuen SOP-RPCs.
+*/
+const APP_VERSION='2.24.31'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -16894,10 +16904,19 @@ async function loadOperationSopMetaForStops(stops,{force=false}={}){
   if(!list.length)return;
 
   const results=await Promise.allSettled(list.map(async id=>{
-    const rows=await cloudRequest('rpc/get_operation_sop_v2',{
-      method:'POST',
-      body:JSON.stringify({p_run_stop_id:id})
-    });
+    let rows;
+    try{
+      rows=await cloudRequest('rpc/get_operation_sop_v3',{
+        method:'POST',
+        body:JSON.stringify({p_run_stop_id:id})
+      });
+    }catch(v3Error){
+      console.warn('get_operation_sop_v3 nicht verfügbar, Fallback auf v2',v3Error);
+      rows=await cloudRequest('rpc/get_operation_sop_v2',{
+        method:'POST',
+        body:JSON.stringify({p_run_stop_id:id})
+      });
+    }
     const d=Array.isArray(rows)?rows[0]:rows;
     return {id,data:d||null};
   }));
@@ -17463,6 +17482,7 @@ async function refreshObjectManagerTours(){
       winterExecutions=await cloudRequest(
         `winter_service_executions?select=*&organization_id=eq.${encodeURIComponent(org)}&run_id=in.(${inList})&order=sort_order.asc`
       ).catch(e=>{console.warn('Winterdienst-Stopps konnten nicht geladen werden',e);return [];});
+      await loadWinterSopMetaForExecutions(winterExecutions,{force:true});
     }
 
     const weatherByRun={};
@@ -22158,6 +22178,10 @@ async function loadWinterService(){
         tenantUsers:[]
       };
 
+      // SOP-Daten werden bewusst über eine schmale autorisierte RPC geladen.
+      // Der Objektbetreuer benötigt dafür keinen Zugriff auf das Dokumentenmanagement.
+      await loadWinterSopMetaForExecutions(wsState.executions,{force:true});
+
       wsApplyWinterServiceViewMode();
       wsRenderMyWinterOrders();
       return;
@@ -23002,6 +23026,113 @@ function wsServiceActionLabel(value){
     clear_and_grit:'Räumen + Streuen'
   })[String(value||'')]||'Winterdienst';
 }
+const wsWinterSopByExecution={};
+const wsWinterSopLoadErrorByExecution={};
+
+function wsWinterSopDisplayName(d){
+  if(!d)return 'Keine freigegebene SOP';
+  return [
+    String(d.sop_code||'').trim(),
+    String(d.sop_title||'').trim(),
+    d.sop_version?`V${String(d.sop_version).trim()}`:''
+  ].filter(Boolean).join(' · ')||'SOP / Arbeitsanweisung';
+}
+
+async function loadWinterSopMetaForExecutions(executions,{force=false}={}){
+  const ids=(Array.isArray(executions)?executions:[])
+    .map(x=>String(x?.id||''))
+    .filter(Boolean)
+    .filter(id=>force || !wsWinterSopByExecution[id]);
+
+  if(!ids.length)return;
+
+  const results=await Promise.allSettled(ids.map(async id=>{
+    const rows=await cloudRequest('rpc/get_winter_operation_sop_v1',{
+      method:'POST',
+      body:JSON.stringify({p_execution_id:id})
+    });
+    const d=Array.isArray(rows)?rows[0]:rows;
+    return {id,data:d||null};
+  }));
+
+  results.forEach((r,i)=>{
+    const id=ids[i];
+    if(r.status==='fulfilled'){
+      delete wsWinterSopLoadErrorByExecution[id];
+      if(r.value.data)wsWinterSopByExecution[id]=r.value.data;
+      else delete wsWinterSopByExecution[id];
+    }else{
+      delete wsWinterSopByExecution[id];
+      wsWinterSopLoadErrorByExecution[id]=String(r.reason?.message||r.reason||'Winterdienst-SOP konnte nicht geladen werden.');
+      console.warn('Winterdienst-SOP konnte nicht geladen werden',id,r.reason);
+    }
+  });
+}
+
+function wsWinterSopLabelFromRpc(x){
+  const d=wsWinterSopByExecution[String(x?.id||'')]||null;
+  if(d)return wsWinterSopDisplayName(d);
+  return '';
+}
+
+function wsWinterSopHtmlForExecution(x){
+  const id=String(x?.id||'');
+  const d=wsWinterSopByExecution[id]||null;
+  const err=wsWinterSopLoadErrorByExecution[id]||'';
+  if(d){
+    return `<button type="button" class="ops-sop-link" onclick="wsOpenAssignedSop('${wsEsc(id)}')">${wsEsc(wsWinterSopDisplayName(d))}</button>`;
+  }
+  if(err){
+    return `<button type="button" class="ops-sop-link ops-sop-link-error" onclick="wsReloadAssignedSop('${wsEsc(id)}')">SOP erneut laden</button>`;
+  }
+  return `<span class="muted">${wsEsc(wsWinterSopLabelForExecution(x))}</span>`;
+}
+
+async function wsReloadAssignedSop(executionId){
+  await loadWinterSopMetaForExecutions([{id:executionId}],{force:true});
+  await wsOpenExecution(executionId);
+}
+
+async function wsOpenAssignedSop(executionId){
+  try{
+    let d=wsWinterSopByExecution[String(executionId)]||null;
+    if(!d){
+      const rows=await cloudRequest('rpc/get_winter_operation_sop_v1',{
+        method:'POST',
+        body:JSON.stringify({p_execution_id:executionId})
+      });
+      d=Array.isArray(rows)?rows[0]:rows;
+      if(d)wsWinterSopByExecution[String(executionId)]=d;
+    }
+    if(!d)return alert('Für diesen Winterdiensteinsatz ist keine freigegebene SOP hinterlegt.');
+
+    const label=wsWinterSopDisplayName(d);
+    if(d.storage_path){
+      try{
+        const response=await cloudStorageRequest(`object/authenticated/${DM_BUCKET}/${d.storage_path}`,{method:'GET'});
+        const fileBlob=await response.blob();
+        const url=URL.createObjectURL(fileBlob);
+        window.open(url,'_blank','noopener');
+        setTimeout(()=>URL.revokeObjectURL(url),60000);
+        return;
+      }catch(fileError){
+        console.warn('Winterdienst-SOP-Datei konnte nicht direkt geöffnet werden',fileError);
+      }
+    }
+
+    const body=`<div class="card">
+      <h3>${wsEsc(label)}</h3>
+      ${d.valid_from?`<div class="muted">Gültig ab ${wsEsc(d.valid_from)}</div>`:''}
+      ${d.change_reason?`<p>${wsEsc(d.change_reason)}</p>`:''}
+      <p class="muted">Freigegebene SOP für diesen Winterdiensteinsatz.</p>
+    </div>`;
+    if(typeof openModal==='function')openModal('SOP / Arbeitsanweisung',body);
+    else alert(label);
+  }catch(e){
+    alert('Winterdienst-SOP konnte nicht geladen werden: '+(e.message||e));
+  }
+}
+
 function wsWinterAssignmentForExecution(x){
   if(!x)return null;
   const run=wsState.runs.find(r=>String(r.id)===String(x.run_id));
@@ -23014,6 +23145,9 @@ function wsWinterAssignmentForExecution(x){
     .sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')))[0]||null;
 }
 function wsWinterSopLabelForExecution(x){
+  const rpcLabel=wsWinterSopLabelFromRpc(x);
+  if(rpcLabel)return rpcLabel;
+
   const a=wsWinterAssignmentForExecution(x);
   if(!a?.managed_document_version_id)return 'Keine freigegebene SOP verknüpft';
   const v=(wsState.managedVersions||[]).find(z=>String(z.id)===String(a.managed_document_version_id));
@@ -23037,7 +23171,14 @@ function wsRunCard(r){
   const xs=wsState.executions.filter(x=>String(x.run_id)===String(r.id))
     .sort((a,b)=>(Number(a.sort_order||0)-Number(b.sort_order||0)));
   const objName=id=>wsState.objects?.find(o=>String(o.id)===String(id))?.name||'Objekt';
-  const assignee=wsState.assignees?.find(u=>String(u.id)===String(r.assigned_user_id))?.full_name||r.assignee_name||'Nicht zugewiesen';
+  const assignedToCurrentUser=String(r.assigned_user_id||'')===String(currentUserId()||'');
+  const currentUserName=assignedToCurrentUser
+    ? (currentUserProfile?.full_name||cloudSession?.user?.user_metadata?.full_name||cloudSession?.user?.email||'Zugewiesen')
+    : '';
+  const assignee=wsState.assignees?.find(u=>String(u.id)===String(r.assigned_user_id))?.full_name
+    ||r.assignee_name
+    ||currentUserName
+    ||(r.assigned_user_id?'Zugewiesen':'Nicht zugewiesen');
   const status=wsRunStatus(r);
   const title=r.tour_name||r.name||r.template_name||'Tagestour';
   return `<div class="card" style="margin:10px 0;padding:14px">
@@ -23345,7 +23486,7 @@ async function wsOpenExecution(id){
       <div class="card" style="margin-top:16px;padding:12px">
         <strong>2. Einsatzauftrag</strong>
         <div style="margin-top:8px;font-size:1.08em"><strong>${wsEsc(wsServiceActionLabel(x.service_action))}</strong></div>
-        <div class="muted" style="margin-top:5px">SOP: ${wsEsc(wsWinterSopLabelForExecution(x))}</div>
+        <div class="muted" style="margin-top:5px">SOP: ${wsWinterSopHtmlForExecution(x)}</div>
         ${assignmentNote?`<div class="muted" style="margin-top:5px">Objekthinweis: ${wsEsc(assignmentNote)}</div>`:''}
         <label class="row" style="align-items:center;margin-top:10px">
           <input type="checkbox" data-ws-done="service_action" style="width:auto">
@@ -24889,10 +25030,19 @@ async function openAssignedOperationSop(runStopId){
   try{
     let d=operationSopByRunStop[String(runStopId)]||null;
     if(!d){
-      const rows=await cloudRequest('rpc/get_operation_sop_v2',{
-        method:'POST',
-        body:JSON.stringify({p_run_stop_id:runStopId})
-      });
+      let rows;
+      try{
+        rows=await cloudRequest('rpc/get_operation_sop_v3',{
+          method:'POST',
+          body:JSON.stringify({p_run_stop_id:runStopId})
+        });
+      }catch(v3Error){
+        console.warn('get_operation_sop_v3 nicht verfügbar, Fallback auf v2',v3Error);
+        rows=await cloudRequest('rpc/get_operation_sop_v2',{
+          method:'POST',
+          body:JSON.stringify({p_run_stop_id:runStopId})
+        });
+      }
       d=Array.isArray(rows)?rows[0]:rows;
       operationSopByRunStop[String(runStopId)]=d||null;
     }
