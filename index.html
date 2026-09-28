@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.03</title>
+<title>Duschl Service – Objektplattform v2.24.07</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3068,6 +3068,49 @@ table td,table th{
   background:#86D5A6;
 }
 </style>
+
+<style id="duschl-object-manager-dashboard-v22407">
+.om-focus-panel{margin:0 0 14px}
+.om-focus-eyebrow{font-size:11px;font-weight:900;letter-spacing:.085em;color:#8FA5B5;margin-bottom:7px}
+.om-focus-card{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px 20px;border-radius:14px;background:linear-gradient(145deg,#132A3D,#0B1D2B);border:1px solid rgba(142,180,207,.24);box-shadow:0 12px 28px rgba(0,0,0,.14)}
+.om-focus-main{min-width:0}
+.om-focus-title{font-size:20px;line-height:1.25;font-weight:900;color:#F7FAFC}
+.om-focus-text{margin-top:5px;color:#A9B8C3;font-size:13px;line-height:1.45}
+.om-focus-action{flex:0 0 auto;min-width:150px}
+.om-quick-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}
+.om-quick-action{display:flex;align-items:center;gap:7px;padding:8px 11px;border-radius:999px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09);color:#D7E0E6;font-size:12px;font-weight:750;cursor:pointer}
+.om-quick-action strong{color:#fff}
+.om-quick-action.is-alert{border-color:rgba(230,184,74,.30);background:rgba(230,184,74,.07)}
+.om-quick-action.is-critical{border-color:rgba(233,109,115,.34);background:rgba(233,109,115,.08)}
+#operationalDashboard.om-dashboard-mode .dashboard-winter-panel,
+#operationalDashboard.om-dashboard-mode .dashboard-summer-panel{padding:14px 16px!important;margin-bottom:14px!important}
+#operationalDashboard.om-dashboard-mode .dashboard-winter-title,
+#operationalDashboard.om-dashboard-mode .dashboard-summer-title{font-size:15px!important}
+#operationalDashboard.om-dashboard-mode .dashboard-winter-grid,
+#operationalDashboard.om-dashboard-mode .dashboard-summer-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important;margin-top:10px!important}
+#operationalDashboard.om-dashboard-mode .dashboard-winter-kpi,
+#operationalDashboard.om-dashboard-mode .dashboard-summer-kpi{padding:9px 10px!important}
+#operationalDashboard.om-dashboard-mode .dashboard-winter-kpi .value,
+#operationalDashboard.om-dashboard-mode .dashboard-summer-kpi .value{font-size:18px!important}
+#operationalDashboard.om-dashboard-mode .dashboard-winter-kpi .label,
+#operationalDashboard.om-dashboard-mode .dashboard-summer-kpi .label{font-size:10px!important}
+#operationalDashboard.om-dashboard-mode #kpiObjectsCard,
+#operationalDashboard.om-dashboard-mode #kpiDecisionsCard,
+#operationalDashboard.om-dashboard-mode #kpiExternalMonitoringCard{display:none!important}
+#operationalDashboard.om-dashboard-mode .tenant-kpi-group-info{display:none!important}
+#operationalDashboard.om-dashboard-mode .tenant-kpi-grid-v260{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+#operationalDashboard.om-dashboard-mode .tenant-kpi-group-tasks{grid-column:1/-1!important}
+#operationalDashboard.om-dashboard-mode .tenant-dashboard-documentation-panel{display:none!important}
+#operationalDashboard.om-dashboard-mode #dashboardCareRequestsWrap{display:none!important}
+#operationalDashboard.om-dashboard-mode #dashboardMessagesWrap{margin-top:14px!important}
+@media(max-width:760px){
+  .om-focus-card{flex-direction:column;align-items:stretch}
+  .om-focus-action{width:100%}
+  #operationalDashboard.om-dashboard-mode .dashboard-winter-grid,
+  #operationalDashboard.om-dashboard-mode .dashboard-summer-grid{grid-template-columns:1fr 1fr!important}
+  #operationalDashboard.om-dashboard-mode .tenant-kpi-grid-v260{grid-template-columns:1fr!important}
+}
+</style>
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -3370,6 +3413,18 @@ table td,table th{
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
+  </div>
+
+  <div id="objectManagerFocusPanel" class="om-focus-panel" style="display:none">
+    <div class="om-focus-eyebrow">DEIN NÄCHSTER SCHRITT</div>
+    <div id="objectManagerFocusCard" class="om-focus-card">
+      <div class="om-focus-main">
+        <div id="objectManagerFocusTitle" class="om-focus-title">Arbeitsstand wird geladen …</div>
+        <div id="objectManagerFocusText" class="om-focus-text"></div>
+      </div>
+      <button id="objectManagerFocusAction" class="primary om-focus-action" type="button">Öffnen</button>
+    </div>
+    <div id="objectManagerQuickActions" class="om-quick-actions"></div>
   </div>
 
   <div id="dashboardWinterPanel" class="dashboard-winter-panel" style="display:none" role="button" tabindex="0"
@@ -5978,7 +6033,24 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Sobald wieder mindestens eine aktive passende Leistung existiert,
      erscheint der Bereich automatisch.
    - Keine SQL-/RLS-/Backend-Änderung. */
-const APP_VERSION='2.24.03'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.06 | BASIS 2.24.03 | 28.09.2026
+   WINTERDIENST OPERATIVE SICHT
+   - Objektbetreuer laden im Winterdienst nur die für die operative Ansicht benötigten Daten.
+   - Ein RLS-Fehler in administrativen Winterdiensttabellen blockiert nicht mehr die komplette Ansicht.
+   - Runs werden personenbezogen über assigned_user_id geladen.
+   - Executions werden anschließend für die sichtbaren Runs geladen.
+   - Keine Änderung an Admin-Winterdienst, Objektplattform, Arbeitsvorrat oder Saisonlogik.
+*/
+/* RELEASE 2.24.07 | BASIS 2.24.06 | 28.09.2026
+   OBJEKTBETREUER-DASHBOARD / OPERATIVES COCKPIT
+   - Fokus auf "Was muss ich als Nächstes tun?"
+   - Priorität: heutige Winterdienst-Tour -> Arbeitsvorrat -> neue Meldungen -> dringende Dokumentation
+   - Winterdienst bleibt tourgeführt und unabhängig von regulären Objektzuweisungen.
+   - Wetter bleibt sichtbar und wird auf den operativen Kontext verdichtet.
+   - Management-KPIs werden im Objektbetreuer-Dashboard ausgeblendet.
+   - Keine SQL-/RLS-/Backend-Änderung.
+*/
+const APP_VERSION='2.24.07'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -7988,7 +8060,7 @@ function applyRoleUI(){
         : isPropertyManagerRole()
           ? 'Steuerung und Entscheidungen für deine zugewiesenen Objekte.'
         : role==='object_manager'||role==='staff'||role==='employee'
-          ? 'Deine Objekte, offenen Feststellungen und Arbeitsvorgänge.'
+          ? 'Deine nächsten Aufgaben, Touren, Meldungen und wetterabhängigen Einsätze.'
           : role==='customer'
             ? 'Übersicht über deine Objekte, Dokumentationen und Entscheidungen.'
             : role==='test_user'
@@ -15413,6 +15485,13 @@ async function openWinterPlanning(){
   try{
     showSection('winterService');
     await loadWinterService();
+
+    if(wsIsWinterOperative()){
+      await new Promise(resolve=>setTimeout(resolve,60));
+      document.getElementById('wsOperativeView')?.scrollIntoView({behavior:'smooth',block:'start'});
+      return;
+    }
+
     await new Promise(resolve=>setTimeout(resolve,80));
     const card=document.getElementById('wsPlanningCard');
     if(card){
@@ -15691,15 +15770,38 @@ async function loadDashboardWinterSummary(){
   if(!orgId)return;
   const token=++dashboardWinterLoadToken;
   const status=document.getElementById('dashboardWinterStatus');
+  const planningBtn=document.querySelector('#dashboardWinterPanel .tenant-action-btn');
   if(status)status.textContent='Winterdaten und Wetterlage werden geladen …';
+  if(planningBtn)planningBtn.textContent=isObjectManagerDashboardRole()?'Meine Tour öffnen ›':'Einsatz planen ›';
 
   try{
     const today=wsToday();
-    const [assignments,runs,executions]=await Promise.all([
-      cloudRequest(`object_service_assignments?select=*&organization_id=eq.${encodeURIComponent(orgId)}&process_type=eq.winter_service&active=eq.true&order=created_at.desc`),
-      cloudRequest(`winter_service_runs?select=*&organization_id=eq.${encodeURIComponent(orgId)}&service_date=eq.${encodeURIComponent(today)}&order=created_at.desc`),
-      cloudRequest(`winter_service_executions?select=*&organization_id=eq.${encodeURIComponent(orgId)}&order=created_at.desc`)
-    ]);
+    let assignments=[];
+    let runs=[];
+    let executions=[];
+
+    if(isObjectManagerDashboardRole()){
+      const uid=currentUserId();
+      // Tour ist die operative Source of Truth; reguläre Objektzuweisungen sind hierfür irrelevant.
+      runs=await cloudRequest(
+        `winter_service_runs?select=*&organization_id=eq.${encodeURIComponent(orgId)}&assigned_user_id=eq.${encodeURIComponent(uid)}&service_date=eq.${encodeURIComponent(today)}&order=created_at.desc`
+      )||[];
+
+      const runIds=(runs||[]).map(r=>String(r.id||'')).filter(Boolean);
+      if(runIds.length){
+        const inList=runIds.map(id=>id.replace(/[^0-9a-fA-F-]/g,'')).join(',');
+        executions=await cloudRequest(
+          `winter_service_executions?select=*&organization_id=eq.${encodeURIComponent(orgId)}&run_id=in.(${inList})&order=sort_order.asc`
+        )||[];
+      }
+    }else{
+      [assignments,runs,executions]=await Promise.all([
+        cloudRequest(`object_service_assignments?select=*&organization_id=eq.${encodeURIComponent(orgId)}&process_type=eq.winter_service&active=eq.true&order=created_at.desc`),
+        cloudRequest(`winter_service_runs?select=*&organization_id=eq.${encodeURIComponent(orgId)}&service_date=eq.${encodeURIComponent(today)}&order=created_at.desc`),
+        cloudRequest(`winter_service_executions?select=*&organization_id=eq.${encodeURIComponent(orgId)}&order=created_at.desc`)
+      ]);
+    }
+
     if(token!==dashboardWinterLoadToken)return;
 
     wsState={...wsState,
@@ -15708,7 +15810,10 @@ async function loadDashboardWinterSummary(){
       executions:Array.isArray(executions)?executions:[]
     };
 
-    const objectIds=wsWinterObjectIds();
+    const objectIds=isObjectManagerDashboardRole()
+      ? [...new Set((executions||[]).map(e=>String(e.object_id||'')).filter(Boolean))]
+      : wsWinterObjectIds();
+
     const weatherResults=await Promise.allSettled(
       objectIds.map(id=>wsWeatherRequest(id,'forecast',false))
     );
@@ -15740,14 +15845,115 @@ async function loadDashboardWinterSummary(){
 
     const dataErrors=summary.errors||0;
     if(status){
-      status.textContent=objectIds.length
-        ?`${objectIds.length} Winterdienstobjekt${objectIds.length===1?'':'e'} · ${summary.red} kritisch · ${summary.yellow} beobachten${dataErrors?` · ${dataErrors} Wetterdatenfehler`:''}`
-        :'Keine aktiven Winterdienstobjekte im Mandanten.';
+      if(isObjectManagerDashboardRole()){
+        status.textContent=openRuns.length
+          ?`${openRuns.length} eigene offene Tour${openRuns.length===1?'':'en'} heute · ${summary.red} kritisch · ${summary.yellow} beobachten · ${summary.warnings} DWD-Warnung${summary.warnings===1?'':'en'}${dataErrors?` · ${dataErrors} Wetterdatenfehler`:''}`
+          :'Heute keine offene Winterdienst-Tour zugewiesen.';
+      }else{
+        status.textContent=objectIds.length
+          ?`${objectIds.length} Winterdienstobjekt${objectIds.length===1?'':'e'} · ${summary.red} kritisch · ${summary.yellow} beobachten${dataErrors?` · ${dataErrors} Wetterdatenfehler`:''}`
+          :'Keine aktiven Winterdienstobjekte im Mandanten.';
+      }
     }
+
+    renderObjectManagerDashboardFocus();
   }catch(e){
     console.error('Winter-Dashboard konnte nicht geladen werden',e);
     if(status)status.textContent='Winterdaten konnten nicht vollständig geladen werden.';
+    renderObjectManagerDashboardFocus();
   }
+}
+
+function isObjectManagerDashboardRole(){
+  return isObjectManagerRole() || ['object_manager','staff','employee'].includes(String(effectiveUserRole()||'').toLowerCase());
+}
+
+function objectManagerTodayWinterRuns(){
+  if(!isObjectManagerDashboardRole())return [];
+  const today=wsToday();
+  const uid=String(currentUserId()||'');
+  return (wsState.runs||[])
+    .filter(r=>String(r.assigned_user_id||'')===uid)
+    .filter(r=>String(r.service_date||'')===today)
+    .filter(r=>!['completed','cancelled'].includes(String(r.status||'').toLowerCase()));
+}
+
+function renderObjectManagerDashboardFocus(){
+  const dashboard=document.getElementById('operationalDashboard');
+  const panel=document.getElementById('objectManagerFocusPanel');
+  if(!dashboard||!panel)return;
+
+  const active=isObjectManagerDashboardRole() && !isPlatformTenantMode();
+  dashboard.classList.toggle('om-dashboard-mode',active);
+  panel.style.display=active?'block':'none';
+  if(!active)return;
+
+  const title=document.getElementById('objectManagerFocusTitle');
+  const copy=document.getElementById('objectManagerFocusText');
+  const action=document.getElementById('objectManagerFocusAction');
+  const quick=document.getElementById('objectManagerQuickActions');
+
+  const winterRuns=objectManagerTodayWinterRuns();
+  const work=Number(document.getElementById('kpiWorkQueue')?.textContent||0);
+  const reports=Number(document.getElementById('kpiResidentReports')?.textContent||0);
+  const urgent=Number(document.getElementById('kpiCritical')?.textContent||0);
+  const docs=Number(document.getElementById('kpiOpenDocs')?.textContent||0);
+
+  let primary={
+    title:'Keine dringende Aufgabe',
+    text:'Aktuell ist keine priorisierte operative Aufgabe offen.',
+    label:'Arbeitsvorrat öffnen',
+    action:()=>openDashboardWorkQueue()
+  };
+
+  if(winterRuns.length){
+    primary={
+      title:winterRuns.length===1?'Winterdienst-Tour heute':'Winterdienst-Touren heute',
+      text:`${winterRuns.length} offene Tour${winterRuns.length===1?'':'en'} ist dir heute zugewiesen.`,
+      label:'Meine Tour öffnen',
+      action:()=>openWinterPlanning()
+    };
+  }else if(work>0){
+    primary={
+      title:`${work} offene ${work===1?'Aufgabe':'Aufgaben'} im Arbeitsvorrat`,
+      text:'Bearbeite zuerst die offenen operativen Aufträge deiner zugewiesenen Objekte.',
+      label:'Arbeitsvorrat öffnen',
+      action:()=>openDashboardWorkQueue()
+    };
+  }else if(reports>0){
+    primary={
+      title:`${reports} neue ${reports===1?'Meldung':'Meldungen'}`,
+      text:'Neue Meldungen prüfen und den nächsten Bearbeitungsschritt festlegen.',
+      label:'Meldungen öffnen',
+      action:()=>openDashboardResidentReports()
+    };
+  }else if(urgent>0){
+    primary={
+      title:`${urgent} dringende ${urgent===1?'Feststellung':'Feststellungen'}`,
+      text:'Sofort- und dringende Vorgänge in der Dokumentation prüfen.',
+      label:'Dokumentation öffnen',
+      action:()=>openCriticalFindings()
+    };
+  }else if(docs>0){
+    primary={
+      title:'Dokumentation im Blick behalten',
+      text:`${docs} dokumentierte ${docs===1?'Vorgang':'Vorgänge'} im aktuellen Arbeitsbereich.`,
+      label:'Dokumentation öffnen',
+      action:()=>showSection('findings')
+    };
+  }
+
+  if(title)title.textContent=primary.title;
+  if(copy)copy.textContent=primary.text;
+  if(action){action.textContent=primary.label;action.onclick=primary.action;}
+
+  const chips=[];
+  if(winterRuns.length)chips.push(`<button class="om-quick-action is-alert" type="button" onclick="openWinterPlanning()">❄ Winterdienst <strong>${winterRuns.length}</strong></button>`);
+  if(work>0)chips.push(`<button class="om-quick-action ${work>2?'is-alert':''}" type="button" onclick="openDashboardWorkQueue()">☰ Arbeitsvorrat <strong>${work}</strong></button>`);
+  if(reports>0)chips.push(`<button class="om-quick-action is-alert" type="button" onclick="openDashboardResidentReports()">✉ Meldungen <strong>${reports}</strong></button>`);
+  if(urgent>0)chips.push(`<button class="om-quick-action is-critical" type="button" onclick="openCriticalFindings()">! Dringend <strong>${urgent}</strong></button>`);
+  if(!chips.length)chips.push(`<span class="om-quick-action">✓ Keine priorisierten offenen Aufgaben</span>`);
+  if(quick)quick.innerHTML=chips.join('');
 }
 
 function renderDashboard(){
@@ -15879,6 +16085,7 @@ function renderDashboard(){
   const box=document.getElementById('dashboardFindings');
   const rows=[...visibleDocumentation].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,8);
   box.innerHTML=rows.length?rows.map(f=>findingCard(f)).join(''):`<div class="empty">Noch keine Dokumentationen vorhanden.</div>`;
+  renderObjectManagerDashboardFocus();
 }
 function objectCollaborationAccessHtml(objectId){
   if(!hasOperationalAdminAccess())return '';
@@ -20020,6 +20227,57 @@ async function wsLoadWeatherCockpit(force=false){
 async function loadWinterService(){
   try{
     const org=wsOrg();
+
+    // 2.24.06:
+    // Operative Benutzer benötigen für "Mein Winterdienst" ausschließlich
+    // ihre personenbezogenen Runs und die dazugehörigen Executions.
+    // Administrative Tabellen dürfen diesen Pfad nicht blockieren.
+    if(wsIsWinterOperative()){
+      const uid=currentUserId();
+      if(!uid)throw new Error('Benutzer-ID fehlt.');
+
+      const runs=await cloudRequest(
+        `winter_service_runs?select=*&organization_id=eq.${encodeURIComponent(org)}&assigned_user_id=eq.${encodeURIComponent(uid)}&order=service_date.desc,created_at.desc`
+      )||[];
+
+      let executions=[];
+      const runIds=(Array.isArray(runs)?runs:[])
+        .map(r=>String(r.id||'').trim())
+        .filter(Boolean);
+
+      if(runIds.length){
+        // Die RLS begrenzt zusätzlich auf Runs des angemeldeten Benutzers.
+        // Für große Historien wird bewusst in Batches geladen.
+        const batchSize=50;
+        for(let i=0;i<runIds.length;i+=batchSize){
+          const ids=runIds.slice(i,i+batchSize);
+          const inList=ids.map(id=>id.replace(/[^0-9a-fA-F-]/g,'')).join(',');
+          const rows=await cloudRequest(
+            `winter_service_executions?select=*&organization_id=eq.${encodeURIComponent(org)}&run_id=in.(${inList})&order=sort_order.asc`
+          )||[];
+          executions.push(...rows);
+        }
+      }
+
+      wsState={
+        ...wsState,
+        runs:Array.isArray(runs)?runs:[],
+        executions:Array.isArray(executions)?executions:[],
+        // Administrative Daten werden für die operative Übersicht nicht benötigt.
+        sops:[],
+        versions:[],
+        scopes:[],
+        templates:[],
+        stops:[],
+        tenantUsers:[]
+      };
+
+      wsApplyWinterServiceViewMode();
+      wsRenderMyWinterOrders();
+      return;
+    }
+
+    // Administrative Winterdienstansicht unverändert.
     const [sops,versions,scopes,templates,stops,runs,executions,objectAssignments,managedDocuments,managedVersions]=await Promise.all([
       Promise.resolve([]), /* Legacy SOP-Stamm wird nicht mehr operativ geladen. */
       Promise.resolve([]), /* Legacy SOP-Versionen bleiben nur für historische FK-Daten bestehen. */
@@ -20038,21 +20296,20 @@ async function loadWinterService(){
     }catch(e){console.warn('Winterdienst-Mitarbeiter konnten nicht geladen werden',e)}
     wsState={...wsState,sops:sops||[],versions:versions||[],scopes:scopes||[],templates:templates||[],stops:stops||[],runs:runs||[],executions:executions||[],objectAssignments:objectAssignments||[],managedDocuments:managedDocuments||[],managedVersions:managedVersions||[],tenantUsers};
     wsApplyWinterServiceViewMode();
-    if(wsIsWinterOperative()){
-      wsRenderMyWinterOrders();
-    }else{
-      wsPopulateObjectSelects();
-      wsRenderTourDraft();
-      wsPopulateRunAssignees();
-      /* SOP-Verwaltung erfolgt zentral im Dokumentenmanagement / Objekt. */
-      wsRenderTours();
-      wsRenderRuns();
-      wsRenderGroupedRuns();
-      wsRenderWeatherCockpit();
-      wsLoadWeatherCockpit(false).catch(e=>console.warn('Winterdienst-Wetter konnte nicht geladen werden',e));
-      const d=document.getElementById('wsRunDate'); if(d&&!d.value)d.value=wsToday();
-    }
-  }catch(e){console.error(e);alert('Winterdienst konnte nicht geladen werden: '+(e.message||e))}
+    wsPopulateObjectSelects();
+    wsRenderTourDraft();
+    wsPopulateRunAssignees();
+    /* SOP-Verwaltung erfolgt zentral im Dokumentenmanagement / Objekt. */
+    wsRenderTours();
+    wsRenderRuns();
+    wsRenderGroupedRuns();
+    wsRenderWeatherCockpit();
+    wsLoadWeatherCockpit(false).catch(e=>console.warn('Winterdienst-Wetter konnte nicht geladen werden',e));
+    const d=document.getElementById('wsRunDate'); if(d&&!d.value)d.value=wsToday();
+  }catch(e){
+    console.error(e);
+    alert('Winterdienst konnte nicht geladen werden: '+(e.message||e));
+  }
 }
 
 function wsTourEligibleObjectIds(){
