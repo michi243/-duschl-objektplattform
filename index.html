@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.13</title>
+<title>Duschl Service – Objektplattform v2.24.14</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -6267,7 +6267,16 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Gleiche Logik für Winterdienst und Standardtouren.
    - Keine SQL-/RLS-/Backend-Änderung.
 */
-const APP_VERSION='2.24.13'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.14 | BASIS 2.24.13 | 28.09.2026
+   OPERATIVE TOUREN: WEITERE GEPLANTE TOUREN
+   - Aktueller Einsatz bleibt ganz oben.
+   - Danach heutige/nächste Tour.
+   - Weitere zukünftige Touren werden zusätzlich unter "Weitere geplante Touren" angezeigt.
+   - Alte offene Touren und Archiv bleiben separat unten.
+   - Gilt für Winterdienst und Standardtouren.
+   - Keine SQL-/RLS-/Backend-Änderung.
+*/
+const APP_VERSION='2.24.14'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -21894,6 +21903,7 @@ function wsRenderMyWinterOrders(){
 
   const current=[...buckets.active,...buckets.todayOpen];
   const next=buckets.future.slice(0,1);
+  const furtherPlanned=buckets.future.slice(1);
   const currentAndNext=[...current,...next]
     .filter((r,i,a)=>a.findIndex(z=>String(z.id)===String(r.id))===i);
 
@@ -21911,6 +21921,13 @@ function wsRenderMyWinterOrders(){
             </div>`).join('')
         : '<div class="empty">Aktuell ist Ihnen kein Winterdienstauftrag zugewiesen.</div>'}
     </div>
+
+    ${furtherPlanned.length?`
+      <details class="ws-operative-planned" style="margin-top:18px">
+        <summary><strong>Weitere geplante Touren (${furtherPlanned.length})</strong></summary>
+        ${furtherPlanned.map(wsRunCard).join('')}
+      </details>
+    `:''}
 
     ${buckets.overdue.length?`
       <details class="ws-operative-overdue" style="margin-top:18px">
@@ -22198,7 +22215,9 @@ function opsRenderMyRuns(){
   const archive=all.filter(r=>['completed','cancelled'].includes(String(r.status||'').toLowerCase()))
     .sort((a,b)=>String(b.service_date||'').localeCompare(String(a.service_date||'')));
 
-  const current=[...active,...todayOpen,...future.slice(0,1)]
+  const nextFuture=future.slice(0,1);
+  const furtherFuture=future.slice(1);
+  const current=[...active,...todayOpen,...nextFuture]
     .filter((r,i,a)=>a.findIndex(z=>String(z.id)===String(r.id))===i);
 
   const card=(r,archived=false)=>{
@@ -22226,6 +22245,13 @@ function opsRenderMyRuns(){
       <div class="ws-operative-section-title">Aktueller Einsatz</div>
       ${current.map(r=>card(r,false)).join('')||'<div class="muted">Aktuell sind dir keine offenen Touren oder Einsätze zugewiesen.</div>'}
     </div>
+
+    ${furtherFuture.length?`
+      <details style="margin-top:18px">
+        <summary><strong>Weitere geplante Touren (${furtherFuture.length})</strong></summary>
+        ${furtherFuture.map(r=>card(r,false)).join('')}
+      </details>
+    `:''}
 
     ${overdue.length?`
       <details style="margin-top:18px">
