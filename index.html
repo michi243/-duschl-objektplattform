@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.15</title>
+<title>Duschl Service – Objektplattform v2.24.17</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -6285,7 +6285,24 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Bei keinem gemeinsamen Kandidaten bleibt die Tour bewusst unzugewiesen.
    - Keine Änderung am Winterdienst-Fachprozess.
 */
-const APP_VERSION='2.24.15'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.16 | BASIS 2.24.15 | 28.09.2026
+   AUTO-ZUWEISUNG STANDARDTOUREN / EXTERN BETREUTE OBJEKTE
+   - Objekt_user_assignments bleibt Quelle für eigene Objekte.
+   - Bei extern betreuten Objekten wird zusätzlich die aktive
+     object_collaboration des ausführenden Mandanten berücksichtigt.
+   - assigned_user_id / Shared-Object-Assignee zählt dort als operativer Betreuer.
+   - Damit funktionieren Tagestouren auch für Objekte wie WEG Stoerstrasse,
+     die bewusst keine object_user_assignments besitzen.
+   - Keine Änderung am Winterdienst-Fachprozess.
+*/
+/* RELEASE 2.24.17 | BASIS 2.24.16 | 28.09.2026
+   REALSCHEMA SHARED-OBJECT-ZUWEISUNG
+   - Externe Objektbetreuer liegen in shared_object_user_assignments.
+   - Frontend lädt diese Tabelle für die Tourkandidaten explizit.
+   - Keine Annahme mehr, dass object_collaborations.assigned_user_id existiert.
+   - Standardtouren eigener und extern betreuter Objekte nutzen dieselbe Kandidatenlogik.
+*/
+const APP_VERSION='2.24.17'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -7502,6 +7519,7 @@ let cloudObjectCollaborations=[];
 let cloudObjectCollaborationScopes=[];
 let cloudServiceScopeCatalog=[];
 let cloudSharedObjectAssignees=[];
+let cloudSharedObjectAssignments=[]; // 2.24.17 reale Zuordnung collaboration_id ↔ user_id
 let workQueueVisibilityProfiles=[];
 let platformOrganizationMemberships=[];
 let platformOrganizationProfiles=[];
@@ -22172,21 +22190,48 @@ function opsRunEligibleUserIds(run){
   if(!objectIds.length)return [];
 
   const serviceDate=String(run?.service_date||wsToday());
+  const orgId=String(opsOrg()||'');
   let common=null;
 
   for(const objectId of objectIds){
-    const ids=new Set(
-      (db.objectAssignments||[])
-        .filter(a=>
-          a.active!==false &&
-          String(a.objectId||a.object_id||'')===objectId &&
-          String(a.object_role||'object_operator')==='object_operator' &&
-          (!a.valid_from || String(a.valid_from)<=serviceDate) &&
-          (!a.valid_until || String(a.valid_until)>=serviceDate)
-        )
-        .map(a=>String(a.userId||a.user_id||''))
-        .filter(Boolean)
+    const ids=new Set();
+
+    // 1) Eigene Objekte: aktive operative Objektzuweisung
+    (db.objectAssignments||[])
+      .filter(a=>
+        a.active!==false &&
+        String(a.objectId||a.object_id||'')===objectId &&
+        String(a.object_role||'object_operator')==='object_operator' &&
+        (!a.valid_from || String(a.valid_from)<=serviceDate) &&
+        (!a.valid_until || String(a.valid_until)>=serviceDate)
+      )
+      .forEach(a=>{
+        const uid=String(a.userId||a.user_id||'');
+        if(uid)ids.add(uid);
+      });
+
+    // 2) Extern betreute Objekte: aktive Zusammenarbeit des ausführenden
+    // Mandanten ist hier die autoritative personenbezogene Objektzuweisung.
+    const collabs=(cloudObjectCollaborations||[]).filter(c=>
+      String(c.object_id||'')===objectId &&
+      String(c.service_organization_id||'')===orgId &&
+      c.active!==false &&
+      String(c.status||'active')==='active'
     );
+
+    for(const collab of collabs){
+      const collabId=String(collab.collaboration_id||collab.id||'');
+
+      (cloudSharedObjectAssignments||[])
+        .filter(a=>
+          String(a.collaboration_id||'')===collabId &&
+          a.active!==false
+        )
+        .forEach(a=>{
+          const uid=String(a.user_id||'');
+          if(uid)ids.add(uid);
+        });
+    }
 
     common=common===null
       ? ids
@@ -22370,6 +22415,25 @@ async function opsLoad(){
       });
     }catch(e){console.warn(e);}
 
+    try{
+      const collabIds=(cloudObjectCollaborations||[])
+        .filter(c=>String(c.service_organization_id||'')===String(org))
+        .map(c=>String(c.collaboration_id||c.id||''))
+        .filter(Boolean);
+
+      if(collabIds.length){
+        const inList=collabIds.map(id=>id.replace(/[^0-9a-fA-F-]/g,'')).join(',');
+        cloudSharedObjectAssignments=await cloudRequest(
+          `shared_object_user_assignments?select=collaboration_id,user_id,active&collaboration_id=in.(${inList})&active=eq.true`
+        )||[];
+      }else{
+        cloudSharedObjectAssignments=[];
+      }
+    }catch(e){
+      console.warn('Shared-Object-Zuweisungen für Tourplanung konnten nicht geladen werden',e);
+      cloudSharedObjectAssignments=[];
+    }
+
     const a=await Promise.all([
       cloudRequest(`service_types?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=name.asc`),
       cloudRequest(`recurring_service_plans?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=created_at.desc`),
@@ -22497,7 +22561,7 @@ function opsRender(){
     const users=opsAssignableUsersForRun(r);
     const eligibleIds=opsRunEligibleUserIds(r);
     const assignmentHint=eligibleIds.length===1
-      ? 'Automatisch aus Objektzuweisungen'
+      ? 'Automatisch aus Objekt-/Betreuungszuweisung'
       : eligibleIds.length>1
         ? `${eligibleIds.length} gemeinsame Objektbetreuer verfügbar`
         : 'Kein gemeinsamer Objektbetreuer für alle Tourstopps';
