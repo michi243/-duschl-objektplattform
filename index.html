@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.31</title>
+<title>Duschl Service – Objektplattform v2.24.32</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -6897,7 +6897,18 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Keine Änderung an fachlicher Winterdienst-Zuweisung; reine Anzeige wird korrigiert.
    BACKEND: benötigt SQL 2.24.31 für die neuen SOP-RPCs.
 */
-const APP_VERSION='2.24.31'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.32 | BASIS 2.24.31 | 28.09.2026
+   SOP-DATEIÖFFNUNG
+   - SOP-Metadaten allein reichen nicht: Dateiabruf aus Storage erhält jetzt eine
+     explizite, rollen-/einsatzbezogene Berechtigung über SQL 2.24.32.
+   - Öffnen nutzt zuerst den authentifizierten Storage-Download.
+   - Bei erfolgreichem Abruf wird PDF/Dokument in neuem Tab geöffnet.
+   - Bei Storage-Fehler zeigt die App einen In-App-Dialog mit konkreter Fehlermeldung
+     statt nur SOP-Metadaten bzw. Browser-Alert.
+   - Standardtour und Winterdienst nutzen dieselbe robuste Dateiöffnungslogik.
+   BACKEND: SQL 2.24.32 erforderlich.
+*/
+const APP_VERSION='2.24.32'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -23104,30 +23115,18 @@ async function wsOpenAssignedSop(executionId){
       d=Array.isArray(rows)?rows[0]:rows;
       if(d)wsWinterSopByExecution[String(executionId)]=d;
     }
+
     if(!d)return alert('Für diesen Winterdiensteinsatz ist keine freigegebene SOP hinterlegt.');
 
     const label=wsWinterSopDisplayName(d);
-    if(d.storage_path){
-      try{
-        const response=await cloudStorageRequest(`object/authenticated/${DM_BUCKET}/${d.storage_path}`,{method:'GET'});
-        const fileBlob=await response.blob();
-        const url=URL.createObjectURL(fileBlob);
-        window.open(url,'_blank','noopener');
-        setTimeout(()=>URL.revokeObjectURL(url),60000);
-        return;
-      }catch(fileError){
-        console.warn('Winterdienst-SOP-Datei konnte nicht direkt geöffnet werden',fileError);
-      }
-    }
 
-    const body=`<div class="card">
-      <h3>${wsEsc(label)}</h3>
-      ${d.valid_from?`<div class="muted">Gültig ab ${wsEsc(d.valid_from)}</div>`:''}
-      ${d.change_reason?`<p>${wsEsc(d.change_reason)}</p>`:''}
-      <p class="muted">Freigegebene SOP für diesen Winterdiensteinsatz.</p>
-    </div>`;
-    if(typeof openModal==='function')openModal('SOP / Arbeitsanweisung',body);
-    else alert(label);
+    try{
+      await openManagedDocumentStorageFile(d,{title:label});
+      return;
+    }catch(fileError){
+      console.warn('Winterdienst-SOP-Datei konnte nicht geöffnet werden',fileError);
+      managedDocumentOpenErrorModal(d,fileError,label);
+    }
   }catch(e){
     alert('Winterdienst-SOP konnte nicht geladen werden: '+(e.message||e));
   }
@@ -25025,6 +25024,51 @@ async function slSaveObjectScope(){
 /* === SOP READ-ONLY · OPERATIVE ROLLEN · 2.21.39 ===
    Kein SOP-Menü für Objektbetreuer/Mitarbeiter.
    SOP wird nur kontextbezogen aus einem berechtigten Einsatz/Run geöffnet. */
+async function openManagedDocumentStorageFile(d,{title='SOP / Arbeitsanweisung'}={}){
+  if(!d?.storage_path)throw new Error('Für diese SOP ist keine Datei hinterlegt.');
+
+  let response;
+  try{
+    response=await cloudStorageRequest(
+      `object/authenticated/${DM_BUCKET}/${d.storage_path}`,
+      {method:'GET'}
+    );
+  }catch(e){
+    throw new Error(`Dateizugriff nicht möglich: ${e.message||e}`);
+  }
+
+  const fileBlob=await response.blob();
+  if(!fileBlob||fileBlob.size===0)throw new Error('Die SOP-Datei ist leer oder konnte nicht geladen werden.');
+
+  const mime=d.mime_type||fileBlob.type||'application/octet-stream';
+  const blob=fileBlob.type?fileBlob:new Blob([fileBlob],{type:mime});
+  const url=URL.createObjectURL(blob);
+
+  // Öffnung aus dem laufenden Benutzerereignis heraus. Der Blob bleibt einige
+  // Minuten gültig, damit Browser/mobile WebViews den neuen Tab sicher laden.
+  const opened=window.open(url,'_blank','noopener');
+  if(!opened){
+    URL.revokeObjectURL(url);
+    throw new Error('Der Browser hat das neue Fenster blockiert. Pop-ups für diese Seite zulassen.');
+  }
+
+  setTimeout(()=>URL.revokeObjectURL(url),300000);
+  return true;
+}
+
+function managedDocumentOpenErrorModal(d,error,label){
+  const message=String(error?.message||error||'Datei konnte nicht geöffnet werden.');
+  const body=`<div class="card">
+    <h3>${esc(label||'SOP / Arbeitsanweisung')}</h3>
+    ${d?.valid_from?`<div class="muted">Gültig ab ${esc(d.valid_from)}</div>`:''}
+    <div style="margin-top:14px"><strong>Datei konnte nicht geöffnet werden.</strong></div>
+    <div class="muted" style="margin-top:6px">${esc(message)}</div>
+    ${d?.original_filename?`<div class="muted" style="margin-top:8px">Datei: ${esc(d.original_filename)}</div>`:''}
+  </div>`;
+  if(typeof openModal==='function')openModal('SOP / Arbeitsanweisung',body);
+  else alert(`${label||'SOP'}\n\n${message}`);
+}
+
 async function openAssignedOperationSop(runStopId){
   if(!runStopId)return alert('Einsatz fehlt.');
   try{
@@ -25050,29 +25094,14 @@ async function openAssignedOperationSop(runStopId){
     if(!d)return alert('Für diesen Einsatz ist keine freigegebene SOP hinterlegt.');
 
     const label=operationSopDisplayName(d);
-    if(d.storage_path){
-      try{
-        const blob=await cloudStorageRequest(`object/authenticated/${DM_BUCKET}/${d.storage_path}`,{method:'GET'});
-        const fileBlob=await blob.blob();
-        const url=URL.createObjectURL(fileBlob);
-        window.open(url,'_blank','noopener');
-        setTimeout(()=>URL.revokeObjectURL(url),60000);
-        return;
-      }catch(fileError){
-        console.warn('SOP-Datei konnte nicht direkt geöffnet werden',fileError);
-      }
-    }
 
-    const body=[
-      `<div class="card"><h3>${slEsc(label)}</h3>`,
-      d.valid_from?`<div class="muted">Gültig ab ${slEsc(d.valid_from)}</div>`:'',
-      d.change_reason?`<p>${slEsc(d.change_reason)}</p>`:'',
-      `<p class="muted">Freigegebene SOP für diesen Einsatz.</p>`,
-      d.storage_path?`<p class="muted">Die Datei ist hinterlegt, konnte mit der aktuellen Storage-Berechtigung aber nicht direkt geöffnet werden.</p>`:'',
-      `</div>`
-    ].join('');
-    if(typeof openModal==='function')openModal('SOP / Arbeitsanweisung',body);
-    else alert(`${label}\n${d.valid_from?`Gültig ab ${d.valid_from}`:''}`);
+    try{
+      await openManagedDocumentStorageFile(d,{title:label});
+      return;
+    }catch(fileError){
+      console.warn('SOP-Datei konnte nicht geöffnet werden',fileError);
+      managedDocumentOpenErrorModal(d,fileError,label);
+    }
   }catch(e){
     alert('SOP konnte nicht geladen werden: '+(e.message||e));
   }
