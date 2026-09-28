@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.08</title>
+<title>Duschl Service – Objektplattform v2.24.10</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3124,6 +3124,75 @@ table td,table th{
   display:block;
 }
 </style>
+
+<style id="duschl-unified-operator-tours-v22410">
+.om-tours-panel{
+  margin:0 0 14px;
+  padding:15px 16px;
+  border:1px solid rgba(142,180,207,.20);
+  border-radius:14px;
+  background:linear-gradient(145deg,#0F2738,#0A1E2C);
+}
+.om-tours-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.om-tours-title{font-size:17px;font-weight:950;color:#F7FAFC}
+.om-tours-sub{margin-top:4px;color:#95A8B7;font-size:12px}
+.om-tours-list{display:grid;gap:9px;margin-top:12px}
+.om-tour-card{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:14px;
+  padding:12px 13px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(255,255,255,.025);
+}
+.om-tour-main{min-width:0}
+.om-tour-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.om-tour-name{font-size:15px;font-weight:900;color:#F6F9FB}
+.om-tour-badge{
+  display:inline-flex;align-items:center;
+  padding:3px 7px;border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  color:#AAB9C4;font-size:10px;font-weight:900;
+  letter-spacing:.055em;text-transform:uppercase;
+}
+.om-tour-badge.winter{
+  color:#B9DDF4;
+  border-color:rgba(110,180,225,.30);
+  background:rgba(110,180,225,.07);
+}
+.om-tour-meta{margin-top:5px;color:#91A5B4;font-size:12px;line-height:1.4}
+.om-tour-weather{
+  margin-top:8px;
+  padding:7px 9px;
+  border-radius:9px;
+  background:rgba(142,180,207,.055);
+  border:1px solid rgba(142,180,207,.14);
+  color:#BDD0DD;
+  font-size:12px;
+}
+.om-tour-actions{display:flex;align-items:center}
+.om-tour-actions button{white-space:nowrap}
+
+/* Für Objektbetreuer gibt es auf dem Dashboard nur EIN Tourenmodul. */
+#operationalDashboard.om-dashboard-mode #dashboardWinterPanel{
+  display:none!important;
+}
+#operationalDashboard.om-dashboard-mode #dashboardSummerPanel{
+  display:none!important;
+}
+
+@media(max-width:700px){
+  .om-tour-card{grid-template-columns:1fr}
+  .om-tour-actions button{width:100%}
+}
+</style>
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -3440,6 +3509,19 @@ table td,table th{
     <div id="objectManagerQuickActions" class="om-quick-actions"></div>
   </div>
 
+  <div id="objectManagerToursPanel" class="om-tours-panel" style="display:none">
+    <div class="om-tours-head">
+      <div>
+        <div class="om-tours-title">Meine Touren &amp; Einsätze</div>
+        <div class="om-tours-sub">Persönlich zugewiesene Touren – unabhängig vom Leistungstyp.</div>
+      </div>
+      <button class="tenant-action-btn" type="button" onclick="refreshObjectManagerTours()">↻ Aktualisieren</button>
+    </div>
+    <div id="objectManagerToursList" class="om-tours-list">
+      <div class="muted">Touren werden geladen …</div>
+    </div>
+  </div>
+
   <div id="dashboardWinterPanel" class="dashboard-winter-panel" style="display:none" role="button" tabindex="0"
     aria-label="Winterdienst Einsatzplanung öffnen"
     onclick="if(!event.target.closest('button,select,input,a'))openWinterPlanning()"
@@ -3693,7 +3775,6 @@ table td,table th{
 <div class="muted">Meldungen nach Handlungsbedarf steuern: neu prüfen, Dienstleisterstatus verfolgen, Entscheidungen treffen und Abnahmen durchführen</div>
 </div>
 </div>
-<div id="wsOperativeView" class="hidden"></div>
    <div class="grid g2 ds-filter-toolbar" style="margin-top:14px">
 <div>
 <label>Objekt</label>
@@ -4153,6 +4234,8 @@ table td,table th{
     </div>
     <button type="button" onclick="loadWinterService()">↻ Aktualisieren</button>
   </div>
+
+  <div id="wsOperativeView" class="hidden" style="margin-top:14px"></div>
 
   <div class="card ws-admin-only" style="margin-top:14px">
     <div class="row space" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
@@ -6071,7 +6154,23 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Generische Touren laden für operative Benutzer nur eigene Runs/Stopps.
    - Keine SQL-/RLS-/Backend-Änderung.
 */
-const APP_VERSION='2.24.08'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.09 | BASIS 2.24.08 | 28.09.2026
+   OBJEKTLISTE DEDUPLIKATION
+   - Ein Objekt wird im aktiven Mandantenkontext nur einmal dargestellt.
+   - Doppelte Zeilen aus tenant_get_accessible_objects werden bereits vor dem Mapping entfernt.
+   - Eigene/primäre Objektzeile hat Vorrang; Shared-Objekt ergänzt nur fehlende Objekte.
+   - Keine SQL-/RLS-/Backend-Änderung.
+*/
+/* RELEASE 2.24.10 | BASIS 2.24.09 | 28.09.2026
+   OBJEKTBETREUER: EINHEITLICHE TOURENANSICHT
+   - Dashboard unterscheidet operativ nicht mehr zwischen Standardtour und Winterdiensttour.
+   - Persönliche Touren werden aus operation_runs + winter_service_runs zusammengeführt.
+   - Winterdienst-Wetter wird direkt an der Winterdiensttour angezeigt.
+   - Separates Winterdienst-Dashboardmodul wird für Objektbetreuer ausgeblendet.
+   - HOTFIX: wsOperativeView lag versehentlich im Bereich Meldungen; wird in den Winterdienst verschoben.
+   - Keine SQL-/RLS-/Backend-Änderung.
+*/
+const APP_VERSION='2.24.10'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -12271,6 +12370,47 @@ async function cloudLoadCurrentUserObjectAssignments(){
   }
 }
 
+
+function dedupeObjectRowsById(rows){
+  const list=Array.isArray(rows)?rows:[];
+  const byId=new Map();
+
+  for(const row of list){
+    const id=String(row?.id||row?.object_id||'').trim();
+    if(!id)continue;
+
+    if(!byId.has(id)){
+      byId.set(id,row);
+      continue;
+    }
+
+    // Falls dieselbe Objekt-ID mehrfach aus einer RPC/JOIN-Sicht kommt,
+    // vorhandene Werte beibehalten und nur fehlende Felder ergänzen.
+    const current=byId.get(id)||{};
+    byId.set(id,{...row,...current});
+  }
+
+  return [...byId.values()];
+}
+
+function dedupeLocalObjectsById(primaryRows,sharedRows=[]){
+  const byId=new Map();
+
+  for(const object of Array.isArray(primaryRows)?primaryRows:[]){
+    const id=String(object?.id||'').trim();
+    if(!id)continue;
+    if(!byId.has(id))byId.set(id,object);
+  }
+
+  for(const object of Array.isArray(sharedRows)?sharedRows:[]){
+    const id=String(object?.id||'').trim();
+    if(!id||byId.has(id))continue;
+    byId.set(id,object);
+  }
+
+  return [...byId.values()];
+}
+
 async function cloudReloadObjects(){
   if(!cloudSession?.access_token)return;
   cloudSetStatus('Supabase wird geladen …','wait');
@@ -12338,6 +12478,7 @@ async function cloudReloadObjects(){
       }
     }
     rows=await enrichObjectRowsWithType(rows);
+    rows=dedupeObjectRowsById(rows);
     console.info('Objektladen Mandant',{
       organization_id:currentOrganizationId(),
       organization_role:effectiveOrganizationRole(),
@@ -12351,8 +12492,16 @@ async function cloudReloadObjects(){
     if(hasOperationalAdminAccess()||isPropertyManagerRole()||isObjectManagerRole()||isExternalContractorRole()) await cloudLoadObjectCollaborations(false);
     else cloudObjectCollaborations=[];
     await cloudLoadWorkQueueVisibilityData();
-    const ownIds=new Set(ownObjects.map(o=>o.id));
-    db.objects=ownObjects.concat(cloudSharedObjects.filter(o=>!ownIds.has(o.id)));
+    db.objects=dedupeLocalObjectsById(
+      ownObjects,
+      cloudSharedObjects
+    );
+
+    console.info('Objekt-Deduplikation',{
+      own_rows:ownObjects.length,
+      shared_rows:(cloudSharedObjects||[]).length,
+      unique_objects:db.objects.length
+    });
 
     // v2.19.42: Objekte sind ein eigenständiger Kernbestand.
     // Sobald sie geladen sind, werden sie sofort sichtbar gemacht.
@@ -15498,13 +15647,12 @@ function applyDashboardSeasonMode(){
   // Eine zugewiesene Winterdienst-Tour darf im September oder bei manuell
   // gesetztem Standardmodus niemals aus dem Dashboard verschwinden.
   if(operativeObjectManager){
-    panel.style.display='block';
+    panel.style.display='none';
     const summerPanel=document.getElementById('dashboardSummerPanel');
-    if(summerPanel)summerPanel.style.display=isWinter?'none':'block';
-    document.getElementById('operationalDashboard')?.classList.toggle('is-winter-dashboard',true);
+    if(summerPanel)summerPanel.style.display='none';
+    document.getElementById('operationalDashboard')?.classList.remove('is-winter-dashboard');
 
-    loadDashboardWinterSummary();
-    if(!isWinter)loadDashboardSummerSummary();
+    refreshObjectManagerTours();
     return;
   }
 
@@ -15905,6 +16053,219 @@ async function loadDashboardWinterSummary(){
   }
 }
 
+
+let objectManagerTourDashboardState={
+  loading:false,
+  loaded:false,
+  normalRuns:[],
+  normalStops:[],
+  winterRuns:[],
+  winterExecutions:[],
+  winterWeatherByRun:{}
+};
+
+function omTourStatusLabel(status){
+  const s=String(status||'planned').toLowerCase();
+  return ({
+    planned:'Geplant',
+    active:'In Bearbeitung',
+    in_progress:'In Bearbeitung',
+    completed:'Erledigt',
+    cancelled:'Storniert'
+  })[s]||status||'Geplant';
+}
+
+function omTourDateTimeKey(run){
+  return `${String(run?.service_date||'9999-99-99')} ${String(run?.start_time||'23:59')}`;
+}
+
+function objectManagerUnifiedTours(){
+  const normal=(objectManagerTourDashboardState.normalRuns||[]).map(run=>({
+    kind:'normal',
+    run,
+    stops:(objectManagerTourDashboardState.normalStops||[]).filter(s=>String(s.run_id||'')===String(run.id||''))
+  }));
+  const winter=(objectManagerTourDashboardState.winterRuns||[]).map(run=>({
+    kind:'winter',
+    run,
+    stops:(objectManagerTourDashboardState.winterExecutions||[]).filter(s=>String(s.run_id||'')===String(run.id||''))
+  }));
+  return [...normal,...winter]
+    .filter(x=>!['completed','cancelled'].includes(String(x.run?.status||'').toLowerCase()))
+    .sort((a,b)=>omTourDateTimeKey(a.run).localeCompare(omTourDateTimeKey(b.run)));
+}
+
+async function loadObjectManagerWinterWeatherForRun(run,executions){
+  const ids=[...new Set((executions||[]).map(x=>String(x.object_id||'')).filter(Boolean))];
+  if(!ids.length)return null;
+
+  const results=await Promise.allSettled(ids.map(id=>wsWeatherRequest(id,'forecast',false)));
+  results.forEach((r,i)=>{
+    const id=ids[i];
+    wsState.weatherByObject[id]=r.status==='fulfilled'
+      ? r.value
+      : {error:r.reason?.message||String(r.reason||'Wetterdaten nicht verfügbar.')};
+  });
+
+  const summary=wsWeatherSummaryData(ids);
+  return {
+    objects:ids.length,
+    red:Number(summary.red||0),
+    yellow:Number(summary.yellow||0),
+    warnings:Number(summary.warnings||0),
+    errors:Number(summary.errors||0)
+  };
+}
+
+async function refreshObjectManagerTours(){
+  if(!isObjectManagerDashboardRole()||!currentOrganizationId())return;
+  if(objectManagerTourDashboardState.loading)return;
+
+  const panel=document.getElementById('objectManagerToursPanel');
+  const list=document.getElementById('objectManagerToursList');
+  if(panel)panel.style.display='block';
+  if(list)list.innerHTML='<div class="muted">Touren werden geladen …</div>';
+
+  objectManagerTourDashboardState.loading=true;
+  try{
+    const org=currentOrganizationId();
+    const uid=currentUserId();
+    const today=wsToday();
+
+    const [normalRuns,winterRuns]=await Promise.all([
+      cloudRequest(
+        `operation_runs?select=*&organization_id=eq.${encodeURIComponent(org)}&assigned_user_id=eq.${encodeURIComponent(uid)}&service_date=gte.${encodeURIComponent(today)}&order=service_date.asc`
+      ).catch(e=>{console.warn('Standardtouren konnten nicht geladen werden',e);return [];}),
+      cloudRequest(
+        `winter_service_runs?select=*&organization_id=eq.${encodeURIComponent(org)}&assigned_user_id=eq.${encodeURIComponent(uid)}&service_date=gte.${encodeURIComponent(today)}&order=service_date.asc,created_at.asc`
+      ).catch(e=>{console.warn('Winterdiensttouren konnten nicht geladen werden',e);return [];})
+    ]);
+
+    const normalIds=(normalRuns||[]).map(r=>String(r.id||'')).filter(Boolean);
+    const winterIds=(winterRuns||[]).map(r=>String(r.id||'')).filter(Boolean);
+
+    let normalStops=[];
+    let winterExecutions=[];
+
+    if(normalIds.length){
+      const inList=normalIds.map(id=>id.replace(/[^0-9a-fA-F-]/g,'')).join(',');
+      normalStops=await cloudRequest(
+        `operation_run_stops?select=*&organization_id=eq.${encodeURIComponent(org)}&run_id=in.(${inList})&order=sort_order.asc`
+      ).catch(e=>{console.warn('Standardtour-Stopps konnten nicht geladen werden',e);return [];});
+    }
+
+    if(winterIds.length){
+      const inList=winterIds.map(id=>id.replace(/[^0-9a-fA-F-]/g,'')).join(',');
+      winterExecutions=await cloudRequest(
+        `winter_service_executions?select=*&organization_id=eq.${encodeURIComponent(org)}&run_id=in.(${inList})&order=sort_order.asc`
+      ).catch(e=>{console.warn('Winterdienst-Stopps konnten nicht geladen werden',e);return [];});
+    }
+
+    const weatherByRun={};
+    for(const run of winterRuns||[]){
+      const xs=(winterExecutions||[]).filter(x=>String(x.run_id||'')===String(run.id||''));
+      try{
+        weatherByRun[run.id]=await loadObjectManagerWinterWeatherForRun(run,xs);
+      }catch(e){
+        console.warn('Winterdienst-Wetter für Tour konnte nicht geladen werden',run.id,e);
+        weatherByRun[run.id]=null;
+      }
+    }
+
+    objectManagerTourDashboardState={
+      loading:false,
+      loaded:true,
+      normalRuns:Array.isArray(normalRuns)?normalRuns:[],
+      normalStops:Array.isArray(normalStops)?normalStops:[],
+      winterRuns:Array.isArray(winterRuns)?winterRuns:[],
+      winterExecutions:Array.isArray(winterExecutions)?winterExecutions:[],
+      winterWeatherByRun:weatherByRun
+    };
+
+    // Winterdienstmodul synchron halten, damit ein Klick ohne erneuten Ladeverlust
+    // direkt denselben persönlichen Run darstellen kann.
+    wsState={
+      ...wsState,
+      runs:Array.isArray(winterRuns)?winterRuns:[],
+      executions:Array.isArray(winterExecutions)?winterExecutions:[]
+    };
+
+    renderObjectManagerUnifiedTours();
+    renderObjectManagerDashboardFocus();
+  }catch(e){
+    console.error('Persönliche Touren konnten nicht geladen werden',e);
+    objectManagerTourDashboardState.loading=false;
+    if(list)list.innerHTML=`<div class="empty">Touren konnten nicht geladen werden: ${esc(e.message||e)}</div>`;
+  }
+}
+
+function openObjectManagerUnifiedTour(kind,runId){
+  if(kind==='winter'){
+    showSection('winterService');
+    setTimeout(async()=>{
+      try{
+        await loadWinterService();
+        const first=(wsState.executions||[])
+          .filter(x=>String(x.run_id||'')===String(runId||''))
+          .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0))[0];
+        if(first)await wsOpenExecution(first.id);
+        else wsRenderMyWinterOrders();
+      }catch(e){console.error(e)}
+    },0);
+    return;
+  }
+
+  showSection('operations');
+  setTimeout(()=>opsLoad(),0);
+}
+
+function renderObjectManagerUnifiedTours(){
+  const panel=document.getElementById('objectManagerToursPanel');
+  const list=document.getElementById('objectManagerToursList');
+  if(!panel||!list)return;
+
+  const active=isObjectManagerDashboardRole()&&!isPlatformTenantMode();
+  panel.style.display=active?'block':'none';
+  if(!active)return;
+
+  const tours=objectManagerUnifiedTours();
+  if(!tours.length){
+    list.innerHTML='<div class="empty">Aktuell sind dir keine offenen Touren oder Einsätze zugewiesen.</div>';
+    return;
+  }
+
+  const today=wsToday();
+  const visible=tours.filter(x=>String(x.run?.service_date||'')===today).concat(
+    tours.filter(x=>String(x.run?.service_date||'')>today).slice(0,2)
+  );
+
+  list.innerHTML=visible.map(item=>{
+    const run=item.run||{};
+    const title=run.name||run.tour_name||run.template_name||(item.kind==='winter'?'Winterdiensttour':'Tour');
+    const date=String(run.service_date||'');
+    const start=String(run.start_time||'').slice(0,5);
+    const when=date===today?`Heute${start?` · ${start} Uhr`:''}`:`${date}${start?` · ${start} Uhr`:''}`;
+    const weather=item.kind==='winter'?objectManagerTourDashboardState.winterWeatherByRun?.[run.id]:null;
+    const weatherHtml=weather
+      ? `<div class="om-tour-weather">Wetter: ${weather.red} kritisch · ${weather.yellow} beobachten · ${weather.warnings} DWD-Warnung${weather.warnings===1?'':'en'}${weather.errors?` · ${weather.errors} Datenfehler`:''}</div>`
+      : '';
+
+    return `<div class="om-tour-card">
+      <div class="om-tour-main">
+        <div class="om-tour-top">
+          <div class="om-tour-name">${esc(title)}</div>
+          <span class="om-tour-badge ${item.kind==='winter'?'winter':''}">${item.kind==='winter'?'Winterdienst':'Tour'}</span>
+        </div>
+        <div class="om-tour-meta">${esc(when)} · ${item.stops.length} Stopp${item.stops.length===1?'':'s'} · ${esc(omTourStatusLabel(run.status))}</div>
+        ${weatherHtml}
+      </div>
+      <div class="om-tour-actions">
+        <button class="primary" type="button" onclick="openObjectManagerUnifiedTour('${item.kind}','${esc(run.id)}')">Tour öffnen</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function isObjectManagerDashboardRole(){
   return isObjectManagerRole() || ['object_manager','staff','employee'].includes(String(effectiveUserRole()||'').toLowerCase());
 }
@@ -15934,7 +16295,9 @@ function renderObjectManagerDashboardFocus(){
   const action=document.getElementById('objectManagerFocusAction');
   const quick=document.getElementById('objectManagerQuickActions');
 
-  const winterRuns=objectManagerTodayWinterRuns();
+  const unifiedTours=objectManagerUnifiedTours();
+  const today=wsToday();
+  const todayTours=unifiedTours.filter(x=>String(x.run?.service_date||'')===today);
   const work=Number(document.getElementById('kpiWorkQueue')?.textContent||0);
   const reports=Number(document.getElementById('kpiResidentReports')?.textContent||0);
   const urgent=Number(document.getElementById('kpiCritical')?.textContent||0);
@@ -15947,12 +16310,20 @@ function renderObjectManagerDashboardFocus(){
     action:()=>openDashboardWorkQueue()
   };
 
-  if(winterRuns.length){
+  if(todayTours.length){
     primary={
-      title:winterRuns.length===1?'Winterdienst-Tour heute':'Winterdienst-Touren heute',
-      text:`${winterRuns.length} offene Tour${winterRuns.length===1?'':'en'} ist dir heute zugewiesen.`,
-      label:'Meine Tour öffnen',
-      action:()=>openWinterPlanning()
+      title:todayTours.length===1?'Tour heute':'Touren heute',
+      text:`${todayTours.length} offene Tour${todayTours.length===1?'':'en'} ist dir heute zugewiesen.`,
+      label:'Meine Touren anzeigen',
+      action:()=>document.getElementById('objectManagerToursPanel')?.scrollIntoView({behavior:'smooth',block:'start'})
+    };
+  }else if(unifiedTours.length){
+    const next=unifiedTours[0];
+    primary={
+      title:'Nächste Tour',
+      text:`${next.run?.service_date||''} · ${next.run?.name||next.run?.tour_name||next.run?.template_name||(next.kind==='winter'?'Winterdiensttour':'Tour')}`,
+      label:'Touren anzeigen',
+      action:()=>document.getElementById('objectManagerToursPanel')?.scrollIntoView({behavior:'smooth',block:'start'})
     };
   }else if(work>0){
     primary={
@@ -15989,8 +16360,7 @@ function renderObjectManagerDashboardFocus(){
   if(action){action.textContent=primary.label;action.onclick=primary.action;}
 
   const chips=[];
-  chips.push(`<button class="om-quick-action" type="button" onclick="showSection('operations');setTimeout(()=>opsLoad(),0)">⇄ Touren & Einsätze</button>`);
-  chips.push(`<button class="om-quick-action ${winterRuns.length?'is-alert':''}" type="button" onclick="openWinterPlanning()">❄ Winterdienst${winterRuns.length?` <strong>${winterRuns.length}</strong>`:''}</button>`);
+  chips.push(`<button class="om-quick-action ${unifiedTours.length?'is-alert':''}" type="button" onclick="document.getElementById('objectManagerToursPanel')?.scrollIntoView({behavior:'smooth',block:'start'})">⇄ Touren <strong>${unifiedTours.length}</strong></button>`);
   if(work>0)chips.push(`<button class="om-quick-action ${work>2?'is-alert':''}" type="button" onclick="openDashboardWorkQueue()">☰ Arbeitsvorrat <strong>${work}</strong></button>`);
   if(reports>0)chips.push(`<button class="om-quick-action is-alert" type="button" onclick="openDashboardResidentReports()">✉ Meldungen <strong>${reports}</strong></button>`);
   if(urgent>0)chips.push(`<button class="om-quick-action is-critical" type="button" onclick="openCriticalFindings()">! Dringend <strong>${urgent}</strong></button>`);
@@ -16127,6 +16497,10 @@ function renderDashboard(){
   const rows=[...visibleDocumentation].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,8);
   box.innerHTML=rows.length?rows.map(f=>findingCard(f)).join(''):`<div class="empty">Noch keine Dokumentationen vorhanden.</div>`;
   renderObjectManagerDashboardFocus();
+  renderObjectManagerUnifiedTours();
+  if(isObjectManagerDashboardRole() && !objectManagerTourDashboardState.loaded && !objectManagerTourDashboardState.loading){
+    refreshObjectManagerTours();
+  }
 }
 function objectCollaborationAccessHtml(objectId){
   if(!hasOperationalAdminAccess())return '';
