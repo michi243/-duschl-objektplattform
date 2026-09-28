@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.38</title>
+<title>Duschl Service – Objektplattform v2.24.39</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -7058,7 +7058,16 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Fachlicher Abschluss wird zusätzlich über closure_outcome dokumentiert.
    BACKEND: SQL 2.24.38 erforderlich.
 */
-const APP_VERSION='2.24.38'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.39 | BASIS 2.24.38 | 28.09.2026
+   HOTFIX STANDARD-TOURABSCHLUSS
+   - PostgreSQL-Fehler "column reference status is ambiguous" behoben.
+   - Ursache: OUT-Parameter "status" der RPC kollidierte mit unqualifizierten
+     Spaltenreferenzen in operation_runs.
+   - SQL qualifiziert alle betroffenen Statusspalten eindeutig.
+   - Frontend-Funktionalität unverändert.
+   BACKEND: SQL 2.24.39 erforderlich.
+*/
+const APP_VERSION='2.24.39'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
