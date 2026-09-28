@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.22.04</title>
+<title>Duschl Service – Objektplattform v2.22.05</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1950,6 +1950,41 @@ body.public-report-mode>#photoViewer{display:none!important}
 @media(max-width:700px){
   .dashboard-summer-grid{grid-template-columns:1fr 1fr}
 }
+
+.dashboard-summer-detail-toggle{
+  margin-top:12px;display:flex;justify-content:flex-end
+}
+.dashboard-summer-details{
+  display:none;margin-top:14px;padding-top:14px;border-top:1px solid #31536d
+}
+.dashboard-summer-details.is-open{display:block}
+.dashboard-summer-detail-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px
+}
+.dashboard-summer-detail-card{
+  border:1px solid #31536d;border-radius:13px;background:#0b2030;padding:13px
+}
+.dashboard-summer-detail-head{
+  display:flex;justify-content:space-between;gap:10px;align-items:flex-start
+}
+.dashboard-summer-detail-name{font-weight:900}
+.dashboard-summer-detail-address{font-size:12px;color:var(--muted);margin-top:3px}
+.dashboard-summer-detail-status{
+  font-size:12px;font-weight:900;border:1px solid currentColor;border-radius:999px;padding:4px 8px;white-space:nowrap
+}
+.dashboard-summer-detail-metrics{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px
+}
+.dashboard-summer-detail-metric{
+  border:1px solid #29485e;border-radius:10px;padding:9px
+}
+.dashboard-summer-detail-metric .label{font-size:11px;color:var(--muted)}
+.dashboard-summer-detail-metric .value{font-size:16px;font-weight:850;margin-top:3px}
+.dashboard-summer-detail-recs{margin-top:10px;font-size:13px;line-height:1.45}
+.dashboard-summer-detail-warnings{margin-top:9px;font-size:12px;color:#f2d27b}
+@media(max-width:700px){
+  .dashboard-summer-detail-grid{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -2324,6 +2359,13 @@ body.public-report-mode>#photoViewer{display:none!important}
         <div class="value" id="dashboardSummerWarnings">—</div>
         <div class="label">DWD-Warnungen</div>
       </div>
+    </div>
+    <div class="dashboard-summer-detail-toggle">
+      <button id="dashboardSummerDetailsBtn" class="tenant-action-btn" type="button"
+        onclick="event.stopPropagation();toggleDashboardSummerDetails()">Wetterdetails anzeigen</button>
+    </div>
+    <div id="dashboardSummerDetails" class="dashboard-summer-details" onclick="event.stopPropagation()">
+      <div id="dashboardSummerDetailsGrid" class="dashboard-summer-detail-grid"></div>
     </div>
   </div>
 
@@ -4731,7 +4773,12 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    PRÜFEN -> EINGESCHRÄNKT
    VERSCHIEBEN -> NICHT GEEIGNET
    Keine Backend-/SQL-/RLS-Änderung. */
-const APP_VERSION='2.22.04'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.22.05 | BASIS 2.22.04 | 28.09.2026
+   UX: Sommer-Wetterstatus ist jetzt aufklappbar.
+   Klick auf Pflegefenster bzw. „Wetterdetails“ zeigt Wetter je Außenpflegeobjekt:
+   24h-Status, Temperatur, Niederschlag, Wind, Warnungen und Empfehlungen.
+   Keine SQL-/RLS-/Edge-Function-Änderung. */
+const APP_VERSION='2.22.05'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -13918,6 +13965,75 @@ async function openWinterPlanning(){
 
 
 let dashboardSummerLoadToken=0;
+let dashboardSummerWeatherEntries=[];
+
+function dashboardSummerFmtNumber(value,digits=0,suffix=''){
+  const n=Number(value);
+  return Number.isFinite(n)?`${n.toFixed(digits)}${suffix}`:'—';
+}
+function dashboardSummerFmtTime(value){
+  if(!value)return '—';
+  const d=new Date(value);
+  return Number.isNaN(d.getTime())?'—':d.toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+function renderDashboardSummerDetails(){
+  const grid=document.getElementById('dashboardSummerDetailsGrid');
+  if(!grid)return;
+  const rows=Array.isArray(dashboardSummerWeatherEntries)?dashboardSummerWeatherEntries:[];
+  if(!rows.length){
+    grid.innerHTML='<div class="muted">Keine Wetterdetails verfügbar.</div>';
+    return;
+  }
+
+  grid.innerHTML=rows.map(entry=>{
+    const care=entry?.care_24h||{};
+    const status=String(care.status||'check').toLowerCase();
+    const statusLabel=summerStatusLabel(status);
+    const cls=summerStatusClass(status);
+    const recs=Array.isArray(care.recommendations)?care.recommendations:[];
+    const alerts=Array.isArray(entry?.alerts)?entry.alerts:[];
+    return `<div class="dashboard-summer-detail-card">
+      <div class="dashboard-summer-detail-head">
+        <div>
+          <div class="dashboard-summer-detail-name">${esc(entry?.object_name||'Objekt')}</div>
+          <div class="dashboard-summer-detail-address">${esc(entry?.address||'')}</div>
+        </div>
+        <span class="dashboard-summer-detail-status ${cls}">${esc(statusLabel)}</span>
+      </div>
+      <div class="dashboard-summer-detail-metrics">
+        <div class="dashboard-summer-detail-metric">
+          <div class="label">Max. Temperatur</div>
+          <div class="value">${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))}</div>
+        </div>
+        <div class="dashboard-summer-detail-metric">
+          <div class="label">Niederschlagswahr.</div>
+          <div class="value">${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}</div>
+        </div>
+        <div class="dashboard-summer-detail-metric">
+          <div class="label">Niederschlag gesamt</div>
+          <div class="value">${esc(dashboardSummerFmtNumber(care.precipitation_total,1,' mm'))}</div>
+        </div>
+        <div class="dashboard-summer-detail-metric">
+          <div class="label">Max. Wind</div>
+          <div class="value">${esc(dashboardSummerFmtNumber(care.max_wind_speed,0,' km/h'))}</div>
+        </div>
+      </div>
+      ${recs.length?`<div class="dashboard-summer-detail-recs"><strong>Empfehlung:</strong> ${recs.map(esc).join(' · ')}</div>`:''}
+      ${alerts.length?`<div class="dashboard-summer-detail-warnings"><strong>DWD-Warnungen:</strong> ${alerts.slice(0,3).map(a=>esc(a.headline||a.event||'Wetterwarnung')).join(' · ')}</div>`:''}
+      <div class="muted" style="font-size:11px;margin-top:9px">Stand ${esc(dashboardSummerFmtTime(entry?.fetched_at))}${entry?.cached?' · Cache':''}</div>
+    </div>`;
+  }).join('');
+}
+function toggleDashboardSummerDetails(){
+  const host=document.getElementById('dashboardSummerDetails');
+  const btn=document.getElementById('dashboardSummerDetailsBtn');
+  if(!host||!btn)return;
+  const open=!host.classList.contains('is-open');
+  host.classList.toggle('is-open',open);
+  btn.textContent=open?'Wetterdetails ausblenden':'Wetterdetails anzeigen';
+  if(open)renderDashboardSummerDetails();
+}
+
 
 function summerCareServiceMatches(st){
   try{
@@ -14021,6 +14137,8 @@ async function loadDashboardSummerSummary(){
     const warningEl=document.getElementById('dashboardSummerWarnings');
 
     if(!ids.length){
+      dashboardSummerWeatherEntries=[];
+      renderDashboardSummerDetails();
       if(windowEl){windowEl.textContent='—';windowEl.className='value';}
       if(tempEl)tempEl.textContent='—';
       if(rainEl)rainEl.textContent='—';
@@ -14033,6 +14151,8 @@ async function loadDashboardSummerSummary(){
     if(token!==dashboardSummerLoadToken)return;
 
     const entries=results.filter(r=>r.status==='fulfilled').map(r=>r.value);
+    dashboardSummerWeatherEntries=entries;
+    renderDashboardSummerDetails();
     const rejected=results.filter(r=>r.status==='rejected');
     const errors=rejected.length;
     const firstError=rejected[0]?.reason?.message||String(rejected[0]?.reason||'');
@@ -14058,6 +14178,8 @@ async function loadDashboardSummerSummary(){
           `0 von ${ids.length} Wetterdatensätzen verfügbar`
           +(firstError?` · ${firstError}`:'');
       }
+      const detailsBtn=document.getElementById('dashboardSummerDetailsBtn');
+      if(detailsBtn)detailsBtn.disabled=true;
       console.error('Außenpflege-Wetter: keine verwertbaren Wetterdaten',{
         organization_id:orgId,
         object_ids:ids,
@@ -14067,6 +14189,8 @@ async function loadDashboardSummerSummary(){
     }
 
     const worst=summerWorstStatus(entries);
+    const detailsBtn=document.getElementById('dashboardSummerDetailsBtn');
+    if(detailsBtn)detailsBtn.disabled=false;
 
     if(windowEl){
       windowEl.textContent=summerStatusLabel(worst);
