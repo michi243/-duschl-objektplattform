@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.33</title>
+<title>Duschl Service – Objektplattform v2.24.34</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3754,6 +3754,17 @@ table td,table th{
 }
 </style>
 
+
+<style id="duschl-winter-central-documentation-v22434">
+.winter-doc-context-card{
+  border:1px solid rgba(88,166,255,.28);
+}
+.winter-central-doc-card{
+  border-top:1px solid rgba(148,163,184,.18);
+  padding-top:12px;
+}
+</style>
+
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -6953,7 +6964,20 @@ BACKEND: keine neue SQL-/RLS-Änderung.
      auf completed gesetzt und wandert in das Archiv.
    - Kein breiterer Datenzugriff / keine RLS-Änderung.
 */
-const APP_VERSION='2.24.33'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.34 | BASIS 2.24.33 | 28.09.2026
+   WINTERDIENST = PLANUNG / ZENTRALE LEISTUNGSDOKUMENTATION
+   - Winterdienst-Fachprozess dokumentiert nicht mehr separat Vorher/Nachher,
+     Tätigkeit und Abschluss.
+   - Pro Winterdienst-Objekt führt "Leistungsdokumentation erstellen" in die
+     zentrale Dokumentation.
+   - Objekt, Leistung, Tourdatum und Winterdienst-Tätigkeit werden vorbelegt.
+   - Zentrale Dokumentation bleibt Single Point of Truth für Fotos, Tätigkeit,
+     Bemerkungen, Abschluss und Berichtswesen.
+   - Winterdienst-Execution speichert nur Referenz auf die Dokumentation und
+     leitet daraus den Stop-Status ab.
+   BACKEND: SQL 2.24.34 erforderlich.
+*/
+const APP_VERSION='2.24.34'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -20092,7 +20116,22 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   }
 
   if(!db.objects.length){alert('Bitte zuerst ein Objekt anlegen.');showSection('objects');return}
+  const winterCtx=(!editId && winterDocumentationContext && String(winterDocumentationContext.objectId||'')===String(prefObj||''))
+    ? winterDocumentationContext
+    : null;
   const f=db.findings.find(x=>x.id===editId)||{objectId:prefObj,inspectionId:prefInsp,type:'Feststellung',title:'',areaId:'',area:'',areaDetail:'',category:'Sicherheit',priority:'P3',description:'',action:'',activity:'',status:'Offen',beforePhoto:'',afterPhoto:'',beforePhotos:[],afterPhotos:[],completionType:'',completionNote:'',decisionRequired:editId?true:'',decisionStatus:'pending',decisionBy:'',decisionDate:'',decisionComment:'',decisionAmount:''};
+
+  if(winterCtx){
+    f.type='Leistung';
+    f.title=`Winterdienst · ${winterCtx.serviceDate||''}`.replace(/ · $/,'');
+    f.activity=winterCtx.activity||'Winterdienst durchgeführt';
+    f.description=`Winterdienst-Tour${winterCtx.tourName?` · ${winterCtx.tourName}`:''}${winterCtx.serviceDate?` · ${winterCtx.serviceDate}`:''}`;
+    f.status='In Bearbeitung';
+    f.completionType='Leistung durchgeführt';
+    f.decisionRequired=false;
+    f.decisionStatus='not_required';
+  }
+
   if(!f.type)f.type='Feststellung';
   if(editId && f.type==='Feststellung' && typeof f.decisionRequired==='undefined')f.decisionRequired=true;
   const objOpts=db.objects.map(o=>`<option value="${o.id}" ${o.id===f.objectId?'selected':''}>${esc(o.name)}</option>`).join('');
@@ -20118,9 +20157,13 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
     ];
   modal(`<div><h2>${editId?'Dokumentation bearbeiten':'Dokumentation erfassen'}</h2></div>
   ${editId?findingCreatorMetaHtml(f):''}
-  <label>Objekt *</label><select id="fObject" onchange="refreshInspectionOptions();refreshFindingAreaOptions();refreshFindingDecisionAccess()">${objOpts}</select>
+  ${winterCtx?`<div class="card winter-doc-context-card" style="margin-top:10px">
+    <div class="row space"><strong>Winterdienst-Leistungsnachweis</strong><span class="badge">TOUR</span></div>
+    <div class="muted" style="margin-top:5px">Zentrale Dokumentation für ${esc(winterCtx.objectName||'Objekt')}. Vorher-/Nachherbilder und weitere Bilder werden hier einmalig dokumentiert und stehen für Berichte zur Verfügung.</div>
+  </div>`:''}
+  <label>Objekt *</label><select id="fObject" ${winterCtx?'disabled':''} onchange="refreshInspectionOptions();refreshFindingAreaOptions();refreshFindingDecisionAccess()">${objOpts}</select>
   <input type="hidden" id="fInspection" value="${f.inspectionId||''}">
-  <label>Typ *</label><select id="fType" onchange="toggleDocType()">${['Feststellung','Leistung','Aufgabe'].map(x=>`<option ${x===f.type?'selected':''}>${x}</option>`).join('')}</select>
+  <label>Typ *</label><select id="fType" ${winterCtx?'disabled':''} onchange="toggleDocType()">${['Feststellung','Leistung','Aufgabe'].map(x=>`<option ${x===f.type?'selected':''}>${x}</option>`).join('')}</select>
   <div id="findingLocationFields">
     <label>Bereich</label><select id="fAreaSelect" onchange="toggleFindingAreaCustom()"></select>
     <div id="fAreaCustomWrap"><label>Anderer Bereich</label><input id="fAreaCustom" value="${esc(f.areaId?'':f.area)}" placeholder="Bereich frei eingeben"></div>
@@ -20476,6 +20519,41 @@ async function saveInternalTaskUpdate(taskId){
   }
 }
 
+async function linkWinterDocumentationAfterSave(row,data){
+  const ctx=winterDocumentationContext;
+  if(!ctx?.executionId || !row?.id)return false;
+
+  const result=await cloudRequest('rpc/link_winter_execution_documentation_v1',{
+    method:'POST',
+    body:JSON.stringify({
+      p_execution_id:ctx.executionId,
+      p_finding_id:row.id
+    })
+  });
+
+  const linked=Array.isArray(result)?result[0]:result;
+  if(!linked?.execution_id){
+    throw new Error('Winterdienst-Dokumentation konnte nicht mit dem Objektstopp verknüpft werden.');
+  }
+  return true;
+}
+
+async function syncWinterExecutionFromFinding(findingId){
+  if(!findingId)return;
+  try{
+    await cloudRequest('rpc/sync_winter_execution_from_finding_v1',{
+      method:'POST',
+      body:JSON.stringify({p_finding_id:findingId})
+    });
+  }catch(e){
+    // Nicht jede Dokumentation gehört zu einem Winterdiensteinsatz.
+    // Eine fehlende Verknüpfung ist deshalb kein Fehler des Hauptspeichervorgangs.
+    if(!String(e?.message||e).toLowerCase().includes('keine verknüpfte')){
+      console.warn('Winterdienst-Status konnte nicht synchronisiert werden',e);
+    }
+  }
+}
+
 async function saveFinding(id){
   // v2.19.85: Bei einem automatisch gerouteten Bewohnerauftrag immer die bereits
   // verknüpfte operative Dokumentation weiterverwenden. Dadurch erzeugt ein
@@ -20587,6 +20665,15 @@ async function saveFinding(id){
     cloudSetStatus('Dokumentation und Fotos werden gespeichert …','wait');
     const row=await cloudSaveFinding(id,data);
 
+    // Winterdienst nutzt die zentrale Dokumentation als einzigen Leistungsnachweis.
+    // Bei Neuanlage wird die Dokumentation mit dem Tourstopp verknüpft; bei jeder
+    // weiteren Bearbeitung wird der Stop-Status aus dem Dokumentationsstatus synchronisiert.
+    const winterReturnContext=winterDocumentationContext?{...winterDocumentationContext}:null;
+    if(winterReturnContext?.executionId){
+      await linkWinterDocumentationAfterSave(row,data);
+    }
+    await syncWinterExecutionFromFinding(row.id);
+
     // v2.20.92: Externer Dienstleister darf die Entscheidung nicht selbst treffen,
     // aber eine offene Entscheidung beim Eigentümermandanten anfordern.
     // Die RPC validiert serverseitig explizit Ersteller, aktive Zusammenarbeit, Mandantenmitgliedschaft und persönliche Shared-Object-Zuordnung.
@@ -20676,11 +20763,24 @@ async function saveFinding(id){
     try{localStorage.setItem(KEY,JSON.stringify(db))}catch(_e){}
     cloudSetStatus(`Verbunden · Foto-Speicherung aktiv`,'ok');
     const returnToExternalOrderId=externalOrderDocumentationContext?.orderId||'';
+    const returnToWinter=winterReturnContext;
     externalOrderDocumentationContext=null;
+    winterDocumentationContext=null;
     closeModal();
     await cloudLoadExternalOrders(false);
     renderAll();hydrateMediaImages();
-    if(returnToExternalOrderId){showSection('workqueue');renderWorkQueue();}else{showSection('findings');}
+
+    if(returnToWinter?.executionId){
+      showSection('winterService');
+      await loadWinterService();
+      await wsSyncRunCompletion(returnToWinter.runId);
+      await wsOpenExecution(returnToWinter.executionId);
+    }else if(returnToExternalOrderId){
+      showSection('workqueue');
+      renderWorkQueue();
+    }else{
+      showSection('findings');
+    }
   }catch(e){
     console.error('Dokumentation in Supabase speichern fehlgeschlagen',e);
     alert('Speichern in Supabase fehlgeschlagen: '+(e.message||e));
@@ -21934,6 +22034,7 @@ async function osaDeactivate(id,objectId){
    SOP + Leistungsumfang + Tourvorlage + Tagestour + Objekteinsatz
    ========================================================= */
 let wsState={sops:[],versions:[],scopes:[],templates:[],stops:[],runs:[],executions:[],areas:[],selectedAreas:[],manualAreas:[],tenantUsers:[],objectAssignments:[],managedDocuments:[],managedVersions:[],weatherByObject:{}};
+let winterDocumentationContext=null;
 let wsEditingTourTemplateId=null;
 let wsTourDraftObjectIds=[];
 
@@ -23501,24 +23602,70 @@ async function wsEnsureRunExecutionScopes(runId){
   }
 }
 
+function wsLinkedDocumentation(x){
+  const id=String(x?.documentation_finding_id||'');
+  if(!id)return null;
+  return (db.findings||[]).find(f=>String(f.id||'')===id)||null;
+}
+
+async function wsOpenOrCreateDocumentation(executionId){
+  const x=wsState.executions.find(e=>String(e.id||'')===String(executionId||''));
+  if(!x)return alert('Winterdienst-Objektstopp nicht gefunden.');
+
+  const linkedId=String(x.documentation_finding_id||'');
+  if(linkedId){
+    let linked=(db.findings||[]).find(f=>String(f.id||'')===linkedId)||null;
+    if(!linked){
+      try{await cloudReloadFindings();}catch(_e){}
+      linked=(db.findings||[]).find(f=>String(f.id||'')===linkedId)||null;
+    }
+    if(linked){
+      winterDocumentationContext={
+        executionId:x.id,
+        runId:x.run_id,
+        objectId:x.object_id,
+        findingId:linkedId
+      };
+      openFindingModal(x.object_id,'',linkedId,false);
+      return;
+    }
+    return alert('Die verknüpfte Leistungsdokumentation konnte nicht geladen werden.');
+  }
+
+  const run=wsState.runs.find(r=>String(r.id||'')===String(x.run_id||''))||null;
+  const object=(db.objects||[]).find(o=>String(o.id||'')===String(x.object_id||''))||null;
+
+  winterDocumentationContext={
+    executionId:x.id,
+    runId:x.run_id,
+    objectId:x.object_id,
+    objectName:object?.name||'Objekt',
+    serviceDate:run?.service_date||'',
+    tourName:run?.tour_name||run?.name||run?.template_name||'Winterdiensttour',
+    activity:wsServiceActionLabel(x.service_action)
+  };
+
+  openFindingModal(x.object_id,'','',false);
+}
+
 async function wsOpenExecution(id){
   try{
-    wsExecutionPhotos.before=null;
-    wsExecutionPhotos.after=null;
-
     const x=wsState.executions.find(e=>String(e.id)===String(id));
     if(!x)throw new Error('Einsatz nicht gefunden.');
 
-    const o=wsObjects().find(z=>String(z.id)===String(x.object_id));
-    const media=await cloudRequest(`winter_service_execution_media?select=*&execution_id=eq.${encodeURIComponent(id)}&order=created_at.asc`);
+    const o=(db.objects||[]).find(z=>String(z.id)===String(x.object_id));
     const panel=document.getElementById('wsExecutionPanel');
     const assignmentNote=wsWinterAssignmentNoteForExecution(x);
+    const linkedDoc=wsLinkedDocumentation(x);
+    const linkedId=String(x.documentation_finding_id||'');
+    const docStatus=linkedDoc?.status||'';
+    const documentationDone=docStatus==='Erledigt';
 
     panel.innerHTML=`
       <div class="row space">
         <div>
           <strong>${wsEsc(o?.name||'Objekt')}</strong>
-          <div class="muted">Status: ${wsEsc(wsStatusLabel(x.status))}</div>
+          <div class="muted">Tourstatus: ${wsEsc(wsStatusLabel(x.status))}</div>
         </div>
         ${x.status==='planned'?`<button class="primary" onclick="wsStartExecution('${id}')">Einsatz starten</button>`:''}
       </div>
@@ -23534,49 +23681,40 @@ async function wsOpenExecution(id){
           <strong>${wsEsc(x.weather_summary||'Wetterdaten beim Start nicht verfügbar')}</strong>
           ${x.weather_risk_level?`<div style="margin-top:5px"><span class="ws-weather-risk ${wsWeatherRiskClass(x.weather_risk_level)}">${wsEsc(wsWeatherRiskLabel(x.weather_risk_level))}</span></div>`:''}
           ${x.weather_captured_at?`<div class="muted" style="margin-top:4px">${wsEsc(wsWeatherFormatTime(x.weather_captured_at))}${x.weather_source?` · ${wsEsc(x.weather_source)}`:''}</div>`:''}
-          ${x.weather_snapshot_error?`<div class="muted" style="margin-top:5px">Hinweis: ${wsEsc(x.weather_snapshot_error)}</div>`:''}
         </div>
-      </div>
+      </div>`:''}
 
-      <div style="margin-top:14px">
-        <strong>1. Vorherfoto</strong>
-        <div class="muted" style="margin:4px 0 8px">Zustand vor Beginn der Arbeiten dokumentieren.</div>
-        <div class="row" style="gap:8px;flex-wrap:wrap">
-          <button type="button" class="primary" onclick="document.getElementById('wsBeforeCamera').click()">📷 Foto aufnehmen</button>
-          <button type="button" onclick="document.getElementById('wsBeforeLibrary').click()">Bild auswählen</button>
+      <div class="card" style="margin-top:16px;padding:14px">
+        <div class="row space">
+          <div>
+            <strong>Einsatzauftrag</strong>
+            <div style="margin-top:6px;font-size:1.08em"><strong>${wsEsc(wsServiceActionLabel(x.service_action))}</strong></div>
+          </div>
+          <span class="badge">${documentationDone?'DOKUMENTIERT':linkedId?'DOKU OFFEN':'DOKU FEHLT'}</span>
         </div>
-        <input id="wsBeforeCamera" type="file" accept="image/*" capture="environment" style="display:none" onchange="wsExecutionPhotoSelected('before',this)">
-        <input id="wsBeforeLibrary" type="file" accept="image/*" style="display:none" onchange="wsExecutionPhotoSelected('before',this)">
-        <div id="wsBeforePreview" style="margin-top:10px"></div>
-      </div>
 
-      <div class="card" style="margin-top:16px;padding:12px">
-        <strong>2. Einsatzauftrag</strong>
-        <div style="margin-top:8px;font-size:1.08em"><strong>${wsEsc(wsServiceActionLabel(x.service_action))}</strong></div>
-        <div class="muted" style="margin-top:5px">SOP: ${wsWinterSopHtmlForExecution(x)}</div>
+        <div class="muted" style="margin-top:8px">SOP: ${wsWinterSopHtmlForExecution(x)}</div>
         ${assignmentNote?`<div class="muted" style="margin-top:5px">Objekthinweis: ${wsEsc(assignmentNote)}</div>`:''}
-        <label class="row" style="align-items:center;margin-top:10px">
-          <input type="checkbox" data-ws-done="service_action" style="width:auto">
-          <span>Einsatzauftrag vollständig ausgeführt</span>
-        </label>
-      </div>
 
-      <div style="margin-top:16px">
-        <strong>3. Nachherfoto</strong>
-        <div class="muted" style="margin:4px 0 8px">Ausgeführten Zustand nach Abschluss der Arbeiten dokumentieren.</div>
-        <div class="row" style="gap:8px;flex-wrap:wrap">
-          <button type="button" class="primary" onclick="document.getElementById('wsAfterCamera').click()">📷 Foto aufnehmen</button>
-          <button type="button" onclick="document.getElementById('wsAfterLibrary').click()">Bild auswählen</button>
+        <div class="winter-central-doc-card" style="margin-top:14px">
+          <strong>Zentrale Leistungsdokumentation</strong>
+          <div class="muted" style="margin-top:5px">
+            Vorher-/Nachherbilder, weitere Fotos, Tätigkeit, Bemerkungen und Abschluss werden einmal in der zentralen Objektdokumentation erfasst.
+          </div>
+          ${linkedDoc?`
+            <div style="margin-top:8px"><strong>${wsEsc(linkedDoc.title||'Winterdienst')}</strong> · ${wsEsc(linkedDoc.status||'Offen')}</div>
+          `:linkedId?`
+            <div class="muted" style="margin-top:8px">Dokumentation ist verknüpft, aber noch nicht lokal geladen.</div>
+          `:''}
+          <button type="button" class="primary" style="margin-top:12px" onclick="wsOpenOrCreateDocumentation('${id}')">
+            ${linkedId?'Leistungsdokumentation öffnen':'Leistungsdokumentation erstellen'}
+          </button>
         </div>
-        <input id="wsAfterCamera" type="file" accept="image/*" capture="environment" style="display:none" onchange="wsExecutionPhotoSelected('after',this)">
-        <input id="wsAfterLibrary" type="file" accept="image/*" style="display:none" onchange="wsExecutionPhotoSelected('after',this)">
-        <div id="wsAfterPreview" style="margin-top:10px"></div>
       </div>
 
-      <label style="margin-top:16px"><strong>4. Besonderheiten / Abweichungen</strong><textarea id="wsExecutionNote" rows="3"></textarea></label>
-      <div class="row" style="margin-top:12px;gap:8px"><button class="primary" onclick="wsCompleteExecution('${id}')">Einsatz abschließen</button></div>
-      <div class="muted" style="margin-top:8px">Vorher- und Nachherfoto sowie die Bestätigung des Einsatzauftrags sind für den Abschluss verpflichtend.</div>
-      `:''}`;
+      <div class="muted" style="margin-top:10px">
+        Der Winterdienst-Fachprozess steuert Tour, Wetter, SOP und Objektfolge. Der Leistungsnachweis liegt ausschließlich in der zentralen Dokumentation.
+      </div>`;
   }catch(e){
     alert(e.message||e);
   }
@@ -23683,56 +23821,9 @@ async function wsSyncRunCompletion(runId){
 }
 
 async function wsCompleteExecution(id){
-  try{
-    const x=wsState.executions.find(e=>e.id===id);
-    if(!x)throw new Error('Einsatz nicht gefunden.');
-
-    const before=wsExecutionPhotos.before;
-    const after=wsExecutionPhotos.after;
-    if(!before||!after)throw new Error('Vorher- und Nachherfoto sind verpflichtend.');
-
-    const required=[...document.querySelectorAll('[data-ws-done]')];
-    if(required.length&&required.some(c=>!c.checked)){
-      throw new Error('Bitte alle beauftragten Bereiche bestätigen.');
-    }
-
-    await wsStoreExecutionPhoto(id,x.object_id,'before',before);
-    await wsStoreExecutionPhoto(id,x.object_id,'after',after);
-
-    const note=document.getElementById('wsExecutionNote').value.trim();
-    const completedAt=new Date().toISOString();
-
-    await cloudRequest(`winter_service_executions?id=eq.${encodeURIComponent(id)}`,{
-      method:'PATCH',
-      headers:{Prefer:'return=minimal'},
-      body:JSON.stringify({
-        status:'completed',
-        completed_at:completedAt,
-        completion_note:note||null,
-        completed_by:currentUserId()
-      })
-    });
-
-    Object.assign(x,{
-      status:'completed',
-      completed_at:completedAt,
-      completion_note:note||null,
-      completed_by:currentUserId()
-    });
-
-    const runCompleted=await wsSyncRunCompletion(x.run_id);
-
-    await loadWinterService();
-
-    const panel=document.getElementById('wsExecutionPanel');
-    if(panel){
-      panel.innerHTML=runCompleted
-        ? '<div class="empty">Tagestour vollständig abgeschlossen und ins Archiv verschoben.</div>'
-        : '<div class="empty">Einsatz abgeschlossen. Nächstes Objekt aus der Tagestour öffnen.</div>';
-    }
-  }catch(e){
-    alert('Einsatz konnte nicht abgeschlossen werden: '+(e.message||e));
-  }
+  // 2.24.34: Kein separater Winterdienst-Leistungsnachweis mehr.
+  // Abschluss erfolgt ausschließlich über die zentrale Leistungsdokumentation.
+  return wsOpenOrCreateDocumentation(id);
 }
 
 
