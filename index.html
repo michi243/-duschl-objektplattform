@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.23.04</title>
+<title>Duschl Service – Objektplattform v2.23.05</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -2930,6 +2930,47 @@ table td,table th{
   .ds-next-step{grid-template-columns:1fr}
 }
 </style>
+
+<style id="duschl-work-responsibility-v22305">
+.ds-queue-owner{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  grid-template-areas:
+    "label name"
+    ". meta";
+  gap:2px 10px;
+  align-items:baseline;
+  margin-top:10px;
+  padding:9px 11px;
+  border-radius:10px;
+  background:rgba(142,180,207,.055);
+  border:1px solid rgba(142,180,207,.16);
+}
+.ds-queue-owner>span{
+  grid-area:label;
+  color:#8FA5B5;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.065em;
+  text-transform:uppercase;
+}
+.ds-queue-owner>strong{
+  grid-area:name;
+  color:#F5F8FA!important;
+  font-size:13px!important;
+}
+.ds-queue-owner>small{
+  grid-area:meta;
+  color:#8FA1AE!important;
+  font-size:11px!important;
+}
+@media(max-width:680px){
+  .ds-queue-owner{
+    grid-template-columns:1fr;
+    grid-template-areas:"label" "name" "meta";
+  }
+}
+</style>
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -5789,7 +5830,14 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Dokumentenregister auf oberster Ebene stark verdichtet
    - Leistungsart: freie Neuanlage aus Objektzuordnung; fehlerhafte ungenutzte Leistungsarten deaktivierbar
    - Keine SQL-/RLS-/Backend-Änderung */
-const APP_VERSION='2.23.04'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.23.05 | BASIS 2.23.04 | 28.09.2026
+   ARBEITSVORRAT / VERANTWORTUNG
+   - Jede Arbeitsvorratskarte zeigt, bei wem der Vorgang operativ liegt
+   - Externe Aufträge nutzen bestehende Objekt-/Einzelzuweisung als Source of Truth
+   - Interne Vorgänge zeigen die aktive Objektzuordnung
+   - Keine neue Ticket-Personenzuweisung; bestehende Governance bleibt unverändert
+   - Keine SQL-/RLS-/Backend-Änderung */
+const APP_VERSION='2.23.05'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -9382,6 +9430,61 @@ async function saveSharedObjectAssignment(collaborationId){
     await cloudLoadObjectCollaborations(false);
     await cloudReloadObjects();
   }catch(e){alert('Zuweisung konnte nicht gespeichert werden: '+(e.message||e));}
+}
+
+
+function workQueueResponsibilityForObject(objectId){
+  const oid=String(objectId||'');
+  if(!oid)return null;
+
+  const rows=(db.objectAssignments||[]).filter(a=>
+    a.active!==false &&
+    String(a.objectId||a.object_id||'')===oid
+  );
+
+  if(rows.length){
+    const roleRank={object_operator:1,object_responsible:2,object_deputy:3};
+    rows.sort((a,b)=>
+      (roleRank[String(a.object_role||'object_operator')]||9)-
+      (roleRank[String(b.object_role||'object_operator')]||9)
+    );
+    const row=rows[0];
+    const uid=row.userId||row.user_id;
+    return {
+      id:uid,
+      name:profileDisplayName(uid)||'Objektbetreuer',
+      source:'object',
+      role:String(row.object_role||'object_operator')
+    };
+  }
+
+  return null;
+}
+
+function workQueueResponsibilityRoleLabel(role){
+  return ({
+    object_operator:'Objektbetreuer · operativ',
+    object_responsible:'Objektverantwortlich',
+    object_deputy:'Objektvertretung'
+  })[String(role||'')]||'Objektzuordnung';
+}
+
+function workQueueResponsibilityHtml(responsibility, options={}){
+  const orgName=String(options.organizationName||'').trim();
+  const fallback=String(options.fallback||'Nicht personenbezogen zugewiesen').trim();
+  const name=responsibility?.name||fallback;
+  const role=responsibility?.role
+    ? workQueueResponsibilityRoleLabel(responsibility.role)
+    : responsibility?.source==='legacy_order'
+      ? 'Bestehende Einzelzuweisung'
+      : responsibility?.source==='object'
+        ? 'Aus Objektzuordnung'
+        : '';
+  return `<div class="ds-queue-owner">
+    <span>Im Arbeitsvorrat bei</span>
+    <strong>${esc(name)}</strong>
+    ${(role||orgName)?`<small>${[role,orgName].filter(Boolean).map(esc).join(' · ')}</small>`:''}
+  </div>`;
 }
 
 function externalOrderResponsibilityHtml(order){
@@ -13654,6 +13757,14 @@ function externalWorkQueueItemHtml(x){
     ? `<button type="button" class="primary" onclick="openExternalOrderDocumentation('${esc(x.id)}')">Bearbeiten / Dokumentieren</button>${hasOperationalAdminAccess()?`<button type="button" onclick="openExternalOrderReturnModal('${esc(x.id)}')">An Auftraggeber zurückgeben</button>`:''}`
     : `<button type="button" class="primary" onclick="openExternalOrderById('${esc(x.id)}')">Auftrag ansehen</button>`;
   const nextStep=gfWorkNextStepInfo(null,null,x);
+  const responsibility=objectResponsibilityForWorkOrder(x);
+  const queueOwnerHtml=workQueueResponsibilityHtml(
+    responsibility,
+    {
+      organizationName: partnerName(x.executor_organization_id),
+      fallback: 'Noch kein Objektbetreuer zugewiesen'
+    }
+  );
   const workTone=String(x.priority||'P3')==='P1'?'is-critical':String(x.priority||'P3')==='P2'?'is-attention':'';
   return `<div class="gf-workitem ${workTone}" data-external-order-id="${esc(x.id)}">
     <div class="gf-workhead">
@@ -13671,7 +13782,8 @@ function externalWorkQueueItemHtml(x){
       ${externalOrderReporterHtml(x,{muted:false,style:''})}
       ${snapshot.area?`<div><b>Bereich:</b> ${esc(snapshot.area)}${snapshot.area_detail?` · ${esc(snapshot.area_detail)}`:''}</div>`:''}
       ${x.description?`<div><b>Auftrag:</b> ${esc(x.description)}</div>`:''}
-      ${assignedName?`<div><b>Verantwortlich:</b> ${esc(assignedName)}</div>`:''}
+      ${queueOwnerHtml}
+      ${assignedName&&(!responsibility||String(responsibility.id||'')!==String(x.assigned_user_id||''))?`<div><b>Direkte Alt-Zuweisung:</b> ${esc(assignedName)}</div>`:''}
       ${subcontractInfo}
       ${executionSummary}
       <div><b>Priorität:</b> ${esc(priorityLabel(x.priority||'P3'))}</div>
@@ -13843,6 +13955,18 @@ function renderWorkQueue(){
             || (t.workRequired===true && t.decisionStatus==='not_required')
           );
         const nextStep=gfWorkNextStepInfo(t,f,outgoingOrder);
+        const responsibility=outgoingOrder
+          ? objectResponsibilityForWorkOrder(outgoingOrder)
+          : workQueueResponsibilityForObject(t.objectId||f.objectId);
+        const queueOwnerHtml=workQueueResponsibilityHtml(
+          responsibility,
+          {
+            organizationName: currentOrganization?.name||organizationName(currentOrganizationId())||'',
+            fallback: hasOperationalAdminAccess()
+              ? 'Mandanten-Administration / noch kein Objektbetreuer'
+              : 'Objektzuordnung nicht geladen'
+          }
+        );
 
         return `
           <div class="gf-workitem ${overdue?'is-overdue is-critical':(t.hasTask?'is-action':'is-attention')}">
@@ -13863,6 +13987,7 @@ function renderWorkQueue(){
               ${t.hasTask&&!routedExternally?`<div><b>Fällig:</b> ${esc(due)}</div>`:''}
               ${routedExternally?`<div><b>Verantwortlich:</b> ${esc(routedExecutor)}</div><div><b>Übergabe:</b> ${esc(externalOrderLifecycleLabel(outgoingOrder))}</div>`:''}
               ${t.workNote?`<div><b>Arbeitsinfo:</b> ${esc(t.workNote)}</div>`:''}
+              ${queueOwnerHtml}
             </div>
             ${gfWorkNextStepHtml(nextStep)}
             ${routedExternally?ticketTimelineForExternalOrder(outgoingOrder):ticketTimelineForFinding(f,t.hasTask?(db.tasks||[]).find(q=>q.id===t.taskId)||null:null)}
