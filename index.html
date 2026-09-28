@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.20</title>
+<title>Duschl Service – Objektplattform v2.24.21</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3380,6 +3380,99 @@ table td,table th{
 }
 </style>
 
+
+<style id="duschl-ops-admin-compact-v22421">
+.ops-admin-run-group{margin-top:12px}
+.ops-admin-run-group:first-child{margin-top:0}
+.ops-admin-run-group-title{
+  margin:0 0 7px;
+  font-size:11px;
+  font-weight:950;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:#9FB2C1;
+}
+.ops-admin-run-card{
+  padding:10px 12px!important;
+  margin:7px 0!important;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(220px,310px);
+  gap:10px 16px;
+  align-items:start;
+}
+.ops-admin-run-head{min-width:0}
+.ops-admin-run-title{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+  margin-bottom:3px;
+}
+.ops-admin-run-controls label{
+  margin:0;
+  display:grid;
+  gap:4px;
+}
+.ops-admin-run-controls label>span{
+  font-size:11px;
+  font-weight:850;
+  color:#AFC0CC;
+}
+.ops-admin-run-controls select{
+  margin:0;
+  min-height:38px;
+  padding-top:6px;
+  padding-bottom:6px;
+}
+.ops-admin-assignment-hint{
+  margin-top:4px;
+  font-size:10px;
+  color:#91A5B4;
+  line-height:1.25;
+}
+.ops-admin-run-stops{
+  grid-column:1/-1;
+  margin-top:0;
+  padding-top:7px;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.ops-admin-run-stops summary{
+  cursor:pointer;
+  font-size:11px;
+  color:#9FB2C1;
+}
+.ops-admin-run-stop-list{padding-top:5px}
+.ops-run-stop-row{
+  display:grid;
+  grid-template-columns:22px minmax(0,1fr) auto;
+  gap:7px;
+  align-items:center;
+  padding:4px 0;
+  font-size:12px;
+}
+.ops-admin-run-card.is-compact{
+  grid-template-columns:minmax(0,1fr) minmax(210px,280px);
+}
+.ops-admin-run-future{
+  margin-top:12px;
+  padding-top:10px;
+  border-top:1px solid rgba(255,255,255,.10);
+}
+.ops-admin-run-future>summary{
+  cursor:pointer;
+  color:#AFC0CC;
+}
+@media(max-width:760px){
+  .ops-admin-run-card,
+  .ops-admin-run-card.is-compact{
+    grid-template-columns:1fr;
+  }
+  .ops-admin-run-stops{grid-column:1}
+  .ops-run-stop-row{grid-template-columns:22px 1fr}
+  .ops-run-stop-row .muted{grid-column:2}
+}
+</style>
+
 </style>
 </head>
 <body>
@@ -6449,7 +6542,17 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Bereits verstrichene, noch nicht gestartete heutige Touren erhalten "Überfällig".
    - Keine SQL-/RLS-/Backend-Änderung.
 */
-const APP_VERSION='2.24.20'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.21 | BASIS 2.24.20 | 28.09.2026
+   GEPLANTE EINSÄTZE KOMPAKT + BETREUERAUSWAHL
+   - Geplante Einsätze werden operativ verdichtet: heute + nächster Einsatz sichtbar,
+     weitere Zukunftstouren eingeklappt.
+   - Stoppliste ist pro Einsatz einklappbar statt dauerhaft vollständig sichtbar.
+   - Shared-Object-Zuweisungen werden beim Öffnen der Tourplanung frisch geladen.
+   - Bereits automatisch zugewiesener Betreuer bleibt immer auswählbar.
+   - Dropdown zeigt zulässige Objektbetreuer und selektiert die bestehende Zuweisung.
+   - Keine SQL-/RLS-/Backend-Änderung.
+*/
+const APP_VERSION='2.24.21'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -22546,6 +22649,73 @@ function opsAssignableUsersForRun(run){
   return opsAssignableUsers().filter(u=>eligible.has(String(u.user_id||u.id||'')));
 }
 
+async function opsLoadSharedAssignmentContext(){
+  const org=String(opsOrg()||'');
+  if(!org){
+    cloudObjectCollaborations=[];
+    cloudSharedObjectAssignments=[];
+    return;
+  }
+
+  try{
+    const rows=await cloudRequest('rpc/get_object_collaborations',{
+      method:'POST',
+      body:JSON.stringify({})
+    });
+    cloudObjectCollaborations=(Array.isArray(rows)?rows:[]).filter(c=>
+      String(c.service_organization_id||'')===org &&
+      c.active!==false &&
+      String(c.status||'active')==='active'
+    );
+  }catch(e){
+    console.warn('Betreuungsbeziehungen für Tourplanung konnten nicht geladen werden',e);
+    cloudObjectCollaborations=[];
+  }
+
+  const collabIds=(cloudObjectCollaborations||[])
+    .map(c=>String(c.collaboration_id||c.id||''))
+    .filter(Boolean);
+
+  if(!collabIds.length){
+    cloudSharedObjectAssignments=[];
+    return;
+  }
+
+  try{
+    const inList=collabIds
+      .map(id=>id.replace(/[^0-9a-fA-F-]/g,''))
+      .filter(Boolean)
+      .join(',');
+    cloudSharedObjectAssignments=await cloudRequest(
+      `shared_object_user_assignments?select=collaboration_id,user_id,active&collaboration_id=in.(${inList})&active=eq.true`
+    )||[];
+  }catch(e){
+    console.warn('Shared-Object-Zuweisungen für Tourplanung konnten nicht geladen werden',e);
+    cloudSharedObjectAssignments=[];
+  }
+}
+
+function opsSelectableUsersForRun(run){
+  const eligibleIds=new Set(opsRunEligibleUserIds(run));
+  const users=opsAssignableUsers().filter(u=>eligibleIds.has(String(u.user_id||u.id||'')));
+
+  // Bestehende Backend-Zuweisung muss auch dann sichtbar bleiben,
+  // wenn der Kandidatenkontext durch RLS/Reload noch nicht vollständig geladen ist.
+  const assignedId=String(run?.assigned_user_id||'');
+  if(assignedId && !users.some(u=>String(u.user_id||u.id||'')===assignedId)){
+    const fallback=(opsState.tenantUsers||[]).find(u=>String(u.user_id||u.id||'')===assignedId);
+    if(fallback)users.push(fallback);
+    else users.push({
+      user_id:assignedId,
+      full_name:opsUserName(assignedId),
+      active:true,
+      membership_role:'object_manager'
+    });
+  }
+
+  return users;
+}
+
 function opsVersion(id){return opsState.versions.find(x=>String(x.id)===String(id))||null;}
 function opsSopLabel(a){
   const v=opsVersion(a?.managed_document_version_id);
@@ -22734,24 +22904,7 @@ async function opsLoad(){
       });
     }catch(e){console.warn(e);}
 
-    try{
-      const collabIds=(cloudObjectCollaborations||[])
-        .filter(c=>String(c.service_organization_id||'')===String(org))
-        .map(c=>String(c.collaboration_id||c.id||''))
-        .filter(Boolean);
-
-      if(collabIds.length){
-        const inList=collabIds.map(id=>id.replace(/[^0-9a-fA-F-]/g,'')).join(',');
-        cloudSharedObjectAssignments=await cloudRequest(
-          `shared_object_user_assignments?select=collaboration_id,user_id,active&collaboration_id=in.(${inList})&active=eq.true`
-        )||[];
-      }else{
-        cloudSharedObjectAssignments=[];
-      }
-    }catch(e){
-      console.warn('Shared-Object-Zuweisungen für Tourplanung konnten nicht geladen werden',e);
-      cloudSharedObjectAssignments=[];
-    }
+    await opsLoadSharedAssignmentContext();
 
     const a=await Promise.all([
       cloudRequest(`service_types?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=name.asc`),
@@ -22851,7 +23004,8 @@ async function opsAssignRun(runId,userId){
     const run=(opsState.runs||[]).find(r=>String(r.id)===String(runId));
     if(userId){
       const eligible=new Set(opsRunEligibleUserIds(run));
-      if(!eligible.has(String(userId))){
+      const existing=String(run?.assigned_user_id||'');
+      if(!eligible.has(String(userId)) && String(userId)!==existing){
         throw new Error('Dieser Benutzer ist nicht allen Objekten der Tour operativ zugeordnet.');
       }
     }
@@ -22878,35 +23032,119 @@ function opsRender(){
   e=document.getElementById('opsPlanList');
   if(e)e.innerHTML=opsState.plans.filter(opsIsPlanableGenericPlan).map(p=>{const a=opsPlanAssignment(p);return `<div class="ops-plan-item"><strong>${opsEsc(opsObjName(p.object_id))} · ${opsEsc(opsServiceName(p.service_type_id))}</strong><div class="muted" style="margin-top:4px">${a?opsEsc(opsSopLabel(a)):'Keine aktive Objekt-Leistungszuordnung'}</div><div class="ops-plan-meta"><span class="badge">${opsEsc(opsIntervalLabel(p.interval_weeks))}</span><span class="badge">${opsEsc(opsWeekdayLabel(p.weekdays))}</span><span class="badge">${opsEsc(p.planned_duration_minutes||60)} Min.</span><span class="badge">${opsEsc(opsTimeWindowLabel(p))}</span></div><div class="muted" style="margin-top:5px">gültig ${opsEsc(p.valid_from||'—')} – ${opsEsc(p.valid_until||'offen')}</div>${p.scope_text?`<div style="margin-top:5px">${opsEsc(p.scope_text)}</div>`:''}<div class="ops-plan-actions"><button type="button" onclick="opsEditPlan('${opsEsc(p.id)}')" ${a?'':'disabled'}>Bearbeiten</button><button type="button" class="danger" onclick="opsDeactivatePlan('${opsEsc(p.id)}')">Deaktivieren</button></div></div>`;}).join('')||'<div class="muted">Noch keine Leistungspläne.</div>';
   e=document.getElementById('opsTourList');if(e)e.innerHTML=opsState.tours.map(t=>`<div class="card" style="padding:9px;margin:6px 0"><strong>${opsEsc(t.name)}</strong><div class="muted">${opsEsc(t.default_start_time||'')} · ${opsState.stops.filter(x=>x.tour_template_id===t.id).length} Stopps</div></div>`).join('')||'<div class="muted">Noch keine Tourvorlagen.</div>';
-  const today=new Date().toISOString().slice(0,10);e=document.getElementById('opsRunList');if(e)e.innerHTML=opsState.runs.filter(r=>String(r.service_date)>=today).slice(0,30).map(r=>{
-    const xs=opsState.runStops.filter(x=>x.run_id===r.id);
-    const users=opsAssignableUsersForRun(r);
-    const eligibleIds=opsRunEligibleUserIds(r);
-    const assignmentHint=eligibleIds.length===1
-      ? 'Automatisch aus Objekt-/Betreuungszuweisung'
-      : eligibleIds.length>1
-        ? `${eligibleIds.length} gemeinsame Objektbetreuer verfügbar`
-        : 'Kein gemeinsamer Objektbetreuer für alle Tourstopps';
-    return `<div class="card" style="padding:10px;margin:7px 0">
-      <div class="row space" style="gap:12px;align-items:flex-start;flex-wrap:wrap">
-        <div>
-          <strong>${opsEsc(r.service_date)} · ${opsEsc(r.name||'Tour')}</strong>
-          <div class="muted">${xs.length} Stopps · ${opsEsc(r.status||'planned')} · Ausgeführt von: ${opsEsc(opsUserName(r.assigned_user_id))}</div>
+  const today=new Date().toISOString().slice(0,10);
+  e=document.getElementById('opsRunList');
+  if(e){
+    const futureRuns=(opsState.runs||[])
+      .filter(r=>String(r.service_date||'')>=today)
+      .filter(r=>!['completed','cancelled'].includes(String(r.status||'').toLowerCase()))
+      .sort((a,b)=>{
+        const ak=`${String(a.service_date||'')} ${String(a.planned_start_time||'23:59')}`;
+        const bk=`${String(b.service_date||'')} ${String(b.planned_start_time||'23:59')}`;
+        return ak.localeCompare(bk);
+      });
+
+    const todayRuns=futureRuns.filter(r=>String(r.service_date||'')===today);
+    const futureOnly=futureRuns.filter(r=>String(r.service_date||'')>today);
+    const primary=[
+      ...todayRuns,
+      ...(futureOnly.length?[futureOnly[0]]:[])
+    ].filter((r,i,a)=>a.findIndex(x=>String(x.id)===String(r.id))===i);
+    const primaryIds=new Set(primary.map(r=>String(r.id)));
+    const later=futureRuns.filter(r=>!primaryIds.has(String(r.id)));
+
+    const runCard=(r,compact=false)=>{
+      const xs=(opsState.runStops||[])
+        .filter(x=>String(x.run_id)===String(r.id))
+        .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+
+      const users=opsSelectableUsersForRun(r);
+      const eligibleIds=opsRunEligibleUserIds(r);
+      const assignedId=String(r.assigned_user_id||'');
+      const autoAssigned=!!assignedId && eligibleIds.includes(assignedId);
+
+      const assignmentHint=autoAssigned
+        ? 'Automatisch aus Objekt-/Betreuungszuweisung'
+        : eligibleIds.length===1
+          ? '1 zuständiger Objektbetreuer verfügbar'
+          : eligibleIds.length>1
+            ? `${eligibleIds.length} zuständige Objektbetreuer verfügbar`
+            : assignedId
+              ? 'Bestehende Zuweisung'
+              : 'Kein zuständiger Objektbetreuer ermittelt';
+
+      const start=String(r.planned_start_time||'').slice(0,5);
+      const meta=[
+        `${xs.length} ${xs.length===1?'Stopp':'Stopps'}`,
+        omTourStatusLabel(r.status||'planned'),
+        `Verantwortlich: ${opsUserName(r.assigned_user_id)}`
+      ].join(' · ');
+
+      const stopsHtml=xs.map(x=>`
+        <div class="ops-run-stop-row">
+          <span>${opsEsc(x.sort_order)}.</span>
+          <strong>${opsEsc(opsObjName(x.object_id))}</strong>
+          <span class="muted">${opsEsc(opsServiceName(x.service_type_id))}</span>
+        </div>`).join('');
+
+      return `<div class="card ops-admin-run-card ${compact?'is-compact':''}">
+        <div class="ops-admin-run-head">
+          <div class="ops-admin-run-title">
+            <strong>${opsEsc(r.service_date)} · ${opsEsc(r.name||'Tour')}</strong>
+            ${start?`<span class="badge">${opsEsc(start)} Uhr</span>`:''}
+          </div>
+          <div class="muted">${opsEsc(meta)}</div>
         </div>
-        <label style="min-width:250px;margin:0">Ausgeführt von
-          <select onchange="opsAssignRun('${opsEsc(r.id)}',this.value)" ${users.length?'':'disabled'}>
-            <option value="">Nicht zugewiesen</option>
-            ${users.map(u=>{
-              const uid=String(u.user_id||u.id||'');
-              return `<option value="${opsEsc(uid)}" ${String(r.assigned_user_id||'')===uid?'selected':''}>${opsEsc(u.full_name||u.email||'Benutzer')}</option>`;
-            }).join('')}
-          </select>
-          <span class="muted" style="display:block;margin-top:4px">${opsEsc(assignmentHint)}</span>
-        </label>
-      </div>
-      <div style="margin-top:8px">${xs.map(x=>`<div>${x.sort_order}. ${opsEsc(opsObjName(x.object_id))} · ${opsEsc(opsServiceName(x.service_type_id))}</div>`).join('')}</div>
-    </div>`;
-  }).join('')||'<div class="muted">Keine geplanten Einsätze.</div>';
+
+        <div class="ops-admin-run-controls">
+          <label>
+            <span>Ausgeführt von</span>
+            <select onchange="opsAssignRun('${opsEsc(r.id)}',this.value)" ${users.length?'':'disabled'}>
+              <option value="">Nicht zugewiesen</option>
+              ${users.map(u=>{
+                const uid=String(u.user_id||u.id||'');
+                return `<option value="${opsEsc(uid)}" ${assignedId===uid?'selected':''}>${opsEsc(u.full_name||u.email||'Benutzer')}</option>`;
+              }).join('')}
+            </select>
+          </label>
+          <div class="ops-admin-assignment-hint">${opsEsc(assignmentHint)}</div>
+        </div>
+
+        <details class="ops-admin-run-stops" ${compact?'':'open'}>
+          <summary>${xs.length} ${xs.length===1?'Stopp':'Stopps'} anzeigen</summary>
+          <div class="ops-admin-run-stop-list">${stopsHtml}</div>
+        </details>
+      </div>`;
+    };
+
+    const todayHtml=todayRuns.length
+      ? `<div class="ops-admin-run-group">
+          <div class="ops-admin-run-group-title">Heute</div>
+          ${todayRuns.map(r=>runCard(r,false)).join('')}
+        </div>`
+      : '';
+
+    const nextRun=futureOnly[0]||null;
+    const nextHtml=nextRun
+      ? `<div class="ops-admin-run-group">
+          <div class="ops-admin-run-group-title">Nächster Einsatz</div>
+          ${runCard(nextRun,false)}
+        </div>`
+      : '';
+
+    const laterHtml=later.length
+      ? `<details class="ops-admin-run-future">
+          <summary><strong>Weitere geplante Einsätze (${later.length})</strong></summary>
+          <div style="margin-top:8px">
+            ${later.map(r=>runCard(r,true)).join('')}
+          </div>
+        </details>`
+      : '';
+
+    e.innerHTML=(todayHtml+nextHtml+laterHtml)||
+      '<div class="muted">Keine geplanten Einsätze.</div>';
+  }
+
 }
 async function opsSavePlan(){
   try{
