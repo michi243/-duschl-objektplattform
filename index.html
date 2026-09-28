@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.27</title>
+<title>Duschl Service – Objektplattform v2.24.28</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -6826,7 +6826,18 @@ BACKEND: keine neue SQL-/RLS-Änderung.
      die bestehende UI-Beschriftung bereits behauptete.
    - Keine SQL-/RLS-/Backend-Änderung.
 */
-const APP_VERSION='2.24.27'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.28 | BASIS 2.24.27 | 28.09.2026
+   ADMIN-AUFGABE -> OBJEKT-ARBEITSVORRAT -> NÄCHSTE TOUR
+   - Fachliche Korrektur: Eine vom Mandanten-Admin erzeugte Aufgabe ist keine
+     persönliche Verwaltungsaufgabe. Maßgeblich ist das Objekt der Aufgabe.
+   - Tour-Arbeitsvorrat liest aktive Tasks jetzt primär direkt aus get_visible_tasks/db.tasks.
+     Die Sichtbarkeit hängt damit nicht mehr davon ab, ob die zugrunde liegende
+     Feststellung in der operativen Dokumentationssicht geladen ist.
+   - Objektbetreuer sehen objektbezogene Aufgaben dadurch bei der nächsten Tour.
+   - Task-only-Fallback wird im Arbeitsauftrag sichtbar und kann direkt geöffnet werden.
+   - Keine SQL-/RLS-/Backend-Änderung.
+*/
+const APP_VERSION='2.24.28'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -15054,7 +15065,31 @@ function renderWorkQueue(){
     });
 
   const workItems=items.filter(t=>t.concreteWork===true || (t.hasTask && !['completed','cancelled'].includes(String(t.status||''))));
-  const k=gfTaskKpis(workItems);
+
+  // Sichtbare Tasks dürfen nicht verschwinden, nur weil die zugrunde liegende
+  // Feststellung für den operativen Benutzer nicht Teil der Dokumentationssicht ist.
+  const itemTaskIds=new Set(workItems.filter(t=>t.taskId).map(t=>String(t.taskId)));
+  const directTaskOnly=(db.tasks||[])
+    .filter(t=>!['completed','cancelled'].includes(String(t.status||'').toLowerCase()))
+    .filter(t=>!itemTaskIds.has(String(t.id||'')))
+    .filter(t=>hasOperationalAdminAccess()||currentUserOwnsOperationalObject(t.objectId))
+    .map(t=>({
+      id:t.id,
+      taskId:t.id,
+      findingId:t.findingId||'',
+      objectId:t.objectId,
+      title:t.title||'Aufgabe',
+      status:t.status||'planned',
+      dueDate:t.dueDate||'',
+      workNote:t.workNote||'',
+      sourceType:'task_only',
+      hasTask:true,
+      findingStatus:'Offen',
+      concreteWork:true
+    }));
+
+  const allWorkItems=[...workItems,...directTaskOnly];
+  const k=gfTaskKpis(allWorkItems);
   const incomingExternal=incomingExternalWorkOrders();
   const consolidatedOpenCount=k.open+incomingExternal.length;
   const workNavCount=document.getElementById('workqueueNavCount');
@@ -15063,7 +15098,7 @@ function renderWorkQueue(){
 
   const openDecisionStates=new Set(['pending','quote_requested','quote_sent','approved','deferred','question']);
 
-  let filtered=workItems.filter(t=>{
+  let filtered=allWorkItems.filter(t=>{
     if(current.object && t.objectId!==current.object)return false;
 
     // Arbeitsstatus filtert ausschließlich echte Aufgaben.
@@ -15148,6 +15183,7 @@ function renderWorkQueue(){
       ${filtered.length ? filtered.map(t=>{
         const f=(db.findings||[]).find(x=>x.id===t.findingId)||{};
         const o=(db.objects||[]).find(x=>x.id===t.objectId)||{};
+        const taskOnly=t.sourceType==='task_only';
         const due=t.dueDate?new Date(t.dueDate+'T00:00:00').toLocaleDateString('de-DE'):'Ohne Termin';
         const workStatus=t.hasTask
           ? (TASK_STATUS_LABELS[t.status]||t.status||'Geplant')
@@ -15191,7 +15227,7 @@ function renderWorkQueue(){
               </div>
             </div>
             <div class="gf-meta">
-              <div><b>Dokumentation:</b> ${esc(documentationStatusForFinding(f))}</div>
+              ${taskOnly?'':`<div><b>Dokumentation:</b> ${esc(documentationStatusForFinding(f))}</div>`}
               ${t.hasTask&&t.status==='completed'?`<div><b>Ausführung bestätigt durch:</b> ${esc(t.completedByName||'Nicht dokumentiert')}</div>`:''}
               ${t.hasTask&&t.status==='completed'&&t.completedAt?`<div><b>Erledigt am:</b> ${esc(new Date(t.completedAt).toLocaleString('de-DE'))}</div>`:''}
               ${t.hasTask&&!routedExternally?`<div><b>Fällig:</b> ${esc(due)}</div>`:''}
@@ -15202,9 +15238,11 @@ function renderWorkQueue(){
             ${gfWorkNextStepHtml(nextStep)}
             ${routedExternally?ticketTimelineForExternalOrder(outgoingOrder):ticketTimelineForFinding(f,t.hasTask?(db.tasks||[]).find(q=>q.id===t.taskId)||null:null)}
             <div class="row">
-              ${t.hasTask&&!routedExternally?`<button type="button" onclick="openWorkItem('${f.id}')">Aufgabe bearbeiten</button>`:''}
-              ${canPlan?`<button type="button" class="primary" onclick="openWorkItem('${f.id}')">Aufgabe planen</button>`:''}
-              <button type="button" onclick="openFindingModal('${f.objectId||''}','${f.inspectionId||''}','${f.id}')">Dokumentation öffnen</button>
+              ${taskOnly
+                ? `<button type="button" class="primary" onclick="openTourTaskOnly('${esc(t.taskId)}')">Aufgabe öffnen</button>`
+                : `${t.hasTask&&!routedExternally?`<button type="button" onclick="openWorkItem('${f.id}')">Aufgabe bearbeiten</button>`:''}
+                   ${canPlan?`<button type="button" class="primary" onclick="openWorkItem('${f.id}')">Aufgabe planen</button>`:''}
+                   <button type="button" onclick="openFindingModal('${f.objectId||''}','${f.inspectionId||''}','${f.id}')">Dokumentation öffnen</button>`}
             </div>
           </div>`;
       }).join('') : (incomingExternal.length?'':`<div class="empty-state">Keine Vorgänge für die gewählten Filter.</div>`)}
@@ -16865,6 +16903,39 @@ function tourWorkQueueItemsForObject(objectId){
   const oid=String(objectId||'');
   if(!oid)return [];
 
+  const rows=[];
+  const seenTaskIds=new Set();
+  const seenFindingIds=new Set();
+
+  // 1) Autoritative operative Aufgabenquelle:
+  // get_visible_tasks/db.tasks ist bereits objekt- und rollenbezogen gefiltert.
+  // Eine vom Mandanten-Admin erzeugte Aufgabe darf daher nicht davon abhängen,
+  // ob die zugehörige Feststellung zusätzlich in der Mitarbeiter-Dokumentationssicht liegt.
+  for(const task of (db.tasks||[])){
+    if(String(task.objectId||'')!==oid)continue;
+    if(['completed','cancelled'].includes(String(task.status||'').toLowerCase()))continue;
+    if(!(hasOperationalAdminAccess()||currentUserOwnsOperationalObject(oid)))continue;
+
+    const finding=(db.findings||[]).find(f=>String(f.id||'')===String(task.findingId||''))||null;
+    rows.push({
+      kind:'task',
+      id:String(task.id||''),
+      taskId:String(task.id||''),
+      findingId:String(task.findingId||''),
+      objectId:oid,
+      title:task.title||finding?.title||'Offene Aufgabe',
+      dueDate:task.dueDate||finding?.workDueDate||'',
+      priority:finding?.priority||'',
+      status:task.status||'planned',
+      workNote:task.workNote||finding?.workNote||'',
+      findingAvailable:!!finding
+    });
+    if(task.id)seenTaskIds.add(String(task.id));
+    if(task.findingId)seenFindingIds.add(String(task.findingId));
+  }
+
+  // 2) Konkrete offene Arbeit ohne bereits angelegten Task.
+  // Diese bleibt sichtbar, darf aber keinen vorhandenen Task duplizieren.
   const externalFindingIds=typeof externallyRoutedFindingIdsForCurrentTenant==='function'
     ? externallyRoutedFindingIdsForCurrentTenant()
     : new Set();
@@ -16875,58 +16946,59 @@ function tourWorkQueueItemsForObject(objectId){
     ? pendingExternalReviewFindingIds()
     : new Set();
 
-  const taskByFinding=new Map((db.tasks||[]).filter(t=>t.findingId).map(t=>[String(t.findingId),t]));
+  for(const f of (db.findings||[])){
+    if(String(f.objectId||'')!==oid)continue;
+    if((f.type||'Feststellung')!=='Feststellung')continue;
+    if(seenFindingIds.has(String(f.id||'')))continue;
+    if(typeof findingVisibleInCurrentTenantUI==='function'&&!findingVisibleInCurrentTenantUI(f))continue;
+    if(externalFindingIds.has(String(f.id||'')))continue;
+    if(thirdPartyIds.has(String(f.id||'')))continue;
+    if(pendingReviewIds.has(String(f.id||'')))continue;
+    if(!(hasOperationalAdminAccess()||currentUserOwnsOperationalObject(oid)))continue;
 
-  const internal=(db.findings||[])
-    .filter(f=>String(f.objectId||'')===oid)
-    .filter(f=>(f.type||'Feststellung')==='Feststellung')
-    .filter(f=>typeof findingVisibleInCurrentTenantUI!=='function'||findingVisibleInCurrentTenantUI(f))
-    .filter(f=>!externalFindingIds.has(String(f.id||'')))
-    .filter(f=>!thirdPartyIds.has(String(f.id||'')))
-    .filter(f=>!pendingReviewIds.has(String(f.id||'')))
-    .filter(f=>hasOperationalAdminAccess()||currentUserOwnsOperationalObject(f.objectId))
-    .map(f=>{
-      const task=taskByFinding.get(String(f.id));
-      const concrete=typeof internalFindingIsConcreteWork==='function'
-        ? internalFindingIsConcreteWork(f,task)
-        : !!task;
-      const openTask=!!task&&!['completed','cancelled'].includes(String(task.status||'').toLowerCase());
-      if(!(concrete===true||openTask))return null;
-      return {
-        kind:'internal',
-        id:String(task?.id||f.id),
-        findingId:String(f.id),
-        objectId:oid,
-        title:task?.title||f.title||'Offene Arbeit',
-        dueDate:task?.dueDate||f.workDueDate||'',
-        priority:f.priority||task?.priority||'',
-        status:task?.status||f.status||'Offen',
-        workNote:task?.workNote||f.workNote||''
-      };
-    })
-    .filter(Boolean);
+    const concrete=typeof internalFindingIsConcreteWork==='function'
+      ? internalFindingIsConcreteWork(f,null)
+      : f.workRequired===true;
+    if(!concrete)continue;
 
-  const external=(cloudExternalOrders||[])
-    .filter(x=>String(x.source_object_id||x.object_id||'')===oid)
-    .filter(x=>String(x.executor_organization_id||'')===String(currentOrganizationId()||''))
-    .filter(x=>typeof externalOrderIsOpen==='function'?externalOrderIsOpen(x.status):!['completed','rejected','cancelled'].includes(String(x.status||'')))
-    .filter(x=>String(x.status||'').toLowerCase()!=='requested')
-    .filter(x=>hasOperationalAdminAccess() || currentUserOwnsOperationalObject(oid) || String(x.assigned_user_id||'')===String(currentUserId()||''))
-    .map(x=>({
+    rows.push({
+      kind:'finding',
+      id:String(f.id||''),
+      findingId:String(f.id||''),
+      objectId:oid,
+      title:f.title||'Offene Arbeit',
+      dueDate:f.workDueDate||'',
+      priority:f.priority||'',
+      status:f.status||'Offen',
+      workNote:f.workNote||'',
+      findingAvailable:true
+    });
+  }
+
+  // 3) Eingehende externe Arbeitsaufträge.
+  for(const x of (cloudExternalOrders||[])){
+    if(String(x.source_object_id||x.object_id||'')!==oid)continue;
+    if(String(x.executor_organization_id||'')!==String(currentOrganizationId()||''))continue;
+    if(!(typeof externalOrderIsOpen==='function'?externalOrderIsOpen(x.status):!['completed','rejected','cancelled'].includes(String(x.status||''))))continue;
+    if(String(x.status||'').toLowerCase()==='requested')continue;
+    if(!(hasOperationalAdminAccess() || currentUserOwnsOperationalObject(oid) || String(x.assigned_user_id||'')===String(currentUserId()||'')))continue;
+
+    rows.push({
       kind:'external',
-      id:String(x.id),
+      id:String(x.id||''),
       objectId:oid,
       title:x.title||'Externer Arbeitsauftrag',
       dueDate:String(x.due_date||x.target_date||''),
       priority:x.priority||'',
       status:x.status||'',
       workNote:x.description||''
-    }));
+    });
+  }
 
-  return [...internal,...external].sort((a,b)=>{
+  return rows.sort((a,b)=>{
     const pa=String(a.priority||'').toLowerCase();
     const pb=String(b.priority||'').toLowerCase();
-    const rank={critical:0,urgent:0,hoch:1,high:1,normal:2,medium:2,niedrig:3,low:3};
+    const rank={critical:0,urgent:0,p1:0,hoch:1,high:1,p2:1,normal:2,medium:2,p3:2,niedrig:3,low:3,p4:3};
     const ar=rank[pa]??2,br=rank[pb]??2;
     if(ar!==br)return ar-br;
     const ad=a.dueDate||'9999-99-99',bd=b.dueDate||'9999-99-99';
@@ -16947,7 +17019,34 @@ function tourWorkQueueOpen(item){
     if(typeof openExternalOrderById==='function')openExternalOrderById(item.id);
     return;
   }
-  if(typeof openWorkItem==='function')openWorkItem(item.findingId);
+  if(item.kind==='task'){
+    if(item.findingId && (db.findings||[]).some(f=>String(f.id||'')===String(item.findingId||''))){
+      if(typeof openWorkItem==='function')openWorkItem(item.findingId);
+      return;
+    }
+    openTourTaskOnly(item.taskId||item.id);
+    return;
+  }
+  if(item.findingId && typeof openWorkItem==='function')openWorkItem(item.findingId);
+}
+
+function openTourTaskOnly(taskId){
+  const task=(db.tasks||[]).find(t=>String(t.id||'')===String(taskId||''));
+  if(!task)return alert('Aufgabe nicht gefunden.');
+  const due=task.dueDate
+    ? new Date(String(task.dueDate).slice(0,10)+'T00:00:00').toLocaleDateString('de-DE')
+    : 'ohne Termin';
+  const body=`
+    <div class="card">
+      <h3 style="margin-top:0">${esc(task.title||'Aufgabe')}</h3>
+      <div class="muted">${esc(objectName(task.objectId)||'Objekt')}</div>
+      <div style="margin-top:10px"><strong>Status:</strong> ${esc(TASK_STATUS_LABELS[task.status]||task.status||'Geplant')}</div>
+      <div style="margin-top:6px"><strong>Fällig:</strong> ${esc(due)}</div>
+      ${task.workNote?`<div style="margin-top:10px"><strong>Arbeitsinformation</strong><div style="margin-top:4px">${esc(task.workNote)}</div></div>`:''}
+      <div class="muted" style="margin-top:12px">Objektbezogene Aufgabe aus dem Arbeitsvorrat. Sie wird bei der Tour dieses Objekts eingeblendet.</div>
+    </div>`;
+  if(typeof openModal==='function')openModal('Aufgabe',body);
+  else modal(`<h2>Aufgabe</h2>${body}<div class="row"><button onclick="closeModal()">Schließen</button></div>`);
 }
 
 function tourObjectWorkQueueHtml(objectId,{compact=false}={}){
@@ -16966,7 +17065,7 @@ function tourObjectWorkQueueHtml(objectId,{compact=false}={}){
   const rows=items.slice(0,5).map(x=>{
     const due=x.dueDate?new Date(String(x.dueDate).slice(0,10)+'T00:00:00').toLocaleDateString('de-DE'):'ohne Termin';
     return `<button type="button" class="ops-tour-workqueue-item" onclick='tourWorkQueueOpen(${JSON.stringify({
-      kind:x.kind,id:x.id,findingId:x.findingId||''
+      kind:x.kind,id:x.id,taskId:x.taskId||'',findingId:x.findingId||''
     })})'>
       <span class="ops-tour-workqueue-item-main">
         <strong>${opsEsc(x.title)}</strong>
