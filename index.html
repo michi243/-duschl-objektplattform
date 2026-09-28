@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.02</title>
+<title>Duschl Service – Objektplattform v2.24.03</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5970,7 +5970,15 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Extern betreute Objekte lesen zusätzlich die tatsächliche assigned_user_id der Kollaboration.
    - Gilt dynamisch auch für bestehende/alte Tickets.
    - Keine SQL-/RLS-/Backend-Änderung. */
-const APP_VERSION='2.24.02'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.03 | BASIS 2.24.02 | 28.09.2026
+   DASHBOARD / RELEVANZLOGIK
+   - Außenanlagenpflege-Wetter wird vollständig ausgeblendet, wenn im Mandanten
+     keine aktive Außen-/Grünpflege-Leistung vorhanden ist.
+   - Keine leeren KPI-Kacheln und keine irrelevanten Planungsbuttons.
+   - Sobald wieder mindestens eine aktive passende Leistung existiert,
+     erscheint der Bereich automatisch.
+   - Keine SQL-/RLS-/Backend-Änderung. */
+const APP_VERSION='2.24.03'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -15567,6 +15575,7 @@ async function loadDashboardSummerSummary(){
   if(!orgId)return;
 
   const token=++dashboardSummerLoadToken;
+  const panel=document.getElementById('dashboardSummerPanel');
   const status=document.getElementById('dashboardSummerStatus');
   if(status)status.textContent='Außenanlagen-Leistungen und Wetter werden geladen …';
 
@@ -15596,13 +15605,20 @@ async function loadDashboardSummerSummary(){
     if(!ids.length){
       dashboardSummerWeatherEntries=[];
       renderDashboardSummerDetails();
+
+      // 2.24.03: Kein fachlicher Anwendungsfall = kein Dashboard-Modul.
+      // Leere Wetterkarten und irrelevante Planungsbuttons werden vermieden.
+      if(panel)panel.style.display='none';
+
       if(windowEl){windowEl.textContent='—';windowEl.className='value';}
       if(tempEl)tempEl.textContent='—';
       if(rainEl)rainEl.textContent='—';
-      if(warningEl)warningEl.textContent='0';
-      if(status)status.textContent='Keine aktive Außenanlagen-/Grünpflege-Leistung im Mandanten.';
+      if(warningEl)warningEl.textContent='—';
+      if(status)status.textContent='';
       return;
     }
+
+    if(panel)panel.style.display='';
 
     const results=await Promise.allSettled(ids.map(id=>objectWeatherRequest(id,'green_care',false)));
     if(token!==dashboardSummerLoadToken)return;
