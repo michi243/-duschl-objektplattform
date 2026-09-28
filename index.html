@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.12</title>
+<title>Duschl Service – Objektplattform v2.24.13</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3240,123 +3240,26 @@ table td,table th{
 }
 </style>
 
-<style id="duschl-winter-operative-guidance-v22412">
-.ws-operative-shell{padding:0!important;background:transparent!important;border:0!important}
-.ws-op-section{margin-top:16px}
-.ws-op-section-head{
-  display:flex;justify-content:space-between;align-items:center;
-  padding:0 2px 7px;color:#A9B9C5;font-size:12px;
-  text-transform:uppercase;letter-spacing:.07em;font-weight:900
+<style id="duschl-operative-tour-order-v22413">
+.ws-operative-section-title{
+  margin:4px 0 8px;
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:#9FB2C1;
 }
-.ws-op-section-head.critical{color:#F0A2A7}
-.ws-op-run{
-  margin:0 0 10px;padding:14px;border-radius:14px;
-  border:1px solid rgba(255,255,255,.12);
-  background:linear-gradient(145deg,#102838,#0A1E2B)
+.ws-current-run>.card,
+.ops-current-runs>.card:first-of-type{
+  border-color:rgba(255,255,255,.24)!important;
+  box-shadow:inset 3px 0 0 #FFFFFF,0 10px 22px rgba(0,0,0,.14)!important;
 }
-.ws-op-run.is-overdue{border-left:4px solid var(--ds-danger)}
-.ws-op-run-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
-.ws-op-run-date{font-size:16px;font-weight:950;color:#fff}
-.ws-op-run-meta{margin-top:4px;color:#9FB0BD;font-size:12px}
-.ws-op-status{
-  display:inline-flex;padding:4px 8px;border-radius:999px;
-  border:1px solid rgba(255,255,255,.14);font-size:10px;font-weight:900;
-  text-transform:uppercase;letter-spacing:.04em
+.ws-operative-overdue>summary{
+  color:#E6B84A;
 }
-.ws-op-status.active{color:#8FD5AB;border-color:rgba(83,182,122,.38)}
-.ws-op-status.completed{color:#9FB0BD}
-.ws-op-status.planned{color:#B9D8EB;border-color:rgba(142,180,207,.35)}
-.ws-op-status.overdue{color:#F3A0A4;border-color:rgba(233,109,115,.45);background:rgba(233,109,115,.07)}
-.ws-op-progress{margin-top:11px}
-.ws-op-progress-copy{font-size:11px;color:#A9B8C3}
-.ws-op-progress-track{height:5px;background:rgba(255,255,255,.08);border-radius:999px;margin-top:5px;overflow:hidden}
-.ws-op-progress-track span{display:block;height:100%;background:#8EB4CF;border-radius:999px}
-.ws-op-alert{
-  margin-top:10px;padding:9px 10px;border-radius:9px;
-  background:rgba(233,109,115,.08);border:1px solid rgba(233,109,115,.28);
-  color:#F0B0B4;font-size:12px
-}
-.ws-op-next{
-  display:flex;justify-content:space-between;gap:12px;align-items:center;
-  margin-top:11px;padding:10px 11px;border-radius:10px;
-  background:rgba(142,180,207,.06);border:1px solid rgba(142,180,207,.18)
-}
-.ws-op-next span{display:block;font-size:9px;color:#8298A8;font-weight:900;letter-spacing:.08em}
-.ws-op-next strong{display:block;margin-top:3px;font-size:13px;color:#fff}
-.ws-op-stops{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:7px;margin-top:10px}
-.ws-op-stop{
-  display:flex;align-items:center;gap:8px;text-align:left;padding:8px 9px;
-  border-radius:10px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.025)
-}
-.ws-op-stop-no{
-  width:25px;height:25px;border-radius:50%;display:grid;place-items:center;
-  background:#0B1B27;color:#BFD0DB;font-weight:900;font-size:11px
-}
-.ws-op-stop-copy{display:flex;flex-direction:column;min-width:0}
-.ws-op-stop-copy strong{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ws-op-stop-copy small{font-size:10px;color:#8296A5;margin-top:2px}
-.ws-op-stop.active{border-color:rgba(83,182,122,.32);background:rgba(83,182,122,.055)}
-.ws-op-stop.completed{opacity:.7}
-.ws-op-history>summary{cursor:pointer;color:#A9B9C5;font-weight:850}
-
-.ws-execution-hero{
-  display:flex;justify-content:space-between;gap:16px;align-items:flex-start;
-  padding:15px 16px;border-radius:14px;background:linear-gradient(145deg,#102838,#0A1E2B);
-  border:1px solid rgba(255,255,255,.12)
-}
-.ws-execution-eyebrow{font-size:10px;font-weight:900;letter-spacing:.08em;color:#8FA5B5}
-.ws-execution-hero h3{margin:4px 0 0;font-size:22px}
-.ws-execution-address{margin-top:4px;color:#B1C0CA;font-size:12px}
-.ws-execution-tour{margin-top:6px;color:#8297A6;font-size:11px}
-.ws-execution-next{
-  display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;
-  margin-top:12px;padding:11px 12px;border-radius:11px;
-  border:1px solid rgba(142,180,207,.20);background:rgba(142,180,207,.055)
-}
-.ws-execution-next span{font-size:9px;font-weight:900;letter-spacing:.08em;color:#8298A8}
-.ws-execution-next strong{font-size:13px}
-.ws-execution-route-progress{
-  display:flex;justify-content:space-between;gap:10px;margin-top:10px;
-  color:#93A6B5;font-size:11px
-}
-.ws-execution-context{
-  display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:12px
-}
-.ws-execution-context>div{
-  padding:10px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.09);
-  background:rgba(255,255,255,.025)
-}
-.ws-execution-context span{display:block;font-size:9px;color:#8296A5;text-transform:uppercase;letter-spacing:.06em;font-weight:900}
-.ws-execution-context strong{display:block;margin-top:4px;font-size:12px}
-.ws-execution-context small{display:block;margin-top:4px;color:#8296A5}
-.ws-step-card{
-  display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;
-  margin-top:12px;padding:13px;border-radius:12px;
-  border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.025)
-}
-.ws-step-number{
-  width:30px;height:30px;border-radius:50%;display:grid;place-items:center;
-  background:#fff;color:#0F2133;font-weight:950
-}
-.ws-step-content h4{margin:1px 0 5px;font-size:16px}
-.ws-step-content p{margin:0 0 10px;color:#9FAFBA;font-size:12px}
-.ws-step-action{font-size:18px;font-weight:950;color:#fff;margin:5px 0 8px}
-.ws-step-meta{margin-top:5px;color:#A8B7C2;font-size:12px}
-.ws-confirm-row{display:flex!important;align-items:center;gap:9px;margin-top:12px!important}
-.ws-confirm-row input{width:auto!important}
-.ws-execution-complete{margin-top:14px;padding-top:13px;border-top:1px solid rgba(255,255,255,.10)}
-.ws-execution-complete .muted{margin-top:7px;font-size:11px}
-.ws-execution-waiting{
-  margin-top:12px;padding:10px 11px;border-radius:10px;
-  background:rgba(230,184,74,.06);border:1px solid rgba(230,184,74,.22);
-  color:#E8D194;font-size:12px
-}
-@media(max-width:700px){
-  .ws-op-next{align-items:stretch;flex-direction:column}
-  .ws-op-next button{width:100%}
-  .ws-execution-next{grid-template-columns:1fr}
-  .ws-execution-context{grid-template-columns:1fr}
-  .ws-step-card{grid-template-columns:1fr}
+.ws-operative-archive>summary,
+.ops-archived-run{
+  opacity:.88;
 }
 </style>
 </head>
@@ -6346,15 +6249,25 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Keine SQL-/RLS-/Backend-Änderung.
 */
 /* RELEASE 2.24.12 | BASIS 2.24.11 | 28.09.2026
-   WINTERDIENST OPERATIV / KLARE FÜHRUNG
-   - Objekt- und Mitarbeiternamen werden in der operativen Tour korrekt aufgelöst.
-   - Operative Winterdienstansicht zeigt Fortschritt, nächsten Stopp und Überfälligkeit.
-   - Vergangene nicht abgeschlossene Touren werden nicht mehr fälschlich als Historie behandelt.
-   - Einsatzansicht führt klar durch Start -> Vorherfoto -> Auftrag -> Nachherfoto -> Abschluss.
-   - SOP-Hinweis unterscheidet zwischen "nicht verknüpft" und "Kontext nicht verfügbar".
+   STANDARD-TOUREN / OBJEKTBETREUER
+   - Runtime-Fix: opsState war const, wurde aber in opsLoad neu zugewiesen.
+   - Normale Touren können nun wie Winterdiensttouren einer Person zugewiesen werden.
+   - Zugewiesene normale Touren erscheinen beim Objektbetreuer in "Meine Touren & Einsätze"
+     und im einheitlichen Dashboard-Tourenmodul.
+   - Keine Vermischung der Fachprozesse: Winterdienst bleibt eigener Prozess,
+     die operative Mitarbeiteransicht bündelt beide Tourarten.
    - Keine SQL-/RLS-/Backend-Änderung.
 */
-const APP_VERSION='2.24.12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.13 | BASIS 2.24.12 | 28.09.2026
+   OPERATIVE TOURENREIHENFOLGE
+   - Aktiver Einsatz immer ganz oben.
+   - Heutige/geplante Touren danach.
+   - Alte, noch offene Touren separat nach unten.
+   - Abgeschlossene/vergangene Touren im Archiv ganz unten.
+   - Gleiche Logik für Winterdienst und Standardtouren.
+   - Keine SQL-/RLS-/Backend-Änderung.
+*/
+const APP_VERSION='2.24.13'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -20624,21 +20537,12 @@ async function osaDeactivate(id,objectId){
    WINTERDIENST V1 · 2.21.33
    SOP + Leistungsumfang + Tourvorlage + Tagestour + Objekteinsatz
    ========================================================= */
-let wsState={sops:[],versions:[],scopes:[],templates:[],stops:[],runs:[],executions:[],areas:[],selectedAreas:[],manualAreas:[],tenantUsers:[],objectAssignments:[],managedDocuments:[],managedVersions:[],objects:[],weatherByObject:{}};
+let wsState={sops:[],versions:[],scopes:[],templates:[],stops:[],runs:[],executions:[],areas:[],selectedAreas:[],manualAreas:[],tenantUsers:[],objectAssignments:[],managedDocuments:[],managedVersions:[],weatherByObject:{}};
 let wsEditingTourTemplateId=null;
 let wsTourDraftObjectIds=[];
 
 function wsOrg(){const id=currentOrganizationId();if(!id)throw new Error('Kein aktiver Mandant.');return id}
-function wsObjects(){
-  const byId=new Map();
-  for(const o of [...(db?.objects||[]),...(wsState.objects||[])]){
-    const id=String(o?.id||'').trim();
-    if(!id||o?.active===false)continue;
-    if(!byId.has(id))byId.set(id,o);
-    else byId.set(id,{...o,...byId.get(id)});
-  }
-  return [...byId.values()];
-}
+function wsObjects(){return (db?.objects||[]).filter(o=>o.active!==false)}
 function wsEsc(v){return esc(v??'')}
 function wsToday(){return new Date().toISOString().slice(0,10)}
 function wsUuid(){return crypto.randomUUID()}
@@ -20921,74 +20825,17 @@ async function loadWinterService(){
         }
       }
 
-      const objectIds=[...new Set(executions.map(x=>String(x.object_id||'')).filter(Boolean))];
-      let tourObjects=[];
-      let objectAssignments=[];
-      let managedDocuments=[];
-      let managedVersions=[];
-
-      // Operativer Kontext wird best effort geladen. Die Tour selbst bleibt die Source of Truth.
-      if(objectIds.length){
-        const objectIn=objectIds.map(id=>id.replace(/[^0-9a-fA-F-]/g,'')).join(',');
-        try{
-          tourObjects=await cloudRequest(
-            `objects?select=id,name,street,postal_code,city,notes,active&id=in.(${objectIn})`
-          )||[];
-        }catch(e){
-          console.warn('Objektnamen der Winterdiensttour konnten nicht vollständig geladen werden',e);
-        }
-
-        try{
-          objectAssignments=await cloudRequest(
-            `object_service_assignments?select=*&organization_id=eq.${encodeURIComponent(org)}&object_id=in.(${objectIn})&process_type=eq.winter_service&active=eq.true&order=created_at.desc`
-          )||[];
-        }catch(e){
-          console.warn('Winterdienst-Leistungszuordnungen konnten operativ nicht geladen werden',e);
-        }
-      }
-
-      const versionIds=[...new Set((objectAssignments||[])
-        .map(a=>String(a.managed_document_version_id||''))
-        .filter(Boolean))];
-
-      if(versionIds.length){
-        const versionIn=versionIds.map(id=>id.replace(/[^0-9a-fA-F-]/g,'')).join(',');
-        try{
-          managedVersions=await cloudRequest(
-            `managed_document_versions?select=*&id=in.(${versionIn})`
-          )||[];
-          const documentIds=[...new Set(managedVersions.map(v=>String(v.document_id||'')).filter(Boolean))];
-          if(documentIds.length){
-            const documentIn=documentIds.map(id=>id.replace(/[^0-9a-fA-F-]/g,'')).join(',');
-            managedDocuments=await cloudRequest(
-              `managed_documents?select=*&id=in.(${documentIn})`
-            )||[];
-          }
-        }catch(e){
-          console.warn('SOP-Kontext der Winterdiensttour konnte operativ nicht geladen werden',e);
-        }
-      }
-
       wsState={
         ...wsState,
         runs:Array.isArray(runs)?runs:[],
         executions:Array.isArray(executions)?executions:[],
-        objects:Array.isArray(tourObjects)?tourObjects:[],
-        objectAssignments:Array.isArray(objectAssignments)?objectAssignments:[],
-        managedDocuments:Array.isArray(managedDocuments)?managedDocuments:[],
-        managedVersions:Array.isArray(managedVersions)?managedVersions:[],
+        // Administrative Daten werden für die operative Übersicht nicht benötigt.
         sops:[],
         versions:[],
         scopes:[],
         templates:[],
         stops:[],
-        tenantUsers:[{
-          user_id:currentUserId(),
-          id:currentUserId(),
-          full_name:currentUserProfile?.full_name||cloudSession?.user?.email||'Mitarbeiter',
-          email:currentUserProfile?.email||cloudSession?.user?.email||'',
-          active:true
-        }]
+        tenantUsers:[]
       };
 
       wsApplyWinterServiceViewMode();
@@ -21848,15 +21695,10 @@ function wsWinterAssignmentForExecution(x){
 }
 function wsWinterSopLabelForExecution(x){
   const a=wsWinterAssignmentForExecution(x);
-  if(!a){
-    return wsIsWinterOperative()
-      ? 'SOP-Kontext für diesen Tourstopp nicht verfügbar'
-      : 'Keine freigegebene SOP verknüpft';
-  }
-  if(!a.managed_document_version_id)return 'Keine freigegebene SOP verknüpft';
+  if(!a?.managed_document_version_id)return 'Keine freigegebene SOP verknüpft';
   const v=(wsState.managedVersions||[]).find(z=>String(z.id)===String(a.managed_document_version_id));
   const d=v?(wsState.managedDocuments||[]).find(z=>String(z.id)===String(v.document_id)):null;
-  if(!v||!d)return 'SOP-Zuordnung vorhanden · Dokumentdetails nicht verfügbar';
+  if(!v||!d)return 'SOP-Zuordnung nicht auflösbar';
   return [d.document_number,d.title||d.name,v.version?`V${v.version}`:''].filter(Boolean).join(' · ');
 }
 function wsWinterAssignmentNoteForExecution(x){
@@ -21870,98 +21712,25 @@ function wsRunStatus(r){
   if(xs.length && xs.every(x=>String(x.status)==='completed'))return 'completed';
   return 'planned';
 }
-function wsRunStatusLabel(s){
-  return s==='active'?'Läuft':s==='completed'?'Abgeschlossen':s==='overdue'?'Überfällig':'Geplant';
-}
-function wsRunDisplayStatus(r){
-  const status=wsRunStatus(r);
-  if(status!=='completed' && String(r.service_date||'')<wsToday())return 'overdue';
-  return status;
-}
-function wsRunAssigneeName(r){
-  const uid=String(r?.assigned_user_id||'');
-  const pools=[
-    ...(wsState.tenantUsers||[]),
-    ...(typeof workQueueVisibilityProfiles!=='undefined'?(workQueueVisibilityProfiles||[]):[])
-  ];
-  const hit=pools.find(u=>String(u.user_id||u.id||'')===uid);
-  if(hit)return String(hit.full_name||hit.display_name||hit.email||'Mitarbeiter');
-  if(uid && uid===String(currentUserId()||'')){
-    return String(currentUserProfile?.full_name||currentUserProfile?.email||cloudSession?.user?.email||'Du');
-  }
-  return r?.assignee_name||'Zuweisung vorhanden';
-}
-function wsExecutionObject(x){
-  return wsObjects().find(o=>String(o.id)===String(x?.object_id||''))||null;
-}
-function wsExecutionObjectName(x,index=null){
-  const o=wsExecutionObject(x);
-  return o?.name||x?.object_name_snapshot||x?.object_name||`Stopp${index!==null?' '+(index+1):''}`;
-}
-function wsExecutionObjectAddress(x){
-  const o=wsExecutionObject(x);
-  return o?.address||[
-    o?.street,
-    [o?.postal_code||o?.postalCode,o?.city].filter(Boolean).join(' ')
-  ].filter(Boolean).join(', ')||x?.object_address_snapshot||'';
-}
-function wsRunProgress(r){
-  const xs=wsState.executions.filter(x=>String(x.run_id)===String(r.id));
-  const completed=xs.filter(x=>String(x.status)==='completed').length;
-  const active=xs.filter(x=>String(x.status)==='active');
-  const next=active[0]||xs.find(x=>String(x.status)==='planned')||null;
-  return {total:xs.length,completed,active,next};
-}
+function wsRunStatusLabel(s){ return s==='active'?'Läuft':s==='completed'?'Abgeschlossen':'Geplant'; }
 function wsRunCard(r){
   const xs=wsState.executions.filter(x=>String(x.run_id)===String(r.id))
     .sort((a,b)=>(Number(a.sort_order||0)-Number(b.sort_order||0)));
-  const displayStatus=wsRunDisplayStatus(r);
-  const assignee=wsRunAssigneeName(r);
+  const objName=id=>wsState.objects?.find(o=>String(o.id)===String(id))?.name||'Objekt';
+  const assignee=wsState.assignees?.find(u=>String(u.id)===String(r.assigned_user_id))?.full_name||r.assignee_name||'Nicht zugewiesen';
+  const status=wsRunStatus(r);
   const title=r.tour_name||r.name||r.template_name||'Tagestour';
-  const progress=wsRunProgress(r);
-  const nextIndex=progress.next?xs.findIndex(x=>String(x.id)===String(progress.next.id)):-1;
-  const nextName=progress.next?wsExecutionObjectName(progress.next,nextIndex):'';
-  const pct=progress.total?Math.round((progress.completed/progress.total)*100):0;
-  const overdue=displayStatus==='overdue';
-
-  return `<article class="ws-op-run ${overdue?'is-overdue':''}" data-status="${wsEsc(displayStatus)}">
-    <div class="ws-op-run-head">
+  return `<div class="card" style="margin:10px 0;padding:14px">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
       <div>
-        <div class="ws-op-run-date">${wsEsc(r.service_date||'')} · ${wsEsc(title)}</div>
-        <div class="ws-op-run-meta">${progress.total} Stopp${progress.total===1?'':'s'} · Verantwortlich: ${wsEsc(assignee)}</div>
+        <strong>${wsEsc(r.service_date||'')} · ${wsEsc(title)}</strong>
+        <div class="muted" style="margin-top:4px">${xs.length} Objekt${xs.length===1?'':'e'} · Ausgeführt von: ${wsEsc(assignee)}</div>
       </div>
-      <span class="ws-op-status ${overdue?'overdue':displayStatus}">${wsEsc(wsRunStatusLabel(displayStatus))}</span>
+      <span class="badge">${wsEsc(wsRunStatusLabel(status))}</span>
     </div>
-
-    <div class="ws-op-progress">
-      <div class="ws-op-progress-copy"><strong>${progress.completed}/${progress.total}</strong> Stopps abgeschlossen</div>
-      <div class="ws-op-progress-track"><span style="width:${pct}%"></span></div>
-    </div>
-
-    ${overdue?`<div class="ws-op-alert"><strong>Handlungsbedarf:</strong> Tour vom ${wsEsc(r.service_date||'')} ist noch nicht vollständig abgeschlossen.</div>`:''}
-
-    ${progress.next?`<div class="ws-op-next">
-      <div>
-        <span>NÄCHSTER SCHRITT</span>
-        <strong>${String(progress.next.status)==='active'?'Einsatz fortsetzen':'Nächsten Stopp starten'} · ${wsEsc(nextName)}</strong>
-      </div>
-      <button class="primary" type="button" onclick="wsOpenExecution('${wsEsc(progress.next.id)}')">${String(progress.next.status)==='active'?'Fortsetzen':'Öffnen'}</button>
-    </div>`:''}
-
-    <div class="ws-op-stops">
-      ${xs.map((x,i)=>{
-        const s=String(x.status||'planned');
-        const name=wsExecutionObjectName(x,i);
-        const state=s==='completed'?'Erledigt':s==='active'?'Läuft':'Offen';
-        return `<button class="ws-op-stop ${s}" type="button" onclick="wsOpenExecution('${wsEsc(x.id)}')">
-          <span class="ws-op-stop-no">${i+1}</span>
-          <span class="ws-op-stop-copy"><strong>${wsEsc(name)}</strong><small>${wsEsc(state)}</small></span>
-        </button>`;
-      }).join('')}
-    </div>
-  </article>`;
+    <div style="margin-top:10px">${xs.map((x,i)=>`<button class="btn secondary" style="margin:3px 6px 3px 0" onclick="wsOpenExecution('${x.id}')">${i+1}. ${wsEsc(objName(x.object_id))}</button>`).join('')}</div>
+  </div>`;
 }
-
 function wsRenderGroupedRuns(){
   const host=document.getElementById('wsRunsList');
   if(!host)return;
@@ -22066,65 +21835,96 @@ async function wsOpenMyWinterService(){
   wsRenderMyWinterOrders();
 }
 
+
+function wsRunSortKey(r){
+  return `${String(r?.service_date||'9999-99-99')} ${String(r?.start_time||'23:59')}`;
+}
+
+function wsRunBuckets(runs){
+  const today=wsToday();
+  const list=Array.isArray(runs)?runs:[];
+  const active=[];
+  const todayOpen=[];
+  const future=[];
+  const overdue=[];
+  const archive=[];
+
+  for(const r of list){
+    const status=wsRunStatus(r);
+    const date=String(r.service_date||'');
+
+    if(status==='completed'){
+      archive.push(r);
+      continue;
+    }
+
+    if(status==='active'){
+      active.push(r);
+      continue;
+    }
+
+    if(date<today){
+      overdue.push(r);
+      continue;
+    }
+
+    if(date===today){
+      todayOpen.push(r);
+      continue;
+    }
+
+    future.push(r);
+  }
+
+  active.sort((a,b)=>wsRunSortKey(a).localeCompare(wsRunSortKey(b)));
+  todayOpen.sort((a,b)=>wsRunSortKey(a).localeCompare(wsRunSortKey(b)));
+  future.sort((a,b)=>wsRunSortKey(a).localeCompare(wsRunSortKey(b)));
+  overdue.sort((a,b)=>wsRunSortKey(b).localeCompare(wsRunSortKey(a)));
+  archive.sort((a,b)=>wsRunSortKey(b).localeCompare(wsRunSortKey(a)));
+
+  return {active,todayOpen,future,overdue,archive};
+}
+
 function wsRenderMyWinterOrders(){
   const root=document.getElementById('wsOperativeView');
   if(!root)return;
 
   const runs=wsMyRuns();
-  const today=wsToday();
+  const buckets=wsRunBuckets(runs);
 
-  const current=runs
-    .filter(r=>String(r.service_date||'')===today && wsRunStatus(r)!=='completed');
+  const current=[...buckets.active,...buckets.todayOpen];
+  const next=buckets.future.slice(0,1);
+  const currentAndNext=[...current,...next]
+    .filter((r,i,a)=>a.findIndex(z=>String(z.id)===String(r.id))===i);
 
-  const overdue=runs
-    .filter(r=>String(r.service_date||'')<today && wsRunStatus(r)!=='completed')
-    .sort((a,b)=>String(a.service_date||'').localeCompare(String(b.service_date||'')));
+  root.innerHTML=`<section class="panel">
+    <div class="eyebrow">WINTERDIENST</div>
+    <h2>Mein Winterdienst</h2>
+    <p class="muted">Aktueller Einsatz zuerst. Vergangene Touren werden nach unten archiviert.</p>
 
-  const future=runs
-    .filter(r=>String(r.service_date||'')>today && wsRunStatus(r)!=='completed')
-    .sort((a,b)=>String(a.service_date||'').localeCompare(String(b.service_date||'')))
-    .slice(0,1);
+    <div class="ws-operative-current">
+      <div class="ws-operative-section-title">Aktueller Einsatz</div>
+      ${currentAndNext.length
+        ? currentAndNext.map((r,index)=>`
+            <div class="${index===0?'ws-current-run':''}">
+              ${wsRunCard(r)}
+            </div>`).join('')
+        : '<div class="empty">Aktuell ist Ihnen kein Winterdienstauftrag zugewiesen.</div>'}
+    </div>
 
-  const history=runs
-    .filter(r=>wsRunStatus(r)==='completed')
-    .sort((a,b)=>String(b.service_date||'').localeCompare(String(a.service_date||'')));
+    ${buckets.overdue.length?`
+      <details class="ws-operative-overdue" style="margin-top:18px">
+        <summary><strong>Offene Alt-Touren (${buckets.overdue.length})</strong></summary>
+        <div class="muted" style="margin:8px 0 10px">
+          Diese Touren sind vergangen, aber noch nicht vollständig abgeschlossen.
+        </div>
+        ${buckets.overdue.map(wsRunCard).join('')}
+      </details>
+    `:''}
 
-  const currentLabel=current.length
-    ? `${current.length} offene Tour${current.length===1?'':'en'} heute`
-    : 'Heute keine offene Tour';
-
-  root.innerHTML=`<section class="panel ws-operative-shell">
-    <div class="eyebrow">MEIN WINTERDIENST</div>
-    <h2>Meine Einsätze</h2>
-    <p class="muted">${wsEsc(currentLabel)}. Die Tour führt dich in der vorgesehenen Stoppreihenfolge durch die Einsätze.</p>
-
-    ${overdue.length?`<section class="ws-op-section">
-      <div class="ws-op-section-head critical">
-        <strong>Überfällige Einsätze</strong>
-        <span>${overdue.length}</span>
-      </div>
-      ${overdue.map(wsRunCard).join('')}
-    </section>`:''}
-
-    <section class="ws-op-section">
-      <div class="ws-op-section-head">
-        <strong>Heute</strong>
-        <span>${current.length}</span>
-      </div>
-      ${current.map(wsRunCard).join('')||'<div class="empty">Heute ist dir keine offene Winterdiensttour zugewiesen.</div>'}
-    </section>
-
-    ${future.length?`<section class="ws-op-section">
-      <div class="ws-op-section-head">
-        <strong>Als Nächstes</strong>
-        <span>${future.length}</span>
-      </div>
-      ${future.map(wsRunCard).join('')}
-    </section>`:''}
-
-    <details class="ws-op-history" style="margin-top:18px">
-      <summary>Abgeschlossene Einsätze (${history.length})</summary>
-      ${history.map(wsRunCard).join('')||'<div class="muted">Noch keine abgeschlossenen Einsätze.</div>'}
+    <details class="ws-operative-archive" style="margin-top:18px">
+      <summary><strong>Archiv (${buckets.archive.length})</strong></summary>
+      ${buckets.archive.map(wsRunCard).join('')||'<div class="muted" style="margin-top:10px">Noch keine abgeschlossenen Touren.</div>'}
     </details>
   </section>`;
 }
@@ -22167,124 +21967,78 @@ async function wsOpenExecution(id){
     const x=wsState.executions.find(e=>String(e.id)===String(id));
     if(!x)throw new Error('Einsatz nicht gefunden.');
 
-    const o=wsExecutionObject(x);
+    const o=wsObjects().find(z=>String(z.id)===String(x.object_id));
     const media=await cloudRequest(`winter_service_execution_media?select=*&execution_id=eq.${encodeURIComponent(id)}&order=created_at.asc`);
     const panel=document.getElementById('wsExecutionPanel');
     const assignmentNote=wsWinterAssignmentNoteForExecution(x);
-    const run=wsState.runs.find(r=>String(r.id)===String(x.run_id));
-    const runXs=wsState.executions
-      .filter(e=>String(e.run_id)===String(x.run_id))
-      .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
-    const stopIndex=Math.max(0,runXs.findIndex(e=>String(e.id)===String(x.id)));
-    const completedCount=runXs.filter(e=>String(e.status)==='completed').length;
-    const objectName=wsExecutionObjectName(x,stopIndex);
-    const address=wsExecutionObjectAddress(x);
-    const sopLabel=wsWinterSopLabelForExecution(x);
-
-    let nextStep='Einsatz starten';
-    if(x.status==='active')nextStep='Vorherfoto aufnehmen und Einsatzauftrag ausführen';
-    if(x.status==='completed')nextStep='Einsatz abgeschlossen';
 
     panel.innerHTML=`
-      <div class="ws-execution-hero ${x.status==='completed'?'done':x.status==='active'?'active':''}">
+      <div class="row space">
         <div>
-          <div class="ws-execution-eyebrow">STOPP ${stopIndex+1} VON ${runXs.length}</div>
-          <h3>${wsEsc(objectName)}</h3>
-          ${address?`<div class="ws-execution-address">${wsEsc(address)}</div>`:''}
-          <div class="ws-execution-tour">${wsEsc(run?.tour_name||run?.name||run?.template_name||'Winterdiensttour')} · ${wsEsc(run?.service_date||'')}</div>
+          <strong>${wsEsc(o?.name||'Objekt')}</strong>
+          <div class="muted">Status: ${wsEsc(wsStatusLabel(x.status))}</div>
         </div>
-        <span class="ws-op-status ${wsEsc(String(x.status||'planned'))}">${wsEsc(wsStatusLabel(x.status))}</span>
-      </div>
-
-      <div class="ws-execution-next">
-        <span>NÄCHSTER SCHRITT</span>
-        <strong>${wsEsc(nextStep)}</strong>
         ${x.status==='planned'?`<button class="primary" onclick="wsStartExecution('${id}')">Einsatz starten</button>`:''}
       </div>
 
-      <div class="ws-execution-route-progress">
-        <span>Tourfortschritt</span>
-        <strong>${completedCount}/${runXs.length} Stopps abgeschlossen</strong>
-      </div>
-
       ${x.status!=='planned'?`
-      <div class="ws-execution-context">
+      <div class="grid2" style="margin-top:12px">
         <div>
-          <span>Beginn</span>
+          <div class="muted">Beginn</div>
           <strong>${wsEsc(x.started_at?new Date(x.started_at).toLocaleString('de-DE'):'—')}</strong>
         </div>
         <div>
-          <span>Wetter bei Einsatzstart</span>
+          <div class="muted">Wetter bei Einsatzstart</div>
           <strong>${wsEsc(x.weather_summary||'Wetterdaten beim Start nicht verfügbar')}</strong>
           ${x.weather_risk_level?`<div style="margin-top:5px"><span class="ws-weather-risk ${wsWeatherRiskClass(x.weather_risk_level)}">${wsEsc(wsWeatherRiskLabel(x.weather_risk_level))}</span></div>`:''}
-          ${x.weather_captured_at?`<small>${wsEsc(wsWeatherFormatTime(x.weather_captured_at))}${x.weather_source?` · ${wsEsc(x.weather_source)}`:''}</small>`:''}
-          ${x.weather_snapshot_error?`<small>Wetterhinweis: ${wsEsc(x.weather_snapshot_error)}</small>`:''}
+          ${x.weather_captured_at?`<div class="muted" style="margin-top:4px">${wsEsc(wsWeatherFormatTime(x.weather_captured_at))}${x.weather_source?` · ${wsEsc(x.weather_source)}`:''}</div>`:''}
+          ${x.weather_snapshot_error?`<div class="muted" style="margin-top:5px">Hinweis: ${wsEsc(x.weather_snapshot_error)}</div>`:''}
         </div>
       </div>
 
-      <div class="ws-step-card">
-        <div class="ws-step-number">1</div>
-        <div class="ws-step-content">
-          <h4>Vorherfoto</h4>
-          <p>Zustand vor Beginn der Arbeiten dokumentieren.</p>
-          <div class="row" style="gap:8px;flex-wrap:wrap">
-            <button type="button" class="primary" onclick="document.getElementById('wsBeforeCamera').click()">📷 Foto aufnehmen</button>
-            <button type="button" onclick="document.getElementById('wsBeforeLibrary').click()">Bild auswählen</button>
-          </div>
-          <input id="wsBeforeCamera" type="file" accept="image/*" capture="environment" style="display:none" onchange="wsExecutionPhotoSelected('before',this)">
-          <input id="wsBeforeLibrary" type="file" accept="image/*" style="display:none" onchange="wsExecutionPhotoSelected('before',this)">
-          <div id="wsBeforePreview" style="margin-top:10px"></div>
+      <div style="margin-top:14px">
+        <strong>1. Vorherfoto</strong>
+        <div class="muted" style="margin:4px 0 8px">Zustand vor Beginn der Arbeiten dokumentieren.</div>
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <button type="button" class="primary" onclick="document.getElementById('wsBeforeCamera').click()">📷 Foto aufnehmen</button>
+          <button type="button" onclick="document.getElementById('wsBeforeLibrary').click()">Bild auswählen</button>
         </div>
+        <input id="wsBeforeCamera" type="file" accept="image/*" capture="environment" style="display:none" onchange="wsExecutionPhotoSelected('before',this)">
+        <input id="wsBeforeLibrary" type="file" accept="image/*" style="display:none" onchange="wsExecutionPhotoSelected('before',this)">
+        <div id="wsBeforePreview" style="margin-top:10px"></div>
       </div>
 
-      <div class="ws-step-card">
-        <div class="ws-step-number">2</div>
-        <div class="ws-step-content">
-          <h4>Einsatzauftrag</h4>
-          <div class="ws-step-action">${wsEsc(wsServiceActionLabel(x.service_action))}</div>
-          <div class="ws-step-meta"><strong>SOP:</strong> ${wsEsc(sopLabel)}</div>
-          ${assignmentNote?`<div class="ws-step-meta"><strong>Objekthinweis:</strong> ${wsEsc(assignmentNote)}</div>`:''}
-          <label class="ws-confirm-row">
-            <input type="checkbox" data-ws-done="service_action">
-            <span>Einsatzauftrag vollständig ausgeführt</span>
-          </label>
-        </div>
+      <div class="card" style="margin-top:16px;padding:12px">
+        <strong>2. Einsatzauftrag</strong>
+        <div style="margin-top:8px;font-size:1.08em"><strong>${wsEsc(wsServiceActionLabel(x.service_action))}</strong></div>
+        <div class="muted" style="margin-top:5px">SOP: ${wsEsc(wsWinterSopLabelForExecution(x))}</div>
+        ${assignmentNote?`<div class="muted" style="margin-top:5px">Objekthinweis: ${wsEsc(assignmentNote)}</div>`:''}
+        <label class="row" style="align-items:center;margin-top:10px">
+          <input type="checkbox" data-ws-done="service_action" style="width:auto">
+          <span>Einsatzauftrag vollständig ausgeführt</span>
+        </label>
       </div>
 
-      <div class="ws-step-card">
-        <div class="ws-step-number">3</div>
-        <div class="ws-step-content">
-          <h4>Nachherfoto</h4>
-          <p>Ausgeführten Zustand nach Abschluss der Arbeiten dokumentieren.</p>
-          <div class="row" style="gap:8px;flex-wrap:wrap">
-            <button type="button" class="primary" onclick="document.getElementById('wsAfterCamera').click()">📷 Foto aufnehmen</button>
-            <button type="button" onclick="document.getElementById('wsAfterLibrary').click()">Bild auswählen</button>
-          </div>
-          <input id="wsAfterCamera" type="file" accept="image/*" capture="environment" style="display:none" onchange="wsExecutionPhotoSelected('after',this)">
-          <input id="wsAfterLibrary" type="file" accept="image/*" style="display:none" onchange="wsExecutionPhotoSelected('after',this)">
-          <div id="wsAfterPreview" style="margin-top:10px"></div>
+      <div style="margin-top:16px">
+        <strong>3. Nachherfoto</strong>
+        <div class="muted" style="margin:4px 0 8px">Ausgeführten Zustand nach Abschluss der Arbeiten dokumentieren.</div>
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <button type="button" class="primary" onclick="document.getElementById('wsAfterCamera').click()">📷 Foto aufnehmen</button>
+          <button type="button" onclick="document.getElementById('wsAfterLibrary').click()">Bild auswählen</button>
         </div>
+        <input id="wsAfterCamera" type="file" accept="image/*" capture="environment" style="display:none" onchange="wsExecutionPhotoSelected('after',this)">
+        <input id="wsAfterLibrary" type="file" accept="image/*" style="display:none" onchange="wsExecutionPhotoSelected('after',this)">
+        <div id="wsAfterPreview" style="margin-top:10px"></div>
       </div>
 
-      <div class="ws-step-card">
-        <div class="ws-step-number">4</div>
-        <div class="ws-step-content">
-          <h4>Besonderheiten / Abweichungen</h4>
-          <textarea id="wsExecutionNote" rows="3" placeholder="Nur bei Besonderheiten oder Abweichungen ergänzen."></textarea>
-        </div>
-      </div>
-
-      <div class="ws-execution-complete">
-        <button class="primary" onclick="wsCompleteExecution('${id}')">Stopp abschließen</button>
-        <div class="muted">Vorher- und Nachherfoto sowie die Bestätigung des Einsatzauftrags sind erforderlich.</div>
-      </div>
-      `:`<div class="ws-execution-waiting">Starte den Einsatz erst, wenn du am Objekt angekommen bist.</div>`}
-    `;
+      <label style="margin-top:16px"><strong>4. Besonderheiten / Abweichungen</strong><textarea id="wsExecutionNote" rows="3"></textarea></label>
+      <div class="row" style="margin-top:12px;gap:8px"><button class="primary" onclick="wsCompleteExecution('${id}')">Einsatz abschließen</button></div>
+      <div class="muted" style="margin-top:8px">Vorher- und Nachherfoto sowie die Bestätigung des Einsatzauftrags sind für den Abschluss verpflichtend.</div>
+      `:''}`;
   }catch(e){
     alert(e.message||e);
   }
 }
-
 async function wsStartExecution(id){
   try{
     const x=wsState.executions.find(e=>String(e.id)===String(id));
@@ -22364,13 +22118,28 @@ async function wsCompleteExecution(id){
 }
 
 
-const opsState={services:[],plans:[],tours:[],stops:[],runs:[],runStops:[],assignments:[],documents:[],versions:[]};
+let opsState={services:[],plans:[],tours:[],stops:[],runs:[],runStops:[],assignments:[],documents:[],versions:[],tenantUsers:[]};
 let opsEditingPlanId=null;
 
 function opsEsc(v){return String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));}
 function opsOrg(){return currentOrganizationId();}
 function opsObjName(id){return (db.objects||[]).find(o=>String(o.id)===String(id))?.name||'Objekt';}
 function opsServiceName(id){return opsState.services.find(x=>String(x.id)===String(id))?.name||'Leistung';}
+function opsUserName(id){
+  const uid=String(id||'');
+  const u=(opsState.tenantUsers||[]).find(x=>String(x.user_id||x.id||'')===uid);
+  return u?.full_name||u?.email||profileDisplayName(uid)||'Nicht zugewiesen';
+}
+function opsAssignableUsers(){
+  return (opsState.tenantUsers||[])
+    .filter(u=>u.active!==false)
+    .filter(u=>{
+      const role=String(u.membership_role||u.organization_role||u.role||'').toLowerCase();
+      return ['object_manager','staff','employee','tenant_admin','admin_delegate'].includes(role);
+    })
+    .sort((a,b)=>String(a.full_name||a.email||'').localeCompare(String(b.full_name||b.email||''),'de'));
+}
+
 function opsVersion(id){return opsState.versions.find(x=>String(x.id)===String(id))||null;}
 function opsSopLabel(a){
   const v=opsVersion(a?.managed_document_version_id);
@@ -22409,9 +22178,69 @@ function opsApplyViewMode(){
 function opsMyRuns(){const uid=String(currentUserId()||'');return (opsState.runs||[]).filter(r=>String(r.assigned_user_id||'')===uid);}
 function opsRenderMyRuns(){
   const host=document.getElementById('opsMyRunList');if(!host)return;
-  const runs=opsMyRuns().sort((a,b)=>String(a.service_date).localeCompare(String(b.service_date)));
-  host.innerHTML=runs.map(r=>{const xs=(opsState.runStops||[]).filter(x=>x.run_id===r.id);return `<div class="card" style="padding:10px;margin:7px 0"><strong>${opsEsc(r.service_date)} · ${opsEsc(r.name||'Tour')}</strong><div class="muted">${xs.length} Stopps · ${opsEsc(r.status||'planned')}</div>${xs.map(x=>`<div style="margin-top:6px">${x.sort_order}. ${opsEsc(opsObjName(x.object_id))} · ${opsEsc(opsServiceName(x.service_type_id))}</div>`).join('')}</div>`;}).join('')||'<div class="muted">Aktuell sind dir keine Touren oder Einsätze zugewiesen.</div>';
+  const today=wsToday();
+
+  const all=opsMyRuns().sort((a,b)=>String(a.service_date||'').localeCompare(String(b.service_date||'')));
+
+  const active=all.filter(r=>['active','in_progress'].includes(String(r.status||'').toLowerCase()));
+  const todayOpen=all.filter(r=>
+    !['completed','cancelled','active','in_progress'].includes(String(r.status||'').toLowerCase()) &&
+    String(r.service_date||'')===today
+  );
+  const future=all.filter(r=>
+    !['completed','cancelled','active','in_progress'].includes(String(r.status||'').toLowerCase()) &&
+    String(r.service_date||'')>today
+  );
+  const overdue=all.filter(r=>
+    !['completed','cancelled','active','in_progress'].includes(String(r.status||'').toLowerCase()) &&
+    String(r.service_date||'')<today
+  ).sort((a,b)=>String(b.service_date||'').localeCompare(String(a.service_date||'')));
+  const archive=all.filter(r=>['completed','cancelled'].includes(String(r.status||'').toLowerCase()))
+    .sort((a,b)=>String(b.service_date||'').localeCompare(String(a.service_date||'')));
+
+  const current=[...active,...todayOpen,...future.slice(0,1)]
+    .filter((r,i,a)=>a.findIndex(z=>String(z.id)===String(r.id))===i);
+
+  const card=(r,archived=false)=>{
+    const xs=(opsState.runStops||[])
+      .filter(x=>String(x.run_id)===String(r.id))
+      .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+    const status=String(r.status||'planned').toLowerCase();
+    const overdueFlag=String(r.service_date||'')<today && !['completed','cancelled'].includes(status);
+    return `<div class="card ${archived?'ops-archived-run':''}" style="padding:12px;margin:8px 0">
+      <div class="row space" style="gap:10px;align-items:flex-start">
+        <div>
+          <strong>${opsEsc(r.service_date)} · ${opsEsc(r.name||'Tour')}</strong>
+          <div class="muted" style="margin-top:4px">${xs.length} Stopps · ${overdueFlag?'Überfällig':opsEsc(omTourStatusLabel(status))}</div>
+        </div>
+        <span class="badge">${overdueFlag?'ÜBERFÄLLIG':archived?'ARCHIV':'TOUR'}</span>
+      </div>
+      <div style="margin-top:9px">
+        ${xs.map(x=>`<div style="margin-top:6px"><strong>${x.sort_order}. ${opsEsc(opsObjName(x.object_id))}</strong> · ${opsEsc(opsServiceName(x.service_type_id))}</div>`).join('')}
+      </div>
+    </div>`;
+  };
+
+  host.innerHTML=`
+    <div class="ops-current-runs">
+      <div class="ws-operative-section-title">Aktueller Einsatz</div>
+      ${current.map(r=>card(r,false)).join('')||'<div class="muted">Aktuell sind dir keine offenen Touren oder Einsätze zugewiesen.</div>'}
+    </div>
+
+    ${overdue.length?`
+      <details style="margin-top:18px">
+        <summary><strong>Offene Alt-Touren (${overdue.length})</strong></summary>
+        ${overdue.map(r=>card(r,false)).join('')}
+      </details>
+    `:''}
+
+    <details style="margin-top:18px">
+      <summary><strong>Archiv (${archive.length})</strong></summary>
+      ${archive.map(r=>card(r,true)).join('')||'<div class="muted" style="margin-top:10px">Noch keine abgeschlossenen Touren.</div>'}
+    </details>
+  `;
 }
+
 async function opsLoad(){
   opsApplyViewMode();
   const org=opsOrg();if(!org)return;
@@ -22449,7 +22278,14 @@ async function opsLoad(){
         runStops:Array.isArray(runStops)?runStops:[],
         assignments:[],
         documents:[],
-        versions:[]
+        versions:[],
+        tenantUsers:[{
+          user_id:currentUserId(),
+          full_name:currentUserProfile?.full_name||cloudSession?.user?.email||'',
+          email:currentUserProfile?.email||cloudSession?.user?.email||'',
+          active:true,
+          membership_role:effectiveOrganizationRole()
+        }]
       };
 
       opsApplyViewMode();
@@ -22473,9 +22309,13 @@ async function opsLoad(){
       cloudRequest(`operation_run_stops?select=*&organization_id=eq.${encodeURIComponent(org)}&order=sort_order.asc`),
       cloudRequest(`object_service_assignments?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&process_type=eq.generic&order=created_at.desc`),
       cloudRequest(`managed_documents?select=*&organization_id=eq.${encodeURIComponent(org)}&document_type=eq.sop&active=eq.true&order=document_number.asc`),
-      cloudRequest(`managed_document_versions?select=*&organization_id=eq.${encodeURIComponent(org)}&status=eq.released&order=created_at.desc`)
+      cloudRequest(`managed_document_versions?select=*&organization_id=eq.${encodeURIComponent(org)}&status=eq.released&order=created_at.desc`),
+      cloudRequest('rpc/get_tenant_users',{
+        method:'POST',
+        body:JSON.stringify({p_organization_id:org})
+      }).catch(e=>{console.warn('Benutzer für Tourzuweisung konnten nicht geladen werden',e);return [];})
     ]);
-    [opsState.services,opsState.plans,opsState.tours,opsState.stops,opsState.runs,opsState.runStops,opsState.assignments,opsState.documents,opsState.versions]=a.map(x=>x||[]);
+    [opsState.services,opsState.plans,opsState.tours,opsState.stops,opsState.runs,opsState.runStops,opsState.assignments,opsState.documents,opsState.versions,opsState.tenantUsers]=a.map(x=>x||[]);
     opsApplyViewMode();
     opsPopulate();
     opsRender();
@@ -22548,13 +22388,55 @@ async function opsDeactivatePlan(id){
     await opsLoad();
   }catch(e){alert('Leistungsplan konnte nicht deaktiviert werden: '+(e.message||e));}
 }
+
+async function opsAssignRun(runId,userId){
+  if(!opsIsPlanningRole())return;
+  try{
+    await cloudRequest(
+      `operation_runs?id=eq.${encodeURIComponent(runId)}&organization_id=eq.${encodeURIComponent(opsOrg())}`,
+      {
+        method:'PATCH',
+        headers:{Prefer:'return=minimal'},
+        body:JSON.stringify({assigned_user_id:userId||null})
+      }
+    );
+    const run=(opsState.runs||[]).find(r=>String(r.id)===String(runId));
+    if(run)run.assigned_user_id=userId||null;
+    opsRender();
+    objectManagerTourDashboardState.loaded=false;
+  }catch(e){
+    alert('Tour konnte nicht zugewiesen werden: '+(e.message||e));
+  }
+}
+
 function opsRender(){
   let e=document.getElementById('opsAssignmentList');
   if(e)e.innerHTML=opsPlanableAssignments().map(a=>`<div class="ops-assignment-item"><strong>${opsEsc(opsAssignmentLabel(a))}</strong><div class="muted" style="margin-top:4px">${opsEsc(opsSopLabel(a))}</div><div class="ops-plan-meta"><span class="badge">Touren &amp; Einsätze</span>${a.valid_from?`<span class="muted">ab ${opsEsc(a.valid_from)}</span>`:''}${a.valid_until?`<span class="muted">bis ${opsEsc(a.valid_until)}</span>`:''}</div></div>`).join('')||'<div class="muted">Keine planbaren Objektleistungen. Zuerst unter „Objekte → Leistungen & SOPs“ eine nicht-winterliche Leistung zuordnen.</div>';
   e=document.getElementById('opsPlanList');
   if(e)e.innerHTML=opsState.plans.map(p=>{const a=opsPlanAssignment(p);return `<div class="ops-plan-item"><strong>${opsEsc(opsObjName(p.object_id))} · ${opsEsc(opsServiceName(p.service_type_id))}</strong><div class="muted" style="margin-top:4px">${a?opsEsc(opsSopLabel(a)):'Keine aktive Objekt-Leistungszuordnung'}</div><div class="ops-plan-meta"><span class="badge">${opsEsc(opsIntervalLabel(p.interval_weeks))}</span><span class="badge">${opsEsc(opsWeekdayLabel(p.weekdays))}</span><span class="badge">${opsEsc(p.planned_duration_minutes||60)} Min.</span><span class="badge">${opsEsc(opsTimeWindowLabel(p))}</span></div><div class="muted" style="margin-top:5px">gültig ${opsEsc(p.valid_from||'—')} – ${opsEsc(p.valid_until||'offen')}</div>${p.scope_text?`<div style="margin-top:5px">${opsEsc(p.scope_text)}</div>`:''}<div class="ops-plan-actions"><button type="button" onclick="opsEditPlan('${opsEsc(p.id)}')" ${a?'':'disabled'}>Bearbeiten</button><button type="button" class="danger" onclick="opsDeactivatePlan('${opsEsc(p.id)}')">Deaktivieren</button></div></div>`;}).join('')||'<div class="muted">Noch keine Leistungspläne.</div>';
   e=document.getElementById('opsTourList');if(e)e.innerHTML=opsState.tours.map(t=>`<div class="card" style="padding:9px;margin:6px 0"><strong>${opsEsc(t.name)}</strong><div class="muted">${opsEsc(t.default_start_time||'')} · ${opsState.stops.filter(x=>x.tour_template_id===t.id).length} Stopps</div></div>`).join('')||'<div class="muted">Noch keine Tourvorlagen.</div>';
-  const today=new Date().toISOString().slice(0,10);e=document.getElementById('opsRunList');if(e)e.innerHTML=opsState.runs.filter(r=>String(r.service_date)>=today).slice(0,30).map(r=>{const xs=opsState.runStops.filter(x=>x.run_id===r.id);return `<div class="card" style="padding:10px;margin:7px 0"><strong>${opsEsc(r.service_date)} · ${opsEsc(r.name||'Tour')}</strong><div class="muted">${xs.length} Stopps · ${opsEsc(r.status)}</div>${xs.map(x=>`<div>${x.sort_order}. ${opsEsc(opsObjName(x.object_id))} · ${opsEsc(opsServiceName(x.service_type_id))}</div>`).join('')}</div>`}).join('')||'<div class="muted">Keine geplanten Einsätze.</div>';
+  const today=new Date().toISOString().slice(0,10);e=document.getElementById('opsRunList');if(e)e.innerHTML=opsState.runs.filter(r=>String(r.service_date)>=today).slice(0,30).map(r=>{
+    const xs=opsState.runStops.filter(x=>x.run_id===r.id);
+    const users=opsAssignableUsers();
+    return `<div class="card" style="padding:10px;margin:7px 0">
+      <div class="row space" style="gap:12px;align-items:flex-start;flex-wrap:wrap">
+        <div>
+          <strong>${opsEsc(r.service_date)} · ${opsEsc(r.name||'Tour')}</strong>
+          <div class="muted">${xs.length} Stopps · ${opsEsc(r.status||'planned')} · Ausgeführt von: ${opsEsc(opsUserName(r.assigned_user_id))}</div>
+        </div>
+        <label style="min-width:220px;margin:0">Ausgeführt von
+          <select onchange="opsAssignRun('${opsEsc(r.id)}',this.value)">
+            <option value="">Nicht zugewiesen</option>
+            ${users.map(u=>{
+              const uid=String(u.user_id||u.id||'');
+              return `<option value="${opsEsc(uid)}" ${String(r.assigned_user_id||'')===uid?'selected':''}>${opsEsc(u.full_name||u.email||'Benutzer')}</option>`;
+            }).join('')}
+          </select>
+        </label>
+      </div>
+      <div style="margin-top:8px">${xs.map(x=>`<div>${x.sort_order}. ${opsEsc(opsObjName(x.object_id))} · ${opsEsc(opsServiceName(x.service_type_id))}</div>`).join('')}</div>
+    </div>`;
+  }).join('')||'<div class="muted">Keine geplanten Einsätze.</div>';
 }
 async function opsSavePlan(){
   try{
