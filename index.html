@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.21.74</title>
+<title>Duschl Service – Objektplattform v2.21.75</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -4551,7 +4551,12 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    Benutzerverwaltung und interne Objektzuweisung verwenden die neue Rollen-RPC.
    Noch KEINE Umschaltung bestehender Fach-RLS auf can_administer_object(); additive Einführung ohne Big-Bang.
    UNVERÄNDERT: bestehende Objektzugriffe, externe Kollaborationszuweisungen, Winterdienst, Notification/CC. */
-const APP_VERSION='2.21.74'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.21.75 | BASIS 2.21.74 | 28.09.2026
+   SOLO-MANDANTEN: Bei genau einem aktiven realen Mandantenbenutzer wird dieser
+   für neu angelegte eigene Objekte serverseitig automatisch als
+   object_responsible gesetzt. Bestehende Rollen-/RLS-/Login-/Winterdienst-/
+   Notification-/CC-Logik bleibt unverändert. */
+const APP_VERSION='2.21.75'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
