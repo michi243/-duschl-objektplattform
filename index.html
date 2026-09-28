@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.01</title>
+<title>Duschl Service – Objektplattform v2.24.02</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3051,6 +3051,23 @@ table td,table th{
   .ds-queue-viewer{min-width:100%}
 }
 </style>
+
+<style id="duschl-workqueue-visibility-hotfix-v22402">
+.ds-queue-viewer{
+  position:relative;
+  padding-left:22px!important;
+}
+.ds-queue-viewer:before{
+  content:"";
+  position:absolute;
+  left:9px;
+  top:13px;
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#86D5A6;
+}
+</style>
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -5945,7 +5962,15 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Mehrere Objektbetreuer sehen denselben Vorgang und werden vollständig angezeigt
    - Ausführung bleibt weiterhin genau einer Person beim Abschluss zugeordnet
    - Keine SQL-/RLS-/Backend-Änderung */
-const APP_VERSION='2.24.01'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.02 | BASIS 2.24.01 | 28.09.2026
+   HOTFIX ARBEITSVORRAT-SICHTBARKEIT
+   - Ursache: Benutzerverwaltung lud Objektzuweisungen nur in userAdminAssignments;
+     der Arbeitsvorrat las db.objectAssignments, das im normalen App-Start nicht befüllt war.
+   - Objektzuweisungen und Benutzernamen werden jetzt beim regulären Mandanten-Reload geladen.
+   - Extern betreute Objekte lesen zusätzlich die tatsächliche assigned_user_id der Kollaboration.
+   - Gilt dynamisch auch für bestehende/alte Tickets.
+   - Keine SQL-/RLS-/Backend-Änderung. */
+const APP_VERSION='2.24.02'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -7162,6 +7187,7 @@ let cloudObjectCollaborations=[];
 let cloudObjectCollaborationScopes=[];
 let cloudServiceScopeCatalog=[];
 let cloudSharedObjectAssignees=[];
+let workQueueVisibilityProfiles=[];
 let platformOrganizationMemberships=[];
 let platformOrganizationProfiles=[];
 let platformTenantActivity=[]; // v2.20.78 – letzte Aktivität je Mandant
@@ -7376,6 +7402,8 @@ function profileDisplayName(uid){
   if(!uid)return '';
   const pools=[
     ...(platformOrganizationProfiles||[]),
+    ...(workQueueVisibilityProfiles||[]),
+    ...(typeof userAdminProfiles!=='undefined'?(userAdminProfiles||[]):[]),
     ...(userAdminMemberships||[]),
     ...(cloudExternalOrderAssignees||[]),
     ...(cloudSharedObjectAssignees||[])
@@ -9573,10 +9601,13 @@ function workQueueVisibilityForObject(objectId,order=null){
   };
 
   // 1) Eigene Objektzuweisungen des aktuell ausführenden Mandanten.
+  const today=new Date().toISOString().slice(0,10);
   (db.objectAssignments||[])
     .filter(a=>
       a.active!==false &&
-      String(a.objectId||a.object_id||'')===oid
+      String(a.objectId||a.object_id||'')===oid &&
+      (!a.valid_from || String(a.valid_from)<=today) &&
+      (!a.valid_until || String(a.valid_until)>=today)
     )
     .forEach(a=>{
       const uid=a.userId||a.user_id;
@@ -9598,9 +9629,27 @@ function workQueueVisibilityForObject(objectId,order=null){
   );
 
   if(collab){
+    const collaborationId=String(collab.collaboration_id||collab.id||'');
+
+    // Autoritative bestehende Einzelzuweisung der aktuellen Kollaboration.
+    // Diese Information ist bereits Bestandteil von get_object_collaborations
+    // und war im Benutzereditor sichtbar, wurde aber bisher im Arbeitsvorrat
+    // nicht ausgewertet.
+    const collabUid=collab.assigned_user_id||collab.assignee_user_id||'';
+    if(collabUid){
+      pushUser(
+        collabUid,
+        collab.assigned_user_name||collab.assignee_user_name||profileDisplayName(collabUid),
+        'object_operator',
+        'shared_object'
+      );
+    }
+
+    // Zukunfts-/Mehrfachfähigkeit: falls die Backend-Sicht mehrere aktive
+    // Shared-Object-Zuweisungen liefert, werden auch diese vollständig angezeigt.
     (cloudSharedObjectAssignees||[])
       .filter(a=>
-        String(a.collaboration_id||'')===String(collab.id||'') &&
+        String(a.collaboration_id||'')===collaborationId &&
         a.active!==false
       )
       .forEach(a=>{
@@ -12033,6 +12082,57 @@ async function saveOrganization(id=''){
   }catch(e){alert('Unternehmen konnte nicht gespeichert werden: '+(e.message||e));}
 }
 
+
+async function cloudLoadWorkQueueVisibilityData(){
+  if(!cloudSession?.access_token){
+    db.objectAssignments=[];
+    workQueueVisibilityProfiles=[];
+    return;
+  }
+
+  try{
+    const rows=await cloudRequest(
+      'object_user_assignments?select=id,object_id,user_id,active,object_role,valid_from,valid_until'
+    );
+    db.objectAssignments=(Array.isArray(rows)?rows:[]).map(a=>({
+      id:a.id,
+      objectId:a.object_id,
+      userId:a.user_id,
+      active:a.active!==false,
+      object_role:a.object_role||'object_operator',
+      valid_from:a.valid_from||null,
+      valid_until:a.valid_until||null
+    }));
+  }catch(e){
+    console.warn('Objektzuweisungen für Arbeitsvorrat konnten nicht geladen werden',e);
+    db.objectAssignments=[];
+  }
+
+  workQueueVisibilityProfiles=[];
+  const orgId=currentOrganizationId();
+  if(!orgId)return;
+
+  try{
+    const users=await cloudRequest('rpc/get_tenant_users',{
+      method:'POST',
+      body:JSON.stringify({p_organization_id:orgId})
+    })||[];
+    workQueueVisibilityProfiles=(Array.isArray(users)?users:[])
+      .filter(u=>u.active!==false)
+      .map(u=>({
+        id:u.user_id,
+        user_id:u.user_id,
+        full_name:u.full_name||'',
+        display_name:u.full_name||u.email||'',
+        email:u.email||'',
+        organization_role:u.membership_role||''
+      }));
+  }catch(e){
+    console.warn('Benutzernamen für Arbeitsvorrat konnten nicht geladen werden',e);
+    workQueueVisibilityProfiles=[];
+  }
+}
+
 async function cloudLoadCurrentUserObjectAssignments(){
   currentUserAssignedObjectIds=new Set();
   const uid=currentUserId();
@@ -12147,6 +12247,7 @@ async function cloudReloadObjects(){
     // Pending-Anfragen sind absichtlich active=false und müssen trotzdem sichtbar bleiben.
     if(hasOperationalAdminAccess()||isPropertyManagerRole()||isObjectManagerRole()||isExternalContractorRole()) await cloudLoadObjectCollaborations(false);
     else cloudObjectCollaborations=[];
+    await cloudLoadWorkQueueVisibilityData();
     const ownIds=new Set(ownObjects.map(o=>o.id));
     db.objects=ownObjects.concat(cloudSharedObjects.filter(o=>!ownIds.has(o.id)));
 
