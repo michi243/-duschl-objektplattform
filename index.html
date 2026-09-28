@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.22.03</title>
+<title>Duschl Service – Objektplattform v2.22.04</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -4725,7 +4725,13 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    DIAGNOSE: Außenpflege-Wetter zeigt bei vollständigem Datenfehler keinen fachlichen Status mehr.
    Bei 0 verwertbaren Wetterdatensätzen erscheint „DATENFEHLER“ und der erste technische Fehlertext.
    Keine SQL-/RLS-Änderung. */
-const APP_VERSION='2.22.03'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.22.04 | BASIS 2.22.03 | 28.09.2026
+   UX: Statusbezeichnungen Außenanlagenpflege präzisiert.
+   GUT -> GEEIGNET
+   PRÜFEN -> EINGESCHRÄNKT
+   VERSCHIEBEN -> NICHT GEEIGNET
+   Keine Backend-/SQL-/RLS-Änderung. */
+const APP_VERSION='2.22.04'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -13964,7 +13970,7 @@ function summerWorstStatus(entries){
 }
 
 function summerStatusLabel(status){
-  return status==='avoid'?'VERSCHIEBEN':status==='check'?'PRÜFEN':'GUT';
+  return status==='avoid'?'NICHT GEEIGNET':status==='check'?'EINGESCHRÄNKT':'GEEIGNET';
 }
 
 function summerStatusClass(status){
