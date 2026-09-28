@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.23.03</title>
+<title>Duschl Service – Objektplattform v2.23.04</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -2819,6 +2819,117 @@ table td,table th{
   }
 }
 </style>
+
+<style id="duschl-cleanup-v22304">
+/* Einstellungen */
+.ds-settings-card{display:grid!important;grid-template-columns:48px 1fr;gap:14px;align-items:start}
+.ds-settings-icon{
+  width:44px;height:44px;border-radius:12px;background:#fff;color:var(--ds-navy);
+  display:grid;place-items:center;font-size:21px;font-weight:900
+}
+.ds-settings-status{
+  display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+  margin-top:10px;padding:9px 11px;border-radius:10px;
+  background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09);
+  color:#A9B7C2;font-size:12px
+}
+
+/* Dashboard: keine Modus-Steuerleiste mehr */
+#operationalDashboard>.dashboard-winter-panel,
+#operationalDashboard>.dashboard-summer-panel{margin-top:0!important}
+
+/* Objektübersicht: Managementliste statt drei schmaler Säulen */
+#objectList.ds-object-grid{
+  grid-template-columns:1fr!important;
+  max-width:1320px;
+}
+.ds-object-card{
+  min-height:auto!important;
+}
+.ds-object-card-head{align-items:center!important}
+.ds-object-metrics{margin-top:11px!important}
+.ds-object-actions{margin-top:11px!important}
+.ds-object-context-details{
+  margin-top:10px;border-top:1px solid rgba(255,255,255,.07);padding-top:8px
+}
+.ds-object-context-details>summary{
+  cursor:pointer;color:#AAB8C3;font-size:12px;font-weight:800;list-style:none
+}
+.ds-object-context-details>summary::-webkit-details-marker{display:none}
+.ds-object-context-details>summary:before{content:"›";display:inline-block;margin-right:7px;transition:transform .15s ease}
+.ds-object-context-details[open]>summary:before{transform:rotate(90deg)}
+.ds-object-context-details .ds-object-context{margin-top:8px!important}
+
+/* Arbeitsvorrat: farbliche Führung + expliziter nächster Schritt */
+.gf-workitem.is-critical{border-left:3px solid var(--ds-danger)!important}
+.gf-workitem.is-attention{border-left:3px solid var(--ds-warning)!important}
+.gf-workitem.is-action{border-left:3px solid #8EB4CF!important}
+.gf-workitem.is-overdue{
+  background:
+    linear-gradient(90deg,rgba(233,109,115,.085),transparent 35%),
+    linear-gradient(145deg,#0E2232,#091A27)!important
+}
+.ds-next-step{
+  display:grid;grid-template-columns:auto 1fr;gap:9px;align-items:start;
+  margin-top:12px;padding:10px 11px;border-radius:10px;
+  border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.028)
+}
+.ds-next-step span{
+  font-size:10px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;color:#8FA1AF
+}
+.ds-next-step strong{font-size:13px!important;line-height:1.35}
+.ds-next-step-critical{border-color:rgba(233,109,115,.35);background:rgba(233,109,115,.07)}
+.ds-next-step-critical strong{color:#F3A0A4!important}
+.ds-next-step-attention{border-color:rgba(230,184,74,.32);background:rgba(230,184,74,.065)}
+.ds-next-step-attention strong{color:#F0CE79!important}
+.ds-next-step-action{border-color:rgba(142,180,207,.30);background:rgba(142,180,207,.055)}
+.ds-next-step-stable{border-color:rgba(83,182,122,.25);background:rgba(83,182,122,.05)}
+
+/* Dokumentenregister: Top-Level ist nur Register, Details auf Abruf */
+.dm-doc-card-compact{padding:0!important;overflow:hidden}
+.dm-doc-compact-head{
+  display:flex;justify-content:space-between;align-items:center;gap:14px;
+  padding:14px 15px
+}
+.dm-doc-compact-main{min-width:0}
+.dm-doc-compact-meta{
+  display:flex;align-items:center;gap:7px;flex-wrap:wrap;
+  margin-top:6px;color:#9FAFBB;font-size:12px
+}
+.dm-doc-compact-actions{flex:0 0 auto}
+.dm-doc-details{
+  border-top:1px solid rgba(255,255,255,.075);padding:0 15px 13px
+}
+.dm-doc-details>summary{
+  cursor:pointer;padding:11px 0 0;color:#B8C4CD;font-weight:850;font-size:12px
+}
+.dm-doc-detail-summary{
+  margin-top:10px;padding:10px;border-radius:10px;
+  background:rgba(255,255,255,.025)
+}
+.dm-doc-card-compact .dm-version-row{
+  margin-top:10px!important;padding:10px!important
+}
+
+/* Inline-Leistungsart anlegen */
+.ds-inline-create{
+  grid-column:1/-1;margin-top:10px;padding:12px;border-radius:12px;
+  background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.11)
+}
+.ds-inline-create-title{font-weight:900;margin-bottom:8px}
+.ds-inline-message{
+  margin-top:8px;color:#A9B8C3;font-size:12px
+}
+#osaServiceManageWrap button{font-size:12px!important}
+
+@media(max-width:680px){
+  .ds-settings-card{grid-template-columns:1fr}
+  .dm-doc-compact-head{align-items:flex-start;flex-direction:column}
+  .dm-doc-compact-actions{width:100%}
+  .dm-doc-compact-actions button{width:100%}
+  .ds-next-step{grid-template-columns:1fr}
+}
+</style>
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -2944,6 +3055,7 @@ table td,table th{
 <button id="navPartnerDirectory" onclick="showSection('partnerDirectory')"><span class="nav-icon">⌘</span><span>Partnerverzeichnis</span></button>
 <button id="navOrganizations" onclick="showSection('organizations')"><span class="nav-icon">▣</span><span>Unternehmen / Mandanten</span></button>
 <button id="navUsers" onclick="showSection('users')"><span class="nav-icon">♙</span><span>Benutzer &amp; Berechtigungen</span></button>
+<button id="navSettings" onclick="showSection('settings')"><span class="nav-icon">⚙</span><span>Einstellungen</span></button>
 <button id="navNotifications" onclick="showSection('notificationSettings')"><span class="nav-icon">✉</span><span>Benachrichtigungen</span></button>
 </nav>
 <div class="app-menu-actions">
@@ -3120,23 +3232,6 @@ table td,table th{
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
-  </div>
-
-  <div id="dashboardSeasonBar" class="dashboard-season-bar">
-    <div class="dashboard-season-main">
-      <div id="dashboardSeasonIcon" class="dashboard-season-icon">○</div>
-      <div>
-        <div id="dashboardSeasonTitle" class="dashboard-season-title">Dashboard-Modus</div>
-        <div id="dashboardSeasonMeta" class="dashboard-season-meta">Modus wird ermittelt …</div>
-      </div>
-    </div>
-    <div id="dashboardSeasonAdminControls" class="dashboard-season-controls" style="display:none">
-      <select id="dashboardSeasonOverride" onchange="saveDashboardSeasonOverride(this.value)">
-        <option value="auto">Automatisch</option>
-        <option value="winter">Wintermodus erzwingen</option>
-        <option value="standard">Standardmodus erzwingen</option>
-      </select>
-    </div>
   </div>
 
   <div id="dashboardWinterPanel" class="dashboard-winter-panel" style="display:none" role="button" tabindex="0"
@@ -3919,6 +4014,40 @@ table td,table th{
   <div class="card" style="margin-top:14px">
     <h3>Aktiver Objekteinsatz</h3>
     <div id="wsExecutionPanel"><span class="muted">Noch kein Einsatz geöffnet.</span></div>
+  </div>
+</section>
+
+
+<section class="section" id="settings">
+  <div class="row space ds-section-head">
+    <div>
+      <div class="ds-section-eyebrow">VERWALTUNG</div>
+      <h2>Einstellungen</h2>
+      <div class="muted">Mandantenweite Steuerung der Plattformdarstellung und saisonalen Fachprozesse.</div>
+    </div>
+  </div>
+
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card ds-settings-card">
+      <div class="ds-settings-icon">◐</div>
+      <div>
+        <h3 style="margin:0">Saisonale Darstellung</h3>
+        <p class="muted" style="margin:6px 0 14px">
+          Steuert, ob auf dem operativen Dashboard Winterdienst oder Außenanlagenpflege priorisiert wird.
+          Im Automatikmodus erfolgt die Umschaltung kalenderbasiert.
+        </p>
+        <label for="dashboardSeasonOverride">Dashboard-Modus</label>
+        <select id="dashboardSeasonOverride" onchange="saveDashboardSeasonOverride(this.value)">
+          <option value="auto">Automatisch</option>
+          <option value="winter">Wintermodus erzwingen</option>
+          <option value="standard">Standardmodus erzwingen</option>
+        </select>
+        <div class="ds-settings-status" id="settingsSeasonEffective">Aktiver Modus wird ermittelt …</div>
+        <div class="muted" style="margin-top:7px;font-size:12px">
+          Automatisch: Winter 01.10.–30.04. · Standard 01.05.–30.09.
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -5652,7 +5781,15 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Vorgangskarten mit klarer Statuskante, konsistenten Abständen und Aktionshierarchie
    - Kritische Arbeit visuell hervorgehoben, Verwaltungsinformationen zurückgenommen
    - Keine SQL-/RLS-/Backend-Änderung */
-const APP_VERSION='2.23.03'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.23.04 | BASIS 2.23.03 | 28.09.2026
+   BEREINIGUNG / BEDIENLOGIK
+   - Saisonmodus-Einstellung aus Dashboard entfernt und in Administration > Einstellungen verschoben
+   - Objektübersicht als kompakte einspaltige Managementliste
+   - Arbeitsvorrat mit farblicher Priorisierung und explizitem „Nächster Schritt“
+   - Dokumentenregister auf oberster Ebene stark verdichtet
+   - Leistungsart: freie Neuanlage aus Objektzuordnung; fehlerhafte ungenutzte Leistungsarten deaktivierbar
+   - Keine SQL-/RLS-/Backend-Änderung */
+const APP_VERSION='2.23.04'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -7604,7 +7741,7 @@ function applyRoleUI(){
   show('navOrganizations',hasAppRole && platformMode);
   show('navUsers',hasAppRole && !platformMode && canManageUsersUI());
   show('navNotifications',hasAppRole && !platformMode && !!currentOrganization && !isPlatformOperatorRole());
-  show('navSettings',false);
+  show('navSettings',hasAppRole && !platformMode && !!currentOrganization && dashboardSeasonCanAdmin());
   show('headerTenantSwitchBtn',hasAppRole && !platformMode && (currentUserMemberships||[]).length>1);
   show('headerDataBtn',hasAppRole && !platformMode && dsCanManageTenantData());
   show('orphanUserCleanupBtn',isAdminRole() && platformMode);
@@ -13459,6 +13596,35 @@ function externallyRoutedFindingIdsForCurrentTenant(){
   return ids;
 }
 
+
+function gfWorkNextStepInfo(t,f,outgoingOrder=null){
+  if(outgoingOrder){
+    const status=String(outgoingOrder.status||'').toLowerCase();
+    if(status==='requested')return {tone:'attention',label:'Nächster Schritt',text:'Auftrag prüfen und annehmen oder ablehnen.'};
+    if(status==='accepted')return {tone:'action',label:'Nächster Schritt',text:'Bearbeitung starten und Leistung dokumentieren.'};
+    if(status==='in_progress')return {tone:'action',label:'Nächster Schritt',text:'Ausführung fortsetzen und anschließend Abschluss dokumentieren.'};
+    if(status==='completed')return {tone:'stable',label:'Nächster Schritt',text:'Abschlussprüfung durch Auftraggeber abwarten.'};
+    return {tone:'neutral',label:'Nächster Schritt',text:'Vorgang öffnen und aktuellen Status prüfen.'};
+  }
+  if(t?.hasTask && gfTaskDerivedBucket(t)==='overdue'){
+    return {tone:'critical',label:'Nächster Schritt',text:'Überfälligen Vorgang sofort prüfen und Termin bzw. Ausführung aktualisieren.'};
+  }
+  if(!t?.hasTask && t?.findingStatus!=='Erledigt'){
+    if(t?.decisionStatus==='approved'||(t?.workRequired===true&&t?.decisionStatus==='not_required')){
+      return {tone:'attention',label:'Nächster Schritt',text:'Aufgabe planen, Verantwortlichen und Termin festlegen.'};
+    }
+    return {tone:'neutral',label:'Nächster Schritt',text:'Vorgang prüfen und operative Bearbeitung konkretisieren.'};
+  }
+  const status=String(t?.status||'').toLowerCase();
+  if(status==='planned')return {tone:'attention',label:'Nächster Schritt',text:'Geplante Aufgabe starten bzw. Termin bestätigen.'};
+  if(status==='in_progress')return {tone:'action',label:'Nächster Schritt',text:'Ausführung abschließen und Ergebnis dokumentieren.'};
+  return {tone:'neutral',label:'Nächster Schritt',text:'Aufgabe öffnen und Bearbeitungsstand aktualisieren.'};
+}
+function gfWorkNextStepHtml(info){
+  if(!info)return '';
+  return `<div class="ds-next-step ds-next-step-${esc(info.tone||'neutral')}"><span>${esc(info.label||'Nächster Schritt')}</span><strong>${esc(info.text||'')}</strong></div>`;
+}
+
 function externalWorkQueueItemHtml(x){
   const source=partnerName(x.source_organization_id);
   const assignedName=cloudExternalOrderAssignees.find(a=>a.user_id===x.assigned_user_id)?.display_name||'';
@@ -13487,7 +13653,9 @@ function externalWorkQueueItemHtml(x){
   const normalActions=canOperateExternalOrder(x)&&['accepted','in_progress'].includes(String(x.status||''))
     ? `<button type="button" class="primary" onclick="openExternalOrderDocumentation('${esc(x.id)}')">Bearbeiten / Dokumentieren</button>${hasOperationalAdminAccess()?`<button type="button" onclick="openExternalOrderReturnModal('${esc(x.id)}')">An Auftraggeber zurückgeben</button>`:''}`
     : `<button type="button" class="primary" onclick="openExternalOrderById('${esc(x.id)}')">Auftrag ansehen</button>`;
-  return `<div class="gf-workitem" data-external-order-id="${esc(x.id)}">
+  const nextStep=gfWorkNextStepInfo(null,null,x);
+  const workTone=String(x.priority||'P3')==='P1'?'is-critical':String(x.priority||'P3')==='P2'?'is-attention':'';
+  return `<div class="gf-workitem ${workTone}" data-external-order-id="${esc(x.id)}">
     <div class="gf-workhead">
       <div>
         <strong>${esc(x.title||'Externer Auftrag')}</strong>
@@ -13508,6 +13676,7 @@ function externalWorkQueueItemHtml(x){
       ${executionSummary}
       <div><b>Priorität:</b> ${esc(priorityLabel(x.priority||'P3'))}</div>
     </div>
+    ${gfWorkNextStepHtml(nextStep)}
     ${isAutoResidentRoute?externalOrderResidentMediaHtml(x):externalOrderRouteMediaHtml(x.id)}
     ${ticketTimelineForExternalOrder(x)}
     <div class="row" style="margin-top:10px">
@@ -13673,9 +13842,10 @@ function renderWorkQueue(){
             (t.decisionStatus==='approved')
             || (t.workRequired===true && t.decisionStatus==='not_required')
           );
+        const nextStep=gfWorkNextStepInfo(t,f,outgoingOrder);
 
         return `
-          <div class="gf-workitem ${overdue?'is-overdue':''}">
+          <div class="gf-workitem ${overdue?'is-overdue is-critical':(t.hasTask?'is-action':'is-attention')}">
             <div class="gf-workhead">
               <div>
                 <strong>${esc(t.title||f.title||'Vorgang')}</strong>
@@ -13694,6 +13864,7 @@ function renderWorkQueue(){
               ${routedExternally?`<div><b>Verantwortlich:</b> ${esc(routedExecutor)}</div><div><b>Übergabe:</b> ${esc(externalOrderLifecycleLabel(outgoingOrder))}</div>`:''}
               ${t.workNote?`<div><b>Arbeitsinfo:</b> ${esc(t.workNote)}</div>`:''}
             </div>
+            ${gfWorkNextStepHtml(nextStep)}
             ${routedExternally?ticketTimelineForExternalOrder(outgoingOrder):ticketTimelineForFinding(f,t.hasTask?(db.tasks||[]).find(q=>q.id===t.taskId)||null:null)}
             <div class="row">
               ${t.hasTask&&!routedExternally?`<button type="button" onclick="openWorkItem('${f.id}')">Aufgabe bearbeiten</button>`:''}
@@ -14781,30 +14952,21 @@ async function saveDashboardSeasonOverride(value){
   }
 }
 function applyDashboardSeasonMode(){
-  const bar=document.getElementById('dashboardSeasonBar');
   const panel=document.getElementById('dashboardWinterPanel');
-  if(!bar||!panel)return;
+  if(!panel)return;
 
   const configured=String(dashboardSeasonSetting?.mode||'auto');
   const effective=dashboardEffectiveSeasonMode();
   const isWinter=effective==='winter';
 
-  const icon=document.getElementById('dashboardSeasonIcon');
-  const title=document.getElementById('dashboardSeasonTitle');
-  const meta=document.getElementById('dashboardSeasonMeta');
-  const controls=document.getElementById('dashboardSeasonAdminControls');
   const select=document.getElementById('dashboardSeasonOverride');
+  const settingsStatus=document.getElementById('settingsSeasonEffective');
 
-  if(icon)icon.textContent=isWinter?'❄':'○';
-  if(title)title.textContent=dashboardSeasonLabel(effective);
-  if(meta){
-    const source=configured==='auto'
-      ?'Automatisch · Winter 01.10.–30.04. · Standard 01.05.–30.09.'
-      :`Manuell durch Administration · ${configured==='winter'?'Wintermodus':'Standardmodus'}`;
-    meta.textContent=source;
-  }
-  if(controls)controls.style.display=dashboardSeasonCanAdmin()?'flex':'none';
   if(select)select.value=['auto','winter','standard'].includes(configured)?configured:'auto';
+  if(settingsStatus){
+    const source=configured==='auto'?'Automatisch':'Manuelle Vorgabe';
+    settingsStatus.innerHTML=`<strong>Aktiv: ${esc(dashboardSeasonLabel(effective))}</strong><span>${esc(source)}</span>`;
+  }
 
   panel.style.display=isWinter?'block':'none';
   const summerPanel=document.getElementById('dashboardSummerPanel');
@@ -15383,8 +15545,8 @@ function renderObjects(){
         ${o.notes?`<div class="ds-object-note">${esc(o.notes)}</div>`:''}
 
         ${o.externalManaged
-          ? `<div class="ds-object-context">${o.serviceScope?`<div><strong>Leistungsumfang:</strong> ${esc(o.serviceScope)}</div>`:''}<div>Zur Betreuung durch dein Unternehmen freigegeben.</div></div>`
-          : `<div class="ds-object-context">${collaborationHtml}</div>`}
+          ? `<details class="ds-object-context-details"><summary>Betreuung & Leistungsumfang</summary><div class="ds-object-context">${o.serviceScope?`<div><strong>Leistungsumfang:</strong> ${esc(o.serviceScope)}</div>`:''}<div>Zur Betreuung durch dein Unternehmen freigegeben.</div></div></details>`
+          : (collaborationHtml?`<details class="ds-object-context-details"><summary>Betreuung & Zugriff</summary><div class="ds-object-context">${collaborationHtml}</div></details>`:'')}
 
         <div class="ds-object-actions">
           <button class="primary ds-object-primary-action" onclick="openFindingModal('${esc(o.id)}','')">+ Dokumentation erfassen</button>
@@ -18898,12 +19060,24 @@ function osaSopOptions(serviceTypeId=''){
 function osaServiceChanged(){
   const sid=document.getElementById('osaService')?.value||'';
   const sop=document.getElementById('osaSop');
+  const newWrap=document.getElementById('osaNewServiceWrap');
+  const manageWrap=document.getElementById('osaServiceManageWrap');
+  const isNew=sid==='__new__';
+
+  if(newWrap)newWrap.classList.toggle('hidden',!isNew);
+  if(manageWrap)manageWrap.classList.toggle('hidden',!sid||isNew);
+
   if(!sop)return;
+  if(isNew){
+    sop.innerHTML='<option value="">Neue Leistungsart zuerst anlegen …</option>';
+    sop.disabled=true;
+    return;
+  }
   const options=osaSopOptions(sid);
   sop.innerHTML='<option value="">SOP wählen …</option>'+options;
   sop.disabled=!sid;
   if(sid&&!options){
-    sop.innerHTML='<option value="">Keine freigegebene SOP für diese Leistungsart</option>';
+    sop.innerHTML='<option value="">Keine freigegebene SOP – zuerst SOP anlegen/freigeben</option>';
     sop.disabled=true;
   }
 }
@@ -19011,6 +19185,69 @@ function osaExternalScopeLabel(obj){
   return String(obj.serviceScope||'').trim();
 }
 
+
+async function osaCreateServiceType(objectId){
+  if(!slTenantAdmin())return alert('Keine Administrationsberechtigung.');
+  const obj=(db.objects||[]).find(o=>String(o.id)===String(objectId));
+  if(obj?.externalManaged)return alert('Bei extern betreuten Objekten dürfen nur vom Auftraggeber freigegebene Leistungsarten verwendet werden.');
+
+  const name=(document.getElementById('osaNewServiceName')?.value||'').trim();
+  const qualification=(document.getElementById('osaNewServiceQualification')?.value||'').trim();
+  if(name.length<3)return alert('Bitte eine eindeutige Leistungsbezeichnung mit mindestens 3 Zeichen eingeben.');
+
+  const duplicate=(osaState.services||[]).find(s=>String(s.name||'').trim().toLocaleLowerCase('de-DE')===name.toLocaleLowerCase('de-DE'));
+  if(duplicate)return alert('Diese Leistungsart ist bereits vorhanden.');
+
+  const id=crypto.randomUUID();
+  try{
+    await cloudRequest('service_types',{
+      method:'POST',
+      headers:{Prefer:'return=minimal'},
+      body:JSON.stringify({
+        id,
+        organization_id:currentOrganizationId(),
+        name,
+        qualification_code:qualification||null,
+        note:'Direkt aus Objekt-Leistungszuordnung angelegt',
+        active:true,
+        created_by:currentUserId()
+      })
+    });
+    await openObjectServicesModal(objectId);
+    const sel=document.getElementById('osaService');
+    if(sel){
+      sel.value=id;
+      osaServiceChanged();
+    }
+    const msg=document.getElementById('osaServiceMessage');
+    if(msg)msg.innerHTML=`<strong>${esc(name)}</strong> wurde angelegt. Nächster Schritt: passende SOP im Dokumentenmanagement anlegen und freigeben.`;
+  }catch(e){
+    alert('Leistungsart konnte nicht angelegt werden: '+(e.message||e));
+  }
+}
+async function osaDeactivateSelectedService(objectId){
+  const sid=document.getElementById('osaService')?.value||'';
+  if(!sid||sid==='__new__')return;
+  const st=(osaState.services||[]).find(s=>String(s.id)===String(sid));
+  if(!st)return;
+  const activeAssignment=(osaState.assignments||[]).some(a=>String(a.service_type_id)===String(sid));
+  const linkedDocument=(osaState.documents||[]).some(d=>String(d.service_type_id||'')===String(sid));
+  if(activeAssignment||linkedDocument){
+    return alert('Diese Leistungsart kann nicht deaktiviert werden, weil sie bereits einer aktiven Objektleistung oder einer SOP zugeordnet ist.');
+  }
+  if(!confirm(`Leistungsart „${st.name}“ deaktivieren?`))return;
+  try{
+    await cloudRequest(`service_types?id=eq.${encodeURIComponent(sid)}`,{
+      method:'PATCH',
+      headers:{Prefer:'return=minimal'},
+      body:JSON.stringify({active:false})
+    });
+    await openObjectServicesModal(objectId);
+  }catch(e){
+    alert('Leistungsart konnte nicht deaktiviert werden: '+(e.message||e));
+  }
+}
+
 async function openObjectServicesModal(objectId){
   try{
     if(!slTenantAdmin())return alert('Keine Administrationsberechtigung.');
@@ -19056,11 +19293,33 @@ async function openObjectServicesModal(objectId){
         <div class="card" style="margin-top:14px">
           <h3>Leistung zuordnen</h3>
           <div class="grid2">
-            <label>Leistungsart<select id="osaService" onchange="osaServiceChanged()"><option value="">Leistung wählen …</option>${allowedServices.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select></label>
+            <label>Leistungsart<select id="osaService" onchange="osaServiceChanged()"><option value="">Leistung wählen …</option>${allowedServices.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}${!obj.externalManaged?'<option value="__new__">+ Neue Leistungsart anlegen …</option>':''}</select></label>
             <label>Freigegebene SOP<select id="osaSop" disabled><option value="">Zuerst Leistungsart wählen …</option></select></label>
             <label>Gültig von<input id="osaFrom" type="date"></label>
             <label>Gültig bis<input id="osaUntil" type="date"></label>
           </div>
+          ${!obj.externalManaged?`<div id="osaNewServiceWrap" class="ds-inline-create hidden">
+            <div class="ds-inline-create-title">Neue Leistungsart</div>
+            <div class="grid2">
+              <label>Bezeichnung<input id="osaNewServiceName" type="text" maxlength="120" placeholder="z. B. Dachrinnenreinigung"></label>
+              <label>Fachliche Einordnung
+                <select id="osaNewServiceQualification">
+                  <option value="">Allgemeine Leistung</option>
+                  <option value="winter_service">Winterdienst</option>
+                  <option value="garden_service">Grün-/Außenanlagenpflege</option>
+                  <option value="cleaning_service">Reinigung</option>
+                  <option value="caretaker_service">Hausmeister-/Objektservice</option>
+                  <option value="minor_repairs">Montage/Kleinreparaturen</option>
+                </select>
+              </label>
+            </div>
+            <button class="primary" type="button" onclick="osaCreateServiceType('${esc(objectId)}')">Leistungsart anlegen</button>
+            <div class="muted" style="margin-top:7px">Danach ist eine freigegebene SOP erforderlich, bevor die Leistung dem Objekt verbindlich zugeordnet werden kann.</div>
+          </div>
+          <div id="osaServiceManageWrap" class="row hidden" style="margin-top:8px">
+            <button type="button" onclick="osaDeactivateSelectedService('${esc(objectId)}')">Ungenutzte Leistungsart deaktivieren</button>
+          </div>
+          <div id="osaServiceMessage" class="ds-inline-message"></div>`:''}
           <label style="margin-top:10px">Objektspezifischer Leistungsumfang / Hinweis<textarea id="osaNote" placeholder="Nur objektspezifische Abgrenzung; die Arbeitsweise wird durch die SOP definiert."></textarea></label>
           ${obj.externalManaged?`<div class="muted" style="margin-top:6px"><strong>Externe Betreuung:</strong> Es sind ausschließlich Leistungen auswählbar, die vom Auftraggeber für diesen Mandanten freigegeben wurden. Freigegeben: ${esc(osaExternalScopeLabel(obj)||'—')}</div>`:''}
           <div class="muted" style="margin-top:6px">Winterdienst wird automatisch dem spezialisierten Winterdienst-Prozess zugeordnet. Andere Leistungen laufen über Touren &amp; Einsätze.</div>
@@ -19075,6 +19334,7 @@ async function osaSave(objectId){
   try{
     const service_type_id=document.getElementById('osaService')?.value||'';
     const managed_document_version_id=document.getElementById('osaSop')?.value||'';
+    if(service_type_id==='__new__')throw new Error('Neue Leistungsart zuerst anlegen.');
     if(!service_type_id||!managed_document_version_id)throw new Error('Leistungsart und freigegebene SOP auswählen.');
     const obj=(db.objects||[]).find(o=>String(o.id)===String(objectId));
     const rpc=obj?.externalManaged?'rpc/set_external_object_service_assignment_v1':'rpc/set_object_service_assignment_v1';
@@ -21043,34 +21303,28 @@ function dmRender(){
     </div>`;
   }).join('');
 
-  return `<div class="card dm-doc-card">
-    <div class="dm-doc-head">
-      <div>
+  return `<div class="card dm-doc-card dm-doc-card-compact">
+    <div class="dm-doc-compact-head">
+      <div class="dm-doc-compact-main">
         <div class="dm-doc-title"><strong>${dmEsc(d.document_number)} · ${dmEsc(d.title)}</strong></div>
-        <div class="muted" style="margin-top:3px">
-          ${dmEsc(dmTypeLabels[d.document_type]||d.document_type)}
-          ${d.document_type==='sop'?` · ${dmEsc(serviceName)}`:''}
+        <div class="dm-doc-compact-meta">
+          <span>${dmEsc(dmTypeLabels[d.document_type]||d.document_type)}${d.document_type==='sop'?` · ${dmEsc(serviceName)}`:''}</span>
+          ${latestReleased?`<span class="badge">V${dmEsc(latestReleased.version)} freigegeben</span>`:`<span class="badge">Keine Freigabe</span>`}
+          <span class="badge">${activeObjectIds.length} aktiv</span>
+          ${drafts.length?`<span class="badge">${drafts.length} Entwurf${drafts.length===1?'':'e'}</span>`:''}
         </div>
       </div>
-
-      <div class="dm-doc-badges">
-        <span class="badge">${allVersions.length} ${allVersions.length===1?'Version':'Versionen'}</span>
-        <span class="badge">${activeObjectIds.length} ${activeObjectIds.length===1?'Objekt aktiv':'Objekte aktiv'}</span>
-        ${drafts.length?`<span class="badge">${drafts.length} ${drafts.length===1?'Entwurf':'Entwürfe'}</span>`:''}
+      <div class="dm-doc-compact-actions">
+        ${latestReleased?.storage_path?`<button type="button" onclick="dmOpenFile('${dmEsc(latestReleased.id)}')">Öffnen</button>`:''}
       </div>
     </div>
 
-    <div class="dm-summary">
-      ${latestSummary}
-      ${usageSummary}
-    </div>
-
-    <div class="dm-doc-actions">
-      ${latestReleased?.storage_path?`<button type="button" onclick="dmOpenFile('${dmEsc(latestReleased.id)}')">Aktuelle Freigabe öffnen</button>`:''}
-    </div>
-
-    <details class="dm-history" ${objectFilter?'open':''}>
-      <summary>Versionen anzeigen (${visibleVersions.length})</summary>
+    <details class="dm-history dm-doc-details" ${objectFilter?'open':''}>
+      <summary>Details & Versionen (${visibleVersions.length})</summary>
+      <div class="dm-doc-detail-summary">
+        ${latestSummary}
+        ${usageSummary}
+      </div>
       ${historyRows||'<div class="muted" style="margin-top:8px">Keine Versionen für den gewählten Filter.</div>'}
     </details>
   </div>`;
