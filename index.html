@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.34</title>
+<title>Duschl Service – Objektplattform v2.24.35</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3765,6 +3765,16 @@ table td,table th{
 }
 </style>
 
+
+<style id="duschl-winter-sequence-v22435">
+.winter-sequence-warning{
+  border:1px solid rgba(229,177,63,.45);
+}
+.ws-run-object-btn:first-child{
+  position:relative;
+}
+</style>
+
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -6977,7 +6987,18 @@ BACKEND: keine neue SQL-/RLS-Änderung.
      leitet daraus den Stop-Status ab.
    BACKEND: SQL 2.24.34 erforderlich.
 */
-const APP_VERSION='2.24.34'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.35 | BASIS 2.24.34 | 28.09.2026
+   WINTERDIENST-REIHENFOLGE VERBINDLICH
+   - Tourreihenfolge (sort_order) bestimmt den operativen Fokus.
+   - Beim Öffnen einer Tour wird automatisch der erste noch offene Stopp gezeigt.
+   - Beispiel: Musterstraße vor Lindenhof => Dokumentation startet bei Musterstraße.
+   - Nach Abschluss einer Leistungsdokumentation springt die Ansicht automatisch
+     zum nächsten noch offenen Stopp der Tour.
+   - Vergangene aktive Touren werden als Alt-Touren eingeordnet; heutige Touren
+     haben Vorrang vor Alt-Touren.
+   - Kein SQL-/RLS-/Backend-Change.
+*/
+const APP_VERSION='2.24.35'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -17611,9 +17632,9 @@ function openObjectManagerUnifiedTour(kind,runId){
     setTimeout(async()=>{
       try{
         await loadWinterService();
-        const first=(wsState.executions||[])
-          .filter(x=>String(x.run_id||'')===String(runId||''))
-          .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0))[0];
+        const first=wsNextOpenExecutionForRun(runId)
+          ||wsExecutionsForRunOrdered(runId)[0]
+          ||null;
         if(first)await wsOpenExecution(first.id);
         else wsRenderMyWinterOrders();
       }catch(e){console.error(e)}
@@ -20773,8 +20794,10 @@ async function saveFinding(id){
     if(returnToWinter?.executionId){
       showSection('winterService');
       await loadWinterService();
-      await wsSyncRunCompletion(returnToWinter.runId);
-      await wsOpenExecution(returnToWinter.executionId);
+      const runCompleted=await wsSyncRunCompletion(returnToWinter.runId);
+      if(!runCompleted){
+        await wsOpenNextExecutionInRun(returnToWinter.runId,{fallbackExecutionId:returnToWinter.executionId});
+      }
     }else if(returnToExternalOrderId){
       showSection('workqueue');
       renderWorkQueue();
@@ -22035,6 +22058,7 @@ async function osaDeactivate(id,objectId){
    ========================================================= */
 let wsState={sops:[],versions:[],scopes:[],templates:[],stops:[],runs:[],executions:[],areas:[],selectedAreas:[],manualAreas:[],tenantUsers:[],objectAssignments:[],managedDocuments:[],managedVersions:[],weatherByObject:{}};
 let winterDocumentationContext=null;
+let wsSelectedExecutionId='';
 let wsEditingTourTemplateId=null;
 let wsTourDraftObjectIds=[];
 
@@ -22341,6 +22365,7 @@ async function loadWinterService(){
 
       wsApplyWinterServiceViewMode();
       wsRenderMyWinterOrders();
+      await wsAlignExecutionPanelToTourOrder();
       return;
     }
 
@@ -23332,6 +23357,8 @@ function wsRunCard(r){
   const status=wsRunStatus(r);
   const title=r.tour_name||r.name||r.template_name||'Tagestour';
   const completed=xs.filter(x=>String(x.status)==='completed').length;
+  const nextOpen=xs.find(x=>String(x.status||'')!=='completed')||null;
+  const nextOpenName=nextOpen?objName(nextOpen.object_id):'';
 
   const stopButtons=xs.map((x,i)=>{
     const name=objName(x.object_id);
@@ -23354,6 +23381,7 @@ function wsRunCard(r){
         <div class="muted" style="margin-top:4px">
           ${xs.length} Objekt${xs.length===1?'':'e'} · ${completed}/${xs.length} erledigt · Ausgeführt von: ${wsEsc(assignee)}
         </div>
+        ${nextOpenName?`<div class="muted" style="margin-top:3px"><strong>Nächster Stopp:</strong> ${wsEsc(nextOpenName)}</div>`:''}
       </div>
       <span class="badge">${wsEsc(wsRunStatusLabel(status))}</span>
     </div>
@@ -23487,18 +23515,16 @@ function wsRunBuckets(runs){
       continue;
     }
 
-    if(status==='active'){
-      active.push(r);
-      continue;
-    }
-
+    // Datum ist führend. Eine alte, noch aktive Tour bleibt eine Alt-Tour
+    // und verdrängt nicht die heutige Tour aus dem operativen Fokus.
     if(date<today){
       overdue.push(r);
       continue;
     }
 
     if(date===today){
-      todayOpen.push(r);
+      if(status==='active')active.push(r);
+      else todayOpen.push(r);
       continue;
     }
 
@@ -23512,6 +23538,63 @@ function wsRunBuckets(runs){
   archive.sort((a,b)=>wsRunSortKey(b).localeCompare(wsRunSortKey(a)));
 
   return {active,todayOpen,future,overdue,archive};
+}
+
+function wsExecutionsForRunOrdered(runId){
+  return (wsState.executions||[])
+    .filter(x=>String(x.run_id||'')===String(runId||''))
+    .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+}
+
+function wsNextOpenExecutionForRun(runId){
+  const xs=wsExecutionsForRunOrdered(runId);
+  return xs.find(x=>String(x.status||'')!=='completed')||null;
+}
+
+function wsPriorOpenExecution(execution){
+  if(!execution)return null;
+  const xs=wsExecutionsForRunOrdered(execution.run_id);
+  const currentIndex=xs.findIndex(x=>String(x.id||'')===String(execution.id||''));
+  if(currentIndex<=0)return null;
+  return xs.slice(0,currentIndex).find(x=>String(x.status||'')!=='completed')||null;
+}
+
+async function wsOpenNextExecutionInRun(runId,{fallbackExecutionId=''}={}){
+  const next=wsNextOpenExecutionForRun(runId);
+  if(next){
+    await wsOpenExecution(next.id);
+    return next;
+  }
+
+  if(fallbackExecutionId){
+    const fallback=(wsState.executions||[]).find(x=>String(x.id||'')===String(fallbackExecutionId||''));
+    if(fallback){
+      await wsOpenExecution(fallback.id);
+      return fallback;
+    }
+  }
+  return null;
+}
+
+async function wsAlignExecutionPanelToTourOrder(){
+  if(!wsIsWinterOperative())return;
+
+  const buckets=wsRunBuckets(wsMyRuns());
+  const preferredRun=[...buckets.active,...buckets.todayOpen][0]||null;
+  if(!preferredRun)return;
+
+  const current=(wsState.executions||[]).find(x=>String(x.id||'')===String(wsSelectedExecutionId||''))||null;
+  const currentBelongsToPreferred=current&&String(current.run_id||'')===String(preferredRun.id||'');
+  const priorOpen=currentBelongsToPreferred?wsPriorOpenExecution(current):null;
+
+  // Manuelle Auswahl eines späteren Stopps wird respektiert, solange kein
+  // früherer offener Stopp davor liegt. Sonst führt die Tourreihenfolge.
+  if(currentBelongsToPreferred && !priorOpen && String(current.status||'')!=='completed'){
+    return;
+  }
+
+  const next=wsNextOpenExecutionForRun(preferredRun.id);
+  if(next)await wsOpenExecution(next.id);
 }
 
 function wsRenderMyWinterOrders(){
@@ -23653,6 +23736,12 @@ async function wsOpenExecution(id){
     const x=wsState.executions.find(e=>String(e.id)===String(id));
     if(!x)throw new Error('Einsatz nicht gefunden.');
 
+    wsSelectedExecutionId=String(id||'');
+    const priorOpen=wsPriorOpenExecution(x);
+    const priorObject=priorOpen
+      ? (db.objects||[]).find(z=>String(z.id)===String(priorOpen.object_id))
+      : null;
+
     const o=(db.objects||[]).find(z=>String(z.id)===String(x.object_id));
     const panel=document.getElementById('wsExecutionPanel');
     const assignmentNote=wsWinterAssignmentNoteForExecution(x);
@@ -23696,6 +23785,16 @@ async function wsOpenExecution(id){
         <div class="muted" style="margin-top:8px">SOP: ${wsWinterSopHtmlForExecution(x)}</div>
         ${assignmentNote?`<div class="muted" style="margin-top:5px">Objekthinweis: ${wsEsc(assignmentNote)}</div>`:''}
 
+        ${priorOpen?`<div class="card winter-sequence-warning" style="margin-top:14px">
+          <strong>Vorheriger Tourstopp noch offen</strong>
+          <div class="muted" style="margin-top:5px">
+            Laut Tourreihenfolge ist zuerst ${wsEsc(priorObject?.name||'der vorherige Stopp')} zu bearbeiten.
+          </div>
+          <button type="button" style="margin-top:10px" onclick="wsOpenExecution('${wsEsc(priorOpen.id)}')">
+            Vorherigen Stopp öffnen
+          </button>
+        </div>`:''}
+
         <div class="winter-central-doc-card" style="margin-top:14px">
           <strong>Zentrale Leistungsdokumentation</strong>
           <div class="muted" style="margin-top:5px">
@@ -23706,8 +23805,8 @@ async function wsOpenExecution(id){
           `:linkedId?`
             <div class="muted" style="margin-top:8px">Dokumentation ist verknüpft, aber noch nicht lokal geladen.</div>
           `:''}
-          <button type="button" class="primary" style="margin-top:12px" onclick="wsOpenOrCreateDocumentation('${id}')">
-            ${linkedId?'Leistungsdokumentation öffnen':'Leistungsdokumentation erstellen'}
+          <button type="button" class="primary" style="margin-top:12px" onclick="${priorOpen&&!linkedId?`wsOpenExecution('${wsEsc(priorOpen.id)}')`:`wsOpenOrCreateDocumentation('${id}')`}">
+            ${priorOpen&&!linkedId?'Zuerst vorherigen Stopp bearbeiten':linkedId?'Leistungsdokumentation öffnen':'Leistungsdokumentation erstellen'}
           </button>
         </div>
       </div>
