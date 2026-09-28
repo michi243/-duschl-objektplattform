@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.14</title>
+<title>Duschl Service – Objektplattform v2.24.15</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -6276,7 +6276,16 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Gilt für Winterdienst und Standardtouren.
    - Keine SQL-/RLS-/Backend-Änderung.
 */
-const APP_VERSION='2.24.14'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.24.15 | BASIS 2.24.14 | 28.09.2026
+   AUTOMATISCHE TOURENZUWEISUNG / OBJEKTBETREUER
+   - Kandidaten für eine Tagestour kommen aus den aktiven Objektzuweisungen der Tourstopps.
+   - Nur operative Objektbetreuer (object_operator) werden als automatische Kandidaten verwendet.
+   - Ein eindeutiger gemeinsamer Objektbetreuer wird backendseitig automatisch gesetzt.
+   - Bei mehreren gemeinsamen Kandidaten zeigt das Frontend nur diese zulässigen Benutzer zur Auswahl.
+   - Bei keinem gemeinsamen Kandidaten bleibt die Tour bewusst unzugewiesen.
+   - Keine Änderung am Winterdienst-Fachprozess.
+*/
+const APP_VERSION='2.24.15'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -22157,6 +22166,41 @@ function opsAssignableUsers(){
     .sort((a,b)=>String(a.full_name||a.email||'').localeCompare(String(b.full_name||b.email||''),'de'));
 }
 
+function opsRunEligibleUserIds(run){
+  const stops=(opsState.runStops||[]).filter(x=>String(x.run_id||'')===String(run?.id||''));
+  const objectIds=[...new Set(stops.map(x=>String(x.object_id||'')).filter(Boolean))];
+  if(!objectIds.length)return [];
+
+  const serviceDate=String(run?.service_date||wsToday());
+  let common=null;
+
+  for(const objectId of objectIds){
+    const ids=new Set(
+      (db.objectAssignments||[])
+        .filter(a=>
+          a.active!==false &&
+          String(a.objectId||a.object_id||'')===objectId &&
+          String(a.object_role||'object_operator')==='object_operator' &&
+          (!a.valid_from || String(a.valid_from)<=serviceDate) &&
+          (!a.valid_until || String(a.valid_until)>=serviceDate)
+        )
+        .map(a=>String(a.userId||a.user_id||''))
+        .filter(Boolean)
+    );
+
+    common=common===null
+      ? ids
+      : new Set([...common].filter(id=>ids.has(id)));
+  }
+
+  return [...(common||new Set())];
+}
+
+function opsAssignableUsersForRun(run){
+  const eligible=new Set(opsRunEligibleUserIds(run));
+  return opsAssignableUsers().filter(u=>eligible.has(String(u.user_id||u.id||'')));
+}
+
 function opsVersion(id){return opsState.versions.find(x=>String(x.id)===String(id))||null;}
 function opsSopLabel(a){
   const v=opsVersion(a?.managed_document_version_id);
@@ -22418,6 +22462,14 @@ async function opsDeactivatePlan(id){
 async function opsAssignRun(runId,userId){
   if(!opsIsPlanningRole())return;
   try{
+    const run=(opsState.runs||[]).find(r=>String(r.id)===String(runId));
+    if(userId){
+      const eligible=new Set(opsRunEligibleUserIds(run));
+      if(!eligible.has(String(userId))){
+        throw new Error('Dieser Benutzer ist nicht allen Objekten der Tour operativ zugeordnet.');
+      }
+    }
+
     await cloudRequest(
       `operation_runs?id=eq.${encodeURIComponent(runId)}&organization_id=eq.${encodeURIComponent(opsOrg())}`,
       {
@@ -22426,7 +22478,6 @@ async function opsAssignRun(runId,userId){
         body:JSON.stringify({assigned_user_id:userId||null})
       }
     );
-    const run=(opsState.runs||[]).find(r=>String(r.id)===String(runId));
     if(run)run.assigned_user_id=userId||null;
     opsRender();
     objectManagerTourDashboardState.loaded=false;
@@ -22443,21 +22494,28 @@ function opsRender(){
   e=document.getElementById('opsTourList');if(e)e.innerHTML=opsState.tours.map(t=>`<div class="card" style="padding:9px;margin:6px 0"><strong>${opsEsc(t.name)}</strong><div class="muted">${opsEsc(t.default_start_time||'')} · ${opsState.stops.filter(x=>x.tour_template_id===t.id).length} Stopps</div></div>`).join('')||'<div class="muted">Noch keine Tourvorlagen.</div>';
   const today=new Date().toISOString().slice(0,10);e=document.getElementById('opsRunList');if(e)e.innerHTML=opsState.runs.filter(r=>String(r.service_date)>=today).slice(0,30).map(r=>{
     const xs=opsState.runStops.filter(x=>x.run_id===r.id);
-    const users=opsAssignableUsers();
+    const users=opsAssignableUsersForRun(r);
+    const eligibleIds=opsRunEligibleUserIds(r);
+    const assignmentHint=eligibleIds.length===1
+      ? 'Automatisch aus Objektzuweisungen'
+      : eligibleIds.length>1
+        ? `${eligibleIds.length} gemeinsame Objektbetreuer verfügbar`
+        : 'Kein gemeinsamer Objektbetreuer für alle Tourstopps';
     return `<div class="card" style="padding:10px;margin:7px 0">
       <div class="row space" style="gap:12px;align-items:flex-start;flex-wrap:wrap">
         <div>
           <strong>${opsEsc(r.service_date)} · ${opsEsc(r.name||'Tour')}</strong>
           <div class="muted">${xs.length} Stopps · ${opsEsc(r.status||'planned')} · Ausgeführt von: ${opsEsc(opsUserName(r.assigned_user_id))}</div>
         </div>
-        <label style="min-width:220px;margin:0">Ausgeführt von
-          <select onchange="opsAssignRun('${opsEsc(r.id)}',this.value)">
+        <label style="min-width:250px;margin:0">Ausgeführt von
+          <select onchange="opsAssignRun('${opsEsc(r.id)}',this.value)" ${users.length?'':'disabled'}>
             <option value="">Nicht zugewiesen</option>
             ${users.map(u=>{
               const uid=String(u.user_id||u.id||'');
               return `<option value="${opsEsc(uid)}" ${String(r.assigned_user_id||'')===uid?'selected':''}>${opsEsc(u.full_name||u.email||'Benutzer')}</option>`;
             }).join('')}
           </select>
+          <span class="muted" style="display:block;margin-top:4px">${opsEsc(assignmentHint)}</span>
         </label>
       </div>
       <div style="margin-top:8px">${xs.map(x=>`<div>${x.sort_order}. ${opsEsc(opsObjName(x.object_id))} · ${opsEsc(opsServiceName(x.service_type_id))}</div>`).join('')}</div>
