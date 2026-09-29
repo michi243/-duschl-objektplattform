@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.25.0</title>
+<title>Duschl Service – Objektplattform v2.25.1</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5029,6 +5029,9 @@ table td,table th{
           <option value="out_of_service">Außer Betrieb</option>
         </select>
       </label>
+      <label>Gespeicherter Standort (optional)
+        <select id="orSavedLocationId" onchange="orApplySavedLocation('editor')"><option value="">Freie Standortangabe</option></select>
+      </label>
       <label>Standorttyp
         <select id="orLocationType">
           <option value="warehouse">Lager</option>
@@ -5049,6 +5052,39 @@ table td,table th{
       <button class="primary" type="button" onclick="orSaveResource()">Speichern</button>
       <button type="button" id="orDeactivateBtn" class="hidden" onclick="orDeactivateResource()">Deaktivieren</button>
     </div>
+  </div>
+
+  <div class="card operating-resource-admin" id="orLocationAdminCard" style="margin-top:14px">
+    <div class="row space" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
+      <div>
+        <div class="ds-section-eyebrow">STANDORTE</div>
+        <h3 style="margin:0">Lager- &amp; Ablageorte</h3>
+        <div class="muted" style="margin-top:5px">Wiederkehrende Orte einmal anlegen. Freitext bleibt jederzeit möglich.</div>
+      </div>
+      <button type="button" onclick="orResetLocationEditor()">Neu / zurücksetzen</button>
+    </div>
+    <input id="orLocationEditId" type="hidden">
+    <div class="grid2" style="margin-top:12px">
+      <label>Bezeichnung *<input id="orLocationName" placeholder="z. B. WEG Stoerstraße · Wirtschaftsraum UG"></label>
+      <label>Typ
+        <select id="orLocationMasterType">
+          <option value="warehouse">Lager</option>
+          <option value="vehicle">Fahrzeug</option>
+          <option value="object">Objekt</option>
+          <option value="utility_room">Wirtschafts-/Technikraum</option>
+          <option value="employee">Mitarbeiter</option>
+          <option value="external">Externer Standort</option>
+          <option value="free_text">Sonstiges</option>
+        </select>
+      </label>
+      <label>Objekt (optional)<select id="orLocationObjectId"><option value="">Kein Objekt</option></select></label>
+      <label>Detail / Freitext<input id="orLocationDetail" placeholder="z. B. UG, hinter rechter Metalltür"></label>
+    </div>
+    <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">
+      <button class="primary" type="button" onclick="orSaveLocation()">Standort speichern</button>
+      <button type="button" id="orLocationDeactivateBtn" class="hidden" onclick="orDeactivateLocation()">Deaktivieren</button>
+    </div>
+    <div id="orLocationList" style="margin-top:12px"></div>
   </div>
 
   <div class="card" style="margin-top:14px">
@@ -5083,6 +5119,9 @@ table td,table th{
     </div>
     <input id="orMovementResourceId" type="hidden">
     <div class="grid2" style="margin-top:12px">
+      <label>Gespeicherter Standort (optional)
+        <select id="orMoveSavedLocationId" onchange="orApplySavedLocation('movement')"><option value="">Freie Standortangabe</option></select>
+      </label>
       <label>Neuer Standorttyp
         <select id="orMoveLocationType">
           <option value="warehouse">Lager</option>
@@ -5107,7 +5146,7 @@ table td,table th{
   </div>
 
   <div class="resource-calculation-note" style="margin-top:14px">
-    <strong>Prinzip:</strong> Strukturierte Kernfelder für Steuerung, Freitext für die Realität. Jede Standort- oder Mengenänderung wird historisiert; der aktuelle Standort wird gleichzeitig fortgeschrieben.
+    <strong>Prinzip:</strong> Wiederkehrende Standorte strukturiert speichern, Sonderfälle weiterhin frei dokumentieren. Jede Änderung bleibt historisiert.
   </div>
 </section>
 
@@ -7412,7 +7451,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Sichtbarkeit und Backendzugriff nur Mandanten-Admin bzw. Plattform-Admin.
    BACKEND: SQL 2.24.41 erforderlich.
 */
-/* RELEASE 2.25.0 | BASIS 2.24.42 | 29.09.2026
+/* RELEASE 2.25.1 | BASIS 2.25.0 | 29.09.2026
    BETRIEBSMITTEL STUFE 1:
    - Betriebsmittelregister für betriebsrelevante Geräte, Fahrzeuge und Materialien.
    - Hybrid-Standort: strukturierter Typ + Objekt + Freitext.
@@ -7420,7 +7459,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Mitarbeiter dokumentieren Bewegungen; Stammdaten nur Mandanten-Admin.
    - Bestehende Tour-/SOP-/Winterdienstlogik unverändert.
 
-   BACKEND: SQL 2.25.0 erforderlich.
+   BACKEND: SQL 2.25.0 + Patch 2.25.1 erforderlich.
 */
 
 /* RELEASE 2.24.42 | BASIS 2.24.41 | 28.09.2026
@@ -7432,7 +7471,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Speichern bleibt vollständig mandantenspezifisch.
    BACKEND: SQL 2.24.42 erforderlich.
 */
-const APP_VERSION='2.25.0'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.25.1'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -15144,10 +15183,10 @@ async function loadResourcePlanningOverview(){
 
 
 // ============================================================
-// BETRIEBSMITTEL | RELEASE 2.25.0
+// BETRIEBSMITTEL | RELEASE 2.25.1
 // ============================================================
 
-let operatingResourcesState={resources:[],selected:null,movements:[]};
+let operatingResourcesState={resources:[],locations:[],selected:null,movements:[]};
 
 function operatingResourcesCanUse(){
   if(!currentOrganizationId())return false;
@@ -15192,7 +15231,81 @@ function orFmtQty(r){
 
 function orFillObjectSelects(){
   const opts=['<option value="">Kein Objekt</option>'].concat((db.objects||[]).map(o=>`<option value="${esc(o.id)}">${esc(o.name||'Objekt')}</option>`)).join('');
-  ['orObjectId','orMoveObjectId'].forEach(id=>{const el=document.getElementById(id);if(el){const keep=el.value;el.innerHTML=opts;if([...el.options].some(x=>x.value===keep))el.value=keep;}});
+  ['orObjectId','orMoveObjectId','orLocationObjectId'].forEach(id=>{const el=document.getElementById(id);if(el){const keep=el.value;el.innerHTML=opts;if([...el.options].some(x=>x.value===keep))el.value=keep;}});
+}
+
+function orLocationLabel(loc){
+  if(!loc)return '—';
+  const bits=[loc.name];
+  const obj=orObjectName(loc.object_id);
+  if(obj&&!String(loc.name||'').toLowerCase().includes(String(obj).toLowerCase()))bits.push(obj);
+  if(loc.location_detail)bits.push(loc.location_detail);
+  return bits.filter(Boolean).join(' · ');
+}
+
+function orFillSavedLocationSelects(){
+  const rows=(operatingResourcesState.locations||[]).filter(x=>x.active!==false);
+  const opts=['<option value="">Freie Standortangabe</option>'].concat(rows.map(x=>`<option value="${esc(x.id)}">${esc(orLocationLabel(x))}</option>`)).join('');
+  ['orSavedLocationId','orMoveSavedLocationId'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    const keep=el.value;el.innerHTML=opts;if([...el.options].some(x=>x.value===keep))el.value=keep;
+  });
+}
+
+function orApplySavedLocation(mode){
+  const movement=mode==='movement';
+  const select=document.getElementById(movement?'orMoveSavedLocationId':'orSavedLocationId');
+  const loc=(operatingResourcesState.locations||[]).find(x=>String(x.id)===String(select?.value||''));
+  if(!loc)return;
+  const lt=document.getElementById(movement?'orMoveLocationType':'orLocationType');if(lt)lt.value=loc.location_type||'free_text';
+  const oi=document.getElementById(movement?'orMoveObjectId':'orObjectId');if(oi)oi.value=loc.object_id||'';
+  const tx=document.getElementById(movement?'orMoveLocationText':'orLocationText');if(tx)tx.value=loc.location_detail||loc.name||'';
+}
+
+function orResetLocationEditor(){
+  const vals={orLocationEditId:'',orLocationName:'',orLocationMasterType:'warehouse',orLocationObjectId:'',orLocationDetail:''};
+  Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
+  const b=document.getElementById('orLocationDeactivateBtn');if(b)b.classList.add('hidden');
+}
+
+function orEditLocation(id){
+  if(!operatingResourcesCanAdmin())return;
+  const loc=(operatingResourcesState.locations||[]).find(x=>String(x.id)===String(id));if(!loc)return;
+  const vals={orLocationEditId:loc.id||'',orLocationName:loc.name||'',orLocationMasterType:loc.location_type||'warehouse',orLocationObjectId:loc.object_id||'',orLocationDetail:loc.location_detail||''};
+  Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
+  const b=document.getElementById('orLocationDeactivateBtn');if(b)b.classList.remove('hidden');
+  document.getElementById('orLocationAdminCard')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function orRenderLocations(){
+  const host=document.getElementById('orLocationList');if(!host)return;
+  const rows=(operatingResourcesState.locations||[]).filter(x=>x.active!==false);
+  if(!rows.length){host.innerHTML='<div class="muted">Noch keine gespeicherten Standorte. Freitext kann trotzdem genutzt werden.</div>';return;}
+  host.innerHTML=rows.map(loc=>`<div class="row space" style="padding:8px 0;border-bottom:1px solid var(--line,#ddd);gap:10px;align-items:flex-start;flex-wrap:wrap"><div style="min-width:0;flex:1"><strong>${esc(loc.name||'Standort')}</strong><div class="muted">${esc(orLocationTypeLabel(loc.location_type))}${loc.object_id?' · '+esc(orObjectName(loc.object_id)):''}${loc.location_detail?' · '+esc(loc.location_detail):''}</div></div><button type="button" onclick="orEditLocation('${esc(loc.id)}')">Bearbeiten</button></div>`).join('');
+}
+
+async function orSaveLocation(){
+  if(!operatingResourcesCanAdmin())return alert('Nur der Mandanten-Admin darf Standorte verwalten.');
+  const name=String(document.getElementById('orLocationName')?.value||'').trim();if(!name)return alert('Bezeichnung eingeben.');
+  try{
+    await cloudRequest('rpc/save_operating_resource_location_v1',{method:'POST',body:JSON.stringify({
+      p_organization_id:currentOrganizationId(),
+      p_location_id:document.getElementById('orLocationEditId')?.value||null,
+      p_name:name,
+      p_location_type:document.getElementById('orLocationMasterType')?.value||'warehouse',
+      p_object_id:document.getElementById('orLocationObjectId')?.value||null,
+      p_location_detail:String(document.getElementById('orLocationDetail')?.value||'').trim()||null
+    })});
+    orResetLocationEditor();await loadOperatingResources();
+  }catch(e){alert('Standort konnte nicht gespeichert werden: '+(e.message||e));}
+}
+
+async function orDeactivateLocation(){
+  if(!operatingResourcesCanAdmin())return;
+  const id=document.getElementById('orLocationEditId')?.value||'';if(!id)return;
+  if(!confirm('Standort deaktivieren? Bereits dokumentierte Historie bleibt erhalten.'))return;
+  try{await cloudRequest('rpc/set_operating_resource_location_active_v1',{method:'POST',body:JSON.stringify({p_location_id:id,p_active:false})});orResetLocationEditor();await loadOperatingResources();}
+  catch(e){alert('Standort konnte nicht deaktiviert werden: '+(e.message||e));}
 }
 
 function orUpdateTrackingUI(){
@@ -15211,7 +15324,7 @@ function orUpdateTrackingUI(){
 
 function orResetEditor(){
   operatingResourcesState.selected=null;
-  const vals={orEditId:'',orName:'',orKind:'equipment',orCategory:'',orTrackingMode:'individual',orInventoryNumber:'',orSerialNumber:'',orQuantity:'1',orUnit:'',orStatus:'available',orLocationType:'warehouse',orObjectId:'',orLocationText:'',orNotes:''};
+  const vals={orEditId:'',orSavedLocationId:'',orName:'',orKind:'equipment',orCategory:'',orTrackingMode:'individual',orInventoryNumber:'',orSerialNumber:'',orQuantity:'1',orUnit:'',orStatus:'available',orLocationType:'warehouse',orObjectId:'',orLocationText:'',orNotes:''};
   Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
   const pr=document.getElementById('orPlanningRelevant');if(pr)pr.checked=true;
   const title=document.getElementById('orEditorTitle');if(title)title.textContent='Betriebsmittel anlegen';
@@ -15224,7 +15337,7 @@ function orEditResource(id){
   const r=operatingResourcesState.resources.find(x=>String(x.id)===String(id));
   if(!r)return;
   operatingResourcesState.selected=r;
-  const vals={orEditId:r.id||'',orName:r.name||'',orKind:r.resource_kind||'equipment',orCategory:r.category||'',orTrackingMode:r.tracking_mode||'individual',orInventoryNumber:r.inventory_number||'',orSerialNumber:r.serial_number||'',orQuantity:r.quantity??'',orUnit:r.unit||'',orStatus:r.status||'available',orLocationType:r.current_location_type||'free_text',orObjectId:r.current_object_id||'',orLocationText:r.current_location_text||'',orNotes:r.notes||''};
+  const vals={orEditId:r.id||'',orSavedLocationId:r.current_location_id||'',orName:r.name||'',orKind:r.resource_kind||'equipment',orCategory:r.category||'',orTrackingMode:r.tracking_mode||'individual',orInventoryNumber:r.inventory_number||'',orSerialNumber:r.serial_number||'',orQuantity:r.quantity??'',orUnit:r.unit||'',orStatus:r.status||'available',orLocationType:r.current_location_type||'free_text',orObjectId:r.current_object_id||'',orLocationText:r.current_location_text||'',orNotes:r.notes||''};
   Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
   const pr=document.getElementById('orPlanningRelevant');if(pr)pr.checked=r.planning_relevant!==false;
   const title=document.getElementById('orEditorTitle');if(title)title.textContent='Betriebsmittel bearbeiten';
@@ -15238,10 +15351,18 @@ async function loadOperatingResources(){
   const org=currentOrganizationId();
   if(!org)return;
   orFillObjectSelects();
-  const admin=document.getElementById('orAdminCard');if(admin)admin.classList.toggle('hidden',!operatingResourcesCanAdmin());
+  const canAdmin=operatingResourcesCanAdmin();
+  const admin=document.getElementById('orAdminCard');if(admin)admin.classList.toggle('hidden',!canAdmin);
+  const locAdmin=document.getElementById('orLocationAdminCard');if(locAdmin)locAdmin.classList.toggle('hidden',!canAdmin);
   try{
-    const rows=await cloudRequest(`operating_resources?organization_id=eq.${encodeURIComponent(org)}&active=eq.true&select=*&order=name.asc`)||[];
+    const [locations,rows]=await Promise.all([
+      cloudRequest(`operating_resource_locations?organization_id=eq.${encodeURIComponent(org)}&active=eq.true&select=*&order=name.asc`),
+      cloudRequest(`operating_resources?organization_id=eq.${encodeURIComponent(org)}&active=eq.true&select=*&order=name.asc`)
+    ]);
+    operatingResourcesState.locations=Array.isArray(locations)?locations:[];
     operatingResourcesState.resources=Array.isArray(rows)?rows:[];
+    orFillSavedLocationSelects();
+    orRenderLocations();
     const active=operatingResourcesState.resources;
     const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=String(v);};
     set('orKpiActive',active.length);
@@ -15268,18 +15389,17 @@ function orRenderList(){
   host.innerHTML=rows.map(r=>{
     const qty=orFmtQty(r);
     const issue=['maintenance','defective','out_of_service'].includes(r.status);
+    const savedLoc=(operatingResourcesState.locations||[]).find(x=>String(x.id)===String(r.current_location_id||''));
     return `<div class="card" style="margin:0 0 10px;padding:12px">
-      <div class="row space" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
-        <div style="min-width:0;flex:1">
-          <div class="row" style="gap:7px;flex-wrap:wrap;align-items:center"><strong>${esc(r.name||'Betriebsmittel')}</strong><span class="badge${issue?' bad':''}">${esc(orStatusLabel(r.status))}</span>${r.category?`<span class="badge">${esc(r.category)}</span>`:''}</div>
-          <div class="muted" style="margin-top:5px">${esc(orKindLabel(r.resource_kind))}${qty?` · ${esc(qty)}`:''}</div>
-          <div style="margin-top:6px"><strong>Standort:</strong> ${esc(orFormatLocation(r))}</div>
-          ${r.notes?`<div class="muted" style="margin-top:4px">${esc(r.notes)}</div>`:''}
-        </div>
-        <div class="row" style="gap:7px;flex-wrap:wrap">
-          <button type="button" class="primary" onclick="orOpenMovement('${esc(r.id)}')">Standort ändern</button>
-          ${operatingResourcesCanAdmin()?`<button type="button" onclick="orEditResource('${esc(r.id)}')">Bearbeiten</button>`:''}
-        </div>
+      <div style="min-width:0">
+        <div class="row" style="gap:7px;flex-wrap:wrap;align-items:center"><strong style="min-width:0;overflow-wrap:anywhere">${esc(r.name||'Betriebsmittel')}</strong><span class="badge${issue?' bad':''}">${esc(orStatusLabel(r.status))}</span>${r.category?`<span class="badge">${esc(r.category)}</span>`:''}</div>
+        <div class="muted" style="margin-top:5px">${esc(orKindLabel(r.resource_kind))}${qty?` · ${esc(qty)}`:''}</div>
+        <div style="margin-top:6px"><strong>Standort:</strong> ${esc(savedLoc?orLocationLabel(savedLoc):orFormatLocation(r))}</div>
+        ${r.notes?`<div class="muted" style="margin-top:4px">${esc(r.notes)}</div>`:''}
+      </div>
+      <div class="row" style="gap:7px;flex-wrap:wrap;margin-top:10px">
+        <button type="button" class="primary" style="flex:1 1 160px" onclick="orOpenMovement('${esc(r.id)}')">Standort ändern</button>
+        ${operatingResourcesCanAdmin()?`<button type="button" style="flex:1 1 120px" onclick="orEditResource('${esc(r.id)}')">Bearbeiten</button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -15293,7 +15413,7 @@ async function orSaveResource(){
   const qtyRaw=String(document.getElementById('orQuantity')?.value||'').trim();
   const quantity=qtyRaw===''?null:Number(qtyRaw);
   try{
-    await cloudRequest('rpc/save_operating_resource_v1',{method:'POST',body:JSON.stringify({
+    await cloudRequest('rpc/save_operating_resource_v2',{method:'POST',body:JSON.stringify({
       p_organization_id:currentOrganizationId(),
       p_resource_id:document.getElementById('orEditId')?.value||null,
       p_name:name,
@@ -15306,6 +15426,7 @@ async function orSaveResource(){
       p_unit:String(document.getElementById('orUnit')?.value||'').trim()||null,
       p_status:document.getElementById('orStatus')?.value||'available',
       p_planning_relevant:document.getElementById('orPlanningRelevant')?.checked!==false,
+      p_location_id:document.getElementById('orSavedLocationId')?.value||null,
       p_location_type:document.getElementById('orLocationType')?.value||'free_text',
       p_object_id:document.getElementById('orObjectId')?.value||null,
       p_location_text:String(document.getElementById('orLocationText')?.value||'').trim()||null,
@@ -15334,6 +15455,7 @@ async function orOpenMovement(id){
   const rid=document.getElementById('orMovementResourceId');if(rid)rid.value=r.id;
   const title=document.getElementById('orMovementTitle');if(title)title.textContent=`${r.name} · Standort dokumentieren`;
   const cur=document.getElementById('orMovementCurrent');if(cur)cur.textContent=`Aktuell: ${orFormatLocation(r)}${orFmtQty(r)?' · '+orFmtQty(r):''}`;
+  const sl=document.getElementById('orMoveSavedLocationId');if(sl)sl.value=r.current_location_id||'';
   const lt=document.getElementById('orMoveLocationType');if(lt)lt.value=r.current_location_type||'free_text';
   const oi=document.getElementById('orMoveObjectId');if(oi)oi.value=r.current_object_id||'';
   const tx=document.getElementById('orMoveLocationText');if(tx)tx.value=r.current_location_text||'';
@@ -15353,8 +15475,9 @@ async function orRecordMovement(){
   const r=operatingResourcesState.selected; if(!r)return;
   const qRaw=String(document.getElementById('orMoveQuantity')?.value||'').trim();
   try{
-    await cloudRequest('rpc/record_operating_resource_movement_v1',{method:'POST',body:JSON.stringify({
+    await cloudRequest('rpc/record_operating_resource_movement_v2',{method:'POST',body:JSON.stringify({
       p_resource_id:r.id,
+      p_location_id:document.getElementById('orMoveSavedLocationId')?.value||null,
       p_location_type:document.getElementById('orMoveLocationType')?.value||'free_text',
       p_object_id:document.getElementById('orMoveObjectId')?.value||null,
       p_location_text:String(document.getElementById('orMoveLocationText')?.value||'').trim()||null,
