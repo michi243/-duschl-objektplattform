@@ -7597,7 +7597,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    Korrigiert: Benutzeranlage und Mandantenspeicherbereinigung akzeptieren Platform-Admin im Mandantenmodus.
    Dokumentenmanagement bleibt ausschließlich Mandantenadministration und wird Platform-Admins nicht angezeigt.
 
-/* RELEASE 2.26.0 | BASIS 2.25.8 | 29.09.2026
+/* RELEASE 2.26.2 | BASIS 2.26.1 SQL | 29.09.2026
    MODUL: Strukturierte Prozesse & Standards – SOPs, Arbeitsanweisungen und Checklisten direkt in der Plattform.
    GOVERNANCE: Inhalte sind administrativ änderbar/ergänzbar; Änderungen werden backendseitig historisiert.
    UNVERÄNDERT: bestehendes Dokumentenmanagement, Touren, Winterdienst, Dokumentation, Betriebsmittel, RLS-Fachprozesse.
@@ -7619,7 +7619,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - bestehende Tour-, Winterdienst-, SOP-, Dokumentations- und Abschlusslogik bleibt unverändert.
    BACKEND: operating_resource_reservations + Reservierungs-RPCs erforderlich.
 */
-const APP_VERSION='2.26.0'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.2'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -25448,7 +25448,10 @@ async function wsOpenExecution(id){
     const linkedId=String(x.documentation_finding_id||'');
     const docStatus=linkedDoc?.status||'';
     const documentationDone=docStatus==='Erledigt';
-    const resourceReadiness=await wsLoadExecutionResourceReadiness(id);
+    const [resourceReadiness,processStandards]=await Promise.all([
+      wsLoadExecutionResourceReadiness(id),
+      psRuntimeLoadWinterExecution(wsOrg(),id)
+    ]);
 
     panel.innerHTML=`
       <div class="row space">
@@ -25482,8 +25485,10 @@ async function wsOpenExecution(id){
           <span class="badge">${documentationDone?'DOKUMENTIERT':linkedId?'DOKU OFFEN':'DOKU FEHLT'}</span>
         </div>
 
-        <div class="muted" style="margin-top:8px">SOP: ${wsWinterSopHtmlForExecution(x)}</div>
+        <div class="muted" style="margin-top:8px">SOP-Datei: ${wsWinterSopHtmlForExecution(x)}</div>
         ${assignmentNote?`<div class="muted" style="margin-top:5px">Objekthinweis: ${wsEsc(assignmentNote)}</div>`:''}
+
+        ${psRuntimeCardHtml(processStandards,{serviceLabel:'Winterdienst',openJs:`psRuntimeOpenWinter('${wsEsc(id)}','Winterdienst')`})}
 
         ${opsResourceReadinessHtml(resourceReadiness,{contextType:'winter_execution',contextId:id})}
 
@@ -26174,9 +26179,11 @@ function opsRunStopWorkHtml(stop,index){
     </div>
 
     <div class="ops-work-sop-row">
-      <div class="ops-work-order-title">SOP / Arbeitsanweisung</div>
+      <div class="ops-work-order-title">SOP-Datei</div>
       <div>${sopHtml}</div>
     </div>
+
+    ${psRuntimeCardHtml(psRuntimeRowsForService(opsOrg(),stop.service_type_id),{serviceLabel:opsServiceName(stop.service_type_id),openJs:`psRuntimeOpenService('${opsEsc(opsOrg())}','${opsEsc(stop.service_type_id)}','${opsEsc(opsServiceName(stop.service_type_id))}')`})}
 
     <div class="ops-work-order">
       <div class="ops-work-order-title">Was ist zu tun?</div>
@@ -26370,6 +26377,7 @@ async function opsLoad(){
       }catch(e){console.warn('Leistungspläne für operative Touransicht konnten nicht geladen werden',e)}
 
       await loadOperationSopMetaForStops(runStops,{force:true});
+      await psRuntimeLoadServicesForStops(org,runStops);
 
       opsState={
         ...opsState,
@@ -26424,6 +26432,7 @@ async function opsLoad(){
     [opsState.services,opsState.plans,opsState.tours,opsState.stops,opsState.runs,opsState.runStops,opsState.assignments,opsState.documents,opsState.versions,opsState.tenantUsers]=a.map(x=>x||[]);
     await opsLoadResourceReadinessForRuns((opsState.runs||[]).filter(r=>!['completed','cancelled'].includes(String(r.status||'').toLowerCase())));
     await loadOperationSopMetaForStops(opsState.runStops);
+    await psRuntimeLoadServicesForStops(org,opsState.runStops);
     opsApplyViewMode();
     opsPopulate();
     opsRender();
@@ -27477,7 +27486,93 @@ async function openAssignedOperationSop(runStopId){
 
 
 
-/* === PROZESSE & STANDARDS · 2.26.0 === */
+
+/* === OPERATIVE PROZESSE & STANDARDS · 2.26.2 ===
+   Released standards are displayed read-only in normal tours and winter service.
+   Existing managed SOP documents remain unchanged and continue to be available.
+*/
+const psRuntimeState={byService:{},byWinterExecution:{}};
+function psRuntimeServiceKey(org,serviceTypeId){return `${String(org||'')}::${String(serviceTypeId||'')}`;}
+function psRuntimeRowsForService(org,serviceTypeId){return psRuntimeState.byService[psRuntimeServiceKey(org,serviceTypeId)]||[];}
+function psRuntimeRowsForWinter(executionId){return psRuntimeState.byWinterExecution[String(executionId||'')]||[];}
+function psRuntimeNormalizeRows(rows){
+  const map=new Map();
+  (Array.isArray(rows)?rows:[]).forEach(r=>{
+    const id=String(r.standard_id||'');if(!id)return;
+    if(!map.has(id))map.set(id,{id,standard_type:r.standard_type||'',code:r.code||'',title:r.title||'',version:r.version||'1.0',purpose:r.purpose||'',scope:r.scope||'',responsibility:r.responsibility||'',notes:r.notes||'',parent_standard_id:r.parent_standard_id||null,items:[]});
+    if(r.item_text){map.get(id).items.push({sort_order:Number(r.item_sort_order||0),item_type:r.item_type||'step',item_text:r.item_text||'',required:!!r.item_required});}
+  });
+  return [...map.values()].map(x=>({...x,items:x.items.sort((a,b)=>a.sort_order-b.sort_order)}));
+}
+async function psRuntimeLoadService(org,serviceTypeId,{force=false}={}){
+  const key=psRuntimeServiceKey(org,serviceTypeId);if(!org||!serviceTypeId)return [];
+  if(!force&&Object.prototype.hasOwnProperty.call(psRuntimeState.byService,key))return psRuntimeState.byService[key]||[];
+  try{
+    const rows=await cloudRequest('rpc/get_process_standards_for_service_v1',{method:'POST',body:JSON.stringify({p_organization_id:org,p_service_type_id:serviceTypeId})});
+    psRuntimeState.byService[key]=Array.isArray(rows)?rows:[];
+  }catch(e){console.warn('Prozesse & Standards konnten für Leistungsart nicht geladen werden',serviceTypeId,e);psRuntimeState.byService[key]=[];}
+  return psRuntimeState.byService[key];
+}
+async function psRuntimeLoadServicesForStops(org,stops){
+  const ids=[...new Set((Array.isArray(stops)?stops:[]).map(x=>String(x?.service_type_id||'')).filter(Boolean))];
+  await Promise.all(ids.map(id=>psRuntimeLoadService(org,id)));
+}
+async function psRuntimeLoadWinterExecution(org,executionId,{force=false}={}){
+  const key=String(executionId||'');if(!org||!key)return [];
+  if(!force&&Object.prototype.hasOwnProperty.call(psRuntimeState.byWinterExecution,key))return psRuntimeState.byWinterExecution[key]||[];
+  try{
+    const rows=await cloudRequest('rpc/get_winter_execution_process_standards_v1',{method:'POST',body:JSON.stringify({p_organization_id:org,p_execution_id:key})});
+    psRuntimeState.byWinterExecution[key]=Array.isArray(rows)?rows:[];
+  }catch(e){console.warn('Winterdienst-Prozesse & Standards konnten nicht geladen werden',key,e);psRuntimeState.byWinterExecution[key]=[];}
+  return psRuntimeState.byWinterExecution[key];
+}
+function psRuntimeTypeOrder(t){return ({sop:1,work_instruction:2,checklist:3})[String(t||'')]||9;}
+function psRuntimeTypeLabel(t){return ({sop:'SOP',work_instruction:'Arbeitsanweisung',checklist:'Checkliste'})[String(t||'')]||String(t||'Standard');}
+function psRuntimeCardHtml(rows,{serviceLabel='',openJs=''}={}){
+  const standards=psRuntimeNormalizeRows(rows);if(!standards.length)return '';
+  const counts={sop:0,work_instruction:0,checklist:0};standards.forEach(x=>{if(counts[x.standard_type]!==undefined)counts[x.standard_type]++;});
+  return `<div class="card" style="margin-top:12px;padding:12px">
+    <div class="row space" style="gap:10px;align-items:flex-start">
+      <div>
+        <strong>Prozesse &amp; Standards</strong>
+        ${serviceLabel?`<div class="muted" style="margin-top:3px">${esc(serviceLabel)}</div>`:''}
+      </div>
+      <button type="button" onclick="${openJs}">Anzeigen</button>
+    </div>
+    <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:9px">
+      ${counts.sop?`<span class="badge">${counts.sop} SOP</span>`:''}
+      ${counts.work_instruction?`<span class="badge">${counts.work_instruction} Arbeitsanweisung${counts.work_instruction===1?'':'en'}</span>`:''}
+      ${counts.checklist?`<span class="badge">${counts.checklist} Checkliste${counts.checklist===1?'':'n'}</span>`:''}
+    </div>
+    <div class="muted" style="margin-top:7px">Freigegebene Vorgaben für diesen Einsatz. Die bestehende SOP-Datei bleibt separat verfügbar.</div>
+  </div>`;
+}
+function psRuntimeItemHtml(item){
+  const text=esc(item.item_text||'');
+  if(item.item_type==='heading')return `<div style="font-weight:700;margin-top:12px">${text}</div>`;
+  if(item.item_type==='warning')return `<div class="card" style="margin:8px 0;padding:9px"><strong>Hinweis:</strong> ${text}</div>`;
+  if(item.item_type==='note')return `<div class="muted" style="margin:6px 0">${text}</div>`;
+  if(item.item_type==='check')return `<div style="margin:6px 0">☐ ${text}${item.required?' <strong>(Pflicht)</strong>':''}</div>`;
+  return `<div style="margin:6px 0">• ${text}</div>`;
+}
+function psRuntimeOpenRows(rows,title='Prozesse & Standards'){
+  const standards=psRuntimeNormalizeRows(rows).sort((a,b)=>psRuntimeTypeOrder(a.standard_type)-psRuntimeTypeOrder(b.standard_type)||String(a.code).localeCompare(String(b.code),'de'));
+  if(!standards.length)return alert('Für diese Leistung sind keine freigegebenen strukturierten Standards hinterlegt.');
+  modal(`<div class="row space"><div><div class="eyebrow">OPERATIVE VORGABEN</div><h2 style="margin:2px 0 0">${esc(title)}</h2></div><button type="button" onclick="closeModal()">✕</button></div>
+    <div class="muted" style="margin-top:8px">Nur Lesemodus im Einsatz. Änderungen erfolgen zentral unter „Prozesse & Standards“.</div>
+    <div style="margin-top:14px">${standards.map((x,i)=>`<details ${i===0?'open':''} class="card" style="margin:10px 0;padding:12px"><summary><strong>${esc(x.code)} · ${esc(x.title)}</strong> <span class="badge" style="margin-left:6px">${esc(psRuntimeTypeLabel(x.standard_type))}</span></summary>
+      <div class="muted" style="margin-top:8px">Version ${esc(x.version||'1.0')}</div>
+      ${x.purpose?`<div style="margin-top:10px"><strong>Zweck</strong><div>${esc(x.purpose)}</div></div>`:''}
+      ${x.scope?`<div style="margin-top:10px"><strong>Geltungsbereich</strong><div>${esc(x.scope)}</div></div>`:''}
+      ${x.responsibility?`<div style="margin-top:10px"><strong>Verantwortung</strong><div>${esc(x.responsibility)}</div></div>`:''}
+      ${x.items.length?`<div style="margin-top:10px"><strong>Inhalt</strong>${x.items.map(psRuntimeItemHtml).join('')}</div>`:''}
+      ${x.notes?`<div style="margin-top:10px"><strong>Hinweise</strong><div>${esc(x.notes)}</div></div>`:''}
+    </details>`).join('')}</div>`);
+}
+function psRuntimeOpenService(org,serviceTypeId,title){return psRuntimeOpenRows(psRuntimeRowsForService(org,serviceTypeId),title||'Prozesse & Standards');}
+function psRuntimeOpenWinter(executionId,title){return psRuntimeOpenRows(psRuntimeRowsForWinter(executionId),title||'Winterdienst · Prozesse & Standards');}
+
+/* === PROZESSE & STANDARDS · 2.26.2 === */
 const psState={standards:[],items:[],services:[],selectedId:null,dirty:false};
 const psTypeLabels={sop:'SOP',work_instruction:'Arbeitsanweisung',checklist:'Checkliste'};
 function processStandardsCanAdmin(){return !!currentOrganizationId() && (slTenantAdmin() || isPlatformTenantMode());}
