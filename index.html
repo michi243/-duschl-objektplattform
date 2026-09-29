@@ -3967,6 +3967,7 @@ table td,table th{
 <div class="ds-menu-group-label">Betrieb</div>
 <button id="navObjects" onclick="showSection('objects')"><span class="nav-icon">▦</span><span>Objekte</span></button>
 <button id="navDocumentManagement" onclick="showSection('documentManagement')"><span class="nav-icon">▤</span><span>Dokumentenmanagement</span></button>
+<button id="navProcessStandards" onclick="showSection('processStandards')"><span class="nav-icon">≡</span><span>Prozesse &amp; Standards</span></button>
 <button id="navSopServices" class="hidden" style="display:none!important" onclick="showSection('sopServices')"><span class="nav-icon">▣</span><span>SOP &amp; Leistungen (Legacy)</span></button>
 <button id="navOperations" onclick="showSection('operations')"><span class="nav-icon">⇄</span><span>Touren &amp; Einsätze</span></button>
 <button id="navWinterService" onclick="showSection('winterService')"><span class="nav-icon">❄</span><span>Winterdienst</span></button>
@@ -4654,6 +4655,58 @@ table td,table th{
 
 
 
+
+
+<section class="section" id="processStandards">
+  <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
+    <div>
+      <h2 style="margin:0">Prozesse &amp; Standards</h2>
+      <div class="muted" style="margin-top:6px">SOPs, Arbeitsanweisungen und Checklisten direkt in der Plattform. Inhalte sind vollständig änderbar und ergänzbar; Dateien bleiben im Dokumentenmanagement.</div>
+    </div>
+    <button type="button" onclick="psLoad()">↻ Aktualisieren</button>
+  </div>
+  <div id="psNoAdmin" class="card hidden" style="margin-top:14px"><strong>Keine Administrationsberechtigung</strong><div class="muted" style="margin-top:6px">Prozesse und Standards werden durch die Mandantenadministration gepflegt.</div></div>
+  <div id="psAdminView">
+    <div class="grid g2" style="margin-top:14px;align-items:start">
+      <div class="card">
+        <div class="row space" style="gap:8px;flex-wrap:wrap"><h3 style="margin:0">Standardbibliothek</h3><button type="button" class="primary" onclick="psNew()">+ Neu</button></div>
+        <div class="grid2" style="margin-top:10px">
+          <label>Typ<select id="psFilterType" onchange="psRenderList()"><option value="">Alle</option><option value="sop">SOP</option><option value="work_instruction">Arbeitsanweisung</option><option value="checklist">Checkliste</option></select></label>
+          <label>Leistungsbereich<input id="psFilterArea" placeholder="z. B. Winterdienst" oninput="psRenderList()"></label>
+        </div>
+        <div id="psList" style="margin-top:12px"></div>
+      </div>
+      <div class="card" id="psEditorCard">
+        <div class="row space" style="gap:8px;flex-wrap:wrap"><h3 style="margin:0" id="psEditorTitle">Standard anlegen</h3><span class="badge" id="psDirtyBadge" style="display:none">Ungespeichert</span></div>
+        <input type="hidden" id="psId">
+        <div class="grid2" style="margin-top:10px">
+          <label>Typ<select id="psType" onchange="psTypeChanged();psMarkDirty()"><option value="sop">SOP</option><option value="work_instruction">Arbeitsanweisung</option><option value="checklist">Checkliste</option></select></label>
+          <label>Kennung<input id="psCode" placeholder="z. B. SOP-WIN-001" oninput="psMarkDirty()"></label>
+          <label style="grid-column:1/-1">Titel<input id="psTitle" placeholder="z. B. Winterdienst" oninput="psMarkDirty()"></label>
+          <label>Leistungsart<select id="psServiceType" onchange="psMarkDirty()"><option value="">Keine feste Zuordnung</option></select></label>
+          <label>Leistungsbereich / Freitext<input id="psServiceArea" placeholder="z. B. Grünpflege" oninput="psMarkDirty()"></label>
+          <label id="psParentWrap">Übergeordnete SOP<select id="psParent" onchange="psMarkDirty()"><option value="">Keine</option></select></label>
+          <label>Version<input id="psVersion" value="1.0" oninput="psMarkDirty()"></label>
+          <label>Status<select id="psStatus" onchange="psMarkDirty()"><option value="draft">Entwurf</option><option value="released">Freigegeben</option></select></label>
+        </div>
+        <label style="margin-top:10px">Zweck<textarea id="psPurpose" rows="2" oninput="psMarkDirty()"></textarea></label>
+        <label style="margin-top:10px">Geltungsbereich<textarea id="psScope" rows="2" oninput="psMarkDirty()"></textarea></label>
+        <label style="margin-top:10px">Verantwortung<textarea id="psResponsibility" rows="2" oninput="psMarkDirty()"></textarea></label>
+        <label style="margin-top:10px">Hinweise / Abgrenzung<textarea id="psNotes" rows="2" oninput="psMarkDirty()"></textarea></label>
+        <div class="row space" style="margin-top:16px;gap:8px;flex-wrap:wrap">
+          <div><strong>Inhalt</strong><div class="muted" style="font-size:12px">Beliebig viele Abschnitte, Schritte, Prüfpunkte und Hinweise ergänzen.</div></div>
+          <div class="row" style="gap:6px;flex-wrap:wrap"><button type="button" onclick="psAddItem('heading')">+ Abschnitt</button><button type="button" onclick="psAddItem('step')">+ Schritt</button><button type="button" onclick="psAddItem('check')">+ Prüfpunkt</button><button type="button" onclick="psAddItem('note')">+ Hinweis</button></div>
+        </div>
+        <div id="psItems" style="margin-top:10px"></div>
+        <div class="row space" style="margin-top:14px;gap:8px;flex-wrap:wrap">
+          <div class="row" style="gap:8px;flex-wrap:wrap"><button class="primary" type="button" onclick="psSave()">Speichern</button><button type="button" onclick="psDuplicate()">Duplizieren</button></div>
+          <button class="danger" type="button" id="psDeactivateBtn" onclick="psToggleActive()" style="display:none">Deaktivieren</button>
+        </div>
+        <div id="psStatusMsg" class="muted" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <section class="section" id="documentManagement">
   <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -7544,6 +7597,12 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    Korrigiert: Benutzeranlage und Mandantenspeicherbereinigung akzeptieren Platform-Admin im Mandantenmodus.
    Dokumentenmanagement bleibt ausschließlich Mandantenadministration und wird Platform-Admins nicht angezeigt.
 
+/* RELEASE 2.26.0 | BASIS 2.25.8 | 29.09.2026
+   MODUL: Strukturierte Prozesse & Standards – SOPs, Arbeitsanweisungen und Checklisten direkt in der Plattform.
+   GOVERNANCE: Inhalte sind administrativ änderbar/ergänzbar; Änderungen werden backendseitig historisiert.
+   UNVERÄNDERT: bestehendes Dokumentenmanagement, Touren, Winterdienst, Dokumentation, Betriebsmittel, RLS-Fachprozesse.
+*/
+
 /* RELEASE 2.25.8 | BASIS 2.25.7 | 29.09.2026
    PLATFORM-ADMIN · DOKUMENTENMANAGEMENT IM MANDANTENMODUS
    - Reiner Platform-Admin-Modus: Dokumentenmanagement bleibt ausgeblendet.
@@ -7560,7 +7619,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - bestehende Tour-, Winterdienst-, SOP-, Dokumentations- und Abschlusslogik bleibt unverändert.
    BACKEND: operating_resource_reservations + Reservierungs-RPCs erforderlich.
 */
-const APP_VERSION='2.25.8'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.0'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -9515,6 +9574,7 @@ function applyRoleUI(){
   show('navWinterService',hasAppRole && !platformMode);
   show('navOperatingResources',hasAppRole && !platformMode && operatingResourcesCanUse());
   show('navDocumentManagement',hasAppRole && !platformMode && (slTenantAdmin() || isPlatformTenantMode()));
+  show('navProcessStandards',hasAppRole && !platformMode && (slTenantAdmin() || isPlatformTenantMode()));
   show('navExternalOrders',hasAppRole && !platformMode && (hasOperationalAdminAccess()||isPropertyManagerRole()||isObjectManagerRole()));
   show('navReports',hasAppRole && !platformMode);
   show('navPartnerDirectory',hasAppRole);
@@ -15705,6 +15765,7 @@ function showSection(id){
   }
   if(id==='users'&&!canManageUsersUI())return requireAdminUI('Benutzer & Berechtigungen');
   if(id==='operatingResources'&&!operatingResourcesCanUse())return requireAdminUI('Betriebsmittel');
+  if(id==='processStandards'&&!processStandardsCanAdmin())return requireAdminUI('Prozesse & Standards');
   if(id==='resourcePlanning'&&!resourcePlanningCanAdmin())return requireAdminUI('Ressourcenplanung');
   if(id==='settings'&&!canUseSettingsUI())return requireAdminUI('Daten & Administration');
   closeAppMenu();
@@ -15740,7 +15801,7 @@ function showSection(id){
   document.querySelectorAll('#platformBottomNav [data-pa-nav]').forEach(b=>b.classList.toggle('active',b.getAttribute('data-pa-nav')===id));
   if(id==='objects'){renderObjectsDirect();try{renderObjects();}catch(e){console.error('Detail-Renderer Objektseite fehlgeschlagen',e);}}
   if(id==='platformUsers' && isAdminRole() && !isPlatformTenantMode()){refreshPlatformOrphanUserCard();}
-  if(id==='dashboard'&&isAdminRole()){loadPlatformSystemStatus();}if(id==='operatingResources'){loadOperatingResources();}if(id==='resourcePlanning'){loadResourcePlanning();}if(id==='partnerDirectory'){loadPartnerDirectory();}if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='externalOrders')cloudLoadExternalOrders();if(id==='users')loadUserAdminData();if(id==='winterService'){wsApplyWinterServiceViewMode();loadWinterService();}
+  if(id==='dashboard'&&isAdminRole()){loadPlatformSystemStatus();}if(id==='processStandards'){psLoad();}if(id==='operatingResources'){loadOperatingResources();}if(id==='resourcePlanning'){loadResourcePlanning();}if(id==='partnerDirectory'){loadPartnerDirectory();}if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='externalOrders')cloudLoadExternalOrders();if(id==='users')loadUserAdminData();if(id==='winterService'){wsApplyWinterServiceViewMode();loadWinterService();}
 }
 function priorityLabel(p){
   return ({P1:'Sofort',P2:'Dringend',P3:'Planbar',P4:'Beobachten'})[p]||p||'';
@@ -27413,6 +27474,82 @@ async function openAssignedOperationSop(runStopId){
 }
 
 
+
+
+
+/* === PROZESSE & STANDARDS · 2.26.0 === */
+const psState={standards:[],items:[],services:[],selectedId:null,dirty:false};
+const psTypeLabels={sop:'SOP',work_instruction:'Arbeitsanweisung',checklist:'Checkliste'};
+function processStandardsCanAdmin(){return !!currentOrganizationId() && (slTenantAdmin() || isPlatformTenantMode());}
+function psOrg(){return currentOrganizationId();}
+function psApplyAccess(){
+  const admin=processStandardsCanAdmin();
+  const a=document.getElementById('psAdminView'),n=document.getElementById('psNoAdmin');
+  if(a)a.style.display=admin?'block':'none';
+  if(n){n.classList.toggle('hidden',admin);n.style.display=admin?'none':'block';}
+  return admin;
+}
+function psMarkDirty(){psState.dirty=true;const b=document.getElementById('psDirtyBadge');if(b)b.style.display='';}
+function psClearDirty(){psState.dirty=false;const b=document.getElementById('psDirtyBadge');if(b)b.style.display='none';}
+async function psLoad(){
+  if(!psApplyAccess())return;
+  const org=psOrg();if(!org)return;
+  const msg=document.getElementById('psStatusMsg');if(msg)msg.textContent='Lade Prozesse & Standards …';
+  try{
+    const [standards,items,services]=await Promise.all([
+      cloudRequest(`process_standards?select=*&organization_id=eq.${encodeURIComponent(org)}&order=standard_type.asc,code.asc`),
+      cloudRequest(`process_standard_items?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=standard_id.asc,sort_order.asc`),
+      cloudRequest(`service_types?select=id,name,active&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=name.asc`)
+    ]);
+    psState.standards=standards||[];psState.items=items||[];psState.services=services||[];
+    const st=document.getElementById('psServiceType');
+    if(st)st.innerHTML='<option value="">Keine feste Zuordnung</option>'+psState.services.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('');
+    psRenderParents();psRenderList();
+    if(psState.selectedId&&psState.standards.some(x=>String(x.id)===String(psState.selectedId)))psEdit(psState.selectedId,false);else if(!psState.selectedId)psNew(false);
+    if(msg)msg.textContent=`${psState.standards.filter(x=>x.active!==false).length} aktive Standards geladen.`;
+  }catch(e){if(msg)msg.innerHTML=`<span class="bad">Konnte nicht geladen werden: ${esc(e.message||e)}</span>`;}
+}
+function psRenderParents(){
+  const sel=document.getElementById('psParent');if(!sel)return;const keep=sel.value||'';
+  sel.innerHTML='<option value="">Keine</option>'+psState.standards.filter(x=>x.active!==false&&x.standard_type==='sop'&&String(x.id)!==String(psState.selectedId||'')).map(x=>`<option value="${esc(x.id)}">${esc(x.code)} · ${esc(x.title)}</option>`).join('');
+  if([...sel.options].some(o=>String(o.value)===String(keep)))sel.value=keep;
+}
+function psRenderList(){
+  const host=document.getElementById('psList');if(!host)return;
+  const type=document.getElementById('psFilterType')?.value||'';const area=(document.getElementById('psFilterArea')?.value||'').trim().toLowerCase();
+  const rows=psState.standards.filter(x=>(!type||x.standard_type===type)&&(!area||String(x.service_area||'').toLowerCase().includes(area)||String(x.title||'').toLowerCase().includes(area)));
+  if(!rows.length){host.innerHTML='<div class="muted">Keine Standards vorhanden.</div>';return;}
+  host.innerHTML=rows.map(x=>{const svc=psState.services.find(s=>String(s.id)===String(x.service_type_id||''));const active=x.active!==false;return `<button type="button" onclick="psEdit('${esc(x.id)}')" style="display:block;width:100%;text-align:left;margin:0 0 8px;padding:10px;border-radius:10px;${String(psState.selectedId)===String(x.id)?'border-color:var(--accent);':''}"><div class="row space" style="gap:8px"><strong>${esc(x.code)} · ${esc(x.title)}</strong><span class="badge">${esc(psTypeLabels[x.standard_type]||x.standard_type)}</span></div><div class="muted" style="margin-top:4px">${esc(x.service_area||svc?.name||'Übergreifend')} · Version ${esc(x.version||'1.0')} · ${x.status==='released'?'Freigegeben':'Entwurf'}${active?'':' · deaktiviert'}</div></button>`;}).join('');
+}
+function psNew(mark=true){
+  psState.selectedId=null;const set=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v??'';};
+  set('psId','');set('psType','sop');set('psCode','');set('psTitle','');set('psServiceType','');set('psServiceArea','');set('psParent','');set('psVersion','1.0');set('psStatus','draft');set('psPurpose','');set('psScope','');set('psResponsibility','');set('psNotes','');
+  const items=document.getElementById('psItems');if(items)items.innerHTML='';const t=document.getElementById('psEditorTitle');if(t)t.textContent='Standard anlegen';const d=document.getElementById('psDeactivateBtn');if(d)d.style.display='none';
+  psTypeChanged();psRenderParents();psRenderList();if(mark)psMarkDirty();else psClearDirty();
+}
+function psTypeChanged(){const type=document.getElementById('psType')?.value||'sop';const wrap=document.getElementById('psParentWrap');if(wrap)wrap.style.display=type==='sop'?'none':'';}
+function psEdit(id,rerender=true){
+  if(psState.dirty&&rerender&&psState.selectedId&&String(psState.selectedId)!==String(id)&&!confirm('Ungespeicherte Änderungen verwerfen?'))return;
+  const x=psState.standards.find(s=>String(s.id)===String(id));if(!x)return;psState.selectedId=x.id;const set=(eid,v)=>{const e=document.getElementById(eid);if(e)e.value=v??'';};
+  set('psId',x.id);set('psType',x.standard_type);set('psCode',x.code);set('psTitle',x.title);set('psServiceType',x.service_type_id||'');set('psServiceArea',x.service_area||'');set('psParent',x.parent_standard_id||'');set('psVersion',x.version||'1.0');set('psStatus',x.status||'draft');set('psPurpose',x.purpose||'');set('psScope',x.scope||'');set('psResponsibility',x.responsibility||'');set('psNotes',x.notes||'');
+  const t=document.getElementById('psEditorTitle');if(t)t.textContent=`${x.code} · ${x.title}`;const d=document.getElementById('psDeactivateBtn');if(d){d.style.display='';d.textContent=x.active===false?'Reaktivieren':'Deaktivieren';}
+  const host=document.getElementById('psItems');if(host)host.innerHTML='';psState.items.filter(i=>String(i.standard_id)===String(x.id)&&i.active!==false).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).forEach(i=>psAddItem(i.item_type,i.item_text,i.required,false));
+  psTypeChanged();psRenderParents();if(document.getElementById('psParent'))document.getElementById('psParent').value=x.parent_standard_id||'';psClearDirty();if(rerender)psRenderList();
+}
+function psAddItem(type='step',text='',required=false,mark=true){
+  const host=document.getElementById('psItems');if(!host)return;const row=document.createElement('div');row.className='card ps-item-row';row.style.cssText='padding:10px;margin:8px 0';
+  row.innerHTML=`<div class="row" style="gap:8px;align-items:flex-start;flex-wrap:wrap"><select class="ps-item-type" onchange="psMarkDirty()" style="max-width:160px"><option value="heading">Abschnitt</option><option value="step">Schritt</option><option value="check">Prüfpunkt</option><option value="note">Hinweis</option><option value="warning">Warnhinweis</option></select><textarea class="ps-item-text" rows="2" style="flex:1;min-width:220px" oninput="psMarkDirty()" placeholder="Inhalt …">${esc(text)}</textarea><label class="ps-required-wrap" style="display:flex;align-items:center;gap:6px;white-space:nowrap"><input class="ps-item-required" type="checkbox" ${required?'checked':''} onchange="psMarkDirty()"> Pflicht</label><div class="row" style="gap:4px"><button type="button" title="nach oben" onclick="psMoveItem(this,-1)">↑</button><button type="button" title="nach unten" onclick="psMoveItem(this,1)">↓</button><button type="button" class="danger" onclick="this.closest('.ps-item-row').remove();psMarkDirty()">×</button></div></div>`;
+  host.appendChild(row);row.querySelector('.ps-item-type').value=type;const rw=row.querySelector('.ps-required-wrap');if(rw)rw.style.display=type==='check'?'flex':'none';row.querySelector('.ps-item-type').addEventListener('change',e=>{if(rw)rw.style.display=e.target.value==='check'?'flex':'none';});if(mark)psMarkDirty();
+}
+function psMoveItem(btn,dir){const row=btn.closest('.ps-item-row'),host=row?.parentElement;if(!row||!host)return;if(dir<0&&row.previousElementSibling)host.insertBefore(row,row.previousElementSibling);if(dir>0&&row.nextElementSibling)host.insertBefore(row.nextElementSibling,row);psMarkDirty();}
+function psCollectItems(){return [...document.querySelectorAll('#psItems .ps-item-row')].map((r,i)=>({item_type:r.querySelector('.ps-item-type')?.value||'step',item_text:String(r.querySelector('.ps-item-text')?.value||'').trim(),required:!!r.querySelector('.ps-item-required')?.checked,sort_order:i+1})).filter(x=>x.item_text);}
+async function psSave(){
+  if(!processStandardsCanAdmin())return requireAdminUI('Prozesse & Standards');const code=String(document.getElementById('psCode')?.value||'').trim();const title=String(document.getElementById('psTitle')?.value||'').trim();if(!code||!title)return alert('Kennung und Titel sind Pflicht.');
+  const body={p_organization_id:psOrg(),p_standard_id:document.getElementById('psId')?.value||null,p_standard_type:document.getElementById('psType')?.value||'sop',p_code:code,p_title:title,p_service_type_id:document.getElementById('psServiceType')?.value||null,p_service_area:String(document.getElementById('psServiceArea')?.value||'').trim()||null,p_parent_standard_id:document.getElementById('psParent')?.value||null,p_version:String(document.getElementById('psVersion')?.value||'1.0').trim()||'1.0',p_status:document.getElementById('psStatus')?.value||'draft',p_purpose:String(document.getElementById('psPurpose')?.value||'').trim()||null,p_scope:String(document.getElementById('psScope')?.value||'').trim()||null,p_responsibility:String(document.getElementById('psResponsibility')?.value||'').trim()||null,p_notes:String(document.getElementById('psNotes')?.value||'').trim()||null,p_items:psCollectItems()};
+  const msg=document.getElementById('psStatusMsg');if(msg)msg.textContent='Speichere …';try{const rows=await cloudRequest('rpc/save_process_standard_v1',{method:'POST',body:JSON.stringify(body)});const saved=Array.isArray(rows)?rows[0]:rows;psState.selectedId=saved?.id||psState.selectedId;psClearDirty();await psLoad();if(msg)msg.textContent='Gespeichert.';}catch(e){if(msg)msg.innerHTML=`<span class="bad">Speichern fehlgeschlagen: ${esc(e.message||e)}</span>`;}
+}
+function psDuplicate(){if(!psState.selectedId)return alert('Zuerst einen bestehenden Standard auswählen.');const oldCode=document.getElementById('psCode').value,oldTitle=document.getElementById('psTitle').value;document.getElementById('psId').value='';psState.selectedId=null;document.getElementById('psCode').value=oldCode+'-KOPIE';document.getElementById('psTitle').value=oldTitle+' – Kopie';document.getElementById('psStatus').value='draft';const d=document.getElementById('psDeactivateBtn');if(d)d.style.display='none';psRenderParents();psMarkDirty();}
+async function psToggleActive(){const id=document.getElementById('psId')?.value;if(!id)return;const x=psState.standards.find(s=>String(s.id)===String(id));if(!x)return;const target=x.active===false;if(!target&&!confirm('Standard deaktivieren? Historische Daten bleiben erhalten.'))return;try{await cloudRequest('rpc/set_process_standard_active_v1',{method:'POST',body:JSON.stringify({p_organization_id:psOrg(),p_standard_id:id,p_active:target})});await psLoad();}catch(e){alert('Status konnte nicht geändert werden: '+(e.message||e));}}
 
 /* Dokumentenmanagement bei Navigation laden */
 (function(){
