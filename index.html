@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.25.1</title>
+<title>Duschl Service – Objektplattform v2.25.2</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5087,6 +5087,32 @@ table td,table th{
     <div id="orLocationList" style="margin-top:12px"></div>
   </div>
 
+  <div class="card operating-resource-admin" id="orRequirementAdminCard" style="margin-top:14px">
+    <div class="row space" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
+      <div>
+        <div class="ds-section-eyebrow">STANDARD-BEDARF</div>
+        <h3 style="margin:0">Betriebsmittel je Leistungsart</h3>
+        <div class="muted" style="margin-top:5px">Einmal je Leistungsart pflegen. Die SOP bleibt das Dokument; hier wird nur der disponierbare Standardbedarf hinterlegt.</div>
+      </div>
+      <button type="button" onclick="orResetRequirementEditor()">Neu / zurücksetzen</button>
+    </div>
+    <input id="orRequirementEditId" type="hidden">
+    <div class="grid2" style="margin-top:12px">
+      <label>Leistungsart *<select id="orRequirementServiceType"><option value="">Leistungsart wählen …</option></select></label>
+      <label>Vorhandenes Betriebsmittel (optional)<select id="orRequirementResource" onchange="orRequirementResourceChanged()"><option value="">Freier Bedarf / kein konkretes Asset</option></select></label>
+      <label>Bedarf / Bezeichnung *<input id="orRequirementName" placeholder="z. B. Hochdruckreiniger oder Streumittel"></label>
+      <label>Menge<input id="orRequirementQuantity" type="number" min="0" step="0.1" value="1"></label>
+      <label>Einheit<input id="orRequirementUnit" placeholder="z. B. Stk., kg, l"></label>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:24px"><input id="orRequirementRequired" type="checkbox" checked style="width:auto">Zwingend erforderlich</label>
+    </div>
+    <label style="margin-top:10px">Hinweis / Ausnahme<textarea id="orRequirementNote" rows="2" placeholder="Optional, z. B. nur bei stärkerem Bewuchs oder Schneehöhe &gt; 5 cm"></textarea></label>
+    <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">
+      <button class="primary" type="button" onclick="orSaveRequirement()">Standardbedarf speichern</button>
+      <button type="button" id="orRequirementDeactivateBtn" class="hidden" onclick="orDeactivateRequirement()">Deaktivieren</button>
+    </div>
+    <div id="orRequirementList" style="margin-top:12px"></div>
+  </div>
+
   <div class="card" style="margin-top:14px">
     <div class="row space" style="gap:10px;align-items:end;flex-wrap:wrap">
       <div>
@@ -7471,7 +7497,17 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Speichern bleibt vollständig mandantenspezifisch.
    BACKEND: SQL 2.24.42 erforderlich.
 */
-const APP_VERSION='2.25.1'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.25.2 | BASIS 2.25.1 | 29.09.2026
+   BETRIEBSMITTEL · STUFE 3: STANDARD-BEDARF JE LEISTUNGSART
+   - SOP-Dokumente bleiben unverändert; keine Dokumentanalyse.
+   - Standardbedarf wird einmalig an der Leistungsart gepflegt.
+   - Konkretes Betriebsmittel oder freier Bedarfsname möglich.
+   - Pflicht/optional, Menge, Einheit und Hinweis strukturiert.
+   - Noch keine harte Tour-Sperre; Einsatzprüfung folgt in nächster Stufe.
+   - Bestehende Tour-/SOP-/Winterdienst-/Arbeitsvorratslogik bleibt unverändert.
+   BACKEND: SQL 2.25.0 + Patch 2.25.1 + Patch 2.25.2 erforderlich.
+*/
+const APP_VERSION='2.25.2'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -15183,10 +15219,10 @@ async function loadResourcePlanningOverview(){
 
 
 // ============================================================
-// BETRIEBSMITTEL | RELEASE 2.25.1
+// BETRIEBSMITTEL | RELEASE 2.25.2
 // ============================================================
 
-let operatingResourcesState={resources:[],locations:[],selected:null,movements:[]};
+let operatingResourcesState={resources:[],locations:[],serviceTypes:[],requirements:[],selected:null,movements:[]};
 
 function operatingResourcesCanUse(){
   if(!currentOrganizationId())return false;
@@ -15308,6 +15344,89 @@ async function orDeactivateLocation(){
   catch(e){alert('Standort konnte nicht deaktiviert werden: '+(e.message||e));}
 }
 
+function orFillRequirementSelects(){
+  const st=document.getElementById('orRequirementServiceType');
+  if(st){
+    const keep=st.value;
+    st.innerHTML='<option value="">Leistungsart wählen …</option>'+((operatingResourcesState.serviceTypes||[]).filter(x=>x.active!==false).map(x=>`<option value="${esc(x.id)}">${esc(x.name||'Leistungsart')}</option>`).join(''));
+    if([...st.options].some(x=>x.value===keep))st.value=keep;
+  }
+  const rr=document.getElementById('orRequirementResource');
+  if(rr){
+    const keep=rr.value;
+    rr.innerHTML='<option value="">Freier Bedarf / kein konkretes Asset</option>'+((operatingResourcesState.resources||[]).filter(x=>x.active!==false&&x.planning_relevant!==false).map(x=>`<option value="${esc(x.id)}">${esc(x.name||'Betriebsmittel')}</option>`).join(''));
+    if([...rr.options].some(x=>x.value===keep))rr.value=keep;
+  }
+}
+
+function orRequirementResourceChanged(){
+  const id=document.getElementById('orRequirementResource')?.value||'';
+  const r=(operatingResourcesState.resources||[]).find(x=>String(x.id)===String(id));
+  if(!r)return;
+  const n=document.getElementById('orRequirementName');if(n&&!String(n.value||'').trim())n.value=r.name||'';
+  const u=document.getElementById('orRequirementUnit');if(u&&!String(u.value||'').trim())u.value=r.unit||(r.tracking_mode==='individual'?'Stk.':'');
+}
+
+function orResetRequirementEditor(){
+  const vals={orRequirementEditId:'',orRequirementServiceType:'',orRequirementResource:'',orRequirementName:'',orRequirementQuantity:'1',orRequirementUnit:'',orRequirementNote:''};
+  Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
+  const rq=document.getElementById('orRequirementRequired');if(rq)rq.checked=true;
+  const b=document.getElementById('orRequirementDeactivateBtn');if(b)b.classList.add('hidden');
+}
+
+function orEditRequirement(id){
+  if(!operatingResourcesCanAdmin())return;
+  const r=(operatingResourcesState.requirements||[]).find(x=>String(x.id)===String(id));if(!r)return;
+  const vals={orRequirementEditId:r.id||'',orRequirementServiceType:r.service_type_id||'',orRequirementResource:r.resource_id||'',orRequirementName:r.requirement_name||'',orRequirementQuantity:r.required_quantity??1,orRequirementUnit:r.unit||'',orRequirementNote:r.note||''};
+  Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
+  const rq=document.getElementById('orRequirementRequired');if(rq)rq.checked=r.required!==false;
+  const b=document.getElementById('orRequirementDeactivateBtn');if(b)b.classList.remove('hidden');
+  document.getElementById('orRequirementAdminCard')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function orRenderRequirements(){
+  const host=document.getElementById('orRequirementList');if(!host)return;
+  const rows=(operatingResourcesState.requirements||[]).filter(x=>x.active!==false);
+  if(!rows.length){host.innerHTML='<div class="muted">Noch kein Standardbedarf hinterlegt. Das ist zulässig – die SOP bleibt weiterhin unabhängig nutzbar.</div>';return;}
+  const stName=id=>((operatingResourcesState.serviceTypes||[]).find(x=>String(x.id)===String(id))?.name||'Leistungsart');
+  const grouped={}; rows.forEach(r=>(grouped[r.service_type_id]??=[]).push(r));
+  host.innerHTML=Object.entries(grouped).map(([sid,items])=>`<div style="padding:10px 0;border-bottom:1px solid var(--line,#ddd)"><strong>${esc(stName(sid))}</strong>${items.map(r=>`<div class="row space" style="gap:8px;align-items:flex-start;flex-wrap:wrap;margin-top:7px"><div style="min-width:0;flex:1"><span class="badge">${r.required===false?'Optional':'Pflicht'}</span> ${esc(r.requirement_name||'Bedarf')} · ${Number(r.required_quantity??1).toLocaleString('de-DE',{maximumFractionDigits:3})}${r.unit?' '+esc(r.unit):''}${r.note?`<div class="muted" style="margin-top:3px">${esc(r.note)}</div>`:''}</div><button type="button" onclick="orEditRequirement('${esc(r.id)}')">Bearbeiten</button></div>`).join('')}</div>`).join('');
+}
+
+async function orSaveRequirement(){
+  if(!operatingResourcesCanAdmin())return alert('Nur der Mandanten-Admin darf Standardbedarfe verwalten.');
+  const service=document.getElementById('orRequirementServiceType')?.value||'';
+  const name=String(document.getElementById('orRequirementName')?.value||'').trim();
+  if(!service)return alert('Leistungsart wählen.');
+  if(!name)return alert('Bedarf / Bezeichnung eingeben.');
+  const qRaw=String(document.getElementById('orRequirementQuantity')?.value||'').trim();
+  const qty=qRaw===''?1:Number(qRaw);if(!Number.isFinite(qty)||qty<0)return alert('Menge ist ungültig.');
+  try{
+    await cloudRequest('rpc/save_operating_resource_requirement_v1',{method:'POST',body:JSON.stringify({
+      p_organization_id:currentOrganizationId(),
+      p_requirement_id:document.getElementById('orRequirementEditId')?.value||null,
+      p_service_type_id:service,
+      p_resource_id:document.getElementById('orRequirementResource')?.value||null,
+      p_requirement_name:name,
+      p_required_quantity:qty,
+      p_unit:String(document.getElementById('orRequirementUnit')?.value||'').trim()||null,
+      p_required:document.getElementById('orRequirementRequired')?.checked!==false,
+      p_note:String(document.getElementById('orRequirementNote')?.value||'').trim()||null
+    })});
+    orResetRequirementEditor();await loadOperatingResources();
+  }catch(e){alert('Standardbedarf konnte nicht gespeichert werden: '+(e.message||e));}
+}
+
+async function orDeactivateRequirement(){
+  if(!operatingResourcesCanAdmin())return;
+  const id=document.getElementById('orRequirementEditId')?.value||'';if(!id)return;
+  if(!confirm('Standardbedarf deaktivieren?'))return;
+  try{
+    await cloudRequest('rpc/set_operating_resource_requirement_active_v1',{method:'POST',body:JSON.stringify({p_requirement_id:id,p_active:false})});
+    orResetRequirementEditor();await loadOperatingResources();
+  }catch(e){alert('Standardbedarf konnte nicht deaktiviert werden: '+(e.message||e));}
+}
+
 function orUpdateTrackingUI(){
   const mode=document.getElementById('orTrackingMode')?.value||'individual';
   const q=document.getElementById('orQuantity');
@@ -15354,15 +15473,22 @@ async function loadOperatingResources(){
   const canAdmin=operatingResourcesCanAdmin();
   const admin=document.getElementById('orAdminCard');if(admin)admin.classList.toggle('hidden',!canAdmin);
   const locAdmin=document.getElementById('orLocationAdminCard');if(locAdmin)locAdmin.classList.toggle('hidden',!canAdmin);
+  const reqAdmin=document.getElementById('orRequirementAdminCard');if(reqAdmin)reqAdmin.classList.toggle('hidden',!canAdmin);
   try{
-    const [locations,rows]=await Promise.all([
+    const [locations,rows,serviceTypes,requirements]=await Promise.all([
       cloudRequest(`operating_resource_locations?organization_id=eq.${encodeURIComponent(org)}&active=eq.true&select=*&order=name.asc`),
-      cloudRequest(`operating_resources?organization_id=eq.${encodeURIComponent(org)}&active=eq.true&select=*&order=name.asc`)
+      cloudRequest(`operating_resources?organization_id=eq.${encodeURIComponent(org)}&active=eq.true&select=*&order=name.asc`),
+      canAdmin?cloudRequest(`service_types?organization_id=eq.${encodeURIComponent(org)}&active=eq.true&select=id,name,active&order=name.asc`):Promise.resolve([]),
+      canAdmin?cloudRequest(`operating_resource_requirements?organization_id=eq.${encodeURIComponent(org)}&active=eq.true&select=*&order=created_at.asc`):Promise.resolve([])
     ]);
     operatingResourcesState.locations=Array.isArray(locations)?locations:[];
     operatingResourcesState.resources=Array.isArray(rows)?rows:[];
+    operatingResourcesState.serviceTypes=Array.isArray(serviceTypes)?serviceTypes:[];
+    operatingResourcesState.requirements=Array.isArray(requirements)?requirements:[];
     orFillSavedLocationSelects();
+    orFillRequirementSelects();
     orRenderLocations();
+    orRenderRequirements();
     const active=operatingResourcesState.resources;
     const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=String(v);};
     set('orKpiActive',active.length);
