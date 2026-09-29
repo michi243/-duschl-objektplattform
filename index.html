@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.25.2</title>
+<title>Duschl Service – Objektplattform v2.25.3</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3836,6 +3836,20 @@ table td,table th{
 .resource-table tr.resource-over td{background:rgba(244,63,94,.08)}
 </style>
 
+
+<style>
+.ops-resource-readiness{margin-top:10px;border:1px solid rgba(148,163,184,.24);border-radius:12px;padding:10px;background:rgba(15,33,51,.22)}
+.ops-resource-readiness-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.ops-resource-readiness-title{font-weight:800;font-size:13px}
+.ops-readiness-badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;border:1px solid rgba(148,163,184,.28)}
+.ops-readiness-badge::before{content:'';width:8px;height:8px;border-radius:50%;background:#94a3b8}
+.ops-readiness-badge.green::before{background:#22c55e}.ops-readiness-badge.yellow::before{background:#eab308}.ops-readiness-badge.red::before{background:#ef4444}.ops-readiness-badge.gray::before{background:#94a3b8}
+.ops-resource-readiness-list{display:grid;gap:7px;margin-top:9px}
+.ops-resource-readiness-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:start;padding-top:7px;border-top:1px solid rgba(148,163,184,.16)}
+.ops-resource-readiness-item:first-child{border-top:0;padding-top:0}
+.ops-resource-readiness-name{font-size:13px;font-weight:700}.ops-resource-readiness-reason{font-size:12px;color:var(--muted,#9ca3af);margin-top:2px}
+@media(max-width:680px){.ops-resource-readiness-item{grid-template-columns:1fr}.ops-resource-readiness-item .ops-readiness-badge{width:max-content}}
+</style>
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -7507,7 +7521,18 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Bestehende Tour-/SOP-/Winterdienst-/Arbeitsvorratslogik bleibt unverändert.
    BACKEND: SQL 2.25.0 + Patch 2.25.1 + Patch 2.25.2 erforderlich.
 */
-const APP_VERSION='2.25.2'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.25.3 | BASIS 2.25.2 | 29.09.2026
+   BETRIEBSMITTEL · STUFE 4: EINSATZBEREITSCHAFT IN TOUREN
+   - Standardbedarf wird je Run-Stopp gegen den aktuellen Betriebsmittel-Ist-Stand geprüft.
+   - Grün/Gelb/Rot/Grau als reine Dispositionshilfe; keine Tour wird blockiert.
+   - Freie, nicht konkret zugeordnete Pflichtbedarfe bleiben Gelb statt automatisch als Fehler zu gelten.
+   - Standortabweichung erzeugt Gelb: verfügbar, aber Bereitstellung/Transport erforderlich.
+   - Defekt/Wartung/Außer Betrieb oder zu geringe Pflichtmenge erzeugt Rot.
+   - Anzeige sowohl in der Planung als auch im geöffneten operativen Arbeitsauftrag.
+   - Keine Reservierung und keine automatische Umbuchung in dieser Stufe.
+   BACKEND: zusätzlicher Read-RPC get_operation_run_resource_readiness_v1 erforderlich.
+*/
+const APP_VERSION='2.25.3'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -25468,7 +25493,7 @@ async function wsCompleteExecution(id){
 }
 
 
-let opsState={services:[],plans:[],tours:[],stops:[],runs:[],runStops:[],assignments:[],documents:[],versions:[],tenantUsers:[]};
+let opsState={services:[],plans:[],tours:[],stops:[],runs:[],runStops:[],assignments:[],documents:[],versions:[],tenantUsers:[],resourceReadiness:{}};
 let opsEditingPlanId=null;
 let opsFocusRunId='';
 
@@ -25862,6 +25887,59 @@ async function opsFinishTour(runId,forcedOutcome=''){
   }
 }
 
+function opsReadinessRowsForRun(runId){
+  return Array.isArray(opsState.resourceReadiness?.[String(runId)])
+    ? opsState.resourceReadiness[String(runId)]
+    : [];
+}
+function opsReadinessRowsForStop(stopId){
+  const sid=String(stopId||'');
+  const rows=[];
+  Object.values(opsState.resourceReadiness||{}).forEach(xs=>{
+    (Array.isArray(xs)?xs:[]).forEach(x=>{if(String(x.run_stop_id||'')===sid)rows.push(x);});
+  });
+  return rows;
+}
+function opsReadinessRank(code){return ({red:4,yellow:3,green:2,gray:1})[String(code||'gray')]||1;}
+function opsReadinessSummary(rows){
+  const xs=Array.isArray(rows)?rows:[];
+  if(!xs.length)return {code:'gray',label:'Kein Standardbedarf hinterlegt'};
+  let code='green';
+  for(const x of xs){if(opsReadinessRank(x.readiness)>opsReadinessRank(code))code=String(x.readiness||'gray');}
+  const counts={green:0,yellow:0,red:0,gray:0};
+  xs.forEach(x=>counts[String(x.readiness||'gray')]=(counts[String(x.readiness||'gray')]||0)+1);
+  if(code==='red')return {code,label:`${counts.red} kritisch · ${counts.yellow} prüfen`};
+  if(code==='yellow')return {code,label:`${counts.green} bereit · ${counts.yellow} prüfen`};
+  if(code==='green')return {code,label:`${counts.green} Betriebsmittel bereit`};
+  return {code:'gray',label:'Bedarf noch nicht konkretisiert'};
+}
+function opsReadinessLabel(code){return ({green:'Bereit',yellow:'Prüfen',red:'Nicht bereit',gray:'Offen'})[String(code||'gray')]||'Offen';}
+function opsResourceReadinessHtml(rows,{compact=false}={}){
+  const xs=Array.isArray(rows)?rows:[];
+  const sum=opsReadinessSummary(xs);
+  if(!xs.length)return `<div class="ops-resource-readiness"><div class="ops-resource-readiness-head"><div class="ops-resource-readiness-title">Betriebsmittel</div><span class="ops-readiness-badge gray">Nicht hinterlegt</span></div>${compact?'':'<div class="muted" style="margin-top:6px">Für diese Leistungsart ist noch kein Standardbedarf gepflegt.</div>'}</div>`;
+  const list=compact?'':`<div class="ops-resource-readiness-list">${xs.map(x=>`<div class="ops-resource-readiness-item"><div><div class="ops-resource-readiness-name">${opsEsc(x.requirement_name||'Betriebsmittel')}${x.required_quantity?` · ${opsEsc(x.required_quantity)} ${opsEsc(x.unit||'')}`:''}${x.required===false?' · optional':''}</div><div class="ops-resource-readiness-reason">${opsEsc(x.readiness_reason||'')}</div></div><span class="ops-readiness-badge ${opsEsc(x.readiness||'gray')}">${opsEsc(opsReadinessLabel(x.readiness))}</span></div>`).join('')}</div>`;
+  return `<div class="ops-resource-readiness"><div class="ops-resource-readiness-head"><div class="ops-resource-readiness-title">Betriebsmittel</div><span class="ops-readiness-badge ${opsEsc(sum.code)}">${opsEsc(sum.label)}</span></div>${list}</div>`;
+}
+async function opsLoadResourceReadinessForRuns(runs){
+  const org=String(opsOrg()||'');
+  const target=(Array.isArray(runs)?runs:[]).filter(r=>r?.id);
+  const next={};
+  await Promise.all(target.map(async r=>{
+    try{
+      const rows=await cloudRequest('rpc/get_operation_run_resource_readiness_v1',{
+        method:'POST',
+        body:JSON.stringify({p_organization_id:org,p_run_id:r.id})
+      });
+      next[String(r.id)]=Array.isArray(rows)?rows:[];
+    }catch(e){
+      console.warn('Betriebsmittel-Bereitschaft konnte nicht geladen werden',r.id,e);
+      next[String(r.id)]=[];
+    }
+  }));
+  opsState.resourceReadiness=next;
+}
+
 function opsRunStopWorkHtml(stop,index){
   const duration=opsRunStopDuration(stop);
   const instruction=opsRunStopInstruction(stop);
@@ -25890,6 +25968,8 @@ function opsRunStopWorkHtml(stop,index){
       <div class="ops-work-order-title">Was ist zu tun?</div>
       <div>${opsEsc(instruction)}</div>
     </div>
+
+    ${opsResourceReadinessHtml(opsReadinessRowsForStop(stop.id),{compact:false})}
 
     ${String(stop.status||'planned').toLowerCase()==='cancelled'&&stop.closure_reason_code?`
       <div class="card ops-stop-closure-info" style="margin-top:12px">
@@ -26097,6 +26177,7 @@ async function opsLoad(){
         }]
       };
 
+      await opsLoadResourceReadinessForRuns(opsState.runs);
       opsApplyViewMode();
       opsRenderMyRuns();
       return;
@@ -26127,6 +26208,7 @@ async function opsLoad(){
       }).catch(e=>{console.warn('Benutzer für Tourzuweisung konnten nicht geladen werden',e);return [];})
     ]);
     [opsState.services,opsState.plans,opsState.tours,opsState.stops,opsState.runs,opsState.runStops,opsState.assignments,opsState.documents,opsState.versions,opsState.tenantUsers]=a.map(x=>x||[]);
+    await opsLoadResourceReadinessForRuns((opsState.runs||[]).filter(r=>!['completed','cancelled'].includes(String(r.status||'').toLowerCase())));
     await loadOperationSopMetaForStops(opsState.runStops);
     opsApplyViewMode();
     opsPopulate();
@@ -26312,6 +26394,7 @@ function opsRender(){
             <strong>${opsEsc(opsObjName(x.object_id))}</strong>
             <div class="muted" style="margin-top:2px">${opsEsc(opsServiceName(x.service_type_id))}</div>
             <div class="ops-run-stop-sop" style="margin-top:3px">SOP: ${operationSopLinkHtml(x.id,opsEsc)}</div>
+            ${opsResourceReadinessHtml(opsReadinessRowsForStop(x.id),{compact:true})}
           </div>
         </div>`).join('');
 
@@ -26323,6 +26406,8 @@ function opsRender(){
           </div>
           <div class="muted">${opsEsc(meta)}</div>
         </div>
+
+        ${opsResourceReadinessHtml(opsReadinessRowsForRun(r.id),{compact:true})}
 
         <div class="ops-admin-run-controls">
           <label>
