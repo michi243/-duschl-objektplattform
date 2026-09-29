@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.25.6</title>
+<title>Duschl Service – Objektplattform v2.25.7</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -7539,7 +7539,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - rein lesende Ergänzung; Start, Abschluss, Wetter, SOP und Dokumentation bleiben unverändert.
    BACKEND: zusätzlicher Read-RPC get_winter_execution_resource_readiness_v1 erforderlich.
 */
-/* RELEASE 2.25.6 | BASIS 2.25.5 | 29.09.2026
+/* RELEASE 2.25.7 | BASIS 2.25.6 | 29.09.2026
    Q-GATE Plattform-Admin: volle Mandantenrechte im Mandantenmodus; Dokumentenmanagement bewusst ausgeblendet.
    Korrigiert: Benutzeranlage und Mandantenspeicherbereinigung akzeptieren Platform-Admin im Mandantenmodus.
    Dokumentenmanagement bleibt ausschließlich Mandantenadministration und wird Platform-Admins nicht angezeigt.
@@ -7553,7 +7553,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - bestehende Tour-, Winterdienst-, SOP-, Dokumentations- und Abschlusslogik bleibt unverändert.
    BACKEND: operating_resource_reservations + Reservierungs-RPCs erforderlich.
 */
-const APP_VERSION='2.25.6'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.25.7'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -21590,7 +21590,13 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   <div id="currentPhotoBlock" class="card" style="margin-top:12px">
     <label>${isResidentRouteDocumentation?'Foto bei Arbeitsbeginn / Ausgangszustand':'Foto vorher'}</label>
     <div class="muted" style="margin-bottom:8px">${isResidentRouteDocumentation?'Vom Dienstleister bei Eintreffen vor Ort aufnehmen. Dieser Zustand ist der belastbare Ausgangspunkt für den Leistungsnachweis.':'Ausgangszustand dokumentieren · Kamera oder Fotomediathek auswählen.'}</div>
-    <input type="file" id="fBeforePhoto" accept="image/*" multiple onchange="handlePhotoSelection('before',this)"><div class="muted" id="beforePhotoCount">Max. 5 Bilder</div><div class="muted">Über „In Fotos sichern“ an die Fotomediathek übergeben.</div><div id="beforePhotoPreview" class="photo-grid"></div>
+    <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:8px">
+      <button type="button" onclick="document.getElementById('fBeforeCamera').click()">Foto aufnehmen</button>
+      <button type="button" onclick="document.getElementById('fBeforePhoto').click()">Foto auswählen</button>
+    </div>
+    <input type="file" id="fBeforeCamera" accept="image/*" capture="environment" onchange="handlePhotoSelection('before',this)" style="display:none">
+    <input type="file" id="fBeforePhoto" accept="image/*" multiple onchange="handlePhotoSelection('before',this)" style="display:none">
+    <div class="muted" id="beforePhotoCount">Max. 5 Bilder</div><div class="muted">Auf Windows/Surface bei Bedarf „Foto auswählen“ verwenden. Über „In Fotos sichern“ an die Fotomediathek übergeben.</div><div id="beforePhotoPreview" class="photo-grid"></div>
     ${(f.beforePhoto||f.photo)?`${mediaImg(f.beforePhoto||f.photo,'Foto vorher','thumb','margin-top:8px')}`:''}
   </div>
 
@@ -21671,7 +21677,13 @@ function openFindingModal(prefObj='',prefInsp='',editId='',forceClose=false){
   <div id="afterPhotoBlock" class="card" style="margin-top:12px">
     <label>Foto nachher</label>
     <div class="muted" style="margin-bottom:8px">Ergebnis dokumentieren · Kamera oder Fotomediathek auswählen.</div>
-    <input type="file" id="fAfterPhoto" accept="image/*" multiple onchange="handlePhotoSelection('after',this)"><div class="muted" id="afterPhotoCount">Max. 5 Bilder</div><div class="muted">Über „In Fotos sichern“ an die Fotomediathek übergeben.</div><div id="afterPhotoPreview" class="photo-grid"></div>
+    <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:8px">
+      <button type="button" onclick="document.getElementById('fAfterCamera').click()">Foto aufnehmen</button>
+      <button type="button" onclick="document.getElementById('fAfterPhoto').click()">Foto auswählen</button>
+    </div>
+    <input type="file" id="fAfterCamera" accept="image/*" capture="environment" onchange="handlePhotoSelection('after',this)" style="display:none">
+    <input type="file" id="fAfterPhoto" accept="image/*" multiple onchange="handlePhotoSelection('after',this)" style="display:none">
+    <div class="muted" id="afterPhotoCount">Max. 5 Bilder</div><div class="muted">Auf Windows/Surface bei Bedarf „Foto auswählen“ verwenden. Über „In Fotos sichern“ an die Fotomediathek übergeben.</div><div id="afterPhotoPreview" class="photo-grid"></div>
     ${f.afterPhoto?`${mediaImg(f.afterPhoto,'Foto nachher','thumb','margin-top:8px')}`:''}
   </div>
   <div id="findingStatusBlock">
