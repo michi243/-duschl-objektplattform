@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.25.5</title>
+<title>Duschl Service – Objektplattform v2.25.6</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -7539,6 +7539,11 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - rein lesende Ergänzung; Start, Abschluss, Wetter, SOP und Dokumentation bleiben unverändert.
    BACKEND: zusätzlicher Read-RPC get_winter_execution_resource_readiness_v1 erforderlich.
 */
+/* RELEASE 2.25.6 | BASIS 2.25.5 | 29.09.2026
+   Q-GATE Plattform-Admin: volle Mandantenrechte im Mandantenmodus; Dokumentenmanagement bewusst ausgeblendet.
+   Korrigiert: Benutzeranlage und Mandantenspeicherbereinigung akzeptieren Platform-Admin im Mandantenmodus.
+   Dokumentenmanagement bleibt ausschließlich Mandantenadministration und wird Platform-Admins nicht angezeigt.
+
 /* RELEASE 2.25.5 | BASIS 2.25.4 | 29.09.2026
    BETRIEBSMITTEL · STUFE 5: RESERVIERUNG / DISPOSITION
    - konkrete Betriebsmittel können für reguläre Touren und Winterdienst-Objekteinsätze reserviert werden.
@@ -7548,7 +7553,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - bestehende Tour-, Winterdienst-, SOP-, Dokumentations- und Abschlusslogik bleibt unverändert.
    BACKEND: operating_resource_reservations + Reservierungs-RPCs erforderlich.
 */
-const APP_VERSION='2.25.5'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.25.6'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -8871,6 +8876,8 @@ function isAdminDelegate(){return effectiveOrganizationRole()==='admin_delegate'
 function hasOperationalAdminAccess(){return (isAdminRole()&&isPlatformTenantMode())||isTenantAdminRole()||isAdminDelegate()}
 function canManageUsersUI(){return (isAdminRole()&&isPlatformTenantMode())||isTenantAdminRole()||isAdminDelegate()}
 function canResetUserPasswordUI(){return (isAdminRole()&&isPlatformTenantMode())||isTenantAdminRole()}
+function hasPlatformAdminTenantFullAccess(){return isAdminRole()&&isPlatformTenantMode()}
+function canActAsTenantAdminUI(){return hasPlatformAdminTenantFullAccess()||isTenantAdminRole()}
 function isObjectManagerRole(){return !hasOperationalAdminAccess()&&!isPropertyManagerRole()&&['object_manager','staff'].includes(effectiveUserRole())}
 function isExternalContractorRole(){return effectiveOrganizationRole()==='external_contractor'&&!hasOperationalAdminAccess()}
 function isCustomerRole(){return effectiveUserRole()==='customer'&&!hasOperationalAdminAccess()&&!isPropertyManagerRole()}
@@ -9500,6 +9507,7 @@ function applyRoleUI(){
   show('navOperations',hasAppRole && !platformMode);
   show('navWinterService',hasAppRole && !platformMode);
   show('navOperatingResources',hasAppRole && !platformMode && operatingResourcesCanUse());
+  show('navDocumentManagement',hasAppRole && !platformMode && !isPlatformOperatorRole() && slTenantAdmin());
   show('navExternalOrders',hasAppRole && !platformMode && (hasOperationalAdminAccess()||isPropertyManagerRole()||isObjectManagerRole()));
   show('navReports',hasAppRole && !platformMode);
   show('navPartnerDirectory',hasAppRole);
@@ -12766,7 +12774,7 @@ function renderTenantStorageCleanup(){
   }).join(''); tenantStorageUpdateSelection();
 }
 async function loadTenantStorageCleanup(){
-  if(!isTenantAdminRole())return alert('Die Speicherverwaltung ist ausschließlich für den Mandanten-Admin freigegeben.');
+  if(!canActAsTenantAdminUI())return alert('Die Speicherverwaltung ist ausschließlich für den Mandanten-Admin oder den Plattform-Admin im Mandantenmodus freigegeben.');
   const orgId=currentOrganizationId(); if(!orgId)return;
   try{
     const rows=await cloudRequest('rpc/tenant_storage_cleanup_candidates',{method:'POST',body:JSON.stringify({p_organization_id:orgId})});
@@ -12781,7 +12789,7 @@ async function loadTenantStorageCleanup(){
 }
 function selectTenantCleanupCandidates(on){document.querySelectorAll('.tenant-storage-select:not(:disabled)').forEach(b=>b.checked=!!on);tenantStorageUpdateSelection();}
 async function deleteSelectedTenantStorage(){
-  if(!isTenantAdminRole())return alert('Nur der Mandanten-Admin darf Speicher bereinigen.');
+  if(!canActAsTenantAdminUI())return alert('Nur der Mandanten-Admin oder der Plattform-Admin im Mandantenmodus darf Speicher bereinigen.');
   const boxes=[...document.querySelectorAll('.tenant-storage-select:checked:not(:disabled)')]; if(!boxes.length)return alert('Keine bereinigbaren Dateien ausgewählt.');
   const bytes=boxes.reduce((a,b)=>a+Number(b.dataset.bytes||0),0);
   if(!confirm(`${boxes.length} Datei(en) (${formatBytes(bytes)}) endgültig löschen? Dieser Vorgang kann nicht rückgängig gemacht werden.`))return;
@@ -17116,7 +17124,7 @@ function loadUserAdminEditor(){
    Verhindert doppelte Auth-Anlage bei abweichender Groß-/Kleinschreibung; bestehende Identität wird nur dem Mandanten zugeordnet.
    Backend/SQL/RLS/RPC unverändert. */
 async function createUserAndInvite(){
-  if(!isTenantAdminRole())return alert('Neue Benutzerkonten werden innerhalb des Mandanten ausschließlich durch den Mandanten-Admin angelegt.');
+  if(!canActAsTenantAdminUI())return alert('Neue Benutzerkonten werden innerhalb des Mandanten ausschließlich durch den Mandanten-Admin oder den Plattform-Admin im Mandantenmodus angelegt.');
   const fullName=document.getElementById('newUserFullName')?.value.trim()||'';
   const email=document.getElementById('newUserEmail')?.value.trim().toLowerCase()||'';
   const role=document.getElementById('newUserRole')?.value||'object_manager';
@@ -26659,7 +26667,7 @@ const dmTypeLabels={
 };
 function dmEsc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function dmOrg(){return currentOrganizationId();}
-function dmAdmin(){return slTenantAdmin();}
+function dmAdmin(){return slTenantAdmin() && !isPlatformOperatorRole();}
 function dmApplyAccess(){
  const admin=dmAdmin(),a=document.getElementById('dmAdminView'),n=document.getElementById('dmNoAdmin');
  if(a)a.style.display=admin?'block':'none';
@@ -27222,6 +27230,7 @@ function slTenantAdmin(){
   // Außerhalb des Mandantenmodus bleibt SOP & Leistungen reine Mandantenadministration.
   const globalRole=String(currentUserProfile?.role||cloudSession?.user?.user_metadata?.role||'').toLowerCase();
   const platformAdmin=(globalRole==='platform_admin'||globalRole==='platform_admin_delegate');
+  if(platformAdmin && typeof isPlatformTenantMode==='function' && isPlatformTenantMode()) return true;
   const tenantMode=!!(document.querySelector('[data-tenant-mode="true"]') ||
                       document.body?.classList?.contains('tenant-mode') ||
                       window.activeTenantMode===true ||
