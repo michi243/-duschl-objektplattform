@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.25.4</title>
+<title>Duschl Service – Objektplattform v2.25.5</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3849,6 +3849,7 @@ table td,table th{
 .ops-resource-readiness-item:first-child{border-top:0;padding-top:0}
 .ops-resource-readiness-name{font-size:13px;font-weight:700}.ops-resource-readiness-reason{font-size:12px;color:var(--muted,#9ca3af);margin-top:2px}
 @media(max-width:680px){.ops-resource-readiness-item{grid-template-columns:1fr}.ops-resource-readiness-item .ops-readiness-badge{width:max-content}}
+.ops-resource-reservation{margin-top:7px;display:flex;gap:7px;align-items:center;flex-wrap:wrap}.ops-resource-reservation .badge.reserved{background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.38)}.ops-resource-reservation .badge.conflict{background:rgba(239,68,68,.13);border-color:rgba(239,68,68,.38)}.ops-resource-reservation-note{font-size:12px;color:var(--muted,#9ca3af);margin-top:4px}.ops-resource-reservation button{padding:6px 9px;font-size:12px}
 </style>
 </head>
 <body>
@@ -7538,7 +7539,16 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - rein lesende Ergänzung; Start, Abschluss, Wetter, SOP und Dokumentation bleiben unverändert.
    BACKEND: zusätzlicher Read-RPC get_winter_execution_resource_readiness_v1 erforderlich.
 */
-const APP_VERSION='2.25.4'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.25.5 | BASIS 2.25.4 | 29.09.2026
+   BETRIEBSMITTEL · STUFE 5: RESERVIERUNG / DISPOSITION
+   - konkrete Betriebsmittel können für reguläre Touren und Winterdienst-Objekteinsätze reserviert werden.
+   - Doppelbelegungen werden als Konflikt angezeigt, blockieren den Einsatz aber bewusst nicht.
+   - Mengenressourcen berücksichtigen bereits anderweitig reservierte Mengen des Einsatztages.
+   - Reservierungen können operativ wieder gelöst werden; keine automatische Standortänderung.
+   - bestehende Tour-, Winterdienst-, SOP-, Dokumentations- und Abschlusslogik bleibt unverändert.
+   BACKEND: operating_resource_reservations + Reservierungs-RPCs erforderlich.
+*/
+const APP_VERSION='2.25.5'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -23424,7 +23434,7 @@ async function osaDeactivate(id,objectId){
    WINTERDIENST V1 · 2.21.33
    SOP + Leistungsumfang + Tourvorlage + Tagestour + Objekteinsatz
    ========================================================= */
-let wsState={sops:[],versions:[],scopes:[],templates:[],stops:[],runs:[],executions:[],areas:[],selectedAreas:[],manualAreas:[],tenantUsers:[],objectAssignments:[],managedDocuments:[],managedVersions:[],weatherByObject:{},resourceReadiness:{}};
+let wsState={sops:[],versions:[],scopes:[],templates:[],stops:[],runs:[],executions:[],areas:[],selectedAreas:[],manualAreas:[],tenantUsers:[],objectAssignments:[],managedDocuments:[],managedVersions:[],weatherByObject:{},resourceReadiness:{},resourceReservations:{}};
 let winterDocumentationContext=null;
 let wsSelectedExecutionId='';
 let wsEditingTourTemplateId=null;
@@ -25308,13 +25318,21 @@ async function wsLoadExecutionResourceReadiness(executionId){
   const key=String(executionId||'');
   if(!key)return [];
   try{
-    const rows=await cloudRequest('rpc/get_winter_execution_resource_readiness_v1',{
-      method:'POST',
-      body:JSON.stringify({p_organization_id:wsOrg(),p_execution_id:key})
-    });
-    const normalized=Array.isArray(rows)?rows:[];
+    const [rows,reservations]=await Promise.all([
+      cloudRequest('rpc/get_winter_execution_resource_readiness_v1',{
+        method:'POST',
+        body:JSON.stringify({p_organization_id:wsOrg(),p_execution_id:key})
+      }),
+      cloudRequest('rpc/get_operating_resource_context_reservations_v1',{
+        method:'POST',
+        body:JSON.stringify({p_organization_id:wsOrg(),p_context_type:'winter_execution',p_context_id:key})
+      }).catch(e=>{console.warn('Winterdienst-Reservierungsstatus konnte nicht geladen werden',key,e);return [];})
+    ]);
+    const normalized=opsMergeReservationStatus(Array.isArray(rows)?rows:[],Array.isArray(reservations)?reservations:[],'winter_execution',key);
     wsState.resourceReadiness=wsState.resourceReadiness||{};
+    wsState.resourceReservations=wsState.resourceReservations||{};
     wsState.resourceReadiness[key]=normalized;
+    wsState.resourceReservations[key]=Array.isArray(reservations)?reservations:[];
     return normalized;
   }catch(e){
     console.warn('Winterdienst-Betriebsmittelbereitschaft konnte nicht geladen werden',key,e);
@@ -25379,7 +25397,7 @@ async function wsOpenExecution(id){
         <div class="muted" style="margin-top:8px">SOP: ${wsWinterSopHtmlForExecution(x)}</div>
         ${assignmentNote?`<div class="muted" style="margin-top:5px">Objekthinweis: ${wsEsc(assignmentNote)}</div>`:''}
 
-        ${opsResourceReadinessHtml(resourceReadiness)}
+        ${opsResourceReadinessHtml(resourceReadiness,{contextType:'winter_execution',contextId:id})}
 
         ${priorOpen?`<div class="card winter-sequence-warning" style="margin-top:14px">
           <strong>Vorheriger Tourstopp noch offen</strong>
@@ -25522,7 +25540,7 @@ async function wsCompleteExecution(id){
 }
 
 
-let opsState={services:[],plans:[],tours:[],stops:[],runs:[],runStops:[],assignments:[],documents:[],versions:[],tenantUsers:[],resourceReadiness:{}};
+let opsState={services:[],plans:[],tours:[],stops:[],runs:[],runStops:[],assignments:[],documents:[],versions:[],tenantUsers:[],resourceReadiness:{},resourceReservations:{}};
 let opsEditingPlanId=null;
 let opsFocusRunId='';
 
@@ -25943,30 +25961,109 @@ function opsReadinessSummary(rows){
   return {code:'gray',label:'Bedarf noch nicht konkretisiert'};
 }
 function opsReadinessLabel(code){return ({green:'Bereit',yellow:'Prüfen',red:'Nicht bereit',gray:'Offen'})[String(code||'gray')]||'Offen';}
-function opsResourceReadinessHtml(rows,{compact=false}={}){
+function opsCanManageResourceReservations(){
+  return isPlatformTenantMode()||isTenantAdminRole()||isAdminDelegate()||isObjectManagerRole();
+}
+function opsMergeReservationStatus(readinessRows,reservationRows,contextType,contextId){
+  const byResource=new Map((reservationRows||[]).map(x=>[String(x.resource_id||''),x]));
+  return (readinessRows||[]).map(x=>{
+    const st=byResource.get(String(x.resource_id||''))||{};
+    return {...x,...st,reservation_context_type:contextType,reservation_context_id:contextId};
+  });
+}
+function opsReservationUi(x,{contextType='',contextId='',compact=false}={}){
+  if(compact||!x?.resource_id)return '';
+  const reserved=!!x.reservation_id;
+  const conflict=!!x.conflict;
+  const otherQty=Number(x.reserved_elsewhere_quantity||0);
+  const conflictCount=Number(x.conflicting_reservation_count||0);
+  const qty=Number(x.required_quantity||1)>0?Number(x.required_quantity||1):1;
+  const notes=[];
+  if(conflict){
+    if(String(x.resource_tracking_mode||'')==='quantity'&&otherQty>0)notes.push(`${otherQty} ${x.unit||''} bereits anderweitig reserviert`);
+    else if(conflictCount>0)notes.push(`${conflictCount} weitere Reservierung${conflictCount===1?'':'en'} am selben Einsatztag`);
+  }
+  const action=opsCanManageResourceReservations()
+    ? reserved
+      ? `<button type="button" onclick="opsReleaseResourceReservation('${opsEsc(x.reservation_id)}','${opsEsc(contextType)}','${opsEsc(contextId)}')">Reservierung lösen</button>`
+      : `<button type="button" onclick="opsReserveResource('${opsEsc(contextType)}','${opsEsc(contextId)}','${opsEsc(x.resource_id)}',${qty})">Für Einsatz reservieren</button>`
+    : '';
+  return `<div class="ops-resource-reservation">${reserved?'<span class="badge reserved">Reserviert</span>':'<span class="badge">Nicht reserviert</span>'}${conflict?'<span class="badge conflict">Konflikt</span>':''}${action}</div>${notes.length?`<div class="ops-resource-reservation-note">${opsEsc(notes.join(' · '))}</div>`:''}`;
+}
+async function opsReserveResource(contextType,contextId,resourceId,quantity){
+  if(!opsCanManageResourceReservations())return alert('Keine Berechtigung zur Betriebsmittel-Disposition.');
+  try{
+    await cloudRequest('rpc/reserve_operating_resource_v1',{
+      method:'POST',
+      body:JSON.stringify({
+        p_organization_id:String(contextType==='winter_execution'?wsOrg():opsOrg()),
+        p_resource_id:resourceId,
+        p_context_type:contextType,
+        p_context_id:contextId,
+        p_quantity:Number(quantity||1),
+        p_note:null
+      })
+    });
+    await opsRefreshReservationContext(contextType,contextId);
+  }catch(e){alert('Betriebsmittel konnte nicht reserviert werden: '+(e.message||e));}
+}
+async function opsReleaseResourceReservation(reservationId,contextType,contextId){
+  if(!opsCanManageResourceReservations())return alert('Keine Berechtigung zur Betriebsmittel-Disposition.');
+  try{
+    const org=String(contextType==='winter_execution'?wsOrg():opsOrg());
+    await cloudRequest('rpc/release_operating_resource_reservation_v1',{
+      method:'POST',
+      body:JSON.stringify({p_organization_id:org,p_reservation_id:reservationId})
+    });
+    await opsRefreshReservationContext(contextType,contextId);
+  }catch(e){alert('Reservierung konnte nicht gelöst werden: '+(e.message||e));}
+}
+async function opsRefreshReservationContext(contextType,contextId){
+  if(contextType==='winter_execution'){
+    await wsOpenExecution(contextId);
+    return;
+  }
+  if(contextType==='operation_run'){
+    const run=(opsState.runs||[]).find(r=>String(r.id)===String(contextId));
+    if(run)await opsLoadResourceReadinessForRuns([run]);
+    opsRender();
+    opsRenderMyRuns();
+  }
+}
+function opsResourceReadinessHtml(rows,{compact=false,contextType='',contextId=''}={}){
   const xs=Array.isArray(rows)?rows:[];
   const sum=opsReadinessSummary(xs);
   if(!xs.length)return `<div class="ops-resource-readiness"><div class="ops-resource-readiness-head"><div class="ops-resource-readiness-title">Betriebsmittel</div><span class="ops-readiness-badge gray">Nicht hinterlegt</span></div>${compact?'':'<div class="muted" style="margin-top:6px">Für diese Leistungsart ist noch kein Standardbedarf gepflegt.</div>'}</div>`;
-  const list=compact?'':`<div class="ops-resource-readiness-list">${xs.map(x=>`<div class="ops-resource-readiness-item"><div><div class="ops-resource-readiness-name">${opsEsc(x.requirement_name||'Betriebsmittel')}${x.required_quantity?` · ${opsEsc(x.required_quantity)} ${opsEsc(x.unit||'')}`:''}${x.required===false?' · optional':''}</div><div class="ops-resource-readiness-reason">${opsEsc(x.readiness_reason||'')}</div></div><span class="ops-readiness-badge ${opsEsc(x.readiness||'gray')}">${opsEsc(opsReadinessLabel(x.readiness))}</span></div>`).join('')}</div>`;
+  const list=compact?'':`<div class="ops-resource-readiness-list">${xs.map(x=>`<div class="ops-resource-readiness-item"><div><div class="ops-resource-readiness-name">${opsEsc(x.requirement_name||'Betriebsmittel')}${x.required_quantity?` · ${opsEsc(x.required_quantity)} ${opsEsc(x.unit||'')}`:''}${x.required===false?' · optional':''}</div><div class="ops-resource-readiness-reason">${opsEsc(x.readiness_reason||'')}</div>${opsReservationUi(x,{contextType,contextId,compact})}</div><span class="ops-readiness-badge ${opsEsc(x.readiness||'gray')}">${opsEsc(opsReadinessLabel(x.readiness))}</span></div>`).join('')}</div>`;
   return `<div class="ops-resource-readiness"><div class="ops-resource-readiness-head"><div class="ops-resource-readiness-title">Betriebsmittel</div><span class="ops-readiness-badge ${opsEsc(sum.code)}">${opsEsc(sum.label)}</span></div>${list}</div>`;
 }
 async function opsLoadResourceReadinessForRuns(runs){
   const org=String(opsOrg()||'');
   const target=(Array.isArray(runs)?runs:[]).filter(r=>r?.id);
   const next={};
+  const reservationNext={};
   await Promise.all(target.map(async r=>{
     try{
-      const rows=await cloudRequest('rpc/get_operation_run_resource_readiness_v1',{
-        method:'POST',
-        body:JSON.stringify({p_organization_id:org,p_run_id:r.id})
-      });
-      next[String(r.id)]=Array.isArray(rows)?rows:[];
+      const [rows,reservations]=await Promise.all([
+        cloudRequest('rpc/get_operation_run_resource_readiness_v1',{
+          method:'POST',
+          body:JSON.stringify({p_organization_id:org,p_run_id:r.id})
+        }),
+        cloudRequest('rpc/get_operating_resource_context_reservations_v1',{
+          method:'POST',
+          body:JSON.stringify({p_organization_id:org,p_context_type:'operation_run',p_context_id:r.id})
+        }).catch(e=>{console.warn('Tour-Reservierungsstatus konnte nicht geladen werden',r.id,e);return [];})
+      ]);
+      reservationNext[String(r.id)]=Array.isArray(reservations)?reservations:[];
+      next[String(r.id)]=opsMergeReservationStatus(Array.isArray(rows)?rows:[],reservationNext[String(r.id)],'operation_run',String(r.id));
     }catch(e){
       console.warn('Betriebsmittel-Bereitschaft konnte nicht geladen werden',r.id,e);
       next[String(r.id)]=[];
+      reservationNext[String(r.id)]=[];
     }
   }));
   opsState.resourceReadiness=next;
+  opsState.resourceReservations=reservationNext;
 }
 
 function opsRunStopWorkHtml(stop,index){
@@ -25998,7 +26095,7 @@ function opsRunStopWorkHtml(stop,index){
       <div>${opsEsc(instruction)}</div>
     </div>
 
-    ${opsResourceReadinessHtml(opsReadinessRowsForStop(stop.id),{compact:false})}
+    ${opsResourceReadinessHtml(opsReadinessRowsForStop(stop.id),{compact:false,contextType:'operation_run',contextId:stop.run_id})}
 
     ${String(stop.status||'planned').toLowerCase()==='cancelled'&&stop.closure_reason_code?`
       <div class="card ops-stop-closure-info" style="margin-top:12px">
