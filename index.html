@@ -7544,6 +7544,13 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    Korrigiert: Benutzeranlage und Mandantenspeicherbereinigung akzeptieren Platform-Admin im Mandantenmodus.
    Dokumentenmanagement bleibt ausschließlich Mandantenadministration und wird Platform-Admins nicht angezeigt.
 
+/* RELEASE 2.25.8 | BASIS 2.25.7 | 29.09.2026
+   PLATFORM-ADMIN · DOKUMENTENMANAGEMENT IM MANDANTENMODUS
+   - Reiner Platform-Admin-Modus: Dokumentenmanagement bleibt ausgeblendet.
+   - Platform-Admin im Mandantenmodus: Dokumentenmanagement ist sichtbar und vollständig nutzbar.
+   - Mandanten-Admin: Dokumentenmanagement unverändert verfügbar.
+   - Keine SQL-/RLS-/RPC-Änderung.
+*/
 /* RELEASE 2.25.5 | BASIS 2.25.4 | 29.09.2026
    BETRIEBSMITTEL · STUFE 5: RESERVIERUNG / DISPOSITION
    - konkrete Betriebsmittel können für reguläre Touren und Winterdienst-Objekteinsätze reserviert werden.
@@ -7553,7 +7560,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - bestehende Tour-, Winterdienst-, SOP-, Dokumentations- und Abschlusslogik bleibt unverändert.
    BACKEND: operating_resource_reservations + Reservierungs-RPCs erforderlich.
 */
-const APP_VERSION='2.25.7'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.25.8'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -9507,7 +9514,7 @@ function applyRoleUI(){
   show('navOperations',hasAppRole && !platformMode);
   show('navWinterService',hasAppRole && !platformMode);
   show('navOperatingResources',hasAppRole && !platformMode && operatingResourcesCanUse());
-  show('navDocumentManagement',hasAppRole && !platformMode && !isPlatformOperatorRole() && slTenantAdmin());
+  show('navDocumentManagement',hasAppRole && !platformMode && (slTenantAdmin() || isPlatformTenantMode()));
   show('navExternalOrders',hasAppRole && !platformMode && (hasOperationalAdminAccess()||isPropertyManagerRole()||isObjectManagerRole()));
   show('navReports',hasAppRole && !platformMode);
   show('navPartnerDirectory',hasAppRole);
@@ -26679,7 +26686,7 @@ const dmTypeLabels={
 };
 function dmEsc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function dmOrg(){return currentOrganizationId();}
-function dmAdmin(){return slTenantAdmin() && !isPlatformOperatorRole();}
+function dmAdmin(){return slTenantAdmin() || isPlatformTenantMode();}
 function dmApplyAccess(){
  const admin=dmAdmin(),a=document.getElementById('dmAdminView'),n=document.getElementById('dmNoAdmin');
  if(a)a.style.display=admin?'block':'none';
