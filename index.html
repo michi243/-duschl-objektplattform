@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.24.42</title>
+<title>Duschl Service – Objektplattform v2.25.0</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3955,6 +3955,7 @@ table td,table th{
 <button id="navSopServices" class="hidden" style="display:none!important" onclick="showSection('sopServices')"><span class="nav-icon">▣</span><span>SOP &amp; Leistungen (Legacy)</span></button>
 <button id="navOperations" onclick="showSection('operations')"><span class="nav-icon">⇄</span><span>Touren &amp; Einsätze</span></button>
 <button id="navWinterService" onclick="showSection('winterService')"><span class="nav-icon">❄</span><span>Winterdienst</span></button>
+<button id="navOperatingResources" onclick="showSection('operatingResources')"><span class="nav-icon">◈</span><span>Betriebsmittel</span></button>
 <button id="navFindings" onclick="showSection('findings')"><span class="nav-icon">▤</span><span>Dokumentation</span></button>
 <button id="navReports" onclick="showSection('reports')"><span class="nav-icon">▥</span><span>Berichte</span></button>
 <div class="ds-menu-group-label">Verwaltung</div>
@@ -4967,6 +4968,148 @@ table td,table th{
 </section>
 
 
+
+
+<section class="section" id="operatingResources">
+  <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
+    <div>
+      <div class="ds-section-eyebrow">BETRIEB</div>
+      <h2 style="margin:0">Betriebsmittel</h2>
+      <div class="muted" style="margin-top:6px">Nur betriebsrelevante Ressourcen erfassen – Standort, Verfügbarkeit und Bewegungen ohne Kleinwerkzeug-Bürokratie.</div>
+    </div>
+    <button type="button" onclick="loadOperatingResources()">↻ Aktualisieren</button>
+  </div>
+
+  <div class="grid g4" style="margin-top:14px">
+    <div class="card"><div class="muted">Aktive Betriebsmittel</div><div class="big" id="orKpiActive">—</div></div>
+    <div class="card"><div class="muted">Verfügbar</div><div class="big" id="orKpiAvailable">—</div></div>
+    <div class="card"><div class="muted">Wartung / defekt</div><div class="big" id="orKpiIssue">—</div></div>
+    <div class="card"><div class="muted">Dezentral gelagert</div><div class="big" id="orKpiDecentral">—</div></div>
+  </div>
+
+  <div class="card operating-resource-admin" id="orAdminCard" style="margin-top:14px">
+    <div class="row space" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
+      <div>
+        <h3 style="margin:0" id="orEditorTitle">Betriebsmittel anlegen</h3>
+        <div class="muted" style="margin-top:5px">Nur relevante Maschinen, Fahrzeuge oder Materialien. Kategorien bleiben bewusst flexibel.</div>
+      </div>
+      <button type="button" onclick="orResetEditor()">Neu / zurücksetzen</button>
+    </div>
+    <input id="orEditId" type="hidden">
+    <div class="grid2" style="margin-top:12px">
+      <label>Bezeichnung *<input id="orName" placeholder="z. B. Hochdruckreiniger Kärcher"></label>
+      <label>Art
+        <select id="orKind" onchange="orUpdateTrackingUI()">
+          <option value="equipment">Gerät / Maschine</option>
+          <option value="vehicle">Fahrzeug / Anhänger</option>
+          <option value="material">Material / Verbrauch</option>
+          <option value="other">Sonstiges</option>
+        </select>
+      </label>
+      <label>Kategorie<input id="orCategory" list="orCategorySuggestions" placeholder="z. B. Winterdienst, Grünpflege oder frei"></label>
+      <datalist id="orCategorySuggestions">
+        <option value="Winterdienst"></option><option value="Grünpflege"></option><option value="Reinigung"></option><option value="Transport"></option><option value="Haustechnik"></option>
+      </datalist>
+      <label>Erfassung
+        <select id="orTrackingMode" onchange="orUpdateTrackingUI()">
+          <option value="individual">Einzelnes Betriebsmittel</option>
+          <option value="quantity">Mengenbestand</option>
+        </select>
+      </label>
+      <label>Inventarnummer<input id="orInventoryNumber" placeholder="optional"></label>
+      <label>Seriennummer<input id="orSerialNumber" placeholder="optional"></label>
+      <label id="orQuantityLabel">Menge<input id="orQuantity" type="number" min="0" step="0.1" value="1"></label>
+      <label>Einheit<input id="orUnit" placeholder="z. B. kg, l, Stk."></label>
+      <label>Status
+        <select id="orStatus">
+          <option value="available">Verfügbar</option>
+          <option value="in_use">Im Einsatz</option>
+          <option value="maintenance">Wartung</option>
+          <option value="defective">Defekt</option>
+          <option value="out_of_service">Außer Betrieb</option>
+        </select>
+      </label>
+      <label>Standorttyp
+        <select id="orLocationType">
+          <option value="warehouse">Lager</option>
+          <option value="vehicle">Fahrzeug</option>
+          <option value="object">Objekt</option>
+          <option value="utility_room">Wirtschafts-/Technikraum</option>
+          <option value="employee">Mitarbeiter</option>
+          <option value="external">Externer Standort</option>
+          <option value="free_text">Sonstiges / Freitext</option>
+        </select>
+      </label>
+      <label>Objekt (optional)<select id="orObjectId"><option value="">Kein Objekt</option></select></label>
+      <label>Standortdetail / Freitext<input id="orLocationText" placeholder="z. B. UG, hinter rechter Metalltür"></label>
+    </div>
+    <label style="margin-top:10px">Hinweis / Beschreibung<textarea id="orNotes" rows="2" placeholder="Optional. Nur Informationen erfassen, die im Betrieb helfen."></textarea></label>
+    <label style="margin-top:10px;display:flex;align-items:center;gap:8px"><input id="orPlanningRelevant" type="checkbox" checked style="width:auto">Für Ressourcen-/Einsatzplanung relevant</label>
+    <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">
+      <button class="primary" type="button" onclick="orSaveResource()">Speichern</button>
+      <button type="button" id="orDeactivateBtn" class="hidden" onclick="orDeactivateResource()">Deaktivieren</button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div class="row space" style="gap:10px;align-items:end;flex-wrap:wrap">
+      <div>
+        <h3 style="margin:0">Bestand &amp; Standort</h3>
+        <div class="muted" style="margin-top:5px">Aktueller Ist-Stand. Kleinwerkzeug muss nicht erfasst werden.</div>
+      </div>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <input id="orSearch" placeholder="Suchen …" oninput="orRenderList()" style="min-width:180px">
+        <select id="orStatusFilter" onchange="orRenderList()" style="min-width:150px">
+          <option value="">Alle Status</option>
+          <option value="available">Verfügbar</option>
+          <option value="in_use">Im Einsatz</option>
+          <option value="maintenance">Wartung</option>
+          <option value="defective">Defekt</option>
+          <option value="out_of_service">Außer Betrieb</option>
+        </select>
+      </div>
+    </div>
+    <div id="orResourceList" style="margin-top:12px"><span class="muted">Betriebsmittel werden geladen …</span></div>
+  </div>
+
+  <div class="card hidden" id="orMovementCard" style="margin-top:14px">
+    <div class="row space" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
+      <div>
+        <div class="ds-section-eyebrow">SCHNELLBUCHUNG</div>
+        <h3 style="margin:0" id="orMovementTitle">Standort dokumentieren</h3>
+        <div class="muted" id="orMovementCurrent" style="margin-top:5px"></div>
+      </div>
+      <button type="button" onclick="orCloseMovement()">Schließen</button>
+    </div>
+    <input id="orMovementResourceId" type="hidden">
+    <div class="grid2" style="margin-top:12px">
+      <label>Neuer Standorttyp
+        <select id="orMoveLocationType">
+          <option value="warehouse">Lager</option>
+          <option value="vehicle">Fahrzeug</option>
+          <option value="object">Objekt</option>
+          <option value="utility_room">Wirtschafts-/Technikraum</option>
+          <option value="employee">Mitarbeiter</option>
+          <option value="external">Externer Standort</option>
+          <option value="free_text">Sonstiges / Freitext</option>
+        </select>
+      </label>
+      <label>Objekt (optional)<select id="orMoveObjectId"><option value="">Kein Objekt</option></select></label>
+      <label>Standortdetail / Freitext<input id="orMoveLocationText" placeholder="z. B. Wirtschaftsraum UG, rechts neben Streusalz"></label>
+      <label id="orMoveQuantityLabel">Aktueller Mengenbestand<input id="orMoveQuantity" type="number" min="0" step="0.1"></label>
+    </div>
+    <label style="margin-top:10px">Bemerkung<textarea id="orMoveNote" rows="2" placeholder="optional, z. B. nach Einsatz dort abgelegt"></textarea></label>
+    <div class="row" style="margin-top:12px"><button class="primary" type="button" onclick="orRecordMovement()">Standort / Bestand speichern</button></div>
+    <div style="margin-top:16px">
+      <h4 style="margin:0 0 8px">Letzte Bewegungen</h4>
+      <div id="orMovementHistory" class="muted">Noch keine Historie geladen.</div>
+    </div>
+  </div>
+
+  <div class="resource-calculation-note" style="margin-top:14px">
+    <strong>Prinzip:</strong> Strukturierte Kernfelder für Steuerung, Freitext für die Realität. Jede Standort- oder Mengenänderung wird historisiert; der aktuelle Standort wird gleichzeitig fortgeschrieben.
+  </div>
+</section>
 
 <section class="section" id="resourcePlanning">
   <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -7269,6 +7412,17 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Sichtbarkeit und Backendzugriff nur Mandanten-Admin bzw. Plattform-Admin.
    BACKEND: SQL 2.24.41 erforderlich.
 */
+/* RELEASE 2.25.0 | BASIS 2.24.42 | 29.09.2026
+   BETRIEBSMITTEL STUFE 1:
+   - Betriebsmittelregister für betriebsrelevante Geräte, Fahrzeuge und Materialien.
+   - Hybrid-Standort: strukturierter Typ + Objekt + Freitext.
+   - Standort-/Mengenänderungen werden historisiert.
+   - Mitarbeiter dokumentieren Bewegungen; Stammdaten nur Mandanten-Admin.
+   - Bestehende Tour-/SOP-/Winterdienstlogik unverändert.
+
+   BACKEND: SQL 2.25.0 erforderlich.
+*/
+
 /* RELEASE 2.24.42 | BASIS 2.24.41 | 28.09.2026
    RESSOURCENPLANUNG: MANDANTENSPEZIFISCHE INITIALWERTE
    - Duschl Service erhält weiterhin die Businessplan-Werte als Initialvorgabe.
@@ -7278,7 +7432,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Speichern bleibt vollständig mandantenspezifisch.
    BACKEND: SQL 2.24.42 erforderlich.
 */
-const APP_VERSION='2.24.42'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.25.0'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -9229,6 +9383,7 @@ function applyRoleUI(){
   show('navWorkqueue',hasAppRole && !platformMode && canUseWorkQueueUI());
   show('navOperations',hasAppRole && !platformMode);
   show('navWinterService',hasAppRole && !platformMode);
+  show('navOperatingResources',hasAppRole && !platformMode && operatingResourcesCanUse());
   show('navExternalOrders',hasAppRole && !platformMode && (hasOperationalAdminAccess()||isPropertyManagerRole()||isObjectManagerRole()));
   show('navReports',hasAppRole && !platformMode);
   show('navPartnerDirectory',hasAppRole);
@@ -14987,6 +15142,246 @@ async function loadResourcePlanningOverview(){
   }
 }
 
+
+// ============================================================
+// BETRIEBSMITTEL | RELEASE 2.25.0
+// ============================================================
+
+let operatingResourcesState={resources:[],selected:null,movements:[]};
+
+function operatingResourcesCanUse(){
+  if(!currentOrganizationId())return false;
+  if(isAdminRole()&&isPlatformTenantMode())return true;
+  return isTenantAdminRole()||isAdminDelegate()||isObjectManagerRole()||isTestUserRole()||isExternalContractorRole()||effectiveUserRole()==='staff';
+}
+
+function operatingResourcesCanAdmin(){
+  if(!currentOrganizationId())return false;
+  return isTenantAdminRole()||(isAdminRole()&&isPlatformTenantMode());
+}
+
+function orStatusLabel(v){
+  return ({available:'Verfügbar',in_use:'Im Einsatz',maintenance:'Wartung',defective:'Defekt',out_of_service:'Außer Betrieb'})[v]||v||'—';
+}
+function orKindLabel(v){
+  return ({equipment:'Gerät / Maschine',vehicle:'Fahrzeug / Anhänger',material:'Material / Verbrauch',other:'Sonstiges'})[v]||v||'—';
+}
+function orLocationLabel(v){
+  return ({warehouse:'Lager',vehicle:'Fahrzeug',object:'Objekt',utility_room:'Wirtschafts-/Technikraum',employee:'Mitarbeiter',external:'Externer Standort',free_text:'Sonstiges'})[v]||v||'—';
+}
+function orObjectName(id){
+  if(!id)return '';
+  const o=(db.objects||[]).find(x=>String(x.id||'')===String(id));
+  return o?.name||'';
+}
+function orFormatLocation(r,prefix='current_'){
+  const type=r?.[prefix+'location_type']||r?.location_type||'';
+  const objectId=r?.[prefix+'object_id']||r?.object_id||'';
+  const text=r?.[prefix+'location_text']||r?.location_text||'';
+  const parts=[];
+  if(type)parts.push(orLocationLabel(type));
+  const on=orObjectName(objectId); if(on)parts.push(on);
+  if(text)parts.push(text);
+  return parts.length?parts.join(' · '):'Standort nicht dokumentiert';
+}
+function orFmtQty(r){
+  if(r?.tracking_mode!=='quantity')return '';
+  const q=r?.quantity;
+  return `${q===null||q===undefined?'—':Number(q).toLocaleString('de-DE',{maximumFractionDigits:3})}${r?.unit?' '+r.unit:''}`;
+}
+
+function orFillObjectSelects(){
+  const opts=['<option value="">Kein Objekt</option>'].concat((db.objects||[]).map(o=>`<option value="${esc(o.id)}">${esc(o.name||'Objekt')}</option>`)).join('');
+  ['orObjectId','orMoveObjectId'].forEach(id=>{const el=document.getElementById(id);if(el){const keep=el.value;el.innerHTML=opts;if([...el.options].some(x=>x.value===keep))el.value=keep;}});
+}
+
+function orUpdateTrackingUI(){
+  const mode=document.getElementById('orTrackingMode')?.value||'individual';
+  const q=document.getElementById('orQuantity');
+  const unit=document.getElementById('orUnit');
+  if(mode==='individual'){
+    if(q&&!q.value)q.value='1';
+    if(q)q.step='1';
+    if(unit&&!unit.value)unit.placeholder='z. B. Stk.';
+  }else{
+    if(q)q.step='0.1';
+    if(unit)unit.placeholder='z. B. kg, l, Stk.';
+  }
+}
+
+function orResetEditor(){
+  operatingResourcesState.selected=null;
+  const vals={orEditId:'',orName:'',orKind:'equipment',orCategory:'',orTrackingMode:'individual',orInventoryNumber:'',orSerialNumber:'',orQuantity:'1',orUnit:'',orStatus:'available',orLocationType:'warehouse',orObjectId:'',orLocationText:'',orNotes:''};
+  Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
+  const pr=document.getElementById('orPlanningRelevant');if(pr)pr.checked=true;
+  const title=document.getElementById('orEditorTitle');if(title)title.textContent='Betriebsmittel anlegen';
+  const btn=document.getElementById('orDeactivateBtn');if(btn)btn.classList.add('hidden');
+  orUpdateTrackingUI();
+}
+
+function orEditResource(id){
+  if(!operatingResourcesCanAdmin())return;
+  const r=operatingResourcesState.resources.find(x=>String(x.id)===String(id));
+  if(!r)return;
+  operatingResourcesState.selected=r;
+  const vals={orEditId:r.id||'',orName:r.name||'',orKind:r.resource_kind||'equipment',orCategory:r.category||'',orTrackingMode:r.tracking_mode||'individual',orInventoryNumber:r.inventory_number||'',orSerialNumber:r.serial_number||'',orQuantity:r.quantity??'',orUnit:r.unit||'',orStatus:r.status||'available',orLocationType:r.current_location_type||'free_text',orObjectId:r.current_object_id||'',orLocationText:r.current_location_text||'',orNotes:r.notes||''};
+  Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
+  const pr=document.getElementById('orPlanningRelevant');if(pr)pr.checked=r.planning_relevant!==false;
+  const title=document.getElementById('orEditorTitle');if(title)title.textContent='Betriebsmittel bearbeiten';
+  const btn=document.getElementById('orDeactivateBtn');if(btn)btn.classList.remove('hidden');
+  orUpdateTrackingUI();
+  document.getElementById('orAdminCard')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+async function loadOperatingResources(){
+  if(!operatingResourcesCanUse())return;
+  const org=currentOrganizationId();
+  if(!org)return;
+  orFillObjectSelects();
+  const admin=document.getElementById('orAdminCard');if(admin)admin.classList.toggle('hidden',!operatingResourcesCanAdmin());
+  try{
+    const rows=await cloudRequest(`operating_resources?organization_id=eq.${encodeURIComponent(org)}&active=eq.true&select=*&order=name.asc`)||[];
+    operatingResourcesState.resources=Array.isArray(rows)?rows:[];
+    const active=operatingResourcesState.resources;
+    const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=String(v);};
+    set('orKpiActive',active.length);
+    set('orKpiAvailable',active.filter(x=>x.status==='available').length);
+    set('orKpiIssue',active.filter(x=>['maintenance','defective'].includes(x.status)).length);
+    set('orKpiDecentral',active.filter(x=>['vehicle','object','utility_room','employee','external'].includes(x.current_location_type)).length);
+    orRenderList();
+  }catch(e){
+    console.error('Betriebsmittel konnten nicht geladen werden',e);
+    const host=document.getElementById('orResourceList');if(host)host.innerHTML=`<div class="bad">Betriebsmittel konnten nicht geladen werden: ${esc(e.message||e)}</div>`;
+  }
+}
+
+function orRenderList(){
+  const host=document.getElementById('orResourceList');if(!host)return;
+  const q=String(document.getElementById('orSearch')?.value||'').trim().toLowerCase();
+  const sf=String(document.getElementById('orStatusFilter')?.value||'');
+  const rows=(operatingResourcesState.resources||[]).filter(r=>{
+    if(sf&&r.status!==sf)return false;
+    if(!q)return true;
+    return [r.name,r.category,r.current_location_text,orObjectName(r.current_object_id),r.notes].some(v=>String(v||'').toLowerCase().includes(q));
+  });
+  if(!rows.length){host.innerHTML='<div class="muted">Keine Betriebsmittel gefunden.</div>';return;}
+  host.innerHTML=rows.map(r=>{
+    const qty=orFmtQty(r);
+    const issue=['maintenance','defective','out_of_service'].includes(r.status);
+    return `<div class="card" style="margin:0 0 10px;padding:12px">
+      <div class="row space" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
+        <div style="min-width:0;flex:1">
+          <div class="row" style="gap:7px;flex-wrap:wrap;align-items:center"><strong>${esc(r.name||'Betriebsmittel')}</strong><span class="badge${issue?' bad':''}">${esc(orStatusLabel(r.status))}</span>${r.category?`<span class="badge">${esc(r.category)}</span>`:''}</div>
+          <div class="muted" style="margin-top:5px">${esc(orKindLabel(r.resource_kind))}${qty?` · ${esc(qty)}`:''}</div>
+          <div style="margin-top:6px"><strong>Standort:</strong> ${esc(orFormatLocation(r))}</div>
+          ${r.notes?`<div class="muted" style="margin-top:4px">${esc(r.notes)}</div>`:''}
+        </div>
+        <div class="row" style="gap:7px;flex-wrap:wrap">
+          <button type="button" class="primary" onclick="orOpenMovement('${esc(r.id)}')">Standort ändern</button>
+          ${operatingResourcesCanAdmin()?`<button type="button" onclick="orEditResource('${esc(r.id)}')">Bearbeiten</button>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function orSaveResource(){
+  if(!operatingResourcesCanAdmin())return alert('Nur der Mandanten-Admin darf Betriebsmittel-Stammdaten ändern.');
+  const name=String(document.getElementById('orName')?.value||'').trim();
+  if(!name)return alert('Bezeichnung eingeben.');
+  const mode=document.getElementById('orTrackingMode')?.value||'individual';
+  const qtyRaw=String(document.getElementById('orQuantity')?.value||'').trim();
+  const quantity=qtyRaw===''?null:Number(qtyRaw);
+  try{
+    await cloudRequest('rpc/save_operating_resource_v1',{method:'POST',body:JSON.stringify({
+      p_organization_id:currentOrganizationId(),
+      p_resource_id:document.getElementById('orEditId')?.value||null,
+      p_name:name,
+      p_resource_kind:document.getElementById('orKind')?.value||'equipment',
+      p_category:String(document.getElementById('orCategory')?.value||'').trim()||null,
+      p_tracking_mode:mode,
+      p_inventory_number:String(document.getElementById('orInventoryNumber')?.value||'').trim()||null,
+      p_serial_number:String(document.getElementById('orSerialNumber')?.value||'').trim()||null,
+      p_quantity:mode==='individual'?(quantity??1):quantity,
+      p_unit:String(document.getElementById('orUnit')?.value||'').trim()||null,
+      p_status:document.getElementById('orStatus')?.value||'available',
+      p_planning_relevant:document.getElementById('orPlanningRelevant')?.checked!==false,
+      p_location_type:document.getElementById('orLocationType')?.value||'free_text',
+      p_object_id:document.getElementById('orObjectId')?.value||null,
+      p_location_text:String(document.getElementById('orLocationText')?.value||'').trim()||null,
+      p_notes:String(document.getElementById('orNotes')?.value||'').trim()||null
+    })});
+    orResetEditor();
+    await loadOperatingResources();
+  }catch(e){alert('Betriebsmittel konnte nicht gespeichert werden: '+(e.message||e));}
+}
+
+async function orDeactivateResource(){
+  if(!operatingResourcesCanAdmin())return;
+  const id=document.getElementById('orEditId')?.value||'';if(!id)return;
+  if(!confirm('Betriebsmittel deaktivieren? Die Historie bleibt erhalten.'))return;
+  try{
+    await cloudRequest('rpc/set_operating_resource_active_v1',{method:'POST',body:JSON.stringify({p_resource_id:id,p_active:false})});
+    orResetEditor();
+    await loadOperatingResources();
+  }catch(e){alert('Betriebsmittel konnte nicht deaktiviert werden: '+(e.message||e));}
+}
+
+async function orOpenMovement(id){
+  const r=operatingResourcesState.resources.find(x=>String(x.id)===String(id));if(!r)return;
+  operatingResourcesState.selected=r;
+  const card=document.getElementById('orMovementCard');if(card)card.classList.remove('hidden');
+  const rid=document.getElementById('orMovementResourceId');if(rid)rid.value=r.id;
+  const title=document.getElementById('orMovementTitle');if(title)title.textContent=`${r.name} · Standort dokumentieren`;
+  const cur=document.getElementById('orMovementCurrent');if(cur)cur.textContent=`Aktuell: ${orFormatLocation(r)}${orFmtQty(r)?' · '+orFmtQty(r):''}`;
+  const lt=document.getElementById('orMoveLocationType');if(lt)lt.value=r.current_location_type||'free_text';
+  const oi=document.getElementById('orMoveObjectId');if(oi)oi.value=r.current_object_id||'';
+  const tx=document.getElementById('orMoveLocationText');if(tx)tx.value=r.current_location_text||'';
+  const q=document.getElementById('orMoveQuantity');if(q)q.value=r.quantity??'';
+  const ql=document.getElementById('orMoveQuantityLabel');if(ql)ql.classList.toggle('hidden',r.tracking_mode!=='quantity');
+  const note=document.getElementById('orMoveNote');if(note)note.value='';
+  await orLoadMovementHistory(r.id);
+  card?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function orCloseMovement(){
+  const card=document.getElementById('orMovementCard');if(card)card.classList.add('hidden');
+  operatingResourcesState.selected=null;
+}
+
+async function orRecordMovement(){
+  const r=operatingResourcesState.selected; if(!r)return;
+  const qRaw=String(document.getElementById('orMoveQuantity')?.value||'').trim();
+  try{
+    await cloudRequest('rpc/record_operating_resource_movement_v1',{method:'POST',body:JSON.stringify({
+      p_resource_id:r.id,
+      p_location_type:document.getElementById('orMoveLocationType')?.value||'free_text',
+      p_object_id:document.getElementById('orMoveObjectId')?.value||null,
+      p_location_text:String(document.getElementById('orMoveLocationText')?.value||'').trim()||null,
+      p_quantity_after:r.tracking_mode==='quantity'?(qRaw===''?null:Number(qRaw)):null,
+      p_note:String(document.getElementById('orMoveNote')?.value||'').trim()||null
+    })});
+    await loadOperatingResources();
+    await orOpenMovement(r.id);
+  }catch(e){alert('Standort / Bestand konnte nicht gespeichert werden: '+(e.message||e));}
+}
+
+async function orLoadMovementHistory(resourceId){
+  const host=document.getElementById('orMovementHistory');if(host)host.innerHTML='<span class="muted">Historie wird geladen …</span>';
+  try{
+    const rows=await cloudRequest(`operating_resource_movements?resource_id=eq.${encodeURIComponent(resourceId)}&select=*&order=moved_at.desc&limit=20`)||[];
+    operatingResourcesState.movements=Array.isArray(rows)?rows:[];
+    if(!host)return;
+    if(!operatingResourcesState.movements.length){host.innerHTML='<span class="muted">Noch keine Bewegung dokumentiert.</span>';return;}
+    host.innerHTML=operatingResourcesState.movements.map(m=>{
+      const d=m.moved_at?new Date(m.moved_at).toLocaleString('de-DE'):'—';
+      const to=orFormatLocation({location_type:m.to_location_type,object_id:m.to_object_id,location_text:m.to_location_text},'');
+      const qty=m.quantity_after===null||m.quantity_after===undefined?'':` · ${Number(m.quantity_after).toLocaleString('de-DE',{maximumFractionDigits:3})}${m.unit?' '+m.unit:''}`;
+      return `<div style="padding:8px 0;border-bottom:1px solid var(--line,#ddd)"><strong>${esc(d)}</strong><div>${esc(to)}${esc(qty)}</div>${m.note?`<div class="muted">${esc(m.note)}</div>`:''}</div>`;
+    }).join('');
+  }catch(e){if(host)host.innerHTML=`<span class="bad">Historie konnte nicht geladen werden: ${esc(e.message||e)}</span>`;}
+}
+
 function showSection(id){
  if(id==='sopServices'){setTimeout(()=>slLoad(),0);}
 
@@ -15004,6 +15399,7 @@ function showSection(id){
     }
   }
   if(id==='users'&&!canManageUsersUI())return requireAdminUI('Benutzer & Berechtigungen');
+  if(id==='operatingResources'&&!operatingResourcesCanUse())return requireAdminUI('Betriebsmittel');
   if(id==='resourcePlanning'&&!resourcePlanningCanAdmin())return requireAdminUI('Ressourcenplanung');
   if(id==='settings'&&!canUseSettingsUI())return requireAdminUI('Daten & Administration');
   closeAppMenu();
@@ -15039,7 +15435,7 @@ function showSection(id){
   document.querySelectorAll('#platformBottomNav [data-pa-nav]').forEach(b=>b.classList.toggle('active',b.getAttribute('data-pa-nav')===id));
   if(id==='objects'){renderObjectsDirect();try{renderObjects();}catch(e){console.error('Detail-Renderer Objektseite fehlgeschlagen',e);}}
   if(id==='platformUsers' && isAdminRole() && !isPlatformTenantMode()){refreshPlatformOrphanUserCard();}
-  if(id==='dashboard'&&isAdminRole()){loadPlatformSystemStatus();}if(id==='resourcePlanning'){loadResourcePlanning();}if(id==='partnerDirectory'){loadPartnerDirectory();}if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='externalOrders')cloudLoadExternalOrders();if(id==='users')loadUserAdminData();if(id==='winterService'){wsApplyWinterServiceViewMode();loadWinterService();}
+  if(id==='dashboard'&&isAdminRole()){loadPlatformSystemStatus();}if(id==='operatingResources'){loadOperatingResources();}if(id==='resourcePlanning'){loadResourcePlanning();}if(id==='partnerDirectory'){loadPartnerDirectory();}if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='externalOrders')cloudLoadExternalOrders();if(id==='users')loadUserAdminData();if(id==='winterService'){wsApplyWinterServiceViewMode();loadWinterService();}
 }
 function priorityLabel(p){
   return ({P1:'Sofort',P2:'Dringend',P3:'Planbar',P4:'Beobachten'})[p]||p||'';
