@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.5</title>
+<title>Duschl Service – Objektplattform v2.26.6.9</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -4229,6 +4229,15 @@ table td,table th{
   .ops-tour-weekdays{gap:6px 10px}
 }
 </style>
+
+<style id="ops-email-confirm-v22666">
+.ops-email-confirm-modal{z-index:99999!important}
+.ops-email-confirm-card{width:min(520px,calc(100vw - 28px));border:1px solid #3f6f8d;border-radius:16px;background:#0b2030;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.ops-email-confirm-icon{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#143c2a;border:1px solid #4d9a69;font-size:24px;margin-bottom:12px}
+.ops-email-confirm-card h3{margin:0 0 8px 0}
+.ops-email-confirm-meta{margin:10px 0;padding:10px 12px;border:1px solid #31536d;border-radius:11px;background:#091b28}
+.ops-email-confirm-meta div+div{margin-top:5px}
+</style>
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -8207,7 +8216,51 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Winterdienst unverändert separater Fachprozess.
    BACKEND: SQL 2.26.6.5 erforderlich.
 */
-const APP_VERSION='2.26.6.5'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.26.6.6 | BASIS 2.26.6.5 | 30.09.2026
+   TOUR-BENACHRICHTIGUNGEN:
+   - Routen-/Stoppreihenfolgeänderungen lösen eine neue E-Mail aus.
+   - Änderungserkennung: Verantwortlicher, Datum, Startzeit, Route.
+   - Nach erfolgreichem Einreihen einer Mail öffnet IMMER ein sichtbares Bestätigungsfeld.
+   - Bestätigungsfeld zeigt Empfänger und Änderungsgrund.
+   - Änderung einer Tourvorlage benachrichtigt alle betroffenen, zugewiesenen zukünftigen Runs.
+   EDGE: process-notification-outbox 2.26.6.6 erforderlich.
+   BACKEND: SQL 2.26.6.6 erforderlich.
+*/
+/* RELEASE 2.26.6.7 | BASIS 2.26.6.6 | 30.09.2026
+   EINHEITLICHE MAIL-UX:
+   - Bestätigungsfeld nach jeder tatsächlich eingeplanten Mail:
+     Standardtour UND Winterdiensttour.
+   - Winterdienst-Erstzuweisung zeigt denselben Versanddialog.
+   - Änderungen einer bereits erzeugten Winterdiensttour können eine Update-Mail
+     mit Änderungsgrund auslösen.
+   - Reine Änderung einer Vorlage ohne Änderung der konkreten Tagestour erzeugt
+     bewusst keine irreführende Mail.
+   BACKEND: SQL 2.26.6.7 erforderlich.
+   EDGE: process-notification-outbox 2.26.6.7 erforderlich.
+*/
+/* RELEASE 2.26.6.8 | BASIS 2.26.6.7 | 30.09.2026
+   T-1 TOURENERINNERUNG:
+   - Standardtour und Winterdiensttour erhalten am Vortag ab 18:00 Uhr eine Erinnerung.
+   - Reminder läuft serverseitig über den bestehenden Notification-Processor.
+   - Kein geöffnetes Frontend erforderlich.
+   - Pro Run/Einsatztag nur eine Erinnerung.
+   - Zuweisungs- und Änderungsmails bleiben unverändert.
+   - Sichtbares Bestätigungsfeld bleibt für interaktiv ausgelöste Mails erhalten.
+   BACKEND: SQL 2.26.6.8 erforderlich.
+   EDGE: process-notification-outbox 2.26.6.8 erforderlich.
+*/
+/* RELEASE 2.26.6.9 | BASIS 2.26.6.8 | 30.09.2026
+   STANDARDTOUR-MAILBRIEFING:
+   - Zuweisungs-, Änderungs- und T-1-Mail enthalten den offenen Arbeitsvorrat
+     der tatsächlich in der Tour enthaltenen Objekte.
+   - Arbeitsvorrat: Titel, Status, Fälligkeit, Verantwortlicher, Arbeitsnotiz.
+   - completed/cancelled werden ausgeschlossen.
+   - Mandanten-CC-Dokumentation bleibt unverändert aktiv und erhält dieselbe Mailkopie.
+   - Winterdienst fachlich unverändert.
+   BACKEND: SQL 2.26.6.9 erforderlich.
+   EDGE: process-notification-outbox 2.26.6.9 erforderlich.
+*/
+const APP_VERSION='2.26.6.9'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -24922,6 +24975,110 @@ function wsEditTourTemplate(id){
 
 function wsCancelTourEdit(){ wsResetTourForm(); }
 
+async function wsQueueRunUpdateNotification(run,reason='Winterdiensttour geändert'){
+  if(!run?.id||!run?.assigned_user_id)return null;
+  try{
+    const briefing=await wsBuildRunBriefing(
+      run,
+      run.service_action||'clear_and_grit'
+    );
+
+    const rows=await cloudRequest(
+      'rpc/queue_winter_service_run_update_notification_v1',
+      {
+        method:'POST',
+        body:JSON.stringify({
+          p_run_id:run.id,
+          p_briefing:briefing,
+          p_change_reason:reason
+        })
+      }
+    );
+
+    const result=Array.isArray(rows)?rows[0]:rows;
+
+    if(result?.delivery_created===true){
+      showTourEmailConfirmation({
+        recipient:result.recipient_email||'',
+        reason:result.change_reason||reason,
+        message:result.message||''
+      });
+    }
+
+    return result||null;
+
+  }catch(e){
+    console.error('Winterdienst-Update-Mail konnte nicht eingeplant werden',run?.id,e);
+    alert(
+      'Winterdiensttour wurde geändert, die E-Mail-Benachrichtigung konnte jedoch nicht eingeplant werden: '+
+      (e.message||e)
+    );
+    return null;
+  }
+}
+
+async function wsSyncReorderedFutureRunsAndNotify(templateId,selectedObjectIds){
+  const today=wsToday();
+  const selected=selectedObjectIds.map(String);
+
+  const runs=(wsState.runs||[])
+    .filter(r=>String(r.tour_template_id||'')===String(templateId))
+    .filter(r=>String(r.service_date||'')>=today)
+    .filter(r=>r.assigned_user_id)
+    .filter(r=>!['completed','cancelled'].includes(String(r.status||'').toLowerCase()));
+
+  let updated=0;
+  let skippedMembershipChange=0;
+
+  for(const run of runs){
+    const executions=(wsState.executions||[])
+      .filter(e=>String(e.run_id||'')===String(run.id))
+      .filter(e=>String(e.status||'planned').toLowerCase()==='planned')
+      .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+
+    const currentIds=executions.map(e=>String(e.object_id||''));
+    const sameMembers=
+      currentIds.length===selected.length &&
+      [...currentIds].sort().join('|')===[...selected].sort().join('|');
+
+    if(!sameMembers){
+      skippedMembershipChange++;
+      continue;
+    }
+
+    let changed=false;
+
+    for(let i=0;i<selected.length;i++){
+      const objectId=selected[i];
+      const execution=executions.find(e=>String(e.object_id)===objectId);
+      if(!execution)continue;
+
+      const nextOrder=i+1;
+      if(Number(execution.sort_order||0)!==nextOrder){
+        await cloudRequest(
+          `winter_service_executions?id=eq.${encodeURIComponent(execution.id)}&organization_id=eq.${encodeURIComponent(wsOrg())}`,
+          {
+            method:'PATCH',
+            headers:{Prefer:'return=minimal'},
+            body:JSON.stringify({sort_order:nextOrder})
+          }
+        );
+
+        execution.sort_order=nextOrder;
+        changed=true;
+      }
+    }
+
+    if(changed){
+      // wsBuildRunBriefing nutzt wsState.executions; Reihenfolge wurde oben lokal aktualisiert.
+      await wsQueueRunUpdateNotification(run,'Route geändert');
+      updated++;
+    }
+  }
+
+  return {updated,skippedMembershipChange};
+}
+
 async function wsSaveTourTemplate(){
   try{
     const org=wsOrg(), name=document.getElementById('wsTourName').value.trim(), start=document.getElementById('wsTourStart').value||null;
@@ -24963,9 +25120,20 @@ async function wsSaveTourTemplate(){
           });
         }
       }
+      const syncResult=await wsSyncReorderedFutureRunsAndNotify(id,selected);
+
       wsResetTourForm();
       await loadWinterService();
-      alert('Tourvorlage geändert.');
+
+      let note='Tourvorlage geändert.';
+      if(syncResult.updated){
+        note+=` ${syncResult.updated} bereits erzeugte Winterdiensttour${syncResult.updated===1?' wurde':'en wurden'} in der Reihenfolge aktualisiert und benachrichtigt.`;
+      }
+      if(syncResult.skippedMembershipChange){
+        note+=` ${syncResult.skippedMembershipChange} bereits erzeugte Tour${syncResult.skippedMembershipChange===1?' enthält':'en enthalten'} eine abweichende Objektmenge und wurde deshalb nicht automatisch umgebaut.`;
+      }
+
+      alert(note);
       return;
     }
 
@@ -25293,9 +25461,16 @@ async function wsCreateRun(){
         })
       });
       const n=Array.isArray(notify)?notify[0]:notify;
-      mailText=n?.delivery_created===true
-        ?`E-Mail für ${n.recipient_email||'den Mitarbeiter'} in die Versandqueue eingestellt · Bereitschaft: ${briefing.readiness_label}.`
-        :`E-Mail wurde nicht eingeplant: ${n?.message||'kein gültiger Empfänger'}.`;
+      if(n?.delivery_created===true){
+        mailText=`E-Mail für ${n.recipient_email||'den Mitarbeiter'} in die Versandqueue eingestellt · Bereitschaft: ${briefing.readiness_label}.`;
+        showTourEmailConfirmation({
+          recipient:n.recipient_email||'',
+          reason:'Winterdiensttour zugewiesen',
+          message:mailText
+        });
+      }else{
+        mailText=`E-Mail wurde nicht eingeplant: ${n?.message||'kein gültiger Empfänger'}.`;
+      }
     }catch(mailError){
       console.error('Tagestour erstellt, Mailqueue fehlgeschlagen',mailError);
       mailText=`Tagestour wurde erstellt. E-Mail konnte nicht eingeplant werden: ${mailError?.message||mailError}`;
@@ -27272,21 +27447,66 @@ async function opsDeactivatePlan(id){
   }catch(e){alert('Leistungsplan konnte nicht deaktiviert werden: '+(e.message||e));}
 }
 
-async function opsQueueRunAssignmentNotification(runId,{silent=true}={}){
+function showTourEmailConfirmation({recipient='',reason='',message=''}={}){
+  let modal=document.getElementById('opsEmailConfirmModal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='opsEmailConfirmModal';
+    modal.className='modal ops-email-confirm-modal';
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML=`<div class="ops-email-confirm-card">
+    <div class="ops-email-confirm-icon">✓</div>
+    <h3>E-Mail-Benachrichtigung eingeplant</h3>
+    <div class="muted">Die Benachrichtigung wurde erfolgreich in die Versandqueue gestellt.</div>
+    <div class="ops-email-confirm-meta">
+      <div><strong>Empfänger:</strong> ${opsEsc(recipient||'—')}</div>
+      <div><strong>Anlass:</strong> ${opsEsc(reason||'Tour aktualisiert')}</div>
+      ${message?`<div><strong>Status:</strong> ${opsEsc(message)}</div>`:''}
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px">
+      <button class="primary" type="button" onclick="document.getElementById('opsEmailConfirmModal').style.display='none'">OK</button>
+    </div>
+  </div>`;
+  modal.style.display='flex';
+}
+
+function showTourEmailConfirmation(data={}){
+  return opsShowEmailConfirmation(data);
+}
+
+async function opsQueueRunAssignmentNotification(runId,{silent=true,changeReason=null}={}){
   if(!runId||!opsIsPlanningRole())return null;
   try{
-    const rows=await cloudRequest('rpc/queue_operation_run_assignment_notification_v1',{
+    const rows=await cloudRequest('rpc/queue_operation_run_assignment_notification_v3',{
       method:'POST',
-      body:JSON.stringify({p_run_id:runId})
+      body:JSON.stringify({
+        p_run_id:runId,
+        p_change_reason:changeReason||null
+      })
     });
+
     const result=Array.isArray(rows)?rows[0]:rows;
-    if(!silent && result?.delivery_created===true){
-      cloudSetStatus(`Tour zugewiesen · E-Mail für ${result.recipient_email||'Mitarbeiter'} eingeplant`,'ok');
+
+    if(result?.delivery_created===true){
+      cloudSetStatus(`Tourbenachrichtigung für ${result.recipient_email||'Mitarbeiter'} eingeplant`,'ok');
+
+      // Nutzeranforderung: Bei JEDER erfolgreich eingeplanten Mail
+      // sichtbar ein Bestätigungsfeld öffnen.
+      opsShowEmailConfirmation({
+        recipient:result.recipient_email||'',
+        reason:result.change_reason||changeReason||'Tour aktualisiert',
+        message:result.message||''
+      });
     }
+
     return result||null;
+
   }catch(e){
     console.error('Standardtour-Benachrichtigung konnte nicht eingeplant werden',runId,e);
-    if(!silent)alert('Tour wurde gespeichert, die E-Mail-Benachrichtigung konnte jedoch nicht eingeplant werden: '+(e.message||e));
+    if(!silent){
+      alert('Tour wurde gespeichert, die E-Mail-Benachrichtigung konnte jedoch nicht eingeplant werden: '+(e.message||e));
+    }
     return null;
   }
 }
@@ -27328,7 +27548,7 @@ async function opsAssignRun(runId,userId){
     opsRender();
     objectManagerTourDashboardState.loaded=false;
     if(userId && String(userId)!==previousAssignee){
-      await opsQueueRunAssignmentNotification(runId,{silent:false});
+      await opsQueueRunAssignmentNotification(runId,{silent:false,changeReason:'Verantwortlicher geändert'});
     }
   }catch(e){
     alert('Tour konnte nicht zugewiesen werden: '+(e.message||e));
@@ -27739,6 +27959,72 @@ async function opsDeleteTour(id){
     await opsLoad();
   }catch(e){alert('Tourvorlage konnte nicht gelöscht werden: '+(e.message||e));}
 }
+async function opsSyncFutureRunsFromTourTemplate(tourTemplateId,{notify=false}={}){
+  if(!tourTemplateId)return;
+
+  const today=new Date().toISOString().slice(0,10);
+  const runs=(opsState.runs||[])
+    .filter(r=>String(r.tour_template_id||'')===String(tourTemplateId))
+    .filter(r=>String(r.service_date||'')>=today)
+    .filter(r=>!['completed','cancelled'].includes(String(r.status||'').toLowerCase()));
+
+  const templateStops=await cloudRequest(
+    `operation_tour_stops?select=*&organization_id=eq.${encodeURIComponent(opsOrg())}&tour_template_id=eq.${encodeURIComponent(tourTemplateId)}&active=eq.true&order=sort_order.asc`
+  )||[];
+
+  for(const run of runs){
+    try{
+      // Alte noch nicht ausgeführte Stopps dieser Zukunftstour entfernen,
+      // dann aus aktueller Tourvorlage neu aufbauen.
+      const existing=await cloudRequest(
+        `operation_run_stops?select=*&organization_id=eq.${encodeURIComponent(opsOrg())}&run_id=eq.${encodeURIComponent(run.id)}&order=sort_order.asc`
+      )||[];
+
+      for(const stop of existing){
+        if(String(stop.status||'planned').toLowerCase()!=='completed'){
+          await cloudRequest(`operation_run_stops?id=eq.${encodeURIComponent(stop.id)}&organization_id=eq.${encodeURIComponent(opsOrg())}`,{
+            method:'DELETE',
+            headers:{Prefer:'return=minimal'}
+          });
+        }
+      }
+
+      if(templateStops.length){
+        const payload=templateStops.map(ts=>({
+          id:crypto.randomUUID(),
+          organization_id:opsOrg(),
+          run_id:run.id,
+          tour_stop_id:ts.id,
+          object_service_assignment_id:ts.object_service_assignment_id,
+          recurring_plan_id:ts.recurring_plan_id||null,
+          object_id:ts.object_id,
+          service_type_id:ts.service_type_id,
+          sort_order:ts.sort_order,
+          planned_duration_minutes:ts.planned_duration_minutes||60,
+          status:'planned'
+        }));
+
+        await cloudRequest('operation_run_stops',{
+          method:'POST',
+          headers:{Prefer:'return=minimal'},
+          body:JSON.stringify(payload)
+        });
+      }
+
+      if(notify && run.assigned_user_id){
+        await opsQueueRunAssignmentNotification(run.id,{
+          silent:false,
+          changeReason:'Route geändert'
+        });
+      }
+
+    }catch(e){
+      console.error('Zukunftstour konnte nicht aus Tourvorlage synchronisiert werden',run.id,e);
+      alert('Die Tourvorlage wurde gespeichert, aber mindestens ein bereits geplanter Einsatz konnte nicht vollständig aktualisiert werden: '+(e.message||e));
+    }
+  }
+}
+
 async function opsSaveTour(){
   try{
     const name=document.getElementById('opsTourName')?.value.trim()||'';
@@ -27806,6 +28092,8 @@ async function opsSaveTour(){
         headers:{Prefer:'return=minimal'},
         body:JSON.stringify(rows.map(x=>({...x,tour_template_id:id})))
       });
+
+      await opsSyncFutureRunsFromTourTemplate(id,{notify:true});
 
       opsResetTourForm();
       await opsLoad();
@@ -27900,7 +28188,7 @@ async function opsSaveRunEdit(runId){
     });
     const modal=document.getElementById('opsRunEditModal');if(modal)modal.style.display='none';
     if(assigned_user_id){
-      await opsQueueRunAssignmentNotification(runId,{silent:false});
+      await opsQueueRunAssignmentNotification(runId,{silent:false,changeReason:'Tourdaten geändert'});
     }
     await opsLoad();
   }catch(e){alert('Einsatz konnte nicht geändert werden: '+(e.message||e));}
