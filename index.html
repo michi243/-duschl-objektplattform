@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.12</title>
+<title>Duschl Service – Objektplattform v2.26.6.13</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -8398,7 +8398,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.10.
    BACKEND: SQL 2.26.6.11 erforderlich.
 */
-/* RELEASE 2.26.6.12 | BASIS 2.26.6.11 | 30.09.2026
+/* RELEASE 2.26.6.13 | BASIS 2.26.6.12 | 30.09.2026
    WETTER-FALLBACK HARDENING:
    - Außenpflege akzeptiert object-weather nur noch bei verwertbarem care_24h-Datensatz.
    - Formal erfolgreiche, aber inhaltlich leere/ungültige Antworten lösen jetzt
@@ -8410,7 +8410,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.11.
    BACKEND: keine SQL-Änderung.
 */
-const APP_VERSION='2.26.6.12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.6.13'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -28011,7 +28011,7 @@ async function opsDeactivatePlan(id){
   }catch(e){alert('Leistungsplan konnte nicht deaktiviert werden: '+(e.message||e));}
 }
 
-function showTourEmailConfirmation({recipient='',reason='',message=''}={}){
+function opsShowEmailConfirmation({recipient='',reason='',message=''}={}){
   let modal=document.getElementById('opsEmailConfirmModal');
   if(!modal){
     modal=document.createElement('div');
