@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.8</title>
+<title>Duschl Service – Objektplattform v2.26.6.12</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -4238,6 +4238,22 @@ table td,table th{
 .ops-email-confirm-meta{margin:10px 0;padding:10px 12px;border:1px solid #31536d;border-radius:11px;background:#091b28}
 .ops-email-confirm-meta div+div{margin-top:5px}
 </style>
+
+<style id="ops-oneoff-v226611">
+.ops-planning-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.ops-oneoff-card{border-color:#3c6882!important}
+.ops-oneoff-draft{display:grid;gap:8px;margin-top:10px}
+.ops-oneoff-stop{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:start;padding:10px;border:1px solid #31536d;border-radius:12px;background:#0a1d2a}
+.ops-oneoff-index{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#11354c;font-weight:800}
+.ops-oneoff-stop-actions{display:flex;gap:5px}
+.ops-oneoff-stop-actions button{min-width:34px;padding:6px}
+.ops-oneoff-type-switch{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.ops-oneoff-type-switch button.is-active{background:#fff;color:#102030}
+@media(max-width:700px){
+  .ops-oneoff-stop{grid-template-columns:30px minmax(0,1fr)}
+  .ops-oneoff-stop-actions{grid-column:2/3}
+}
+</style>
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -5263,6 +5279,103 @@ table td,table th{
     <div><h2 style="margin:0">Touren &amp; Einsätze</h2><div class="muted" style="margin-top:6px"><span id="opsSubtitle">Regelmäßige Leistungen automatisch planen und mit zusätzlichen Aufgaben ergänzen.</span></div></div>
     <button type="button" onclick="opsLoad()">↻ Aktualisieren</button>
   </div>
+  <div class="ops-planning-only ops-planning-actions">
+    <button class="primary" type="button" onclick="opsOpenOneoffPlanner()">+ Einzeltour planen</button>
+    <button type="button" onclick="document.getElementById('opsTourName')?.scrollIntoView({behavior:'smooth',block:'center'})">+ Wiederkehrende Tour planen</button>
+  </div>
+
+  <div id="opsOneoffPlanner" class="card ops-planning-only ops-oneoff-card hidden" style="margin-top:14px">
+    <div class="row space" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
+      <div>
+        <h3 style="margin:0">Einzeltour planen</h3>
+        <div class="muted" style="margin-top:5px">Einmaliger Einsatz oder Routentour mit einmaligen Zusatzstopps. Die wiederkehrende Vorlage wird nicht verändert.</div>
+      </div>
+      <button type="button" onclick="opsCloseOneoffPlanner()">Schließen</button>
+    </div>
+
+    <div class="grid2" style="margin-top:12px">
+      <label>Bezeichnung *
+        <input id="opsOneoffName" placeholder="z. B. Haushaltsauflösung Müller">
+      </label>
+      <label>Durchführung *
+        <select id="opsOneoffAssignee"><option value="">Mitarbeiter wählen …</option></select>
+      </label>
+      <label>Datum *
+        <input id="opsOneoffDate" type="date">
+      </label>
+      <label>Startzeit
+        <input id="opsOneoffStart" type="time" value="08:00">
+      </label>
+    </div>
+
+    <label style="margin-top:10px">Optionale Basis-Routentour
+      <select id="opsOneoffBaseTour" onchange="opsOneoffBaseChanged()">
+        <option value="">Keine – reine Einzeltour</option>
+      </select>
+    </label>
+    <div class="muted" style="margin-top:5px">Bei Auswahl werden die Stopps der Vorlage nur in diese konkrete Tagestour kopiert. Die Vorlage selbst bleibt unverändert.</div>
+
+    <div class="ops-oneoff-type-switch">
+      <button id="opsOneoffTypeObjectBtn" class="is-active" type="button" onclick="opsOneoffSetAddType('object_service')">Objektleistung hinzufügen</button>
+      <button id="opsOneoffTypeSpecialBtn" type="button" onclick="opsOneoffSetAddType('special_task')">Sonderauftrag hinzufügen</button>
+    </div>
+
+    <div id="opsOneoffObjectServiceEditor" style="margin-top:10px">
+      <div class="grid2">
+        <label>Objekt
+          <select id="opsOneoffObject" onchange="opsOneoffObjectChanged()"><option value="">Objekt wählen …</option></select>
+        </label>
+        <label>Leistung
+          <select id="opsOneoffService" disabled><option value="">Zuerst Objekt wählen …</option></select>
+        </label>
+      </div>
+      <div class="grid2" style="margin-top:8px">
+        <label>Dauer (Min.)
+          <input id="opsOneoffDuration" type="number" min="5" max="1440" step="5" value="60">
+        </label>
+        <label>Hinweis
+          <input id="opsOneoffNote" placeholder="optional">
+        </label>
+      </div>
+      <button class="primary" type="button" style="margin-top:8px" onclick="opsOneoffAddObjectService()">+ Objektleistung</button>
+    </div>
+
+    <div id="opsOneoffSpecialEditor" class="hidden" style="margin-top:10px">
+      <div class="grid2">
+        <label>Bestehendes Objekt
+          <select id="opsOneoffSpecialObject"><option value="">Kein bestehendes Objekt</option></select>
+        </label>
+        <label>Sonderauftrag *
+          <input id="opsOneoffSpecialTitle" placeholder="z. B. Haushaltsauflösung">
+        </label>
+        <label>Ort / Kunde
+          <input id="opsOneoffLocationName" placeholder="z. B. Familie Müller">
+        </label>
+        <label>Adresse bei externem Einsatz
+          <input id="opsOneoffLocationAddress" placeholder="Straße, PLZ Ort">
+        </label>
+        <label>Dauer (Min.)
+          <input id="opsOneoffSpecialDuration" type="number" min="5" max="1440" step="5" value="120">
+        </label>
+        <label>Auftrag / Hinweis
+          <textarea id="opsOneoffSpecialNote" rows="2" placeholder="Umfang, Zugang, Besonderheiten …"></textarea>
+        </label>
+      </div>
+      <button class="primary" type="button" style="margin-top:8px" onclick="opsOneoffAddSpecial()">+ Sonderauftrag</button>
+    </div>
+
+    <div style="margin-top:14px">
+      <strong>Einmalige Zusatzstopps</strong>
+      <div class="muted" style="margin-top:4px">Zusätzlich zur optional gewählten Basis-Routentour.</div>
+      <div id="opsOneoffDraft" class="ops-oneoff-draft"></div>
+    </div>
+
+    <div class="row" style="margin-top:14px;gap:8px;flex-wrap:wrap">
+      <button class="primary" type="button" onclick="opsCreateOneoffRun()">Einzeltour anlegen &amp; Mitarbeiter benachrichtigen</button>
+      <button type="button" onclick="opsResetOneoffPlanner()">Zurücksetzen</button>
+    </div>
+  </div>
+
   <div class="grid g2 ops-planning-only" style="margin-top:14px">
     <div class="card ops-assignment-management">
       <h3>Planbare Objektleistungen</h3>
@@ -8249,7 +8362,55 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    BACKEND: SQL 2.26.6.8 erforderlich.
    EDGE: process-notification-outbox 2.26.6.8 erforderlich.
 */
-const APP_VERSION='2.26.6.8'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.26.6.9 | BASIS 2.26.6.8 | 30.09.2026
+   STANDARDTOUR-MAILBRIEFING:
+   - Zuweisungs-, Änderungs- und T-1-Mail enthalten den offenen Arbeitsvorrat
+     der tatsächlich in der Tour enthaltenen Objekte.
+   - Arbeitsvorrat: Titel, Status, Fälligkeit, Verantwortlicher, Arbeitsnotiz.
+   - completed/cancelled werden ausgeschlossen.
+   - Mandanten-CC-Dokumentation bleibt unverändert aktiv und erhält dieselbe Mailkopie.
+   - Winterdienst fachlich unverändert.
+   BACKEND: SQL 2.26.6.9 erforderlich.
+   EDGE: process-notification-outbox 2.26.6.9 erforderlich.
+*/
+/* RELEASE 2.26.6.10 | BASIS 2.26.6.9 | 30.09.2026
+   WETTER-SOURCE-OF-TRUTH:
+   - Außenpflege-Dashboard nutzt weiterhin object-weather als fachlichen Primärpfad.
+   - Bei Standort-/Geodatenfehler wird automatisch derselbe funktionierende
+     Winterdienst-Wetterpfad als gemeinsamer Standort-/Forecast-Fallback verwendet.
+   - Winterdienst-Response wird für Außenpflege in ein care_24h-kompatibles Modell übersetzt.
+   - Extern betreute Objekte mit funktionierendem Winter-Wetter erscheinen dadurch
+     nicht mehr fälschlich als "Objektstandort nicht gefunden".
+   - Fehlerstatus wird nur einmal in der Objektzeile gezeigt; keine zweite große Fehlerkarte.
+   - Notification/CC/T-1/Arbeitsvorrat unverändert.
+   EDGE: process-notification-outbox 2.26.6.10 ist kumulativ aus 2.26.6.9.
+   BACKEND: keine SQL-Änderung.
+*/
+/* RELEASE 2.26.6.11 | BASIS 2.26.6.10 | 30.09.2026
+   EINZELTOUR / HYBRIDTOUR:
+   - Neue Aktion "+ Einzeltour planen".
+   - Einzeltour benötigt keinen Rhythmus und keine wiederkehrende Tourvorlage.
+   - Optional kann eine bestehende Routentour als Basis übernommen werden.
+   - Zusätzliche Objektleistungen oder freie Sonderaufträge können einmalig ergänzt werden.
+   - Vorlage bleibt unverändert; konkrete Tagestour wird zum Snapshot.
+   - Haushaltsauflösung, Entrümpelung, Transport, Sonderreinigung etc. unterstützt.
+   - Zuweisungsmail + Mandanten-CC + T-1-Erinnerung + Arbeitsvorrat gelten identisch.
+   EDGE: kumulativ aus 2.26.6.10.
+   BACKEND: SQL 2.26.6.11 erforderlich.
+*/
+/* RELEASE 2.26.6.12 | BASIS 2.26.6.11 | 30.09.2026
+   WETTER-FALLBACK HARDENING:
+   - Außenpflege akzeptiert object-weather nur noch bei verwertbarem care_24h-Datensatz.
+   - Formal erfolgreiche, aber inhaltlich leere/ungültige Antworten lösen jetzt
+     automatisch den funktionierenden Winterdienst-Wetterresolver aus.
+   - Damit wird derselbe Objektstandort / Forecast wie im Winterdienst genutzt.
+   - WEG Stoerstrasse soll dadurch bei vorhandenen Winterdienstdaten nicht mehr
+     als "Daten fehlen" erscheinen.
+   - Einzeltour/Hybridtour, CC, T-1, Arbeitsvorrat und Mailprozesse unverändert.
+   EDGE: kumulativ aus 2.26.6.11.
+   BACKEND: keine SQL-Änderung.
+*/
+const APP_VERSION='2.26.6.12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -18740,6 +18901,169 @@ async function objectWeatherRequest(objectId,scope='green_care',force=false){
   if(!r.ok||data?.success!==true)throw new Error(data?.error||raw||`HTTP ${r.status}`);
   return data;
 }
+
+function dashboardSummerCareFromWinterWeather(entry){
+  const hourly=Array.isArray(entry?.hourly)?entry.hourly.slice(0,24):[];
+  const f24=entry?.forecast_24h||{};
+
+  const temperatures=hourly.map(h=>Number(h?.temperature)).filter(Number.isFinite);
+  const rainProbabilities=hourly.map(h=>Number(h?.precipitation_probability)).filter(Number.isFinite);
+  const precipitationValues=hourly.map(h=>Number(h?.precipitation)).filter(Number.isFinite);
+  const windValues=hourly.map(h=>Number(h?.wind_speed??h?.wind_speed_10m)).filter(Number.isFinite);
+
+  const maxTemperature=temperatures.length
+    ?Math.max(...temperatures)
+    :Number.isFinite(Number(f24?.max_temperature))
+      ?Number(f24.max_temperature)
+      :Number.isFinite(Number(f24?.min_temperature))
+        ?Number(f24.min_temperature)
+        :null;
+
+  const maxRainProbability=rainProbabilities.length
+    ?Math.max(...rainProbabilities)
+    :Number.isFinite(Number(f24?.max_precipitation_probability))
+      ?Number(f24.max_precipitation_probability)
+      :null;
+
+  const precipitationTotal=precipitationValues.length
+    ?precipitationValues.reduce((sum,v)=>sum+v,0)
+    :Number.isFinite(Number(f24?.max_precipitation))
+      ?Number(f24.max_precipitation)
+      :null;
+
+  const maxWindSpeed=windValues.length?Math.max(...windValues):null;
+  const alerts=Array.isArray(entry?.winter_alerts)?entry.winter_alerts:[];
+
+  // Außenpflegebewertung aus derselben Wetterbasis.
+  // Konservativ: Starkregen/Warnung -> kritisch, erhöhte Regen-/Hitze-/Windlage -> beobachten.
+  let status='good';
+  const recommendations=[];
+
+  if((Number.isFinite(maxRainProbability)&&maxRainProbability>=70)
+     ||(Number.isFinite(precipitationTotal)&&precipitationTotal>=5)
+     ||alerts.length>0){
+    status='avoid';
+    recommendations.push('Wetterlage vor Ausführung prüfen.');
+  }else if((Number.isFinite(maxRainProbability)&&maxRainProbability>=40)
+        ||(Number.isFinite(maxTemperature)&&maxTemperature>=32)
+        ||(Number.isFinite(maxWindSpeed)&&maxWindSpeed>=45)){
+    status='check';
+    recommendations.push('Ausführung wetterabhängig disponieren.');
+  }else{
+    recommendations.push('Regulär planbar.');
+  }
+
+  return {
+    ...entry,
+    success:true,
+    care_24h:{
+      status,
+      max_temperature:maxTemperature,
+      max_precipitation_probability:maxRainProbability,
+      precipitation_total:precipitationTotal,
+      max_wind_speed:maxWindSpeed,
+      recommendations
+    },
+    alerts,
+    _shared_weather_fallback:true,
+    _shared_weather_source:'winter-weather'
+  };
+}
+
+function dashboardSummerIsLocationError(error){
+  const msg=String(error?.message||error||'').toLowerCase();
+  return msg.includes('standort')
+    ||msg.includes('koordinat')
+    ||msg.includes('object location')
+    ||msg.includes('objektstandort')
+    ||msg.includes('not found')
+    ||msg.includes('nicht gefunden');
+}
+
+function dashboardSummerHasUsableCareData(entry){
+  if(!entry||entry?.success===false)return false;
+
+  const care=entry?.care_24h;
+  if(!care||typeof care!=='object')return false;
+
+  const status=String(care?.status||'').toLowerCase();
+  if(!['good','check','avoid'].includes(status))return false;
+
+  const numericCandidates=[
+    care?.max_temperature,
+    care?.max_precipitation_probability,
+    care?.precipitation_total,
+    care?.max_wind_speed
+  ];
+
+  // Mindestens ein echter Wetterwert muss vorhanden sein.
+  // Ein nackter Status ohne Forecastdaten wird nicht mehr akzeptiert.
+  return numericCandidates.some(v=>Number.isFinite(Number(v)));
+}
+
+function dashboardSummerPrimaryFailureReason(entry){
+  if(!entry)return 'Keine Wetterantwort.';
+  if(entry?.success===false)return String(entry?.error||'Wetterdienst meldet keinen Erfolg.');
+  if(!entry?.care_24h)return 'care_24h fehlt.';
+  if(!['good','check','avoid'].includes(String(entry?.care_24h?.status||'').toLowerCase()))return 'care_24h.status ist ungültig.';
+  return 'care_24h enthält keine verwertbaren Wetterwerte.';
+}
+
+async function dashboardSummerWeatherRequest(objectId,force=false){
+  let primary=null;
+  let primaryError=null;
+
+  try{
+    primary=await objectWeatherRequest(objectId,'green_care',force);
+
+    if(dashboardSummerHasUsableCareData(primary)){
+      return primary;
+    }
+
+    primaryError=new Error(
+      dashboardSummerPrimaryFailureReason(primary)
+    );
+
+  }catch(e){
+    primaryError=e;
+  }
+
+  // Einheitlicher Fallback:
+  // Sobald der Außenpflegepfad keinen verwertbaren Datensatz liefert,
+  // wird der bereits funktionierende Winterdienst-Resolver verwendet.
+  // Das gilt ausdrücklich auch für formal erfolgreiche, aber leere Antworten.
+  try{
+    const shared=await wsWeatherRequest(objectId,'forecast',force);
+    const normalized=dashboardSummerCareFromWinterWeather(shared);
+
+    if(!dashboardSummerHasUsableCareData(normalized)){
+      throw new Error('Gemeinsamer Wetterresolver lieferte ebenfalls keine verwertbaren Forecastdaten.');
+    }
+
+    normalized._primary_weather_error=
+      primaryError?.message||
+      dashboardSummerPrimaryFailureReason(primary);
+
+    normalized._shared_weather_fallback=true;
+    normalized._shared_weather_source='winter-weather';
+
+    return normalized;
+
+  }catch(sharedError){
+    const primaryMessage=
+      primaryError?.message||
+      dashboardSummerPrimaryFailureReason(primary);
+
+    const err=new Error(
+      `Wetterdaten nicht verfügbar. Primär: ${primaryMessage}. Fallback: ${sharedError?.message||String(sharedError)}`
+    );
+
+    err.primaryError=primaryError;
+    err.sharedError=sharedError;
+    throw err;
+  }
+}
+
 function dashboardSummerPriority(status){
   return ({avoid:1,check:2,error:3,good:4})[status]||9;
 }
@@ -18810,7 +19134,6 @@ function renderDashboardSummerObjectList(){
           return `<div class="dashboard-summer-object-row">
             <span class="dashboard-summer-object-statusdot ${status}"></span>
             <span class="dashboard-summer-object-main">
-              <span class="dashboard-summer-object-statusdot ${status}"></span>
               <span style="min-width:0">
                 <span class="dashboard-summer-object-name">${esc(entry._object_name||entry.object_name||'Objekt')}</span>
                 <span class="dashboard-summer-object-address">${esc(entry._address||entry.address||'')}</span>
@@ -18837,8 +19160,21 @@ function dashboardSummerSelectObject(objectId){
   const entry=(dashboardSummerWeatherEntries||[]).find(e=>String(e._object_id)===dashboardSummerSelectedObjectId);
   if(!entry){host.classList.remove('is-open');host.innerHTML='';return;}
   const care=entry?.care_24h||{},status=dashboardSummerEntryStatus(entry),recs=Array.isArray(care.recommendations)?care.recommendations:[],alerts=Array.isArray(entry?.alerts)?entry.alerts:[];
+
+  // Datenfehler steht bereits eindeutig in der Objektzeile.
+  // Keine zweite große Fehlerkarte erzeugen.
+  if(entry._error){
+    host.classList.remove('is-open');
+    host.innerHTML='';
+    return;
+  }
+
+  const sourceHint=entry?._shared_weather_fallback
+    ?' · gemeinsamer Wetterresolver'
+    :'';
+
   host.innerHTML=`<div class="row space" style="gap:10px;align-items:flex-start"><div><strong>${esc(entry._object_name||entry.object_name||'Objekt')}</strong><div class="muted" style="margin-top:3px">${esc(entry._address||entry.address||'')}</div></div><span class="dashboard-summer-object-badge ${status}">${esc(dashboardSummerStatusLabel(status))}</span></div>
-    ${entry._error?`<div class="bad" style="margin-top:10px">Wetterdaten nicht verfügbar: ${esc(entry._error)}</div>`:`<div class="dashboard-summer-object-detail-grid" style="margin-top:10px"><div><span>Max. Temperatur</span><strong>${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))}</strong></div><div><span>Niederschlagswahr.</span><strong>${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}</strong></div><div><span>Niederschlag</span><strong>${esc(dashboardSummerFmtNumber(care.precipitation_total,1,' mm'))}</strong></div><div><span>Max. Wind</span><strong>${esc(dashboardSummerFmtNumber(care.max_wind_speed,0,' km/h'))}</strong></div></div>${recs.length?`<div style="margin-top:10px"><strong>Empfehlung:</strong> ${recs.map(esc).join(' · ')}</div>`:''}${alerts.length?`<div class="dashboard-summer-detail-warnings"><strong>DWD:</strong> ${alerts.slice(0,3).map(a=>esc(a.headline||a.event||'Wetterwarnung')).join(' · ')}</div>`:''}<div class="muted" style="font-size:11px;margin-top:9px">Stand ${esc(dashboardSummerFmtTime(entry?.fetched_at))}${entry?.cached?' · Cache':''}</div>`}`;
+    <div class="dashboard-summer-object-detail-grid" style="margin-top:10px"><div><span>Max. Temperatur</span><strong>${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))}</strong></div><div><span>Niederschlagswahr.</span><strong>${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}</strong></div><div><span>Niederschlag</span><strong>${esc(dashboardSummerFmtNumber(care.precipitation_total,1,' mm'))}</strong></div><div><span>Max. Wind</span><strong>${esc(dashboardSummerFmtNumber(care.max_wind_speed,0,' km/h'))}</strong></div></div>${recs.length?`<div style="margin-top:10px"><strong>Empfehlung:</strong> ${recs.map(esc).join(' · ')}</div>`:''}${alerts.length?`<div class="dashboard-summer-detail-warnings"><strong>DWD:</strong> ${alerts.slice(0,3).map(a=>esc(a.headline||a.event||'Wetterwarnung')).join(' · ')}</div>`:''}<div class="muted" style="font-size:11px;margin-top:9px">Stand ${esc(dashboardSummerFmtTime(entry?.fetched_at))}${entry?.cached?' · Cache':''}${esc(sourceHint)}</div>`;
   host.classList.add('is-open');
   host.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
@@ -18872,7 +19208,7 @@ async function loadDashboardSummerSummary(force=false){
     const ids=[...new Set((assignments||[]).filter(a=>a.active!==false).filter(a=>!a.valid_from||String(a.valid_from)<=today).filter(a=>!a.valid_until||String(a.valid_until)>=today).filter(a=>summerCareServiceMatches(serviceById.get(String(a.service_type_id)))).map(a=>String(a.object_id||'')).filter(Boolean))];
     if(!ids.length){dashboardSummerWeatherEntries=[];if(panel)panel.style.display='none';if(status)status.textContent='';return;}
     if(panel)panel.style.display='';
-    const results=await Promise.allSettled(ids.map(id=>objectWeatherRequest(id,'green_care',force)));
+    const results=await Promise.allSettled(ids.map(id=>dashboardSummerWeatherRequest(id,force)));
     if(token!==dashboardSummerLoadToken)return;
     dashboardSummerWeatherEntries=ids.map((id,index)=>{
       const obj=dashboardSummerObjectById(id),r=results[index],base={_object_id:id,_object_name:obj?.name||'Objekt',_address:obj?.address||[obj?.street,[obj?.postalCode,obj?.city].filter(Boolean).join(' ')].filter(Boolean).join(', '),_latitude:Number.isFinite(Number(obj?.latitude))?Number(obj.latitude):null,_longitude:Number.isFinite(Number(obj?.longitude))?Number(obj.longitude):null};
@@ -26616,6 +26952,244 @@ function opsIsPlanableGenericPlan(p){
 function opsWeekdayLabel(v){const m={0:'So',1:'Mo',2:'Di',3:'Mi',4:'Do',5:'Fr',6:'Sa'};return (v||[]).map(x=>m[Number(x)]??String(x)).join(', ');}
 function opsIntervalLabel(v){return ({1:'wöchentlich',2:'alle 2 Wochen',4:'alle 4 Wochen'})[Number(v)]||`alle ${v} Wochen`;}
 function opsTimeWindowLabel(p){const a=String(p?.time_window_start||'').slice(0,5),b=String(p?.time_window_end||'').slice(0,5);return a&&b?`${a}–${b}`:a?`ab ${a}`:b?`bis ${b}`:'kein Zeitfenster';}
+let opsOneoffDraftItems=[];
+let opsOneoffAddType='object_service';
+
+function opsRunStopObjectLabel(stop){
+  if(stop?.object_id)return opsObjName(stop.object_id);
+  return String(stop?.location_name||'Externer Einsatzort');
+}
+function opsRunStopServiceLabel(stop){
+  if(stop?.service_type_id)return opsServiceName(stop.service_type_id);
+  return String(stop?.custom_title||'Sonderauftrag');
+}
+
+function opsOpenOneoffPlanner(){
+  const card=document.getElementById('opsOneoffPlanner');
+  if(!card)return;
+  card.classList.remove('hidden');
+  opsPopulateOneoffPlanner();
+  card.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function opsCloseOneoffPlanner(){
+  document.getElementById('opsOneoffPlanner')?.classList.add('hidden');
+}
+function opsResetOneoffPlanner(){
+  opsOneoffDraftItems=[];
+  const n=document.getElementById('opsOneoffName');if(n)n.value='';
+  const d=document.getElementById('opsOneoffDate');if(d)d.value=new Date().toISOString().slice(0,10);
+  const s=document.getElementById('opsOneoffStart');if(s)s.value='08:00';
+  const b=document.getElementById('opsOneoffBaseTour');if(b)b.value='';
+  ['opsOneoffNote','opsOneoffSpecialTitle','opsOneoffLocationName','opsOneoffLocationAddress','opsOneoffSpecialNote'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  opsOneoffRenderDraft();
+}
+function opsPopulateOneoffPlanner(){
+  const today=new Date().toISOString().slice(0,10);
+  const date=document.getElementById('opsOneoffDate');if(date&&!date.value)date.value=today;
+
+  const assignee=document.getElementById('opsOneoffAssignee');
+  if(assignee){
+    const current=assignee.value||'';
+    assignee.innerHTML='<option value="">Mitarbeiter wählen …</option>'+
+      (opsState.tenantUsers||[])
+        .filter(u=>u.active!==false)
+        .map(u=>`<option value="${opsEsc(u.user_id||u.id)}">${opsEsc(u.full_name||u.email||'Mitarbeiter')}</option>`)
+        .join('');
+    if([...assignee.options].some(o=>String(o.value)===String(current)))assignee.value=current;
+  }
+
+  const base=document.getElementById('opsOneoffBaseTour');
+  if(base){
+    const current=base.value||'';
+    base.innerHTML='<option value="">Keine – reine Einzeltour</option>'+
+      (opsState.tours||[])
+        .filter(t=>t.active!==false)
+        .map(t=>`<option value="${opsEsc(t.id)}">${opsEsc(t.name||'Tourvorlage')}</option>`)
+        .join('');
+    if([...base.options].some(o=>String(o.value)===String(current)))base.value=current;
+  }
+
+  const objects=[...new Map(
+    opsPlanableAssignments().map(a=>[String(a.object_id),a])
+  ).values()]
+    .sort((a,b)=>opsObjName(a.object_id).localeCompare(opsObjName(b.object_id),'de'));
+
+  const objectOptions=objects.map(a=>`<option value="${opsEsc(a.object_id)}">${opsEsc(opsObjName(a.object_id))}</option>`).join('');
+
+  const o=document.getElementById('opsOneoffObject');
+  if(o){
+    const current=o.value||'';
+    o.innerHTML='<option value="">Objekt wählen …</option>'+objectOptions;
+    if([...o.options].some(x=>String(x.value)===String(current)))o.value=current;
+  }
+
+  const so=document.getElementById('opsOneoffSpecialObject');
+  if(so){
+    const current=so.value||'';
+    so.innerHTML='<option value="">Kein bestehendes Objekt</option>'+objectOptions;
+    if([...so.options].some(x=>String(x.value)===String(current)))so.value=current;
+  }
+
+  opsOneoffObjectChanged();
+  opsOneoffRenderDraft();
+}
+function opsOneoffBaseChanged(){
+  const id=document.getElementById('opsOneoffBaseTour')?.value||'';
+  if(id){
+    const t=(opsState.tours||[]).find(x=>String(x.id)===String(id));
+    const name=document.getElementById('opsOneoffName');
+    const start=document.getElementById('opsOneoffStart');
+    if(name&&!name.value)name.value=t?.name?`${t.name} · Zusatzroute`:'Einzeltour';
+    if(start&&t?.default_start_time)start.value=String(t.default_start_time).slice(0,5);
+  }
+}
+function opsOneoffSetAddType(type){
+  opsOneoffAddType=type==='special_task'?'special_task':'object_service';
+  document.getElementById('opsOneoffObjectServiceEditor')?.classList.toggle('hidden',opsOneoffAddType!=='object_service');
+  document.getElementById('opsOneoffSpecialEditor')?.classList.toggle('hidden',opsOneoffAddType!=='special_task');
+  document.getElementById('opsOneoffTypeObjectBtn')?.classList.toggle('is-active',opsOneoffAddType==='object_service');
+  document.getElementById('opsOneoffTypeSpecialBtn')?.classList.toggle('is-active',opsOneoffAddType==='special_task');
+}
+function opsOneoffObjectChanged(){
+  const objectId=document.getElementById('opsOneoffObject')?.value||'';
+  const service=document.getElementById('opsOneoffService');
+  if(!service)return;
+  if(!objectId){
+    service.disabled=true;
+    service.innerHTML='<option value="">Zuerst Objekt wählen …</option>';
+    return;
+  }
+  const rows=opsPlanableAssignments()
+    .filter(a=>String(a.object_id)===String(objectId))
+    .sort((a,b)=>opsServiceName(a.service_type_id).localeCompare(opsServiceName(b.service_type_id),'de'));
+  service.disabled=false;
+  service.innerHTML='<option value="">Leistung wählen …</option>'+
+    rows.map(a=>`<option value="${opsEsc(a.id)}">${opsEsc(opsServiceName(a.service_type_id))}</option>`).join('');
+}
+function opsOneoffAddObjectService(){
+  const assignmentId=document.getElementById('opsOneoffService')?.value||'';
+  const a=(opsState.assignments||[]).find(x=>String(x.id)===String(assignmentId));
+  if(!a)return alert('Bitte Objekt und Leistung auswählen.');
+  const duration=Math.max(5,Math.min(1440,Number(document.getElementById('opsOneoffDuration')?.value||60)));
+  const note=document.getElementById('opsOneoffNote')?.value.trim()||'';
+  opsOneoffDraftItems.push({
+    stop_kind:'object_service',
+    object_service_assignment_id:a.id,
+    object_id:a.object_id,
+    service_type_id:a.service_type_id,
+    planned_duration_minutes:duration,
+    custom_note:note||null
+  });
+  const service=document.getElementById('opsOneoffService');if(service)service.value='';
+  const noteEl=document.getElementById('opsOneoffNote');if(noteEl)noteEl.value='';
+  opsOneoffRenderDraft();
+}
+function opsOneoffAddSpecial(){
+  const objectId=document.getElementById('opsOneoffSpecialObject')?.value||'';
+  const title=document.getElementById('opsOneoffSpecialTitle')?.value.trim()||'';
+  const locationName=document.getElementById('opsOneoffLocationName')?.value.trim()||'';
+  const locationAddress=document.getElementById('opsOneoffLocationAddress')?.value.trim()||'';
+  const note=document.getElementById('opsOneoffSpecialNote')?.value.trim()||'';
+  const duration=Math.max(5,Math.min(1440,Number(document.getElementById('opsOneoffSpecialDuration')?.value||120)));
+
+  if(!title)return alert('Bitte den Sonderauftrag bezeichnen.');
+  if(!objectId&&!locationAddress)return alert('Bei einem externen Einsatz ohne bestehendes Objekt ist eine Adresse erforderlich.');
+
+  opsOneoffDraftItems.push({
+    stop_kind:'special_task',
+    object_id:objectId||null,
+    custom_title:title,
+    custom_note:note||null,
+    location_name:locationName||null,
+    location_address:locationAddress||null,
+    planned_duration_minutes:duration
+  });
+
+  ['opsOneoffSpecialTitle','opsOneoffLocationName','opsOneoffLocationAddress','opsOneoffSpecialNote'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  opsOneoffRenderDraft();
+}
+function opsOneoffMove(index,delta){
+  const target=index+delta;
+  if(index<0||target<0||index>=opsOneoffDraftItems.length||target>=opsOneoffDraftItems.length)return;
+  const [item]=opsOneoffDraftItems.splice(index,1);
+  opsOneoffDraftItems.splice(target,0,item);
+  opsOneoffRenderDraft();
+}
+function opsOneoffRemove(index){
+  if(index<0||index>=opsOneoffDraftItems.length)return;
+  opsOneoffDraftItems.splice(index,1);
+  opsOneoffRenderDraft();
+}
+function opsOneoffRenderDraft(){
+  const host=document.getElementById('opsOneoffDraft');if(!host)return;
+  if(!opsOneoffDraftItems.length){
+    host.innerHTML='<div class="muted">Noch keine zusätzlichen Einmalstopps. Eine gewählte Basis-Routentour wird beim Speichern automatisch übernommen.</div>';
+    return;
+  }
+  host.innerHTML=opsOneoffDraftItems.map((x,i)=>{
+    const objectLabel=x.object_id?opsObjName(x.object_id):(x.location_name||'Externer Einsatzort');
+    const serviceLabel=x.stop_kind==='object_service'?opsServiceName(x.service_type_id):(x.custom_title||'Sonderauftrag');
+    const address=x.location_address?`<div class="muted">${opsEsc(x.location_address)}</div>`:'';
+    return `<div class="ops-oneoff-stop">
+      <div class="ops-oneoff-index">${i+1}</div>
+      <div>
+        <strong>${opsEsc(objectLabel)} · ${opsEsc(serviceLabel)}</strong>
+        <div class="muted">${opsEsc(x.planned_duration_minutes||60)} Min.${x.stop_kind==='special_task'?' · Einmaliger Sonderauftrag':' · Einmalige Objektleistung'}</div>
+        ${address}
+        ${x.custom_note?`<div class="muted">${opsEsc(x.custom_note)}</div>`:''}
+      </div>
+      <div class="ops-oneoff-stop-actions">
+        <button type="button" onclick="opsOneoffMove(${i},-1)" ${i===0?'disabled':''}>↑</button>
+        <button type="button" onclick="opsOneoffMove(${i},1)" ${i===opsOneoffDraftItems.length-1?'disabled':''}>↓</button>
+        <button class="danger" type="button" onclick="opsOneoffRemove(${i})">×</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function opsCreateOneoffRun(){
+  try{
+    const name=document.getElementById('opsOneoffName')?.value.trim()||'';
+    const service_date=document.getElementById('opsOneoffDate')?.value||'';
+    const start_time=document.getElementById('opsOneoffStart')?.value||null;
+    const assigned_user_id=document.getElementById('opsOneoffAssignee')?.value||'';
+    const source_tour_template_id=document.getElementById('opsOneoffBaseTour')?.value||null;
+
+    if(!name)throw new Error('Bezeichnung der Einzeltour fehlt.');
+    if(!service_date)throw new Error('Datum fehlt.');
+    if(!assigned_user_id)throw new Error('Durchführender Mitarbeiter fehlt.');
+    if(!source_tour_template_id&&!opsOneoffDraftItems.length)throw new Error('Mindestens einen Stopp oder eine Basis-Routentour auswählen.');
+
+    const result=await cloudRequest('rpc/create_oneoff_operation_run_v1',{
+      method:'POST',
+      body:JSON.stringify({
+        p_organization_id:opsOrg(),
+        p_name:name,
+        p_service_date:service_date,
+        p_start_time:start_time,
+        p_assigned_user_id:assigned_user_id,
+        p_source_tour_template_id:source_tour_template_id,
+        p_stops:opsOneoffDraftItems
+      })
+    });
+
+    const runId=Array.isArray(result)?result[0]:result;
+    if(!runId)throw new Error('Einzeltour wurde nicht zurückgegeben.');
+
+    await opsQueueRunAssignmentNotification(String(runId),{
+      silent:false,
+      changeReason:source_tour_template_id?'Hybridtour / Einzeleinsatz zugewiesen':'Einzeltour zugewiesen'
+    });
+
+    opsResetOneoffPlanner();
+    opsCloseOneoffPlanner();
+    await opsLoad();
+    try{await refreshObjectManagerTours();}catch(_e){}
+
+  }catch(e){
+    alert('Einzeltour konnte nicht angelegt werden: '+(e.message||e));
+  }
+}
+
 function opsPlanableAssignments(){
   return (opsState.assignments||[]).filter(a=>a.active!==false&&String(a.process_type||'generic')==='generic').sort((a,b)=>opsAssignmentLabel(a).localeCompare(opsAssignmentLabel(b),'de'));
 }
@@ -26633,7 +27207,7 @@ function opsApplyViewMode(){
   const planning=opsIsPlanningRole();
   section.classList.toggle('ops-operative-mode',!planning);
   const sub=document.getElementById('opsSubtitle');
-  if(sub)sub.textContent=planning?'Wiederkehrende Leistungen aus verbindlichen Objekt-Leistungszuordnungen planen; Standards werden zentral über die Leistungsart vererbt.':'Deine geplanten Touren, Einsätze und zusätzlichen Aufgaben.';
+  if(sub)sub.textContent=planning?'Einzeltouren und wiederkehrende Touren planen; einmalige Sonderaufträge können mit Routentouren kombiniert werden.':'Deine geplanten Touren, Einsätze und zusätzlichen Aufgaben.';
   const op=document.getElementById('opsOperativeView');
   if(op){op.classList.toggle('hidden',planning);op.style.display=planning?'none':'block';}
   section.querySelectorAll('.ops-planning-only').forEach(el=>el.style.display=planning?'':'none');
@@ -26658,7 +27232,7 @@ function opsRunStopInstruction(stop){
   const plan=opsPlanForRunStop(stop);
   const snap=String(stop?.scope_snapshot||'').trim();
   const planText=String(plan?.scope_text||'').trim();
-  return snap||planText||'Kein zusätzlicher Objekthinweis hinterlegt. Verbindliche Ausführung gemäß SOP.';
+  return snap||String(stop?.custom_note||'').trim()||planText||(stop?.stop_kind==='special_task'?'Kein zusätzlicher Auftragshinweis hinterlegt.':'Kein zusätzlicher Objekthinweis hinterlegt. Verbindliche Ausführung gemäß SOP.');
 }
 function opsRunStopTimeLabel(stop){
   const p=opsPlanForRunStop(stop);
@@ -26774,8 +27348,8 @@ function opsOpenFinishTourModal(runId){
     <div style="margin-top:14px">
       ${open.map((stop,i)=>`
         <div class="card ops-unfinished-stop" data-stop-id="${opsEsc(stop.id)}" style="margin:10px 0">
-          <strong>${i+1}. ${opsEsc(opsObjName(stop.object_id))}</strong>
-          <div class="muted">${opsEsc(opsServiceName(stop.service_type_id))}</div>
+          <strong>${i+1}. ${opsEsc(opsRunStopObjectLabel(stop))}</strong>
+          <div class="muted">${opsEsc(opsRunStopServiceLabel(stop))}</div>
           <label>Grund *</label>
           <select data-ops-close-reason="${opsEsc(stop.id)}">
             <option value="">Bitte wählen …</option>
@@ -26986,8 +27560,8 @@ function opsRunStopWorkHtml(stop,index){
     <div class="ops-work-stop-head">
       <div>
         <div class="ops-work-stop-kicker">Stopp ${index+1}</div>
-        <div class="ops-work-stop-object">${opsEsc(opsObjName(stop.object_id))}</div>
-        <div class="ops-work-stop-service">${opsEsc(opsServiceName(stop.service_type_id))}</div>
+        <div class="ops-work-stop-object">${opsEsc(opsRunStopObjectLabel(stop))}</div>
+        <div class="ops-work-stop-service">${opsEsc(opsRunStopServiceLabel(stop))}</div>
       </div>
       <span class="badge">${opsEsc(opsRunStopStatusLabel(stop))}</span>
     </div>
@@ -27001,7 +27575,7 @@ function opsRunStopWorkHtml(stop,index){
       <div>${sopHtml}</div>
     </div>
 
-    ${psRuntimeCardHtml(psRuntimeRowsForService(opsOrg(),stop.service_type_id),{serviceLabel:opsServiceName(stop.service_type_id),openJs:`psRuntimeOpenService('${opsEsc(opsOrg())}','${opsEsc(stop.service_type_id)}','${opsEsc(opsServiceName(stop.service_type_id))}')`})}
+    ${psRuntimeCardHtml(psRuntimeRowsForService(opsOrg(),stop.service_type_id),{serviceLabel:opsServiceName(stop.service_type_id),openJs:`psRuntimeOpenService('${opsEsc(opsOrg())}','${opsEsc(stop.service_type_id)}','${opsEsc(opsRunStopServiceLabel(stop))}')`})}
 
     ${dsChecklistCardHtml('operation_run_stop',stop.id,{title:'Digitale Checklisten'})}
 
@@ -27318,6 +27892,7 @@ function opsPopulate(){
 
   opsRenderTourObjectOptions();
   opsRenderTourDraftStops();
+  opsPopulateOneoffPlanner();
 }
 function opsPlanObjectChanged(){
   const oid=document.getElementById('opsPlanObject')?.value||'';
@@ -27467,7 +28042,7 @@ function showTourEmailConfirmation(data={}){
 async function opsQueueRunAssignmentNotification(runId,{silent=true,changeReason=null}={}){
   if(!runId||!opsIsPlanningRole())return null;
   try{
-    const rows=await cloudRequest('rpc/queue_operation_run_assignment_notification_v2',{
+    const rows=await cloudRequest('rpc/queue_operation_run_assignment_notification_v4',{
       method:'POST',
       body:JSON.stringify({
         p_run_id:runId,
