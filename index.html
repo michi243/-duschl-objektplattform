@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.5.9</title>
+<title>Duschl Service – Objektplattform v2.26.6.0</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -4083,6 +4083,18 @@ table td,table th{
  .ops-assignment-table-row .ops-col-object{grid-column:1/2}.ops-assignment-table-row .ops-col-service{grid-column:1/2}.ops-assignment-table-row .ops-col-rhythm,.ops-assignment-table-row .ops-col-next{font-size:10px;color:#b8c7d1}.ops-assignment-table-row .ops-col-status{grid-column:2/3;grid-row:1/3}.ops-assignment-table-row .ops-col-action{grid-column:2/3;align-self:end}
 }
 </style>
+
+<style id="ops-tour-edit-delete-v22660">
+.ops-tour-template-card{padding:10px;margin:7px 0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.ops-tour-template-actions,.ops-run-admin-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.ops-small-action{padding:6px 9px!important;font-size:10px!important;min-height:0!important}
+.ops-small-action.danger{border-color:#914d55!important;color:#ff9fa6!important;background:#28151a!important}
+.ops-run-edit-modal-card{width:min(560px,calc(100vw - 24px));max-height:90vh;overflow:auto}
+@media(max-width:700px){
+  .ops-tour-template-card{grid-template-columns:1fr}
+  .ops-tour-template-actions,.ops-run-admin-actions{justify-content:flex-start}
+}
+</style>
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -5166,7 +5178,13 @@ table td,table th{
   </div>
   <div class="grid g2 ops-planning-only" style="margin-top:14px">
     <div class="card"><h3>Tourvorlagen</h3><div class="grid2"><label>Name<input id="opsTourName" placeholder="z. B. Dienstag Nord"></label><label>Startzeit<input id="opsTourStart" type="time" value="07:00"></label></div>
-      <label style="margin-top:10px">Regelmäßige Leistungen in Reihenfolge<select id="opsTourPlans" multiple size="8"></select></label><div class="row" style="margin-top:10px"><button class="primary" onclick="opsSaveTour()">Tourvorlage speichern</button></div><div id="opsTourList" style="margin-top:12px"></div></div>
+      <label style="margin-top:10px">Regelmäßige Leistungen in Reihenfolge<select id="opsTourPlans" multiple size="8"></select></label>
+      <div class="row" style="margin-top:10px;gap:8px">
+        <button id="opsTourSaveBtn" class="primary" type="button" onclick="opsSaveTour()">Tourvorlage speichern</button>
+        <button id="opsTourCancelBtn" class="hidden" type="button" onclick="opsCancelTourEdit()">Abbrechen</button>
+      </div>
+      <div id="opsTourEditInfo" class="muted hidden" style="margin-top:8px">Bearbeitungsmodus: bestehende Tourvorlage.</div>
+      <div id="opsTourList" style="margin-top:12px"></div></div>
     <div class="card"><h3>Geplante Einsätze</h3><div class="muted">Tagestouren entstehen automatisch aus den wiederkehrenden Plänen. Zusatzaufgaben aus dem Arbeitsvorrat werden objektbezogen ergänzt.</div><div id="opsRunList" style="margin-top:12px"></div></div>
   </div>
 
@@ -7946,7 +7964,16 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Touren & Einsätze akzeptieren Zuordnungen ohne Legacy-SOP bereits vollständig.
    BACKEND: SQL 2.26.5.9 erforderlich.
 */
-const APP_VERSION='2.26.5.9'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.26.6.0 | BASIS 2.26.5.9 | 30.09.2026
+   TOUREN & EINSÄTZE:
+   - Tourvorlagen können bearbeitet und deaktiviert werden.
+   - Geplante Einsätze können in Datum, Startzeit und Verantwortlichem bearbeitet werden.
+   - Geplante Einsätze können aus der aktiven Planung entfernt werden (Status cancelled).
+   - Laufende/abgeschlossene Einsätze werden nicht löschbar gemacht.
+   GOVERNANCE: Historie bleibt erhalten; keine harte Löschung produktiver Einsätze.
+   BACKEND: keine SQL-/RLS-/RPC-Änderung.
+*/
+const APP_VERSION='2.26.6.0'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -26002,6 +26029,7 @@ async function wsCompleteExecution(id){
 let opsState={services:[],plans:[],tours:[],stops:[],runs:[],runStops:[],assignments:[],documents:[],versions:[],tenantUsers:[],resourceReadiness:{},resourceReservations:{}};
 let opsEditingPlanId=null;
 let opsFocusRunId='';
+let opsEditingTourId=null;
 
 function opsEsc(v){return String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));}
 function opsOrg(){return currentOrganizationId();}
@@ -27016,7 +27044,7 @@ function opsRender(){
   let e=document.getElementById('opsAssignmentList');
   if(e)opsRenderAssignmentManagement();
   e=document.getElementById('opsPlanList');if(e)e.innerHTML='';
-  e=document.getElementById('opsTourList');if(e)e.innerHTML=opsState.tours.map(t=>`<div class="card" style="padding:9px;margin:6px 0"><strong>${opsEsc(t.name)}</strong><div class="muted">${opsEsc(t.default_start_time||'')} · ${opsState.stops.filter(x=>x.tour_template_id===t.id).length} Stopps</div></div>`).join('')||'<div class="muted">Noch keine Tourvorlagen.</div>';
+  e=document.getElementById('opsTourList');if(e)e.innerHTML=opsState.tours.map(t=>`<div class="card ops-tour-template-card"><div><strong>${opsEsc(t.name)}</strong><div class="muted">${opsEsc(String(t.default_start_time||'').slice(0,5)||'—')} · ${opsState.stops.filter(x=>String(x.tour_template_id)===String(t.id)&&x.active!==false).length} Stopps</div></div><div class="ops-tour-template-actions"><button class="ops-small-action" type="button" onclick="opsEditTour('${opsEsc(t.id)}')">Bearbeiten</button><button class="ops-small-action danger" type="button" onclick="opsDeleteTour('${opsEsc(t.id)}')">Löschen</button></div></div>`).join('')||'<div class="muted">Noch keine Tourvorlagen.</div>';
   const today=new Date().toISOString().slice(0,10);
   e=document.getElementById('opsRunList');
   if(e){
@@ -27086,6 +27114,11 @@ function opsRender(){
         </div>
 
         ${opsResourceReadinessHtml(opsReadinessRowsForRun(r.id),{compact:true})}
+
+        <div class="ops-run-admin-actions" style="margin-top:8px">
+          <button class="ops-small-action" type="button" onclick="opsEditRun('${opsEsc(r.id)}')">Bearbeiten</button>
+          <button class="ops-small-action danger" type="button" onclick="opsDeleteRun('${opsEsc(r.id)}')">Löschen</button>
+        </div>
 
         <div class="ops-admin-run-controls">
           <label>
@@ -27160,6 +27193,44 @@ async function opsSavePlan(){
     opsResetPlanForm();await opsLoad();
   }catch(e){alert('Leistungsplan konnte nicht gespeichert werden: '+(e.message||e));}
 }
+function opsResetTourForm(){
+  opsEditingTourId=null;
+  const n=document.getElementById('opsTourName');if(n)n.value='';
+  const s=document.getElementById('opsTourStart');if(s)s.value='07:00';
+  const plans=document.getElementById('opsTourPlans');if(plans)[...plans.options].forEach(o=>o.selected=false);
+  const b=document.getElementById('opsTourSaveBtn');if(b)b.textContent='Tourvorlage speichern';
+  document.getElementById('opsTourCancelBtn')?.classList.add('hidden');
+  document.getElementById('opsTourEditInfo')?.classList.add('hidden');
+}
+function opsCancelTourEdit(){opsResetTourForm();}
+function opsEditTour(id){
+  const t=(opsState.tours||[]).find(x=>String(x.id)===String(id));
+  if(!t)return alert('Tourvorlage wurde nicht gefunden.');
+  opsEditingTourId=t.id;
+  const name=document.getElementById('opsTourName');if(name)name.value=t.name||'';
+  const start=document.getElementById('opsTourStart');if(start)start.value=String(t.default_start_time||'07:00').slice(0,5);
+  const planIds=new Set((opsState.stops||[]).filter(x=>String(x.tour_template_id)===String(t.id)&&x.active!==false).sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0)).map(x=>String(x.recurring_plan_id)));
+  const plans=document.getElementById('opsTourPlans');if(plans)[...plans.options].forEach(o=>o.selected=planIds.has(String(o.value)));
+  const b=document.getElementById('opsTourSaveBtn');if(b)b.textContent='Änderungen speichern';
+  document.getElementById('opsTourCancelBtn')?.classList.remove('hidden');
+  document.getElementById('opsTourEditInfo')?.classList.remove('hidden');
+  document.getElementById('opsTourName')?.scrollIntoView({behavior:'smooth',block:'center'});
+}
+async function opsDeleteTour(id){
+  const t=(opsState.tours||[]).find(x=>String(x.id)===String(id));
+  if(!t)return;
+  if(!confirm(`Tourvorlage "${t.name}" löschen? Bereits erzeugte Einsätze bleiben aus Nachweisgründen erhalten.`))return;
+  try{
+    await cloudRequest(`operation_tour_stops?tour_template_id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(opsOrg())}`,{
+      method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({active:false})
+    });
+    await cloudRequest(`operation_tour_templates?id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(opsOrg())}`,{
+      method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({active:false})
+    });
+    if(String(opsEditingTourId)===String(id))opsResetTourForm();
+    await opsLoad();
+  }catch(e){alert('Tourvorlage konnte nicht gelöscht werden: '+(e.message||e));}
+}
 async function opsSaveTour(){
   try{
     const name=document.getElementById('opsTourName').value.trim();
@@ -27170,6 +27241,35 @@ async function opsSaveTour(){
     if(selectedPlans.length!==ids.length)throw new Error('Mindestens ein Leistungsplan ist nicht mehr verfügbar.');
     if(selectedPlans.some(p=>!opsIsPlanableGenericPlan(p))){
       throw new Error('Tourvorlagen dürfen nur planbare generische Leistungen enthalten. Winterdienst wird ausschließlich im Winterdienst-Fachprozess geplant.');
+    }
+
+    if(opsEditingTourId){
+      const id=opsEditingTourId;
+      await cloudRequest(`operation_tour_templates?id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(opsOrg())}`,{
+        method:'PATCH',
+        headers:{Prefer:'return=minimal'},
+        body:JSON.stringify({
+          name,
+          default_start_time:document.getElementById('opsTourStart').value||null
+        })
+      });
+      await cloudRequest(`operation_tour_stops?tour_template_id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(opsOrg())}`,{
+        method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({active:false})
+      });
+      await cloudRequest('operation_tour_stops',{
+        method:'POST',
+        headers:{Prefer:'return=minimal'},
+        body:JSON.stringify(ids.map((recurring_plan_id,i)=>({
+          organization_id:opsOrg(),
+          tour_template_id:id,
+          recurring_plan_id,
+          sort_order:i+1,
+          active:true
+        })))
+      });
+      opsResetTourForm();
+      await opsLoad();
+      return;
     }
 
     const id=crypto.randomUUID();
@@ -27196,10 +27296,88 @@ async function opsSaveTour(){
         active:true
       })))
     });
+    opsResetTourForm();
     await opsLoad();
   }catch(e){
     alert('Tourvorlage konnte nicht gespeichert werden: '+(e.message||e));
   }
+}
+
+function opsRunEditable(run){
+  return String(run?.status||'planned').toLowerCase()==='planned';
+}
+function opsEditRun(runId){
+  const r=(opsState.runs||[]).find(x=>String(x.id)===String(runId));
+  if(!r)return alert('Einsatz wurde nicht gefunden.');
+  if(!opsRunEditable(r))return alert('Nur geplante Einsätze können bearbeitet werden.');
+
+  let modal=document.getElementById('opsRunEditModal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='opsRunEditModal';
+    modal.className='modal';
+    document.body.appendChild(modal);
+  }
+  const users=opsSelectableUsersForRun(r);
+  const assigned=String(r.assigned_user_id||'');
+  modal.innerHTML=`<div class="modal-card ops-run-edit-modal-card">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <div><h3 style="margin:0">Geplanten Einsatz bearbeiten</h3><div class="muted">${opsEsc(r.name||'Tour')}</div></div>
+      <button type="button" onclick="document.getElementById('opsRunEditModal').style.display='none'">Schließen</button>
+    </div>
+    <div class="grid2" style="margin-top:14px">
+      <label>Datum<input id="opsRunEditDate" type="date" value="${opsEsc(r.service_date||'')}"></label>
+      <label>Startzeit<input id="opsRunEditStart" type="time" value="${opsEsc(String(r.planned_start_time||'').slice(0,5))}"></label>
+    </div>
+    <label style="margin-top:10px">Verantwortlich
+      <select id="opsRunEditUser">
+        <option value="">Nicht zugewiesen</option>
+        ${users.map(u=>{const uid=String(u.user_id||u.id||'');return `<option value="${opsEsc(uid)}" ${uid===assigned?'selected':''}>${opsEsc(u.full_name||u.email||'Benutzer')}</option>`}).join('')}
+      </select>
+    </label>
+    <div class="row" style="margin-top:14px;gap:8px">
+      <button class="primary" type="button" onclick="opsSaveRunEdit('${opsEsc(r.id)}')">Änderungen speichern</button>
+      <button type="button" onclick="document.getElementById('opsRunEditModal').style.display='none'">Abbrechen</button>
+    </div>
+  </div>`;
+  modal.style.display='flex';
+}
+async function opsSaveRunEdit(runId){
+  const r=(opsState.runs||[]).find(x=>String(x.id)===String(runId));
+  if(!r||!opsRunEditable(r))return alert('Der Einsatz ist nicht mehr bearbeitbar.');
+  try{
+    const service_date=document.getElementById('opsRunEditDate')?.value||'';
+    const planned_start_time=document.getElementById('opsRunEditStart')?.value||null;
+    const assigned_user_id=document.getElementById('opsRunEditUser')?.value||null;
+    if(!service_date)throw new Error('Datum ist erforderlich.');
+    if(assigned_user_id){
+      const eligible=new Set(opsRunEligibleUserIds(r));
+      if(!eligible.has(String(assigned_user_id))&&String(assigned_user_id)!==String(r.assigned_user_id||'')){
+        throw new Error('Dieser Benutzer ist nicht allen Objekten der Tour operativ zugeordnet.');
+      }
+    }
+    await cloudRequest(`operation_runs?id=eq.${encodeURIComponent(runId)}&organization_id=eq.${encodeURIComponent(opsOrg())}`,{
+      method:'PATCH',
+      headers:{Prefer:'return=minimal'},
+      body:JSON.stringify({service_date,planned_start_time,assigned_user_id})
+    });
+    const modal=document.getElementById('opsRunEditModal');if(modal)modal.style.display='none';
+    await opsLoad();
+  }catch(e){alert('Einsatz konnte nicht geändert werden: '+(e.message||e));}
+}
+async function opsDeleteRun(runId){
+  const r=(opsState.runs||[]).find(x=>String(x.id)===String(runId));
+  if(!r)return;
+  if(!opsRunEditable(r))return alert('Nur geplante Einsätze können aus der Planung entfernt werden.');
+  if(!confirm(`Geplanten Einsatz "${r.name||'Tour'}" vom ${r.service_date||'—'} löschen? Er wird aus der aktiven Planung entfernt; die Historie bleibt erhalten.`))return;
+  try{
+    await cloudRequest(`operation_runs?id=eq.${encodeURIComponent(runId)}&organization_id=eq.${encodeURIComponent(opsOrg())}`,{
+      method:'PATCH',
+      headers:{Prefer:'return=minimal'},
+      body:JSON.stringify({status:'cancelled'})
+    });
+    await opsLoad();
+  }catch(e){alert('Einsatz konnte nicht gelöscht werden: '+(e.message||e));}
 }
 
 
