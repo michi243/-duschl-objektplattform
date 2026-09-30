@@ -4690,7 +4690,7 @@ table td,table th{
   <div id="psAdminView">
     <div class="grid g2" style="margin-top:14px;align-items:start">
       <div class="card">
-        <div class="row space" style="gap:8px;flex-wrap:wrap"><h3 style="margin:0">Standardbibliothek</h3><button type="button" class="primary" onclick="psNew()">+ Neu</button></div>
+        <div class="row space" style="gap:8px;flex-wrap:wrap"><h3 style="margin:0">Standardbibliothek</h3><div class="row" style="gap:6px;flex-wrap:wrap"><button type="button" onclick="psNew('sop')">+ SOP</button><button type="button" onclick="psNew('work_instruction')">+ Arbeitsanweisung</button><button type="button" class="primary" onclick="psNew('checklist')">+ Checkliste</button></div></div>
         <div class="grid2" style="margin-top:10px">
           <label>Typ<select id="psFilterType" onchange="psRenderList()"><option value="">Alle</option><option value="sop">SOP</option><option value="work_instruction">Arbeitsanweisung</option><option value="checklist">Checkliste</option></select></label>
           <label>Leistungsbereich<input id="psFilterArea" placeholder="z. B. Winterdienst" oninput="psRenderList()"></label>
@@ -7662,7 +7662,14 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - bestehende Tour-, Winterdienst-, SOP-, Dokumentations- und Abschlusslogik bleibt unverändert.
    BACKEND: operating_resource_reservations + Reservierungs-RPCs erforderlich.
 */
-const APP_VERSION='2.26.4'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.26.4.1 | HOTFIX | 30.09.2026
+   - Objekt-Leistungszuordnung vollständig von alten gelenkten SOP-Dokumenten entkoppelt.
+   - Neue RPCs set_object_service_assignment_v2 / set_external_object_service_assignment_v2.
+   - Prozesse & Standards: direkte Neu-Aktionen für SOP, Arbeitsanweisung und Checkliste.
+   - Editor scrollt beim Neuanlegen sichtbar in den Eingabebereich.
+   - Bestehende historische managed_document_version_id-Werte bleiben unverändert erhalten.
+*/
+const APP_VERSION='2.26.4.1'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -23339,21 +23346,17 @@ document.addEventListener('DOMContentLoaded',prefillLoginEmailFromUrl);
    Kanonische Zuordnung:
    Dokumentenmanagement -> Objekt -> Fachprozess
    ========================================================= */
-const osaState={assignments:[],services:[],documents:[],versions:[],requirements:[],standardsByService:{}};
+const osaState={assignments:[],services:[],requirements:[],standardsByService:{}};
 
 async function osaLoad(){
   const org=currentOrganizationId(); if(!org)return;
-  const [assignments,services,documents,versions,requirements]=await Promise.all([
+  const [assignments,services,requirements]=await Promise.all([
     cloudRequest(`object_service_assignments?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=created_at.desc`),
     cloudRequest(`service_types?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=name.asc`),
-    cloudRequest(`managed_documents?select=*&organization_id=eq.${encodeURIComponent(org)}&document_type=eq.sop&active=eq.true&order=document_number.asc`),
-    cloudRequest(`managed_document_versions?select=*&organization_id=eq.${encodeURIComponent(org)}&status=eq.released&order=created_at.desc`),
     cloudRequest(`operating_resource_requirements?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=created_at.asc`).catch(e=>{console.warn('Betriebsmittelbedarf für Objektübersicht konnte nicht geladen werden',e);return [];})
   ]);
   osaState.assignments=assignments||[];
   osaState.services=services||[];
-  osaState.documents=documents||[];
-  osaState.versions=versions||[];
   osaState.requirements=requirements||[];
   osaState.standardsByService={};
   const serviceIds=[...new Set((osaState.assignments||[]).map(x=>String(x.service_type_id||'')).filter(Boolean))];
@@ -23405,19 +23408,11 @@ async function osaOpenInheritedStandards(serviceTypeId,title='Prozesse & Standar
     return psRuntimeOpenService(currentOrganizationId(),sid,title);
   }
 }
-function osaLatestManagedSopVersion(serviceTypeId){
-  const sid=String(serviceTypeId||'');
-  const candidates=(osaState.versions||[]).filter(v=>{
-    const d=(osaState.documents||[]).find(x=>String(x.id)===String(v.document_id));
-    return d&&String(d.service_type_id||'')===sid&&d.active!==false&&String(v.status||'released')==='released';
-  });
-  return candidates[0]||null;
-}
 async function osaServiceChanged(){
   const sid=document.getElementById('osaService')?.value||'';
   const preview=document.getElementById('osaInheritancePreview');
   if(!preview)return;
-  if(!sid){preview.innerHTML='<div class="muted">Leistungsart wählen – die zugehörigen Standards werden automatisch vererbt.</div>';return;}
+  if(!sid){preview.innerHTML='<div class="muted">Leistungsart wählen – keine Dokumentauswahl erforderlich. SOPs, Arbeitsanweisungen und Checklisten werden automatisch vererbt.</div>';return;}
   preview.innerHTML='<div class="muted">Vererbte Standards werden geladen …</div>';
   await osaLoadInheritedStandards(sid,{force:true});
   const st=osaState.services.find(x=>String(x.id)===String(sid));
@@ -23595,7 +23590,7 @@ async function openObjectServicesModal(objectId){
             <label>Gültig von<input id="osaFrom" type="date"></label>
             <label>Gültig bis<input id="osaUntil" type="date"></label>
           </div>
-          <div id="osaInheritancePreview" class="card" style="padding:10px;margin-top:10px"><div class="muted">Leistungsart wählen – die zugehörigen Standards werden automatisch vererbt.</div></div>
+          <div id="osaInheritancePreview" class="card" style="padding:10px;margin-top:10px"><div class="muted">Leistungsart wählen – keine Dokumentauswahl erforderlich. SOPs, Arbeitsanweisungen und Checklisten werden automatisch vererbt.</div></div>
           <label style="margin-top:10px">Objektspezifische Ausnahme / Leistungsumfang<textarea id="osaNote" placeholder="Nur Abweichungen vom zentralen Standard, z. B. „Hinterhof nicht räumen“ oder „Hecke nur 2× jährlich“."></textarea></label>
           ${obj.externalManaged?`<div class="muted" style="margin-top:6px"><strong>Externe Betreuung:</strong> Es sind ausschließlich Leistungen auswählbar, die vom Auftraggeber für diesen Mandanten freigegeben wurden. Freigegeben: ${esc(osaExternalScopeLabel(obj)||'—')}</div>`:''}
           <div class="muted" style="margin-top:6px">Winterdienst wird automatisch dem spezialisierten Winterdienst-Prozess zugeordnet. Andere Leistungen laufen über Touren &amp; Einsätze.</div>
@@ -23613,16 +23608,10 @@ async function osaSave(objectId){
     const duplicate=(osaState.assignments||[]).find(a=>String(a.object_id)===String(objectId)&&String(a.service_type_id)===String(service_type_id)&&a.active!==false);
     if(duplicate)throw new Error('Diese Leistungsart ist dem Objekt bereits aktiv zugeordnet.');
     const obj=(db.objects||[]).find(o=>String(o.id)===String(objectId));
-    const managedVersion=osaLatestManagedSopVersion(service_type_id);
-    // 2.26.3: Leistungsart ist Source of Truth. Die Managed-SOP-Version wird nur noch
-    // automatisch als Legacy-Kompatibilitätsreferenz gesetzt, damit bestehende RPCs /
-    // Fachprozesse bis zur technischen Entkopplung unverändert weiterlaufen.
-    if(!managedVersion)throw new Error('Für diese Leistungsart fehlt noch eine freigegebene gelenkte SOP. Die strukturierten Standards werden zwar dynamisch vererbt, für die bestehende Fachprozess-Kompatibilität ist aktuell noch eine freigegebene SOP-Datei erforderlich.');
-    const rpc=obj?.externalManaged?'rpc/set_external_object_service_assignment_v1':'rpc/set_object_service_assignment_v1';
+    const rpc=obj?.externalManaged?'rpc/set_external_object_service_assignment_v2':'rpc/set_object_service_assignment_v2';
     const payload={
       p_object_id:objectId,
       p_service_type_id:service_type_id,
-      p_managed_document_version_id:managedVersion.id,
       p_process_type:osaProcessForService(service_type_id),
       p_valid_from:document.getElementById('osaFrom')?.value||null,
       p_valid_until:document.getElementById('osaUntil')?.value||null,
@@ -23633,6 +23622,7 @@ async function osaSave(objectId){
     await openObjectServicesModal(objectId);
   }catch(e){alert('Leistung konnte nicht zugeordnet werden: '+(e.message||e));}
 }
+
 async function osaDeactivate(id,objectId){
   if(!confirm('Diese Objekt-Leistungszuordnung beenden? Historische Einsätze bleiben erhalten.'))return;
   try{
@@ -27905,12 +27895,20 @@ function psRenderList(){
   if(!rows.length){host.innerHTML='<div class="muted">Keine Standards vorhanden.</div>';return;}
   host.innerHTML=rows.map(x=>{const svc=psState.services.find(s=>String(s.id)===String(x.service_type_id||''));const active=x.active!==false;return `<button type="button" onclick="psEdit('${esc(x.id)}')" style="display:block;width:100%;text-align:left;margin:0 0 8px;padding:10px;border-radius:10px;${String(psState.selectedId)===String(x.id)?'border-color:var(--accent);':''}"><div class="row space" style="gap:8px"><strong>${esc(x.code)} · ${esc(x.title)}</strong><span class="badge">${esc(psTypeLabels[x.standard_type]||x.standard_type)}</span></div><div class="muted" style="margin-top:4px">${esc(x.service_area||svc?.name||'Übergreifend')} · Version ${esc(x.version||'1.0')} · ${x.status==='released'?'Freigegeben':'Entwurf'}${active?'':' · deaktiviert'}</div></button>`;}).join('');
 }
-function psNew(mark=true){
+function psNew(type='sop',mark=true){
+  // Rückwärtskompatibilität für alte interne Aufrufe psNew(false)
+  if(typeof type==='boolean'){mark=type;type='sop';}
+  if(!['sop','work_instruction','checklist'].includes(type))type='sop';
   psState.selectedId=null;const set=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v??'';};
-  set('psId','');set('psType','sop');set('psCode','');set('psTitle','');set('psServiceType','');set('psServiceArea','');set('psParent','');set('psVersion','1.0');set('psStatus','draft');set('psPurpose','');set('psScope','');set('psResponsibility','');set('psNotes','');
-  const items=document.getElementById('psItems');if(items)items.innerHTML='';const t=document.getElementById('psEditorTitle');if(t)t.textContent='Standard anlegen';const d=document.getElementById('psDeactivateBtn');if(d)d.style.display='none';
+  set('psId','');set('psType',type);set('psCode','');set('psTitle','');set('psServiceType','');set('psServiceArea','');set('psParent','');set('psVersion','1.0');set('psStatus','draft');set('psPurpose','');set('psScope','');set('psResponsibility','');set('psNotes','');
+  const items=document.getElementById('psItems');if(items)items.innerHTML='';
+  const labels={sop:'SOP anlegen',work_instruction:'Arbeitsanweisung anlegen',checklist:'Checkliste anlegen'};
+  const t=document.getElementById('psEditorTitle');if(t)t.textContent=labels[type]||'Standard anlegen';
+  const d=document.getElementById('psDeactivateBtn');if(d)d.style.display='none';
   psTypeChanged();psRenderParents();psRenderList();if(mark)psMarkDirty();else psClearDirty();
+  if(mark){document.getElementById('psEditorCard')?.scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>document.getElementById('psCode')?.focus(),250);}
 }
+
 function psTypeChanged(){const type=document.getElementById('psType')?.value||'sop';const wrap=document.getElementById('psParentWrap');if(wrap)wrap.style.display=type==='sop'?'none':'';}
 function psEdit(id,rerender=true){
   if(psState.dirty&&rerender&&psState.selectedId&&String(psState.selectedId)!==String(id)&&!confirm('Ungespeicherte Änderungen verwerfen?'))return;
