@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.10</title>
+<title>Duschl Service – Objektplattform v2.26.6.8</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -8249,31 +8249,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    BACKEND: SQL 2.26.6.8 erforderlich.
    EDGE: process-notification-outbox 2.26.6.8 erforderlich.
 */
-/* RELEASE 2.26.6.9 | BASIS 2.26.6.8 | 30.09.2026
-   STANDARDTOUR-MAILBRIEFING:
-   - Zuweisungs-, Änderungs- und T-1-Mail enthalten den offenen Arbeitsvorrat
-     der tatsächlich in der Tour enthaltenen Objekte.
-   - Arbeitsvorrat: Titel, Status, Fälligkeit, Verantwortlicher, Arbeitsnotiz.
-   - completed/cancelled werden ausgeschlossen.
-   - Mandanten-CC-Dokumentation bleibt unverändert aktiv und erhält dieselbe Mailkopie.
-   - Winterdienst fachlich unverändert.
-   BACKEND: SQL 2.26.6.9 erforderlich.
-   EDGE: process-notification-outbox 2.26.6.9 erforderlich.
-*/
-/* RELEASE 2.26.6.10 | BASIS 2.26.6.9 | 30.09.2026
-   WETTER-SOURCE-OF-TRUTH:
-   - Außenpflege-Dashboard nutzt weiterhin object-weather als fachlichen Primärpfad.
-   - Bei Standort-/Geodatenfehler wird automatisch derselbe funktionierende
-     Winterdienst-Wetterpfad als gemeinsamer Standort-/Forecast-Fallback verwendet.
-   - Winterdienst-Response wird für Außenpflege in ein care_24h-kompatibles Modell übersetzt.
-   - Extern betreute Objekte mit funktionierendem Winter-Wetter erscheinen dadurch
-     nicht mehr fälschlich als "Objektstandort nicht gefunden".
-   - Fehlerstatus wird nur einmal in der Objektzeile gezeigt; keine zweite große Fehlerkarte.
-   - Notification/CC/T-1/Arbeitsvorrat unverändert.
-   EDGE: process-notification-outbox 2.26.6.10 ist kumulativ aus 2.26.6.9.
-   BACKEND: keine SQL-Änderung.
-*/
-const APP_VERSION='2.26.6.10'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.6.8'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -18764,110 +18740,6 @@ async function objectWeatherRequest(objectId,scope='green_care',force=false){
   if(!r.ok||data?.success!==true)throw new Error(data?.error||raw||`HTTP ${r.status}`);
   return data;
 }
-
-function dashboardSummerCareFromWinterWeather(entry){
-  const hourly=Array.isArray(entry?.hourly)?entry.hourly.slice(0,24):[];
-  const f24=entry?.forecast_24h||{};
-
-  const temperatures=hourly.map(h=>Number(h?.temperature)).filter(Number.isFinite);
-  const rainProbabilities=hourly.map(h=>Number(h?.precipitation_probability)).filter(Number.isFinite);
-  const precipitationValues=hourly.map(h=>Number(h?.precipitation)).filter(Number.isFinite);
-  const windValues=hourly.map(h=>Number(h?.wind_speed??h?.wind_speed_10m)).filter(Number.isFinite);
-
-  const maxTemperature=temperatures.length
-    ?Math.max(...temperatures)
-    :Number.isFinite(Number(f24?.max_temperature))
-      ?Number(f24.max_temperature)
-      :Number.isFinite(Number(f24?.min_temperature))
-        ?Number(f24.min_temperature)
-        :null;
-
-  const maxRainProbability=rainProbabilities.length
-    ?Math.max(...rainProbabilities)
-    :Number.isFinite(Number(f24?.max_precipitation_probability))
-      ?Number(f24.max_precipitation_probability)
-      :null;
-
-  const precipitationTotal=precipitationValues.length
-    ?precipitationValues.reduce((sum,v)=>sum+v,0)
-    :Number.isFinite(Number(f24?.max_precipitation))
-      ?Number(f24.max_precipitation)
-      :null;
-
-  const maxWindSpeed=windValues.length?Math.max(...windValues):null;
-  const alerts=Array.isArray(entry?.winter_alerts)?entry.winter_alerts:[];
-
-  // Außenpflegebewertung aus derselben Wetterbasis.
-  // Konservativ: Starkregen/Warnung -> kritisch, erhöhte Regen-/Hitze-/Windlage -> beobachten.
-  let status='good';
-  const recommendations=[];
-
-  if((Number.isFinite(maxRainProbability)&&maxRainProbability>=70)
-     ||(Number.isFinite(precipitationTotal)&&precipitationTotal>=5)
-     ||alerts.length>0){
-    status='avoid';
-    recommendations.push('Wetterlage vor Ausführung prüfen.');
-  }else if((Number.isFinite(maxRainProbability)&&maxRainProbability>=40)
-        ||(Number.isFinite(maxTemperature)&&maxTemperature>=32)
-        ||(Number.isFinite(maxWindSpeed)&&maxWindSpeed>=45)){
-    status='check';
-    recommendations.push('Ausführung wetterabhängig disponieren.');
-  }else{
-    recommendations.push('Regulär planbar.');
-  }
-
-  return {
-    ...entry,
-    success:true,
-    care_24h:{
-      status,
-      max_temperature:maxTemperature,
-      max_precipitation_probability:maxRainProbability,
-      precipitation_total:precipitationTotal,
-      max_wind_speed:maxWindSpeed,
-      recommendations
-    },
-    alerts,
-    _shared_weather_fallback:true,
-    _shared_weather_source:'winter-weather'
-  };
-}
-
-function dashboardSummerIsLocationError(error){
-  const msg=String(error?.message||error||'').toLowerCase();
-  return msg.includes('standort')
-    ||msg.includes('koordinat')
-    ||msg.includes('object location')
-    ||msg.includes('objektstandort')
-    ||msg.includes('not found')
-    ||msg.includes('nicht gefunden');
-}
-
-async function dashboardSummerWeatherRequest(objectId,force=false){
-  try{
-    return await objectWeatherRequest(objectId,'green_care',force);
-  }catch(primaryError){
-    // Gemeinsamer Standort-/Forecast-Fallback:
-    // Wenn der Sommerpfad den Standort nicht auflösen kann, verwenden wir
-    // exakt den bereits funktionierenden Winterdienst-Wetterresolver.
-    if(!dashboardSummerIsLocationError(primaryError))throw primaryError;
-
-    try{
-      const shared=await wsWeatherRequest(objectId,'forecast',force);
-      const normalized=dashboardSummerCareFromWinterWeather(shared);
-      normalized._primary_weather_error=primaryError?.message||String(primaryError);
-      return normalized;
-    }catch(sharedError){
-      const err=new Error(
-        `Wetterdaten nicht verfügbar. ${primaryError?.message||String(primaryError)}`
-      );
-      err.primaryError=primaryError;
-      err.sharedError=sharedError;
-      throw err;
-    }
-  }
-}
-
 function dashboardSummerPriority(status){
   return ({avoid:1,check:2,error:3,good:4})[status]||9;
 }
@@ -18938,6 +18810,7 @@ function renderDashboardSummerObjectList(){
           return `<div class="dashboard-summer-object-row">
             <span class="dashboard-summer-object-statusdot ${status}"></span>
             <span class="dashboard-summer-object-main">
+              <span class="dashboard-summer-object-statusdot ${status}"></span>
               <span style="min-width:0">
                 <span class="dashboard-summer-object-name">${esc(entry._object_name||entry.object_name||'Objekt')}</span>
                 <span class="dashboard-summer-object-address">${esc(entry._address||entry.address||'')}</span>
@@ -18964,21 +18837,8 @@ function dashboardSummerSelectObject(objectId){
   const entry=(dashboardSummerWeatherEntries||[]).find(e=>String(e._object_id)===dashboardSummerSelectedObjectId);
   if(!entry){host.classList.remove('is-open');host.innerHTML='';return;}
   const care=entry?.care_24h||{},status=dashboardSummerEntryStatus(entry),recs=Array.isArray(care.recommendations)?care.recommendations:[],alerts=Array.isArray(entry?.alerts)?entry.alerts:[];
-
-  // Datenfehler steht bereits eindeutig in der Objektzeile.
-  // Keine zweite große Fehlerkarte erzeugen.
-  if(entry._error){
-    host.classList.remove('is-open');
-    host.innerHTML='';
-    return;
-  }
-
-  const sourceHint=entry?._shared_weather_fallback
-    ?' · gemeinsamer Wetterresolver'
-    :'';
-
   host.innerHTML=`<div class="row space" style="gap:10px;align-items:flex-start"><div><strong>${esc(entry._object_name||entry.object_name||'Objekt')}</strong><div class="muted" style="margin-top:3px">${esc(entry._address||entry.address||'')}</div></div><span class="dashboard-summer-object-badge ${status}">${esc(dashboardSummerStatusLabel(status))}</span></div>
-    <div class="dashboard-summer-object-detail-grid" style="margin-top:10px"><div><span>Max. Temperatur</span><strong>${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))}</strong></div><div><span>Niederschlagswahr.</span><strong>${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}</strong></div><div><span>Niederschlag</span><strong>${esc(dashboardSummerFmtNumber(care.precipitation_total,1,' mm'))}</strong></div><div><span>Max. Wind</span><strong>${esc(dashboardSummerFmtNumber(care.max_wind_speed,0,' km/h'))}</strong></div></div>${recs.length?`<div style="margin-top:10px"><strong>Empfehlung:</strong> ${recs.map(esc).join(' · ')}</div>`:''}${alerts.length?`<div class="dashboard-summer-detail-warnings"><strong>DWD:</strong> ${alerts.slice(0,3).map(a=>esc(a.headline||a.event||'Wetterwarnung')).join(' · ')}</div>`:''}<div class="muted" style="font-size:11px;margin-top:9px">Stand ${esc(dashboardSummerFmtTime(entry?.fetched_at))}${entry?.cached?' · Cache':''}${esc(sourceHint)}</div>`;
+    ${entry._error?`<div class="bad" style="margin-top:10px">Wetterdaten nicht verfügbar: ${esc(entry._error)}</div>`:`<div class="dashboard-summer-object-detail-grid" style="margin-top:10px"><div><span>Max. Temperatur</span><strong>${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))}</strong></div><div><span>Niederschlagswahr.</span><strong>${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}</strong></div><div><span>Niederschlag</span><strong>${esc(dashboardSummerFmtNumber(care.precipitation_total,1,' mm'))}</strong></div><div><span>Max. Wind</span><strong>${esc(dashboardSummerFmtNumber(care.max_wind_speed,0,' km/h'))}</strong></div></div>${recs.length?`<div style="margin-top:10px"><strong>Empfehlung:</strong> ${recs.map(esc).join(' · ')}</div>`:''}${alerts.length?`<div class="dashboard-summer-detail-warnings"><strong>DWD:</strong> ${alerts.slice(0,3).map(a=>esc(a.headline||a.event||'Wetterwarnung')).join(' · ')}</div>`:''}<div class="muted" style="font-size:11px;margin-top:9px">Stand ${esc(dashboardSummerFmtTime(entry?.fetched_at))}${entry?.cached?' · Cache':''}</div>`}`;
   host.classList.add('is-open');
   host.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
@@ -19012,7 +18872,7 @@ async function loadDashboardSummerSummary(force=false){
     const ids=[...new Set((assignments||[]).filter(a=>a.active!==false).filter(a=>!a.valid_from||String(a.valid_from)<=today).filter(a=>!a.valid_until||String(a.valid_until)>=today).filter(a=>summerCareServiceMatches(serviceById.get(String(a.service_type_id)))).map(a=>String(a.object_id||'')).filter(Boolean))];
     if(!ids.length){dashboardSummerWeatherEntries=[];if(panel)panel.style.display='none';if(status)status.textContent='';return;}
     if(panel)panel.style.display='';
-    const results=await Promise.allSettled(ids.map(id=>dashboardSummerWeatherRequest(id,force)));
+    const results=await Promise.allSettled(ids.map(id=>objectWeatherRequest(id,'green_care',force)));
     if(token!==dashboardSummerLoadToken)return;
     dashboardSummerWeatherEntries=ids.map((id,index)=>{
       const obj=dashboardSummerObjectById(id),r=results[index],base={_object_id:id,_object_name:obj?.name||'Objekt',_address:obj?.address||[obj?.street,[obj?.postalCode,obj?.city].filter(Boolean).join(' ')].filter(Boolean).join(', '),_latitude:Number.isFinite(Number(obj?.latitude))?Number(obj.latitude):null,_longitude:Number.isFinite(Number(obj?.longitude))?Number(obj.longitude):null};
@@ -27607,7 +27467,7 @@ function showTourEmailConfirmation(data={}){
 async function opsQueueRunAssignmentNotification(runId,{silent=true,changeReason=null}={}){
   if(!runId||!opsIsPlanningRole())return null;
   try{
-    const rows=await cloudRequest('rpc/queue_operation_run_assignment_notification_v3',{
+    const rows=await cloudRequest('rpc/queue_operation_run_assignment_notification_v2',{
       method:'POST',
       body:JSON.stringify({
         p_run_id:runId,
