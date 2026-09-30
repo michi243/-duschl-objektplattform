@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.13</title>
+<title>Duschl Service – Objektplattform v2.26.6.14</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5280,102 +5280,85 @@ table td,table th{
     <button type="button" onclick="opsLoad()">↻ Aktualisieren</button>
   </div>
   <div class="ops-planning-only ops-planning-actions">
-    <button class="primary" type="button" onclick="opsOpenOneoffPlanner()">+ Einzeltour planen</button>
+    <button class="primary" type="button" onclick="opsOpenOneoffPlanner()">+ Einmaligen Auftrag planen</button>
     <button type="button" onclick="document.getElementById('opsTourName')?.scrollIntoView({behavior:'smooth',block:'center'})">+ Wiederkehrende Tour planen</button>
   </div>
 
   <div id="opsOneoffPlanner" class="card ops-planning-only ops-oneoff-card hidden" style="margin-top:14px">
     <div class="row space" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
       <div>
-        <h3 style="margin:0">Einzeltour planen</h3>
-        <div class="muted" style="margin-top:5px">Einmaliger Einsatz oder Routentour mit einmaligen Zusatzstopps. Die wiederkehrende Vorlage wird nicht verändert.</div>
+        <h3 style="margin:0">Einmaligen Auftrag planen</h3>
+        <div class="muted" style="margin-top:5px">Freier Ad-hoc-Auftrag – stand-alone oder einmalig in eine bereits geplante Tour einfügen. Keine Wiederholung, kein Wochentag.</div>
       </div>
       <button type="button" onclick="opsCloseOneoffPlanner()">Schließen</button>
     </div>
 
+    <div class="ops-oneoff-type-switch" style="margin-top:12px">
+      <button id="opsAdhocStandaloneBtn" class="is-active" type="button" onclick="opsAdhocSetMode('standalone')">Als eigenen Einsatz planen</button>
+      <button id="opsAdhocTourBtn" type="button" onclick="opsAdhocSetMode('tour')">Zu bestehender Tour hinzufügen</button>
+    </div>
+
     <div class="grid2" style="margin-top:12px">
-      <label>Bezeichnung *
-        <input id="opsOneoffName" placeholder="z. B. Haushaltsauflösung Müller">
+      <label>Auftrag / Titel *
+        <input id="opsOneoffName" placeholder="z. B. Beim Bäcker Material abholen">
       </label>
-      <label>Durchführung *
-        <select id="opsOneoffAssignee"><option value="">Mitarbeiter wählen …</option></select>
+      <label>Dauer (Min.) *
+        <input id="opsOneoffSpecialDuration" type="number" min="5" max="1440" step="5" value="30">
       </label>
+    </div>
+
+    <label style="margin-top:10px">Beschreibung / Arbeitsauftrag
+      <textarea id="opsOneoffSpecialNote" rows="3" placeholder="z. B. Beim Bäcker vorbeifahren, 20 Semmeln und zwei Brezenkörbe abholen."></textarea>
+    </label>
+
+    <div class="grid2" style="margin-top:10px">
+      <label>Objektzuordnung
+        <select id="opsOneoffSpecialObject"><option value="">Kein Objekt – freier Auftrag</option></select>
+      </label>
+      <label>Ort / Ziel
+        <input id="opsOneoffLocationName" placeholder="z. B. Bäckerei Müller">
+      </label>
+      <label>Adresse
+        <input id="opsOneoffLocationAddress" placeholder="optional, z. B. Leopoldstraße 10, München">
+      </label>
+    </div>
+
+    <div id="opsAdhocStandaloneFields" class="grid2" style="margin-top:10px">
       <label>Datum *
-        <input id="opsOneoffDate" type="date">
+        <input id="opsOneoffDate" type="date" onchange="opsAdhocDateChanged()">
       </label>
       <label>Startzeit
         <input id="opsOneoffStart" type="time" value="08:00">
       </label>
+      <label>Durchführung *
+        <select id="opsOneoffAssignee"><option value="">Mitarbeiter wählen …</option></select>
+      </label>
     </div>
 
-    <label style="margin-top:10px">Optionale Basis-Routentour
-      <select id="opsOneoffBaseTour" onchange="opsOneoffBaseChanged()">
-        <option value="">Keine – reine Einzeltour</option>
-      </select>
-    </label>
-    <div class="muted" style="margin-top:5px">Bei Auswahl werden die Stopps der Vorlage nur in diese konkrete Tagestour kopiert. Die Vorlage selbst bleibt unverändert.</div>
-
-    <div class="ops-oneoff-type-switch">
-      <button id="opsOneoffTypeObjectBtn" class="is-active" type="button" onclick="opsOneoffSetAddType('object_service')">Objektleistung hinzufügen</button>
-      <button id="opsOneoffTypeSpecialBtn" type="button" onclick="opsOneoffSetAddType('special_task')">Sonderauftrag hinzufügen</button>
-    </div>
-
-    <div id="opsOneoffObjectServiceEditor" style="margin-top:10px">
+    <div id="opsAdhocTourFields" class="hidden" style="margin-top:10px">
       <div class="grid2">
-        <label>Objekt
-          <select id="opsOneoffObject" onchange="opsOneoffObjectChanged()"><option value="">Objekt wählen …</option></select>
+        <label>Datum *
+          <input id="opsAdhocTourDate" type="date" onchange="opsAdhocDateChanged()">
         </label>
-        <label>Leistung
-          <select id="opsOneoffService" disabled><option value="">Zuerst Objekt wählen …</option></select>
+        <label>Bestehende Tour *
+          <select id="opsAdhocTargetRun" onchange="opsAdhocTargetRunChanged()">
+            <option value="">Tour wählen …</option>
+          </select>
         </label>
-      </div>
-      <div class="grid2" style="margin-top:8px">
-        <label>Dauer (Min.)
-          <input id="opsOneoffDuration" type="number" min="5" max="1440" step="5" value="60">
-        </label>
-        <label>Hinweis
-          <input id="opsOneoffNote" placeholder="optional">
-        </label>
-      </div>
-      <button class="primary" type="button" style="margin-top:8px" onclick="opsOneoffAddObjectService()">+ Objektleistung</button>
-    </div>
-
-    <div id="opsOneoffSpecialEditor" class="hidden" style="margin-top:10px">
-      <div class="grid2">
-        <label>Bestehendes Objekt
-          <select id="opsOneoffSpecialObject"><option value="">Kein bestehendes Objekt</option></select>
-        </label>
-        <label>Sonderauftrag *
-          <input id="opsOneoffSpecialTitle" placeholder="z. B. Haushaltsauflösung">
-        </label>
-        <label>Ort / Kunde
-          <input id="opsOneoffLocationName" placeholder="z. B. Familie Müller">
-        </label>
-        <label>Adresse bei externem Einsatz
-          <input id="opsOneoffLocationAddress" placeholder="Straße, PLZ Ort">
-        </label>
-        <label>Dauer (Min.)
-          <input id="opsOneoffSpecialDuration" type="number" min="5" max="1440" step="5" value="120">
-        </label>
-        <label>Auftrag / Hinweis
-          <textarea id="opsOneoffSpecialNote" rows="2" placeholder="Umfang, Zugang, Besonderheiten …"></textarea>
+        <label>Position in der Route
+          <select id="opsAdhocInsertPosition">
+            <option value="">Am Ende der Tour</option>
+          </select>
         </label>
       </div>
-      <button class="primary" type="button" style="margin-top:8px" onclick="opsOneoffAddSpecial()">+ Sonderauftrag</button>
-    </div>
-
-    <div style="margin-top:14px">
-      <strong>Einmalige Zusatzstopps</strong>
-      <div class="muted" style="margin-top:4px">Zusätzlich zur optional gewählten Basis-Routentour.</div>
-      <div id="opsOneoffDraft" class="ops-oneoff-draft"></div>
+      <div id="opsAdhocTargetHint" class="muted" style="margin-top:6px">Es werden nur bereits geplante, noch nicht abgeschlossene Touren am gewählten Datum angeboten.</div>
     </div>
 
     <div class="row" style="margin-top:14px;gap:8px;flex-wrap:wrap">
-      <button class="primary" type="button" onclick="opsCreateOneoffRun()">Einzeltour anlegen &amp; Mitarbeiter benachrichtigen</button>
+      <button class="primary" type="button" onclick="opsCreateOneoffRun()">Auftrag speichern &amp; Mitarbeiter benachrichtigen</button>
       <button type="button" onclick="opsResetOneoffPlanner()">Zurücksetzen</button>
     </div>
   </div>
-
   <div class="grid g2 ops-planning-only" style="margin-top:14px">
     <div class="card ops-assignment-management">
       <h3>Planbare Objektleistungen</h3>
@@ -8398,7 +8381,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.10.
    BACKEND: SQL 2.26.6.11 erforderlich.
 */
-/* RELEASE 2.26.6.13 | BASIS 2.26.6.12 | 30.09.2026
+/* RELEASE 2.26.6.14 | BASIS 2.26.6.12 | 30.09.2026
    WETTER-FALLBACK HARDENING:
    - Außenpflege akzeptiert object-weather nur noch bei verwertbarem care_24h-Datensatz.
    - Formal erfolgreiche, aber inhaltlich leere/ungültige Antworten lösen jetzt
@@ -8410,7 +8393,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.11.
    BACKEND: keine SQL-Änderung.
 */
-const APP_VERSION='2.26.6.13'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.6.14'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -26952,16 +26935,25 @@ function opsIsPlanableGenericPlan(p){
 function opsWeekdayLabel(v){const m={0:'So',1:'Mo',2:'Di',3:'Mi',4:'Do',5:'Fr',6:'Sa'};return (v||[]).map(x=>m[Number(x)]??String(x)).join(', ');}
 function opsIntervalLabel(v){return ({1:'wöchentlich',2:'alle 2 Wochen',4:'alle 4 Wochen'})[Number(v)]||`alle ${v} Wochen`;}
 function opsTimeWindowLabel(p){const a=String(p?.time_window_start||'').slice(0,5),b=String(p?.time_window_end||'').slice(0,5);return a&&b?`${a}–${b}`:a?`ab ${a}`:b?`bis ${b}`:'kein Zeitfenster';}
-let opsOneoffDraftItems=[];
-let opsOneoffAddType='object_service';
+
+/* RELEASE 2.26.6.14 | BASIS 2.26.6.13 | 30.09.2026
+   EINMALIGER AUFTRAG: STAND-ALONE ODER TOURTERMIN
+   - Begriff "Einzeltour" im Planungsdialog durch "Einmaliger Auftrag" ersetzt.
+   - Kein Rhythmus / keine Wochentage für Ad-hoc-Aufträge.
+   - Freitextauftrag mit optionaler Objektzuordnung sowie freiem Ort/Adresse.
+   - Stand-alone erzeugt einen eigenen one_off Run.
+   - Alternativ kann derselbe Auftrag einmalig in einen bestehenden konkreten Tourtermin eingefügt werden.
+   - Wiederkehrende Tourvorlage bleibt dabei unverändert.
+*/
+let opsAdhocMode='standalone';
 
 function opsRunStopObjectLabel(stop){
   if(stop?.object_id)return opsObjName(stop.object_id);
-  return String(stop?.location_name||'Externer Einsatzort');
+  return String(stop?.location_name||'Freier Einsatzort');
 }
 function opsRunStopServiceLabel(stop){
   if(stop?.service_type_id)return opsServiceName(stop.service_type_id);
-  return String(stop?.custom_title||'Sonderauftrag');
+  return String(stop?.custom_title||'Einmaliger Auftrag');
 }
 
 function opsOpenOneoffPlanner(){
@@ -26969,23 +26961,32 @@ function opsOpenOneoffPlanner(){
   if(!card)return;
   card.classList.remove('hidden');
   opsPopulateOneoffPlanner();
+  opsAdhocSetMode(opsAdhocMode||'standalone');
   card.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function opsCloseOneoffPlanner(){
   document.getElementById('opsOneoffPlanner')?.classList.add('hidden');
 }
 function opsResetOneoffPlanner(){
-  opsOneoffDraftItems=[];
+  opsAdhocMode='standalone';
+  const today=new Date().toISOString().slice(0,10);
   const n=document.getElementById('opsOneoffName');if(n)n.value='';
-  const d=document.getElementById('opsOneoffDate');if(d)d.value=new Date().toISOString().slice(0,10);
+  const d=document.getElementById('opsOneoffDate');if(d)d.value=today;
+  const td=document.getElementById('opsAdhocTourDate');if(td)td.value=today;
   const s=document.getElementById('opsOneoffStart');if(s)s.value='08:00';
-  const b=document.getElementById('opsOneoffBaseTour');if(b)b.value='';
-  ['opsOneoffNote','opsOneoffSpecialTitle','opsOneoffLocationName','opsOneoffLocationAddress','opsOneoffSpecialNote'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
-  opsOneoffRenderDraft();
+  const du=document.getElementById('opsOneoffSpecialDuration');if(du)du.value='30';
+  const a=document.getElementById('opsOneoffAssignee');if(a)a.value='';
+  const o=document.getElementById('opsOneoffSpecialObject');if(o)o.value='';
+  ['opsOneoffLocationName','opsOneoffLocationAddress','opsOneoffSpecialNote'].forEach(id=>{
+    const e=document.getElementById(id);if(e)e.value='';
+  });
+  opsAdhocSetMode('standalone');
+  opsPopulateAdhocRuns();
 }
 function opsPopulateOneoffPlanner(){
   const today=new Date().toISOString().slice(0,10);
   const date=document.getElementById('opsOneoffDate');if(date&&!date.value)date.value=today;
+  const tourDate=document.getElementById('opsAdhocTourDate');if(tourDate&&!tourDate.value)tourDate.value=date?.value||today;
 
   const assignee=document.getElementById('opsOneoffAssignee');
   if(assignee){
@@ -26998,187 +26999,161 @@ function opsPopulateOneoffPlanner(){
     if([...assignee.options].some(o=>String(o.value)===String(current)))assignee.value=current;
   }
 
-  const base=document.getElementById('opsOneoffBaseTour');
-  if(base){
-    const current=base.value||'';
-    base.innerHTML='<option value="">Keine – reine Einzeltour</option>'+
-      (opsState.tours||[])
-        .filter(t=>t.active!==false)
-        .map(t=>`<option value="${opsEsc(t.id)}">${opsEsc(t.name||'Tourvorlage')}</option>`)
-        .join('');
-    if([...base.options].some(o=>String(o.value)===String(current)))base.value=current;
+  const objectIds=new Set();
+  for(const a of (opsState.assignments||[])){
+    if(a?.active===false)continue;
+    if(a?.object_id)objectIds.add(String(a.object_id));
   }
-
-  const objects=[...new Map(
-    opsPlanableAssignments().map(a=>[String(a.object_id),a])
-  ).values()]
-    .sort((a,b)=>opsObjName(a.object_id).localeCompare(opsObjName(b.object_id),'de'));
-
-  const objectOptions=objects.map(a=>`<option value="${opsEsc(a.object_id)}">${opsEsc(opsObjName(a.object_id))}</option>`).join('');
-
-  const o=document.getElementById('opsOneoffObject');
-  if(o){
-    const current=o.value||'';
-    o.innerHTML='<option value="">Objekt wählen …</option>'+objectOptions;
-    if([...o.options].some(x=>String(x.value)===String(current)))o.value=current;
+  for(const r of (opsState.runStops||[])){
+    if(r?.object_id)objectIds.add(String(r.object_id));
   }
+  const objectOptions=[...objectIds]
+    .sort((a,b)=>opsObjName(a).localeCompare(opsObjName(b),'de'))
+    .map(id=>`<option value="${opsEsc(id)}">${opsEsc(opsObjName(id))}</option>`)
+    .join('');
 
   const so=document.getElementById('opsOneoffSpecialObject');
   if(so){
     const current=so.value||'';
-    so.innerHTML='<option value="">Kein bestehendes Objekt</option>'+objectOptions;
+    so.innerHTML='<option value="">Kein Objekt – freier Auftrag</option>'+objectOptions;
     if([...so.options].some(x=>String(x.value)===String(current)))so.value=current;
   }
 
-  opsOneoffObjectChanged();
-  opsOneoffRenderDraft();
+  opsPopulateAdhocRuns();
 }
-function opsOneoffBaseChanged(){
-  const id=document.getElementById('opsOneoffBaseTour')?.value||'';
-  if(id){
-    const t=(opsState.tours||[]).find(x=>String(x.id)===String(id));
-    const name=document.getElementById('opsOneoffName');
-    const start=document.getElementById('opsOneoffStart');
-    if(name&&!name.value)name.value=t?.name?`${t.name} · Zusatzroute`:'Einzeltour';
-    if(start&&t?.default_start_time)start.value=String(t.default_start_time).slice(0,5);
+function opsAdhocSetMode(mode){
+  opsAdhocMode=mode==='tour'?'tour':'standalone';
+  document.getElementById('opsAdhocStandaloneBtn')?.classList.toggle('is-active',opsAdhocMode==='standalone');
+  document.getElementById('opsAdhocTourBtn')?.classList.toggle('is-active',opsAdhocMode==='tour');
+  document.getElementById('opsAdhocStandaloneFields')?.classList.toggle('hidden',opsAdhocMode!=='standalone');
+  document.getElementById('opsAdhocTourFields')?.classList.toggle('hidden',opsAdhocMode!=='tour');
+  if(opsAdhocMode==='tour'){
+    const sd=document.getElementById('opsOneoffDate')?.value||new Date().toISOString().slice(0,10);
+    const td=document.getElementById('opsAdhocTourDate');
+    if(td&&!td.value)td.value=sd;
+    opsPopulateAdhocRuns();
   }
 }
-function opsOneoffSetAddType(type){
-  opsOneoffAddType=type==='special_task'?'special_task':'object_service';
-  document.getElementById('opsOneoffObjectServiceEditor')?.classList.toggle('hidden',opsOneoffAddType!=='object_service');
-  document.getElementById('opsOneoffSpecialEditor')?.classList.toggle('hidden',opsOneoffAddType!=='special_task');
-  document.getElementById('opsOneoffTypeObjectBtn')?.classList.toggle('is-active',opsOneoffAddType==='object_service');
-  document.getElementById('opsOneoffTypeSpecialBtn')?.classList.toggle('is-active',opsOneoffAddType==='special_task');
+function opsAdhocDateChanged(){
+  if(opsAdhocMode==='tour')opsPopulateAdhocRuns();
 }
-function opsOneoffObjectChanged(){
-  const objectId=document.getElementById('opsOneoffObject')?.value||'';
-  const service=document.getElementById('opsOneoffService');
-  if(!service)return;
-  if(!objectId){
-    service.disabled=true;
-    service.innerHTML='<option value="">Zuerst Objekt wählen …</option>';
-    return;
+function opsAdhocEligibleRuns(){
+  const date=document.getElementById('opsAdhocTourDate')?.value||'';
+  return (opsState.runs||[])
+    .filter(r=>{
+      if(date&&String(r.service_date||'')!==String(date))return false;
+      const status=String(r.status||'planned').toLowerCase();
+      if(['completed','cancelled'].includes(status))return false;
+      return true;
+    })
+    .sort((a,b)=>{
+      const ta=String(a.planned_start_time||'99:99');
+      const tb=String(b.planned_start_time||'99:99');
+      return ta.localeCompare(tb)||String(a.name||'').localeCompare(String(b.name||''),'de');
+    });
+}
+function opsAdhocRunLabel(run){
+  const time=String(run?.planned_start_time||'').slice(0,5);
+  const assignee=(opsState.tenantUsers||[]).find(u=>String(u.user_id||u.id)===String(run?.assigned_user_id||''));
+  const who=assignee?.full_name||assignee?.email||'nicht zugewiesen';
+  return `${time?time+' · ':''}${run?.name||'Tour'} · ${who}`;
+}
+function opsPopulateAdhocRuns(){
+  const sel=document.getElementById('opsAdhocTargetRun');if(!sel)return;
+  const keep=sel.value||'';
+  const rows=opsAdhocEligibleRuns();
+  sel.innerHTML='<option value="">Tour wählen …</option>'+
+    rows.map(r=>`<option value="${opsEsc(r.id)}">${opsEsc(opsAdhocRunLabel(r))}</option>`).join('');
+  if([...sel.options].some(o=>String(o.value)===String(keep)))sel.value=keep;
+  opsAdhocTargetRunChanged();
+}
+function opsAdhocTargetRunChanged(){
+  const runId=document.getElementById('opsAdhocTargetRun')?.value||'';
+  const pos=document.getElementById('opsAdhocInsertPosition');
+  const hint=document.getElementById('opsAdhocTargetHint');
+  if(!pos)return;
+  const stops=opsRunStopsForRun(runId);
+  pos.innerHTML='<option value="">Am Ende der Tour</option>'+
+    stops.map(s=>`<option value="${opsEsc(Number(s.sort_order||0))}">Nach ${opsEsc(Number(s.sort_order||0))}. ${opsEsc(opsRunStopObjectLabel(s))} · ${opsEsc(opsRunStopServiceLabel(s))}</option>`).join('');
+  const run=(opsState.runs||[]).find(r=>String(r.id)===String(runId));
+  if(hint){
+    hint.textContent=run
+      ?`Der Auftrag wird nur diesem Tourtermin ${run.service_date||''}${run.planned_start_time?' um '+String(run.planned_start_time).slice(0,5)+' Uhr':''} hinzugefügt. Die wiederkehrende Tourvorlage bleibt unverändert.`
+      :'Es werden nur bereits geplante, noch nicht abgeschlossene Touren am gewählten Datum angeboten.';
   }
-  const rows=opsPlanableAssignments()
-    .filter(a=>String(a.object_id)===String(objectId))
-    .sort((a,b)=>opsServiceName(a.service_type_id).localeCompare(opsServiceName(b.service_type_id),'de'));
-  service.disabled=false;
-  service.innerHTML='<option value="">Leistung wählen …</option>'+
-    rows.map(a=>`<option value="${opsEsc(a.id)}">${opsEsc(opsServiceName(a.service_type_id))}</option>`).join('');
 }
-function opsOneoffAddObjectService(){
-  const assignmentId=document.getElementById('opsOneoffService')?.value||'';
-  const a=(opsState.assignments||[]).find(x=>String(x.id)===String(assignmentId));
-  if(!a)return alert('Bitte Objekt und Leistung auswählen.');
-  const duration=Math.max(5,Math.min(1440,Number(document.getElementById('opsOneoffDuration')?.value||60)));
-  const note=document.getElementById('opsOneoffNote')?.value.trim()||'';
-  opsOneoffDraftItems.push({
-    stop_kind:'object_service',
-    object_service_assignment_id:a.id,
-    object_id:a.object_id,
-    service_type_id:a.service_type_id,
-    planned_duration_minutes:duration,
-    custom_note:note||null
-  });
-  const service=document.getElementById('opsOneoffService');if(service)service.value='';
-  const noteEl=document.getElementById('opsOneoffNote');if(noteEl)noteEl.value='';
-  opsOneoffRenderDraft();
-}
-function opsOneoffAddSpecial(){
-  const objectId=document.getElementById('opsOneoffSpecialObject')?.value||'';
-  const title=document.getElementById('opsOneoffSpecialTitle')?.value.trim()||'';
-  const locationName=document.getElementById('opsOneoffLocationName')?.value.trim()||'';
-  const locationAddress=document.getElementById('opsOneoffLocationAddress')?.value.trim()||'';
-  const note=document.getElementById('opsOneoffSpecialNote')?.value.trim()||'';
-  const duration=Math.max(5,Math.min(1440,Number(document.getElementById('opsOneoffSpecialDuration')?.value||120)));
 
-  if(!title)return alert('Bitte den Sonderauftrag bezeichnen.');
-  if(!objectId&&!locationAddress)return alert('Bei einem externen Einsatz ohne bestehendes Objekt ist eine Adresse erforderlich.');
-
-  opsOneoffDraftItems.push({
-    stop_kind:'special_task',
-    object_id:objectId||null,
-    custom_title:title,
-    custom_note:note||null,
-    location_name:locationName||null,
-    location_address:locationAddress||null,
-    planned_duration_minutes:duration
-  });
-
-  ['opsOneoffSpecialTitle','opsOneoffLocationName','opsOneoffLocationAddress','opsOneoffSpecialNote'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
-  opsOneoffRenderDraft();
-}
-function opsOneoffMove(index,delta){
-  const target=index+delta;
-  if(index<0||target<0||index>=opsOneoffDraftItems.length||target>=opsOneoffDraftItems.length)return;
-  const [item]=opsOneoffDraftItems.splice(index,1);
-  opsOneoffDraftItems.splice(target,0,item);
-  opsOneoffRenderDraft();
-}
-function opsOneoffRemove(index){
-  if(index<0||index>=opsOneoffDraftItems.length)return;
-  opsOneoffDraftItems.splice(index,1);
-  opsOneoffRenderDraft();
-}
-function opsOneoffRenderDraft(){
-  const host=document.getElementById('opsOneoffDraft');if(!host)return;
-  if(!opsOneoffDraftItems.length){
-    host.innerHTML='<div class="muted">Noch keine zusätzlichen Einmalstopps. Eine gewählte Basis-Routentour wird beim Speichern automatisch übernommen.</div>';
-    return;
-  }
-  host.innerHTML=opsOneoffDraftItems.map((x,i)=>{
-    const objectLabel=x.object_id?opsObjName(x.object_id):(x.location_name||'Externer Einsatzort');
-    const serviceLabel=x.stop_kind==='object_service'?opsServiceName(x.service_type_id):(x.custom_title||'Sonderauftrag');
-    const address=x.location_address?`<div class="muted">${opsEsc(x.location_address)}</div>`:'';
-    return `<div class="ops-oneoff-stop">
-      <div class="ops-oneoff-index">${i+1}</div>
-      <div>
-        <strong>${opsEsc(objectLabel)} · ${opsEsc(serviceLabel)}</strong>
-        <div class="muted">${opsEsc(x.planned_duration_minutes||60)} Min.${x.stop_kind==='special_task'?' · Einmaliger Sonderauftrag':' · Einmalige Objektleistung'}</div>
-        ${address}
-        ${x.custom_note?`<div class="muted">${opsEsc(x.custom_note)}</div>`:''}
-      </div>
-      <div class="ops-oneoff-stop-actions">
-        <button type="button" onclick="opsOneoffMove(${i},-1)" ${i===0?'disabled':''}>↑</button>
-        <button type="button" onclick="opsOneoffMove(${i},1)" ${i===opsOneoffDraftItems.length-1?'disabled':''}>↓</button>
-        <button class="danger" type="button" onclick="opsOneoffRemove(${i})">×</button>
-      </div>
-    </div>`;
-  }).join('');
-}
 async function opsCreateOneoffRun(){
   try{
-    const name=document.getElementById('opsOneoffName')?.value.trim()||'';
-    const service_date=document.getElementById('opsOneoffDate')?.value||'';
-    const start_time=document.getElementById('opsOneoffStart')?.value||null;
-    const assigned_user_id=document.getElementById('opsOneoffAssignee')?.value||'';
-    const source_tour_template_id=document.getElementById('opsOneoffBaseTour')?.value||null;
+    const title=document.getElementById('opsOneoffName')?.value.trim()||'';
+    const description=document.getElementById('opsOneoffSpecialNote')?.value.trim()||'';
+    const object_id=document.getElementById('opsOneoffSpecialObject')?.value||null;
+    const location_name=document.getElementById('opsOneoffLocationName')?.value.trim()||null;
+    const location_address=document.getElementById('opsOneoffLocationAddress')?.value.trim()||null;
+    const duration=Math.max(5,Math.min(1440,Number(document.getElementById('opsOneoffSpecialDuration')?.value||30)));
 
-    if(!name)throw new Error('Bezeichnung der Einzeltour fehlt.');
-    if(!service_date)throw new Error('Datum fehlt.');
-    if(!assigned_user_id)throw new Error('Durchführender Mitarbeiter fehlt.');
-    if(!source_tour_template_id&&!opsOneoffDraftItems.length)throw new Error('Mindestens einen Stopp oder eine Basis-Routentour auswählen.');
+    if(!title)throw new Error('Auftrag / Titel fehlt.');
 
-    const result=await cloudRequest('rpc/create_oneoff_operation_run_v1',{
-      method:'POST',
-      body:JSON.stringify({
-        p_organization_id:opsOrg(),
-        p_name:name,
-        p_service_date:service_date,
-        p_start_time:start_time,
-        p_assigned_user_id:assigned_user_id,
-        p_source_tour_template_id:source_tour_template_id,
-        p_stops:opsOneoffDraftItems
-      })
-    });
+    let runId='';
 
-    const runId=Array.isArray(result)?result[0]:result;
-    if(!runId)throw new Error('Einzeltour wurde nicht zurückgegeben.');
+    if(opsAdhocMode==='tour'){
+      const target_run_id=document.getElementById('opsAdhocTargetRun')?.value||'';
+      const afterRaw=document.getElementById('opsAdhocInsertPosition')?.value||'';
+      const insert_after_sort_order=afterRaw===''?null:Number(afterRaw);
+      if(!target_run_id)throw new Error('Bitte eine bestehende Tour auswählen.');
 
-    await opsQueueRunAssignmentNotification(String(runId),{
-      silent:false,
-      changeReason:source_tour_template_id?'Hybridtour / Einzeleinsatz zugewiesen':'Einzeltour zugewiesen'
-    });
+      const result=await cloudRequest('rpc/add_ad_hoc_task_to_operation_run_v1',{
+        method:'POST',
+        body:JSON.stringify({
+          p_run_id:target_run_id,
+          p_title:title,
+          p_description:description||null,
+          p_object_id:object_id,
+          p_location_name:location_name,
+          p_location_address:location_address,
+          p_planned_duration_minutes:duration,
+          p_insert_after_sort_order:insert_after_sort_order
+        })
+      });
+      runId=target_run_id;
+      if(!result)throw new Error('Der Auftrag konnte der Tour nicht hinzugefügt werden.');
+
+      await opsQueueRunAssignmentNotification(runId,{
+        silent:false,
+        changeReason:'Einmaliger Auftrag zur Tour hinzugefügt'
+      });
+
+    }else{
+      const service_date=document.getElementById('opsOneoffDate')?.value||'';
+      const start_time=document.getElementById('opsOneoffStart')?.value||null;
+      const assigned_user_id=document.getElementById('opsOneoffAssignee')?.value||'';
+
+      if(!service_date)throw new Error('Datum fehlt.');
+      if(!assigned_user_id)throw new Error('Durchführender Mitarbeiter fehlt.');
+
+      const result=await cloudRequest('rpc/create_ad_hoc_operation_run_v1',{
+        method:'POST',
+        body:JSON.stringify({
+          p_organization_id:opsOrg(),
+          p_title:title,
+          p_description:description||null,
+          p_service_date:service_date,
+          p_start_time:start_time,
+          p_assigned_user_id:assigned_user_id,
+          p_object_id:object_id,
+          p_location_name:location_name,
+          p_location_address:location_address,
+          p_planned_duration_minutes:duration
+        })
+      });
+      runId=Array.isArray(result)?String(result[0]||''):String(result||'');
+      if(!runId)throw new Error('Der einmalige Auftrag wurde nicht zurückgegeben.');
+
+      await opsQueueRunAssignmentNotification(runId,{
+        silent:false,
+        changeReason:'Einmaliger Auftrag zugewiesen'
+      });
+    }
 
     opsResetOneoffPlanner();
     opsCloseOneoffPlanner();
@@ -27186,7 +27161,7 @@ async function opsCreateOneoffRun(){
     try{await refreshObjectManagerTours();}catch(_e){}
 
   }catch(e){
-    alert('Einzeltour konnte nicht angelegt werden: '+(e.message||e));
+    alert('Einmaliger Auftrag konnte nicht gespeichert werden: '+(e.message||e));
   }
 }
 
@@ -27207,7 +27182,7 @@ function opsApplyViewMode(){
   const planning=opsIsPlanningRole();
   section.classList.toggle('ops-operative-mode',!planning);
   const sub=document.getElementById('opsSubtitle');
-  if(sub)sub.textContent=planning?'Einzeltouren und wiederkehrende Touren planen; einmalige Sonderaufträge können mit Routentouren kombiniert werden.':'Deine geplanten Touren, Einsätze und zusätzlichen Aufgaben.';
+  if(sub)sub.textContent=planning?'Wiederkehrende Touren planen und einmalige Aufträge stand-alone oder gezielt in einen bestehenden Tourtermin einfügen.':'Deine geplanten Touren, Einsätze und zusätzlichen Aufgaben.';
   const op=document.getElementById('opsOperativeView');
   if(op){op.classList.toggle('hidden',planning);op.style.display=planning?'none':'block';}
   section.querySelectorAll('.ops-planning-only').forEach(el=>el.style.display=planning?'':'none');
