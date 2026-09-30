@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.5.7</title>
+<title>Duschl Service – Objektplattform v2.26.5.8</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3652,7 +3652,7 @@ table td,table th{
 
 
 <style id="duschl-plan-editability-v22425">
-#opsPlanAssignment:disabled{
+#opsPlanObject:disabled,#opsPlanService:disabled{
   opacity:.82;
   cursor:not-allowed;
 }
@@ -4062,6 +4062,26 @@ table td,table th{
   .dashboard-summer-object-temp,.dashboard-summer-object-rain{display:none}
 }
 
+</style>
+
+<style id="duschl-tour-planning-scalable-v22658">
+.ops-plan-selection select:disabled{opacity:.62;cursor:not-allowed}
+.ops-assignment-table{border:1px solid #29485e;border-radius:12px;overflow:hidden;background:#091b28}
+.ops-assignment-table-head,.ops-assignment-table-row{display:grid;grid-template-columns:minmax(150px,1.35fr) minmax(130px,1.15fr) 105px 105px 105px 90px;gap:8px;align-items:center;padding:8px 10px}
+.ops-assignment-table-head{background:#0b2130;color:#91a5b4;font-size:9px;font-weight:850;text-transform:uppercase;letter-spacing:.05em}
+.ops-assignment-table-row{border-top:1px solid rgba(49,83,109,.55);font-size:11px}
+.ops-assignment-table-row:first-of-type{border-top:0}
+.ops-assignment-table-row strong{font-size:12px}.ops-assignment-table-row .muted{font-size:9px}
+.ops-assignment-status{display:inline-flex;width:max-content;padding:4px 7px;border-radius:999px;border:1px solid #38586c;font-size:9px;font-weight:850}
+.ops-assignment-status.planned{color:#8ee3aa;border-color:#4f9b69}.ops-assignment-status.open{color:#c5d0d7}
+.ops-assignment-action{padding:5px 7px!important;font-size:9px!important;min-height:0!important}
+@media(max-width:700px){
+ .ops-plan-selection{grid-template-columns:1fr!important}
+ .ops-assignment-table{border:0;background:transparent;display:grid;gap:8px}
+ .ops-assignment-table-head{display:none}
+ .ops-assignment-table-row{display:grid;grid-template-columns:1fr auto;gap:5px 8px;border:1px solid #29485e!important;border-radius:11px;padding:10px;background:#0b2030}
+ .ops-assignment-table-row .ops-col-object{grid-column:1/2}.ops-assignment-table-row .ops-col-service{grid-column:1/2}.ops-assignment-table-row .ops-col-rhythm,.ops-assignment-table-row .ops-col-next{font-size:10px;color:#b8c7d1}.ops-assignment-table-row .ops-col-status{grid-column:2/3;grid-row:1/3}.ops-assignment-table-row .ops-col-action{grid-column:2/3;align-self:end}
+}
 </style>
 </head>
 <body>
@@ -5089,10 +5109,11 @@ table td,table th{
     <button type="button" onclick="opsLoad()">↻ Aktualisieren</button>
   </div>
   <div class="grid g2 ops-planning-only" style="margin-top:14px">
-    <div class="card">
+    <div class="card ops-assignment-management">
       <h3>Planbare Objektleistungen</h3>
-      <div class="muted">Nur aktive Objekt-Leistungszuordnungen mit freigegebener SOP. Winterdienst wird hier bewusst nicht geplant.</div>
-      <div id="opsAssignmentList" style="margin-top:12px"></div>
+      <div class="muted">Aktive Objekt-Leistungszuordnungen. Winterdienst bleibt im separaten Fachprozess.</div>
+      <input id="opsAssignmentSearch" type="search" placeholder="Objekt oder Leistung suchen …" style="margin-top:10px" oninput="opsRenderAssignmentManagement()">
+      <div id="opsAssignmentList" style="margin-top:10px"></div>
     </div>
 
     <div class="card">
@@ -5101,10 +5122,16 @@ table td,table th{
         <span id="opsPlanEditBadge" class="badge hidden">Bearbeitung</span>
       </div>
 
-      <label style="margin-top:12px">Objektleistung
-        <select id="opsPlanAssignment" onchange="opsPlanAssignmentChanged()"><option value="">Objekt &amp; Leistung wählen …</option></select>
-      </label>
-      <div id="opsPlanAssignmentInfo" class="muted" style="margin-top:7px">Zuerst eine planbare Objektleistung auswählen.</div>
+      <div class="grid2 ops-plan-selection" style="margin-top:12px">
+        <label>1. Objekt
+          <select id="opsPlanObject" onchange="opsPlanObjectChanged()"><option value="">Objekt wählen …</option></select>
+        </label>
+        <label>2. Leistung
+          <select id="opsPlanService" onchange="opsPlanServiceChanged()" disabled><option value="">Zuerst Objekt wählen …</option></select>
+        </label>
+      </div>
+      <input id="opsPlanAssignment" type="hidden" value="">
+      <div id="opsPlanAssignmentInfo" class="muted" style="margin-top:7px">Zuerst Objekt und danach Leistung auswählen.</div>
 
       <div class="grid2" style="margin-top:12px">
         <label>Rhythmus<select id="opsPlanInterval"><option value="1">wöchentlich</option><option value="2">alle 2 Wochen</option><option value="4">alle 4 Wochen</option></select></label>
@@ -5134,7 +5161,7 @@ table td,table th{
         <button id="opsPlanSaveBtn" class="primary" onclick="opsSavePlan()">Leistungsplan speichern</button>
         <button id="opsPlanCancelBtn" class="hidden" onclick="opsCancelPlanEdit()">Bearbeitung abbrechen</button>
       </div>
-      <div id="opsPlanList" style="margin-top:12px"></div>
+      <div id="opsPlanList" style="display:none"></div>
     </div>
   </div>
   <div class="grid g2 ops-planning-only" style="margin-top:14px">
@@ -7902,7 +7929,15 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    MOBILE: bestehende kompakte Kartenansicht bleibt erhalten.
    BACKEND: keine SQL-/RLS-/RPC-Änderung.
 */
-const APP_VERSION='2.26.5.7'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.26.5.8 | BASIS 2.26.5.7 | 30.09.2026
+   TOUREN & EINSÄTZE: skalierbare 2-Stufen-Auswahl Objekt -> Leistung.
+   DESKTOP: planbare Objektleistungen als Managementtabelle mit Rhythmus, nächstem Termin, Status und Bearbeiten.
+   MOBILE: kompakte Kartenansicht; Objekt und Leistung untereinander.
+   GOVERNANCE: object_service_assignments bleibt alleinige Source of Truth; keine neuen Datenstrukturen.
+   WINTERDIENST: unverändert separater Fachprozess.
+   BACKEND: keine SQL-/RLS-/RPC-Änderung.
+*/
+const APP_VERSION='2.26.5.8'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -26780,27 +26815,75 @@ async function opsLoad(){
   }
 }
 
-function opsPopulate(){
-  const s=document.getElementById('opsPlanAssignment');
-  if(s){
-    const keep=s.value||'';
-    s.innerHTML='<option value="">Objekt & Leistung wählen …</option>'+opsPlanableAssignments().map(a=>`<option value="${opsEsc(a.id)}">${opsEsc(opsAssignmentLabel(a))}</option>`).join('');
-    if([...s.options].some(o=>String(o.value)===String(keep)))s.value=keep;
+function opsObjectAddress(id){
+  const o=(db.objects||[]).find(x=>String(x.id)===String(id));
+  if(!o)return '';
+  return [o.street,[o.postalCode||o.postal_code,o.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+}
+function opsNextPlanDate(p){
+  if(!p||p.active===false)return '';
+  const today=new Date();today.setHours(0,0,0,0);
+  const start=new Date(String(p.valid_from||today.toISOString().slice(0,10))+'T00:00:00');
+  const until=p.valid_until?new Date(String(p.valid_until)+'T00:00:00'):null;
+  const base=start>today?new Date(start):new Date(today);
+  const days=new Set((p.weekdays||[]).map(Number));
+  const interval=Math.max(1,Number(p.interval_weeks||1));
+  for(let i=0;i<370;i++){
+    const d=new Date(base);d.setDate(base.getDate()+i);
+    if(until&&d>until)break;
+    if(!days.has(d.getDay()))continue;
+    const diffDays=Math.floor((d-start)/86400000);
+    const weekIndex=Math.floor(Math.max(0,diffDays)/7);
+    if(weekIndex%interval!==0)continue;
+    return d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
   }
+  return '—';
+}
+function opsActivePlanForAssignment(a){
+  return (opsState.plans||[]).find(p=>p.active!==false&&String(p.object_id)===String(a.object_id)&&String(p.service_type_id)===String(a.service_type_id))||null;
+}
+function opsPopulate(){
+  const objectSel=document.getElementById('opsPlanObject');
+  const serviceSel=document.getElementById('opsPlanService');
+  const assignment=document.getElementById('opsPlanAssignment');
+  if(objectSel){
+    const keep=objectSel.value||'';
+    const objectIds=[...new Set(opsPlanableAssignments().map(a=>String(a.object_id)))].sort((a,b)=>opsObjName(a).localeCompare(opsObjName(b),'de'));
+    objectSel.innerHTML='<option value="">Objekt wählen …</option>'+objectIds.map(id=>`<option value="${opsEsc(id)}">${opsEsc(opsObjName(id))}</option>`).join('');
+    if([...objectSel.options].some(o=>String(o.value)===String(keep)))objectSel.value=keep;
+  }
+  if(!opsEditingPlanId)opsPlanObjectChanged();
+  else if(assignment?.value)opsPlanAssignmentChanged();
+
   const tp=document.getElementById('opsTourPlans');
-  if(tp)tp.innerHTML=opsState.plans
-    .filter(opsIsPlanableGenericPlan)
-    .map(p=>`<option value="${opsEsc(p.id)}">${opsEsc(opsObjName(p.object_id))} · ${opsEsc(opsServiceName(p.service_type_id))} · ${opsEsc(opsIntervalLabel(p.interval_weeks))}</option>`)
-    .join('');
-  if(!opsEditingPlanId)opsPlanAssignmentChanged();
+  if(tp)tp.innerHTML=opsState.plans.filter(opsIsPlanableGenericPlan).map(p=>`<option value="${opsEsc(p.id)}">${opsEsc(opsObjName(p.object_id))} · ${opsEsc(opsServiceName(p.service_type_id))} · ${opsEsc(opsIntervalLabel(p.interval_weeks))}</option>`).join('');
+}
+function opsPlanObjectChanged(){
+  const oid=document.getElementById('opsPlanObject')?.value||'';
+  const serviceSel=document.getElementById('opsPlanService');
+  const hidden=document.getElementById('opsPlanAssignment');
+  if(hidden)hidden.value='';
+  if(!serviceSel)return;
+  const rows=opsPlanableAssignments().filter(a=>String(a.object_id)===String(oid));
+  serviceSel.disabled=!oid;
+  serviceSel.innerHTML=oid?'<option value="">Leistung wählen …</option>'+rows.map(a=>`<option value="${opsEsc(a.service_type_id)}">${opsEsc(opsServiceName(a.service_type_id))}</option>`).join(''):'<option value="">Zuerst Objekt wählen …</option>';
+  opsPlanAssignmentChanged();
+}
+function opsPlanServiceChanged(){
+  const oid=document.getElementById('opsPlanObject')?.value||'';
+  const sid=document.getElementById('opsPlanService')?.value||'';
+  const a=opsPlanableAssignments().find(x=>String(x.object_id)===String(oid)&&String(x.service_type_id)===String(sid));
+  const hidden=document.getElementById('opsPlanAssignment');if(hidden)hidden.value=a?.id||'';
+  opsPlanAssignmentChanged();
 }
 function opsPlanAssignmentChanged(){
-  const id=document.getElementById('opsPlanAssignment')?.value||'',a=opsState.assignments.find(x=>String(x.id)===String(id)),info=document.getElementById('opsPlanAssignmentInfo');
-  if(!a){if(info)info.textContent='Zuerst eine planbare Objektleistung auswählen.';return;}
+  const id=document.getElementById('opsPlanAssignment')?.value||'';
+  const a=opsState.assignments.find(x=>String(x.id)===String(id));
+  const info=document.getElementById('opsPlanAssignmentInfo');
+  if(!a){if(info)info.textContent='Zuerst Objekt und danach Leistung auswählen.';return;}
+  const existing=opsActivePlanForAssignment(a);
   if(info){
-    info.innerHTML=opsEditingPlanId
-      ? `<strong>${opsEsc(opsAssignmentLabel(a))}</strong><br>${opsEsc(opsSopLabel(a))}<br><span class="muted">Objekt und Leistung werden unter „Objekte → Leistungen & Standards“ gepflegt. SOPs, Arbeitsanweisungen, Checklisten und Betriebsmittelbedarf werden zentral über die Leistungsart vererbt; hier bearbeitest du nur Planung, Rhythmus, Zeit und Hinweis.</span>`
-      : `<strong>${opsEsc(opsAssignmentLabel(a))}</strong><br>${opsEsc(opsSopLabel(a))} · Touren &amp; Einsätze${a.valid_from||a.valid_until?`<br>Leistungszuordnung gültig ${opsEsc(a.valid_from||'—')} – ${opsEsc(a.valid_until||'offen')}`:''}`;
+    info.innerHTML=`<strong>${opsEsc(opsAssignmentLabel(a))}</strong><br>${opsEsc(opsSopLabel(a))}${existing&&!opsEditingPlanId?`<br><span class="muted">Für diese Objektleistung besteht bereits ein aktiver Leistungsplan (${opsEsc(opsIntervalLabel(existing.interval_weeks))}). Du kannst ihn links direkt bearbeiten.</span>`:''}`;
   }
   if(!opsEditingPlanId){
     const f=document.getElementById('opsPlanFrom'),u=document.getElementById('opsPlanUntil'),today=new Date().toISOString().slice(0,10);
@@ -26808,10 +26891,31 @@ function opsPlanAssignmentChanged(){
     if(u&&!u.value&&a.valid_until)u.value=a.valid_until;
   }
 }
+function opsRenderAssignmentManagement(){
+  const host=document.getElementById('opsAssignmentList');if(!host)return;
+  const q=String(document.getElementById('opsAssignmentSearch')?.value||'').trim().toLowerCase();
+  const rows=opsPlanableAssignments().filter(a=>!q||`${opsObjName(a.object_id)} ${opsServiceName(a.service_type_id)} ${opsObjectAddress(a.object_id)}`.toLowerCase().includes(q));
+  if(!rows.length){host.innerHTML='<div class="muted">Keine passenden planbaren Objektleistungen.</div>';return;}
+  host.innerHTML=`<div class="ops-assignment-table"><div class="ops-assignment-table-head"><span>Objekt</span><span>Leistung</span><span>Rhythmus</span><span>Nächster Termin</span><span>Status</span><span>Aktion</span></div>${rows.map(a=>{
+    const p=opsActivePlanForAssignment(a);
+    return `<div class="ops-assignment-table-row"><div class="ops-col-object"><strong>${opsEsc(opsObjName(a.object_id))}</strong><div class="muted">${opsEsc(opsObjectAddress(a.object_id))}</div></div><div class="ops-col-service"><strong>${opsEsc(opsServiceName(a.service_type_id))}</strong><div class="muted">${opsEsc(opsSopLabel(a))}</div></div><div class="ops-col-rhythm">${p?opsEsc(opsIntervalLabel(p.interval_weeks)):'—'}</div><div class="ops-col-next">${p?opsEsc(opsNextPlanDate(p)):'—'}</div><div class="ops-col-status"><span class="ops-assignment-status ${p?'planned':'open'}">${p?'geplant':'ungeplant'}</span></div><div class="ops-col-action">${p?`<button class="ops-assignment-action" type="button" onclick="opsEditPlan('${opsEsc(p.id)}')">Bearbeiten</button>`:`<button class="ops-assignment-action primary" type="button" onclick="opsStartPlanForAssignment('${opsEsc(a.id)}')">Planen</button>`}</div></div>`;
+  }).join('')}</div>`;
+}
+function opsStartPlanForAssignment(assignmentId){
+  opsResetPlanForm();
+  const a=opsState.assignments.find(x=>String(x.id)===String(assignmentId));if(!a)return;
+  const o=document.getElementById('opsPlanObject');if(o)o.value=a.object_id;
+  opsPlanObjectChanged();
+  const s=document.getElementById('opsPlanService');if(s)s.value=a.service_type_id;
+  opsPlanServiceChanged();
+  document.getElementById('opsPlanObject')?.scrollIntoView({behavior:'smooth',block:'center'});
+}
 function opsResetPlanForm(){
   opsEditingPlanId=null;
   opsSetPlanEditableFields(true);
-  const s=document.getElementById('opsPlanAssignment');if(s){s.value='';s.disabled=false;}
+  const s=document.getElementById('opsPlanAssignment');if(s)s.value='';
+  const o=document.getElementById('opsPlanObject');if(o){o.value='';o.disabled=false;}
+  const sv=document.getElementById('opsPlanService');if(sv){sv.innerHTML='<option value="">Zuerst Objekt wählen …</option>';sv.value='';sv.disabled=true;}
   document.getElementById('opsPlanInterval').value='1';
   document.getElementById('opsPlanDuration').value='60';
   document.getElementById('opsPlanWindowStart').value='';
@@ -26842,7 +26946,11 @@ function opsEditPlan(id){
   const a=opsPlanAssignment(p);if(!a)return alert('Keine aktuell aktive Objekt-Leistungszuordnung. Plan zuerst fachlich bereinigen.');
   opsEditingPlanId=p.id;
   opsSetPlanEditableFields(true);
-  const s=document.getElementById('opsPlanAssignment');s.value=a.id;s.disabled=true;
+  const s=document.getElementById('opsPlanAssignment');if(s)s.value=a.id;
+  const o=document.getElementById('opsPlanObject');if(o){o.value=a.object_id;o.disabled=true;}
+  opsPlanObjectChanged();
+  const sv=document.getElementById('opsPlanService');if(sv){sv.value=a.service_type_id;sv.disabled=true;}
+  if(s)s.value=a.id;
   const info=document.getElementById('opsPlanAssignmentInfo');
   if(info)info.innerHTML=`<strong>${opsEsc(opsAssignmentLabel(a))}</strong><br>${opsEsc(opsSopLabel(a))}<br><span class="muted">Objekt und Leistung werden unter „Objekte → Leistungen & Standards“ gepflegt. SOPs, Arbeitsanweisungen, Checklisten und Betriebsmittelbedarf werden zentral über die Leistungsart vererbt; hier bearbeitest du nur Planung, Rhythmus, Zeit und Hinweis.</span>`;
   document.getElementById('opsPlanInterval').value=String(p.interval_weeks||1);
@@ -26897,9 +27005,8 @@ async function opsAssignRun(runId,userId){
 
 function opsRender(){
   let e=document.getElementById('opsAssignmentList');
-  if(e)e.innerHTML=opsPlanableAssignments().map(a=>`<div class="ops-assignment-item"><strong>${opsEsc(opsAssignmentLabel(a))}</strong><div class="muted" style="margin-top:4px">${opsEsc(opsSopLabel(a))}</div><div class="ops-plan-meta"><span class="badge">Touren &amp; Einsätze</span>${a.valid_from?`<span class="muted">ab ${opsEsc(a.valid_from)}</span>`:''}${a.valid_until?`<span class="muted">bis ${opsEsc(a.valid_until)}</span>`:''}</div></div>`).join('')||'<div class="muted">Keine planbaren Objektleistungen. Zuerst unter „Objekte → Leistungen & Standards“ eine nicht-winterliche Leistung zuordnen.</div>';
-  e=document.getElementById('opsPlanList');
-  if(e)e.innerHTML=opsState.plans.filter(opsIsPlanableGenericPlan).map(p=>{const a=opsPlanAssignment(p);return `<div class="ops-plan-item"><strong>${opsEsc(opsObjName(p.object_id))} · ${opsEsc(opsServiceName(p.service_type_id))}</strong><div class="muted" style="margin-top:4px">${a?opsEsc(opsSopLabel(a)):'Keine aktive Objekt-Leistungszuordnung'}</div><div class="ops-plan-meta"><span class="badge">${opsEsc(opsIntervalLabel(p.interval_weeks))}</span><span class="badge">${opsEsc(opsWeekdayLabel(p.weekdays))}</span><span class="badge">${opsEsc(p.planned_duration_minutes||60)} Min.</span><span class="badge">${opsEsc(opsTimeWindowLabel(p))}</span></div><div class="muted" style="margin-top:5px">gültig ${opsEsc(p.valid_from||'—')} – ${opsEsc(p.valid_until||'offen')}</div>${p.scope_text?`<div style="margin-top:5px">${opsEsc(p.scope_text)}</div>`:''}<div class="ops-plan-actions"><button type="button" onclick="opsEditPlan('${opsEsc(p.id)}')" ${a?'':'disabled'}>Bearbeiten</button><button type="button" class="danger" onclick="opsDeactivatePlan('${opsEsc(p.id)}')">Deaktivieren</button></div></div>`;}).join('')||'<div class="muted">Noch keine Leistungspläne.</div>';
+  if(e)opsRenderAssignmentManagement();
+  e=document.getElementById('opsPlanList');if(e)e.innerHTML='';
   e=document.getElementById('opsTourList');if(e)e.innerHTML=opsState.tours.map(t=>`<div class="card" style="padding:9px;margin:6px 0"><strong>${opsEsc(t.name)}</strong><div class="muted">${opsEsc(t.default_start_time||'')} · ${opsState.stops.filter(x=>x.tour_template_id===t.id).length} Stopps</div></div>`).join('')||'<div class="muted">Noch keine Tourvorlagen.</div>';
   const today=new Date().toISOString().slice(0,10);
   e=document.getElementById('opsRunList');
@@ -27037,6 +27144,8 @@ async function opsSavePlan(){
     if(a.valid_from&&valid_from<a.valid_from)throw new Error(`Der Leistungsplan darf nicht vor der Objekt-Leistungszuordnung beginnen (${a.valid_from}).`);
     if(a.valid_until&&(!valid_until||valid_until>a.valid_until))throw new Error(`Der Leistungsplan muss spätestens mit der Objekt-Leistungszuordnung enden (${a.valid_until}).`);
     const payload={organization_id:opsOrg(),object_id:a.object_id,service_type_id:a.service_type_id,weekdays,interval_weeks,planned_duration_minutes,time_window_start,time_window_end,valid_from,valid_until,scope_text:document.getElementById('opsPlanScope').value.trim()||null,active:true};
+    const existingPlan=opsActivePlanForAssignment(a);
+    if(!opsEditingPlanId&&existingPlan)throw new Error('Für diese Objektleistung besteht bereits ein aktiver Leistungsplan. Bitte den vorhandenen Plan bearbeiten.');
     if(opsEditingPlanId)await cloudRequest(`recurring_service_plans?id=eq.${encodeURIComponent(opsEditingPlanId)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(payload)});
     else{payload.created_by=currentUserId();await cloudRequest('recurring_service_plans',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(payload)});}
     opsResetPlanForm();await opsLoad();
