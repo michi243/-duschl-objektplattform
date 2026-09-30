@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.4</title>
+<title>Duschl Service – Objektplattform v2.26.5.5</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3930,68 +3930,65 @@ table td,table th{
    UX: Objektname und Adresse werden sauber untereinander dargestellt.
    BACKEND: keine SQL-/RLS-/RPC-Änderung.
 -->
-<style id="summer-weather-map-v22650">
-
-/* Leaflet critical core CSS inline fallback · 2.26.5.4
-   Verhindert fehlerhafte Tile-Darstellung, falls CDN-CSS geblockt/nicht geladen wird. */
-#dashboardSummerMap.leaflet-container{overflow:hidden;outline:0;position:absolute!important;-webkit-tap-highlight-color:transparent}
-#dashboardSummerMap .leaflet-pane,
-#dashboardSummerMap .leaflet-tile,
-#dashboardSummerMap .leaflet-marker-icon,
-#dashboardSummerMap .leaflet-marker-shadow,
-#dashboardSummerMap .leaflet-tile-container,
-#dashboardSummerMap .leaflet-pane>svg,
-#dashboardSummerMap .leaflet-pane>canvas,
-#dashboardSummerMap .leaflet-zoom-box,
-#dashboardSummerMap .leaflet-image-layer,
-#dashboardSummerMap .leaflet-layer{position:absolute;left:0;top:0}
-#dashboardSummerMap .leaflet-container img.leaflet-tile,
-#dashboardSummerMap img.leaflet-tile{max-width:none!important;max-height:none!important;width:256px!important;height:256px!important;padding:0!important;margin:0!important;border:0!important;object-fit:fill!important}
-#dashboardSummerMap .leaflet-tile-pane{z-index:200}
-#dashboardSummerMap .leaflet-overlay-pane{z-index:400}
-#dashboardSummerMap .leaflet-shadow-pane{z-index:500}
-#dashboardSummerMap .leaflet-marker-pane{z-index:600}
-#dashboardSummerMap .leaflet-tooltip-pane{z-index:650}
-#dashboardSummerMap .leaflet-popup-pane{z-index:700}
-#dashboardSummerMap .leaflet-map-pane canvas{z-index:100}
-#dashboardSummerMap .leaflet-control{position:relative;z-index:800;pointer-events:auto}
-#dashboardSummerMap .leaflet-top,#dashboardSummerMap .leaflet-bottom{position:absolute;z-index:1000;pointer-events:none}
-#dashboardSummerMap .leaflet-top{top:0}#dashboardSummerMap .leaflet-right{right:0}#dashboardSummerMap .leaflet-bottom{bottom:0}#dashboardSummerMap .leaflet-left{left:0}
-#dashboardSummerMap .leaflet-top .leaflet-control{margin-top:10px}#dashboardSummerMap .leaflet-bottom .leaflet-control{margin-bottom:10px}#dashboardSummerMap .leaflet-left .leaflet-control{margin-left:10px}#dashboardSummerMap .leaflet-right .leaflet-control{margin-right:10px}
-#dashboardSummerMap .leaflet-zoom-animated{transform-origin:0 0}
-#dashboardSummerMap .leaflet-tile{visibility:hidden}
-#dashboardSummerMap .leaflet-tile-loaded{visibility:inherit}
-#dashboardSummerMap .leaflet-marker-icon,#dashboardSummerMap .leaflet-marker-shadow{display:block}
-#dashboardSummerMap .leaflet-zoom-hide{visibility:hidden}
-
+<style id="summer-weather-priority-v22655">
 .dashboard-summer-panel{cursor:default!important;padding:16px!important}
 .dashboard-summer-head{align-items:center!important}
 .dashboard-summer-head-actions{display:flex;gap:8px;flex-wrap:wrap}
 .dashboard-summer-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:14px}
-.dashboard-summer-summary-card{background:#0b2030;border:1px solid #31536d;border-radius:13px;padding:10px 12px;min-width:0}
+.dashboard-summer-summary-card{background:#0b2030;border:1px solid #31536d;border-radius:13px;padding:10px 12px;min-width:0;cursor:pointer;text-align:left;color:inherit}
+.dashboard-summer-summary-card:hover{border-color:#4d7894;background:#0d2638}
+.dashboard-summer-summary-card.is-active{outline:2px solid #4da3d9;outline-offset:1px}
 .dashboard-summer-summary-card strong{display:block;font-size:22px;line-height:1.1}
 .dashboard-summer-summary-card span{display:block;color:var(--muted);font-size:11px;margin-top:4px}
-.dashboard-summer-map-wrap{margin-top:14px;border:1px solid #31536d;border-radius:16px;overflow:hidden;background:#0b2030;position:relative;width:100%;height:260px!important;min-height:260px!important;max-height:260px!important;flex:0 0 260px!important}
-#dashboardSummerMap{position:absolute!important;inset:0!important;width:100%!important;height:260px!important;min-height:260px!important;max-height:260px!important;background:#102536;overflow:hidden!important}.dashboard-summer-map-wrap .leaflet-container{position:absolute!important;inset:0!important;width:100%!important;height:260px!important;min-height:260px!important;max-height:260px!important;overflow:hidden!important}
-.dashboard-summer-map-empty{display:flex;align-items:center;justify-content:center;height:260px;color:var(--muted);padding:20px;text-align:center}
-.dashboard-summer-map-legend{position:absolute;z-index:500;left:10px;top:10px;bottom:auto;display:flex;gap:7px;flex-wrap:wrap;padding:7px 9px;border-radius:11px;background:rgba(6,17,26,.88);border:1px solid #31536d;backdrop-filter:blur(8px)}
-.dashboard-summer-map-legend span{font-size:11px;color:#dce7ee;display:flex;align-items:center;gap:5px}.summer-dot{width:9px;height:9px;border-radius:50%;display:inline-block}.summer-dot.good{background:#45c878}.summer-dot.check{background:#f1b64a}.summer-dot.avoid{background:#ef5b64}.summer-dot.error{background:#8a98a4}
-.summer-map-pin{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,.35)}
-.summer-map-pin.good{background:#45c878}.summer-map-pin.check{background:#f1b64a}.summer-map-pin.avoid{background:#ef5b64}.summer-map-pin.error{background:#8a98a4}
-.summer-map-pin-inner{transform:rotate(45deg);width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#07141e;font-weight:900;font-size:10px}
+.dashboard-summer-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:14px}
+.dashboard-summer-search{width:100%;min-width:0}
+.dashboard-summer-filter{min-width:150px}
 .dashboard-summer-objects{margin-top:14px}
-.dashboard-summer-objects-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
-.dashboard-summer-objects-head strong{font-size:15px}.dashboard-summer-object-list{display:grid;gap:8px}
-.dashboard-summer-object-row{width:100%;border:1px solid #31536d!important;border-radius:13px!important;background:#0b2030!important;padding:11px 12px!important;display:grid!important;grid-template-columns:12px minmax(0,1fr) auto auto!important;gap:10px!important;align-items:center!important;text-align:left!important;color:inherit!important}
-.dashboard-summer-object-row:hover{border-color:#4d7894!important;background:#0d2638!important}.dashboard-summer-object-row:focus-visible{outline:2px solid #4da3d9;outline-offset:2px}
-.dashboard-summer-object-statusdot{width:10px;height:10px;border-radius:50%}.dashboard-summer-object-statusdot.good{background:#45c878}.dashboard-summer-object-statusdot.check{background:#f1b64a}.dashboard-summer-object-statusdot.avoid{background:#ef5b64}.dashboard-summer-object-statusdot.error{background:#8a98a4}
-.dashboard-summer-object-name{display:block;font-weight:850;line-height:1.25}.dashboard-summer-object-address{display:block;font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dashboard-summer-object-weather{font-weight:800;white-space:nowrap}.dashboard-summer-object-weather small{display:block;color:var(--muted);font-size:10px;font-weight:600;margin-top:2px}
-.dashboard-summer-object-badge{font-size:10px;font-weight:900;border-radius:999px;padding:5px 8px;border:1px solid currentColor;white-space:nowrap}.dashboard-summer-object-badge.good{color:#8ee3aa}.dashboard-summer-object-badge.check{color:#f2ca72}.dashboard-summer-object-badge.avoid{color:#ff9a9f}.dashboard-summer-object-badge.error{color:#aab5bd}
-.dashboard-summer-object-detail{margin-top:10px;padding:12px;border:1px solid #31536d;border-radius:13px;background:#0a1d2b;display:none}.dashboard-summer-object-detail.is-open{display:block}
-.dashboard-summer-object-detail-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.dashboard-summer-object-detail-grid>div{border:1px solid #29485e;border-radius:10px;padding:9px}.dashboard-summer-object-detail-grid span{display:block;font-size:10px;color:var(--muted)}.dashboard-summer-object-detail-grid strong{display:block;margin-top:3px;font-size:14px}
-.leaflet-container{font-family:inherit}.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#0b2030;color:#fff}.leaflet-popup-content-wrapper{border:1px solid #31536d;border-radius:12px}.summer-popup-title{font-weight:900;margin-bottom:4px}.summer-popup-meta{color:#b9c7d1;font-size:12px;line-height:1.4}
-@media(max-width:700px){.dashboard-summer-map-wrap{height:260px!important;min-height:260px!important;max-height:260px!important;flex-basis:260px!important}#dashboardSummerMap,.dashboard-summer-map-wrap .leaflet-container{height:260px!important;min-height:260px!important;max-height:260px!important}.dashboard-summer-summary{grid-template-columns:1fr 1fr}.dashboard-summer-summary-card:first-child{grid-column:1/-1}.dashboard-summer-object-row{grid-template-columns:12px minmax(0,1fr) auto!important}.dashboard-summer-object-weather{grid-column:2/3}.dashboard-summer-object-badge{grid-column:3/4;grid-row:1/3}.dashboard-summer-object-detail-grid{grid-template-columns:1fr 1fr}.dashboard-summer-head-actions{width:100%}.dashboard-summer-head-actions .tenant-action-btn{flex:1}.dashboard-summer-statusline{font-size:12px}}
+.dashboard-summer-objects-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.dashboard-summer-objects-head strong{font-size:15px}
+.dashboard-summer-priority-groups{display:grid;gap:12px}
+.dashboard-summer-group{border:1px solid #29485e;border-radius:15px;background:#091b28;overflow:hidden}
+.dashboard-summer-group-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:1px solid #29485e;background:#0d2434}
+.dashboard-summer-group-title{display:flex;align-items:center;gap:8px;font-weight:900}
+.dashboard-summer-group-count{font-size:11px;color:var(--muted)}
+.dashboard-summer-object-list{display:grid;gap:0}
+.dashboard-summer-object-row{width:100%;border:0!important;border-top:1px solid rgba(49,83,109,.55)!important;border-radius:0!important;background:#0b2030!important;padding:12px!important;display:grid!important;grid-template-columns:12px minmax(0,1fr) auto auto!important;gap:10px!important;align-items:center!important;text-align:left!important;color:inherit!important}
+.dashboard-summer-object-row:first-child{border-top:0!important}
+.dashboard-summer-object-row:hover{background:#0d2638!important}
+.dashboard-summer-object-statusdot{width:10px;height:10px;border-radius:50%}
+.dashboard-summer-object-statusdot.good{background:#45c878}
+.dashboard-summer-object-statusdot.check{background:#f1b64a}
+.dashboard-summer-object-statusdot.avoid{background:#ef5b64}
+.dashboard-summer-object-statusdot.error{background:#8a98a4}
+.dashboard-summer-object-name{display:block;font-weight:850;line-height:1.25}
+.dashboard-summer-object-address{display:block;font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dashboard-summer-object-weather{font-weight:800;white-space:nowrap}
+.dashboard-summer-object-weather small{display:block;color:var(--muted);font-size:10px;font-weight:600;margin-top:2px}
+.dashboard-summer-object-badge{font-size:10px;font-weight:900;border-radius:999px;padding:5px 8px;border:1px solid currentColor;white-space:nowrap}
+.dashboard-summer-object-badge.good{color:#8ee3aa}.dashboard-summer-object-badge.check{color:#f2ca72}.dashboard-summer-object-badge.avoid{color:#ff9a9f}.dashboard-summer-object-badge.error{color:#aab5bd}
+.dashboard-summer-object-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.dashboard-summer-mini-btn{padding:6px 9px!important;font-size:11px!important;border-radius:9px!important;min-height:0!important}
+.dashboard-summer-object-detail{margin-top:10px;padding:12px;border:1px solid #31536d;border-radius:13px;background:#0a1d2b;display:none}
+.dashboard-summer-object-detail.is-open{display:block}
+.dashboard-summer-object-detail-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.dashboard-summer-object-detail-grid>div{border:1px solid #29485e;border-radius:10px;padding:9px}
+.dashboard-summer-object-detail-grid span{display:block;font-size:10px;color:var(--muted)}
+.dashboard-summer-object-detail-grid strong{display:block;margin-top:3px;font-size:14px}
+.dashboard-summer-empty{padding:16px;color:var(--muted);text-align:center}
+@media(max-width:700px){
+  .dashboard-summer-summary{grid-template-columns:1fr 1fr}
+  .dashboard-summer-summary-card:first-child{grid-column:1/-1}
+  .dashboard-summer-controls{grid-template-columns:1fr}
+  .dashboard-summer-filter{width:100%}
+  .dashboard-summer-object-row{grid-template-columns:12px minmax(0,1fr) auto!important}
+  .dashboard-summer-object-weather{grid-column:2/3}
+  .dashboard-summer-object-badge{grid-column:3/4;grid-row:1/3}
+  .dashboard-summer-object-actions{grid-column:2/4;justify-content:flex-start}
+  .dashboard-summer-object-detail-grid{grid-template-columns:1fr 1fr}
+  .dashboard-summer-head-actions{width:100%}
+  .dashboard-summer-head-actions .tenant-action-btn{flex:1}
+  .dashboard-summer-statusline{font-size:12px}
+}
 </style>
 </head>
 <body>
@@ -4369,26 +4366,27 @@ table td,table th{
     </div>
 
     <div class="dashboard-summer-summary">
-      <div class="dashboard-summer-summary-card"><strong id="dashboardSummerObjectCount">—</strong><span>Objekte</span></div>
-      <div class="dashboard-summer-summary-card"><strong id="dashboardSummerGood" class="dashboard-summer-good">—</strong><span>geeignet</span></div>
-      <div class="dashboard-summer-summary-card"><strong id="dashboardSummerCheck" class="dashboard-summer-check">—</strong><span>beobachten</span></div>
-      <div class="dashboard-summer-summary-card"><strong id="dashboardSummerAvoid" class="dashboard-summer-avoid">—</strong><span>kritisch</span></div>
-      <div class="dashboard-summer-summary-card"><strong id="dashboardSummerError">—</strong><span>Daten fehlen</span></div>
+      <button class="dashboard-summer-summary-card" type="button" data-summer-filter="all" onclick="dashboardSummerSetFilter('all')"><strong id="dashboardSummerObjectCount">—</strong><span>Objekte</span></button>
+      <button class="dashboard-summer-summary-card" type="button" data-summer-filter="good" onclick="dashboardSummerSetFilter('good')"><strong id="dashboardSummerGood" class="dashboard-summer-good">—</strong><span>geeignet</span></button>
+      <button class="dashboard-summer-summary-card" type="button" data-summer-filter="check" onclick="dashboardSummerSetFilter('check')"><strong id="dashboardSummerCheck" class="dashboard-summer-check">—</strong><span>beobachten</span></button>
+      <button class="dashboard-summer-summary-card" type="button" data-summer-filter="avoid" onclick="dashboardSummerSetFilter('avoid')"><strong id="dashboardSummerAvoid" class="dashboard-summer-avoid">—</strong><span>kritisch</span></button>
+      <button class="dashboard-summer-summary-card" type="button" data-summer-filter="error" onclick="dashboardSummerSetFilter('error')"><strong id="dashboardSummerError">—</strong><span>Daten fehlen</span></button>
     </div>
 
-    <div class="dashboard-summer-map-wrap" style="height:260px;min-height:260px;max-height:260px;flex:0 0 260px">
-      <div id="dashboardSummerMap" style="height:260px;min-height:260px;max-height:260px"></div>
-      <div class="dashboard-summer-map-legend">
-        <span><i class="summer-dot good"></i> geeignet</span>
-        <span><i class="summer-dot check"></i> beobachten</span>
-        <span><i class="summer-dot avoid"></i> kritisch</span>
-        <span><i class="summer-dot error"></i> Daten fehlen</span>
-      </div>
+    <div class="dashboard-summer-controls">
+      <input id="dashboardSummerSearch" class="dashboard-summer-search" type="search" placeholder="Objekt oder Adresse suchen …" oninput="dashboardSummerSearchChanged()">
+      <select id="dashboardSummerFilter" class="dashboard-summer-filter" onchange="dashboardSummerFilterChanged()">
+        <option value="all">Alle Status</option>
+        <option value="avoid">Kritisch</option>
+        <option value="check">Beobachten</option>
+        <option value="error">Daten fehlen</option>
+        <option value="good">Geeignet</option>
+      </select>
     </div>
 
     <div class="dashboard-summer-objects">
-      <div class="dashboard-summer-objects-head"><strong>Alle Außenpflegeobjekte</strong><span id="dashboardSummerCoverage" class="muted">—</span></div>
-      <div id="dashboardSummerObjectList" class="dashboard-summer-object-list"></div>
+      <div class="dashboard-summer-objects-head"><strong>Priorisierte Objektübersicht</strong><span id="dashboardSummerCoverage" class="muted">—</span></div>
+      <div id="dashboardSummerObjectList" class="dashboard-summer-priority-groups"></div>
       <div id="dashboardSummerObjectDetail" class="dashboard-summer-object-detail"></div>
     </div>
   </div>
@@ -7807,7 +7805,15 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Download-Aktion zusätzlich an verknüpften Standards
    - keine SQL-/RLS-/RPC-Änderung
 */
-const APP_VERSION='2.26.5.4'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.26.5.5 | BASIS 2.26.5.4 | 30.09.2026
+   AUSSENPFLEGE-WETTERLAGE: Karte entfernt, da operativ kein Mehrwert.
+   NEU: Priorisierte Objektübersicht nach kritisch -> beobachten -> Daten fehlen -> geeignet.
+   NEU: Suche, Statusfilter und klickbare KPI-Filter.
+   NEU: Direkte Aktionen Details / Planen je Objekt.
+   GOVERNANCE: Kein Objekt wird ausgeblendet; Datenfehler bleiben explizit sichtbar.
+   BACKEND: keine SQL-/RLS-/RPC-Änderung.
+*/
+const APP_VERSION='2.26.5.5'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -18228,11 +18234,9 @@ async function openWinterPlanning(){
 
 let dashboardSummerLoadToken=0;
 let dashboardSummerWeatherEntries=[];
-let dashboardSummerMap=null;
-let dashboardSummerMapMarkers=[];
-let dashboardSummerMapResizeObserver=null;
-let dashboardSummerLastBounds=[];
 let dashboardSummerSelectedObjectId='';
+let dashboardSummerActiveFilter='all';
+let dashboardSummerSearchTerm='';
 
 function dashboardSummerFmtNumber(value,digits=0,suffix=''){
   const n=Number(value);
@@ -18290,82 +18294,92 @@ async function objectWeatherRequest(objectId,scope='green_care',force=false){
   if(!r.ok||data?.success!==true)throw new Error(data?.error||raw||`HTTP ${r.status}`);
   return data;
 }
-function dashboardSummerPinIcon(status,index){
-  if(typeof L==='undefined')return null;
-  return L.divIcon({
-    className:'',
-    html:`<div class="summer-map-pin ${status}"><div class="summer-map-pin-inner">${index+1}</div></div>`,
-    iconSize:[30,30],iconAnchor:[15,28],popupAnchor:[0,-28]
+function dashboardSummerPriority(status){
+  return ({avoid:1,check:2,error:3,good:4})[status]||9;
+}
+function dashboardSummerGroupTitle(status){
+  return status==='avoid'?'Kritisch · heute prüfen'
+    :status==='check'?'Beobachten · Wetterlage im Blick behalten'
+    :status==='error'?'Daten fehlen · technische Prüfung erforderlich'
+    :'Geeignet · regulär planbar';
+}
+function dashboardSummerSearchChanged(){
+  dashboardSummerSearchTerm=String(document.getElementById('dashboardSummerSearch')?.value||'').trim().toLowerCase();
+  renderDashboardSummerObjectList();
+}
+function dashboardSummerFilterChanged(){
+  dashboardSummerActiveFilter=document.getElementById('dashboardSummerFilter')?.value||'all';
+  dashboardSummerSyncFilterUi();
+  renderDashboardSummerObjectList();
+}
+function dashboardSummerSetFilter(status){
+  dashboardSummerActiveFilter=status||'all';
+  const sel=document.getElementById('dashboardSummerFilter');if(sel)sel.value=dashboardSummerActiveFilter;
+  dashboardSummerSyncFilterUi();
+  renderDashboardSummerObjectList();
+}
+function dashboardSummerSyncFilterUi(){
+  document.querySelectorAll('[data-summer-filter]').forEach(el=>{
+    el.classList.toggle('is-active',String(el.dataset.summerFilter||'')===String(dashboardSummerActiveFilter||'all'));
   });
 }
-function dashboardSummerDestroyMap(){
-  if(dashboardSummerMapResizeObserver){try{dashboardSummerMapResizeObserver.disconnect()}catch(_e){}dashboardSummerMapResizeObserver=null;}
-  if(dashboardSummerMap){try{dashboardSummerMap.remove()}catch(_e){}dashboardSummerMap=null;}
-  dashboardSummerMapMarkers=[];
-  dashboardSummerLastBounds=[];
-}
-function dashboardSummerMapRefit(){
-  if(!dashboardSummerMap)return;
-  try{
-    dashboardSummerMap.invalidateSize({pan:false,animate:false});
-    const b=dashboardSummerLastBounds||[];
-    if(b.length===1)dashboardSummerMap.setView(b[0],14,{animate:false});
-    else if(b.length>1)dashboardSummerMap.fitBounds(b,{padding:[34,34],maxZoom:14,animate:false});
-  }catch(e){console.warn('Sommer-Wetterkarte konnte nicht neu ausgerichtet werden',e);}
-}
-function dashboardSummerScheduleMapRefit(){
-  requestAnimationFrame(()=>{
-    dashboardSummerMapRefit();
-    setTimeout(dashboardSummerMapRefit,120);
-  });
-}
-function renderDashboardSummerMap(){
-  const host=document.getElementById('dashboardSummerMap');if(!host)return;
-  const rows=Array.isArray(dashboardSummerWeatherEntries)?dashboardSummerWeatherEntries:[];
-  const located=rows.filter(e=>Number.isFinite(Number(e?._latitude))&&Number.isFinite(Number(e?._longitude)));
-  if(typeof L==='undefined'){
-    dashboardSummerDestroyMap();
-    host.innerHTML='<div class="dashboard-summer-map-empty">Kartenbibliothek konnte nicht geladen werden. Alle Objekte bleiben in der Liste darunter sichtbar.</div>';
-    return;
-  }
-  if(!located.length){
-    dashboardSummerDestroyMap();
-    host.innerHTML='<div class="dashboard-summer-map-empty">Für die Außenpflegeobjekte sind noch keine verwertbaren Koordinaten hinterlegt. Alle Objekte bleiben in der Liste darunter sichtbar.</div>';
-    return;
-  }
-  if(!dashboardSummerMap){
-    host.innerHTML='';
-    dashboardSummerMap=L.map(host,{zoomControl:true,attributionControl:true,scrollWheelZoom:false,fadeAnimation:false,zoomAnimation:false,markerZoomAnimation:false});
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap',updateWhenIdle:false,keepBuffer:4}).addTo(dashboardSummerMap);
-  }else{
-    dashboardSummerMapMarkers.forEach(m=>{try{m.remove()}catch(_e){}});dashboardSummerMapMarkers=[];
-  }
-  const bounds=[];
-  located.forEach((entry,index)=>{
-    const lat=Number(entry._latitude),lon=Number(entry._longitude),status=dashboardSummerEntryStatus(entry),care=entry?.care_24h||{};
-    const marker=L.marker([lat,lon],{icon:dashboardSummerPinIcon(status,index)}).addTo(dashboardSummerMap);
-    marker.bindPopup(`<div class="summer-popup-title">${esc(entry._object_name||entry.object_name||'Objekt')}</div><div class="summer-popup-meta">${esc(entry._address||entry.address||'')}<br>${esc(dashboardSummerStatusLabel(status))}${entry._error?' · Wetterdaten fehlen':` · ${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))} · Regen ${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}`}</div>`);
-    marker.on('click',()=>dashboardSummerSelectObject(entry._object_id,true));
-    dashboardSummerMapMarkers.push(marker);bounds.push([lat,lon]);
-  });
-  dashboardSummerLastBounds=bounds;
-  dashboardSummerScheduleMapRefit();
+function dashboardSummerPlanObject(objectId){
+  sessionStorage.setItem('dashboardSummerPlanObjectId',String(objectId||''));
+  openSummerCarePlanning();
 }
 function renderDashboardSummerObjectList(){
   const host=document.getElementById('dashboardSummerObjectList');if(!host)return;
-  const rows=Array.isArray(dashboardSummerWeatherEntries)?dashboardSummerWeatherEntries:[];
-  if(!rows.length){host.innerHTML='<div class="muted">Keine Außenpflegeobjekte vorhanden.</div>';return;}
-  host.innerHTML=rows.map(entry=>{
-    const care=entry?.care_24h||{},status=dashboardSummerEntryStatus(entry);
-    return `<button class="dashboard-summer-object-row" type="button" onclick="dashboardSummerSelectObject('${esc(entry._object_id)}')">
-      <span class="dashboard-summer-object-statusdot ${status}"></span>
-      <span><span class="dashboard-summer-object-name">${esc(entry._object_name||entry.object_name||'Objekt')}</span><span class="dashboard-summer-object-address">${esc(entry._address||entry.address||'')}</span></span>
-      <span class="dashboard-summer-object-weather">${esc(dashboardSummerWeatherIcon(entry))} ${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))}<small>Regen ${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}</small></span>
-      <span class="dashboard-summer-object-badge ${status}">${esc(dashboardSummerStatusLabel(status))}</span>
-    </button>`;
+  const rows=(Array.isArray(dashboardSummerWeatherEntries)?dashboardSummerWeatherEntries:[])
+    .map(entry=>({...entry,_status:dashboardSummerEntryStatus(entry)}))
+    .filter(entry=>dashboardSummerActiveFilter==='all'||entry._status===dashboardSummerActiveFilter)
+    .filter(entry=>{
+      if(!dashboardSummerSearchTerm)return true;
+      const hay=[entry._object_name,entry.object_name,entry._address,entry.address].filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(dashboardSummerSearchTerm);
+    })
+    .sort((a,b)=>{
+      const p=dashboardSummerPriority(a._status)-dashboardSummerPriority(b._status);
+      if(p)return p;
+      return String(a._object_name||a.object_name||'').localeCompare(String(b._object_name||b.object_name||''),'de');
+    });
+
+  if(!rows.length){
+    host.innerHTML='<div class="dashboard-summer-empty">Keine Objekte für den aktuellen Filter gefunden.</div>';
+    return;
+  }
+
+  const statuses=['avoid','check','error','good'];
+  host.innerHTML=statuses.map(status=>{
+    const items=rows.filter(r=>r._status===status);
+    if(!items.length)return '';
+    return `<section class="dashboard-summer-group">
+      <div class="dashboard-summer-group-head">
+        <div class="dashboard-summer-group-title"><span class="dashboard-summer-object-statusdot ${status}"></span>${esc(dashboardSummerGroupTitle(status))}</div>
+        <div class="dashboard-summer-group-count">${items.length} Objekt${items.length===1?'':'e'}</div>
+      </div>
+      <div class="dashboard-summer-object-list">
+        ${items.map(entry=>{
+          const care=entry?.care_24h||{};
+          return `<div class="dashboard-summer-object-row">
+            <span class="dashboard-summer-object-statusdot ${status}"></span>
+            <span>
+              <span class="dashboard-summer-object-name">${esc(entry._object_name||entry.object_name||'Objekt')}</span>
+              <span class="dashboard-summer-object-address">${esc(entry._address||entry.address||'')}</span>
+            </span>
+            <span class="dashboard-summer-object-weather">${esc(dashboardSummerWeatherIcon(entry))} ${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))}<small>Regen ${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}</small></span>
+            <span class="dashboard-summer-object-badge ${status}">${esc(dashboardSummerStatusLabel(status))}</span>
+            <span class="dashboard-summer-object-actions">
+              <button class="dashboard-summer-mini-btn" type="button" onclick="dashboardSummerSelectObject('${esc(entry._object_id)}')">Details</button>
+              ${status!=='error'?`<button class="dashboard-summer-mini-btn primary" type="button" onclick="dashboardSummerPlanObject('${esc(entry._object_id)}')">Planen</button>`:''}
+            </span>
+          </div>`;
+        }).join('')}
+      </div>
+    </section>`;
   }).join('');
+  dashboardSummerSyncFilterUi();
 }
-function dashboardSummerSelectObject(objectId,fromMap=false){
+function dashboardSummerSelectObject(objectId){
   dashboardSummerSelectedObjectId=String(objectId||'');
   const host=document.getElementById('dashboardSummerObjectDetail');if(!host)return;
   const entry=(dashboardSummerWeatherEntries||[]).find(e=>String(e._object_id)===dashboardSummerSelectedObjectId);
@@ -18374,7 +18388,7 @@ function dashboardSummerSelectObject(objectId,fromMap=false){
   host.innerHTML=`<div class="row space" style="gap:10px;align-items:flex-start"><div><strong>${esc(entry._object_name||entry.object_name||'Objekt')}</strong><div class="muted" style="margin-top:3px">${esc(entry._address||entry.address||'')}</div></div><span class="dashboard-summer-object-badge ${status}">${esc(dashboardSummerStatusLabel(status))}</span></div>
     ${entry._error?`<div class="bad" style="margin-top:10px">Wetterdaten nicht verfügbar: ${esc(entry._error)}</div>`:`<div class="dashboard-summer-object-detail-grid" style="margin-top:10px"><div><span>Max. Temperatur</span><strong>${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))}</strong></div><div><span>Niederschlagswahr.</span><strong>${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}</strong></div><div><span>Niederschlag</span><strong>${esc(dashboardSummerFmtNumber(care.precipitation_total,1,' mm'))}</strong></div><div><span>Max. Wind</span><strong>${esc(dashboardSummerFmtNumber(care.max_wind_speed,0,' km/h'))}</strong></div></div>${recs.length?`<div style="margin-top:10px"><strong>Empfehlung:</strong> ${recs.map(esc).join(' · ')}</div>`:''}${alerts.length?`<div class="dashboard-summer-detail-warnings"><strong>DWD:</strong> ${alerts.slice(0,3).map(a=>esc(a.headline||a.event||'Wetterwarnung')).join(' · ')}</div>`:''}<div class="muted" style="font-size:11px;margin-top:9px">Stand ${esc(dashboardSummerFmtTime(entry?.fetched_at))}${entry?.cached?' · Cache':''}</div>`}`;
   host.classList.add('is-open');
-  if(!fromMap)host.scrollIntoView({behavior:'smooth',block:'nearest'});
+  host.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 function renderDashboardSummerOverview(){
   const rows=Array.isArray(dashboardSummerWeatherEntries)?dashboardSummerWeatherEntries:[];
@@ -18382,7 +18396,7 @@ function renderDashboardSummerOverview(){
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=String(v)};
   set('dashboardSummerObjectCount',rows.length);set('dashboardSummerGood',counts.good);set('dashboardSummerCheck',counts.check);set('dashboardSummerAvoid',counts.avoid);set('dashboardSummerError',counts.error);
   const coverage=document.getElementById('dashboardSummerCoverage');if(coverage)coverage.textContent=`${rows.length-counts.error} / ${rows.length} mit Wetterdaten`;
-  renderDashboardSummerObjectList();renderDashboardSummerMap();
+  renderDashboardSummerObjectList();dashboardSummerSyncFilterUi();
 }
 async function refreshDashboardSummerWeather(){
   const btn=document.getElementById('dashboardSummerRefreshBtn');if(btn)btn.disabled=true;
@@ -18404,7 +18418,7 @@ async function loadDashboardSummerSummary(force=false){
     if(token!==dashboardSummerLoadToken)return;
     const serviceById=new Map((services||[]).map(s=>[String(s.id),s])),today=wsToday();
     const ids=[...new Set((assignments||[]).filter(a=>a.active!==false).filter(a=>!a.valid_from||String(a.valid_from)<=today).filter(a=>!a.valid_until||String(a.valid_until)>=today).filter(a=>summerCareServiceMatches(serviceById.get(String(a.service_type_id)))).map(a=>String(a.object_id||'')).filter(Boolean))];
-    if(!ids.length){dashboardSummerWeatherEntries=[];dashboardSummerDestroyMap();if(panel)panel.style.display='none';if(status)status.textContent='';return;}
+    if(!ids.length){dashboardSummerWeatherEntries=[];if(panel)panel.style.display='none';if(status)status.textContent='';return;}
     if(panel)panel.style.display='';
     const results=await Promise.allSettled(ids.map(id=>objectWeatherRequest(id,'green_care',force)));
     if(token!==dashboardSummerLoadToken)return;
@@ -18413,10 +18427,13 @@ async function loadDashboardSummerSummary(force=false){
       if(r?.status==='fulfilled')return {...r.value,...base};
       return {...base,_error:r?.reason?.message||String(r?.reason||'Wetterdaten nicht verfügbar.')};
     });
+    dashboardSummerActiveFilter='all';dashboardSummerSearchTerm='';
+    const search=document.getElementById('dashboardSummerSearch');if(search)search.value='';
+    const filter=document.getElementById('dashboardSummerFilter');if(filter)filter.value='all';
+    const detail=document.getElementById('dashboardSummerObjectDetail');if(detail){detail.classList.remove('is-open');detail.innerHTML='';}
     renderDashboardSummerOverview();
     const errors=dashboardSummerWeatherEntries.filter(e=>dashboardSummerEntryStatus(e)==='error').length;
-    const located=dashboardSummerWeatherEntries.filter(e=>Number.isFinite(Number(e._latitude))&&Number.isFinite(Number(e._longitude))).length;
-    if(status)status.textContent=`${ids.length} Außenpflegeobjekt${ids.length===1?'':'e'} · ${ids.length-errors} Wetterdaten verfügbar · ${located} auf Karte${errors?` · ${errors} Datenfehler`:''}`;
+    if(status)status.textContent=`${ids.length} Außenpflegeobjekt${ids.length===1?'':'e'} · ${ids.length-errors} Wetterdaten verfügbar${errors?` · ${errors} Datenfehler`:''} · priorisiert nach Handlungsbedarf`;
   }catch(e){console.error('Sommer-Dashboard konnte nicht geladen werden',e);if(status)status.textContent='Pflegewetter konnte nicht vollständig geladen werden.';}
 }
 
