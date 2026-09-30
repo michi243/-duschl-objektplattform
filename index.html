@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.5.6</title>
+<title>Duschl Service – Objektplattform v2.26.5.7</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -4021,6 +4021,47 @@ table td,table th{
   .dashboard-summer-head-actions .tenant-action-btn{flex:1}
   .dashboard-summer-statusline{font-size:12px}
 }
+
+/* 2.26.5.7 · Desktop-Wetterliste */
+@media(min-width:701px){
+  .dashboard-summer-panel{padding:14px!important}
+  .dashboard-summer-summary{gap:6px;margin-top:10px}
+  .dashboard-summer-summary-card{padding:7px 10px;border-radius:10px;background:#0a1d2b}
+  .dashboard-summer-summary-card strong{font-size:18px}
+  .dashboard-summer-summary-card span{font-size:10px;margin-top:2px}
+  .dashboard-summer-summary-card.is-active{outline:1px solid #4da3d9;box-shadow:inset 0 0 0 1px rgba(77,163,217,.35)}
+  .dashboard-summer-controls{margin-top:9px;gap:6px}
+  .dashboard-summer-search,.dashboard-summer-filter{min-height:38px!important;height:38px!important;padding-top:6px!important;padding-bottom:6px!important}
+  .dashboard-summer-objects{margin-top:10px}
+  .dashboard-summer-objects-head{margin-bottom:6px}
+  .dashboard-summer-priority-groups{gap:7px}
+  .dashboard-summer-group{border-radius:10px;background:#091b28}
+  .dashboard-summer-group.error-group{border-color:#344b5a;background:#0a1b26}
+  .dashboard-summer-group-head{padding:6px 9px;min-height:30px;background:#0b2130}
+  .dashboard-summer-group.error-group .dashboard-summer-group-head{background:#10212b}
+  .dashboard-summer-group-title{font-size:12px;gap:6px}
+  .dashboard-summer-group-count{font-size:10px}
+  .dashboard-summer-table-head{display:grid;grid-template-columns:minmax(240px,1.8fr) 110px 90px 110px 150px;gap:10px;padding:5px 10px;background:#071822;border-bottom:1px solid rgba(49,83,109,.55);color:#8fa2af;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+  .dashboard-summer-object-row{padding:7px 10px!important;grid-template-columns:minmax(240px,1.8fr) 110px 90px 110px 150px!important;gap:10px!important;min-height:48px}
+  .dashboard-summer-object-row>.dashboard-summer-object-statusdot{display:none}
+  .dashboard-summer-object-main{min-width:0;display:flex;align-items:center;gap:8px}
+  .dashboard-summer-object-main .dashboard-summer-object-statusdot{display:block;flex:0 0 auto}
+  .dashboard-summer-object-name{font-size:13px}
+  .dashboard-summer-object-address{font-size:9px;margin-top:1px}
+  .dashboard-summer-object-temp,.dashboard-summer-object-rain{font-size:12px;font-weight:800;white-space:nowrap}
+  .dashboard-summer-object-rain{color:#d2dde4}
+  .dashboard-summer-object-badge{justify-self:start;font-size:9px;padding:4px 7px}
+  .dashboard-summer-object-badge.error{color:#9ca8b0;border-color:#657580;background:#111f28}
+  .dashboard-summer-object-actions{justify-content:flex-end;flex-wrap:nowrap;gap:4px}
+  .dashboard-summer-mini-btn{padding:5px 8px!important;font-size:10px!important}
+  .dashboard-summer-object-weather{display:none}
+}
+@media(max-width:700px){
+  .dashboard-summer-table-head{display:none}
+  .dashboard-summer-object-main{display:contents}
+  .dashboard-summer-object-temp,.dashboard-summer-object-rain{display:none}
+}
+
 </style>
 </head>
 <body>
@@ -7854,7 +7895,14 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    GOVERNANCE: Kein Objekt wird ausgeblendet; Datenfehler bleiben explizit sichtbar.
    BACKEND: keine SQL-/RLS-/RPC-Änderung.
 */
-const APP_VERSION='2.26.5.6'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.26.5.7 | BASIS 2.26.5.6 | 30.09.2026
+   DESKTOP: Außenpflege-Wetterlage als kompakte Tabellen-/Listenansicht.
+   SPALTEN: Objekt | Wetter | Regen | Status | Aktion.
+   UX: Statusgruppen flacher; Datenfehler neutral grau; KPI-Bereich als Filterleiste geschärft.
+   MOBILE: bestehende kompakte Kartenansicht bleibt erhalten.
+   BACKEND: keine SQL-/RLS-/RPC-Änderung.
+*/
+const APP_VERSION='2.26.5.7'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -18393,20 +18441,26 @@ function renderDashboardSummerObjectList(){
   host.innerHTML=statuses.map(status=>{
     const items=rows.filter(r=>r._status===status);
     if(!items.length)return '';
-    return `<section class="dashboard-summer-group">
+    return `<section class="dashboard-summer-group ${status==='error'?'error-group':''}">
       <div class="dashboard-summer-group-head">
         <div class="dashboard-summer-group-title"><span class="dashboard-summer-object-statusdot ${status}"></span><span class="summer-group-title-desktop">${esc(dashboardSummerGroupTitle(status))}</span><span class="summer-group-title-mobile">${esc(dashboardSummerStatusLabel(status))}</span></div>
         <div class="dashboard-summer-group-count">${items.length} Objekt${items.length===1?'':'e'}</div>
       </div>
+      <div class="dashboard-summer-table-head"><span>Objekt</span><span>Wetter</span><span>Regen</span><span>Status</span><span>Aktion</span></div>
       <div class="dashboard-summer-object-list">
         ${items.map(entry=>{
           const care=entry?.care_24h||{};
           return `<div class="dashboard-summer-object-row">
             <span class="dashboard-summer-object-statusdot ${status}"></span>
-            <span>
-              <span class="dashboard-summer-object-name">${esc(entry._object_name||entry.object_name||'Objekt')}</span>
-              <span class="dashboard-summer-object-address">${esc(entry._address||entry.address||'')}</span>
+            <span class="dashboard-summer-object-main">
+              <span class="dashboard-summer-object-statusdot ${status}"></span>
+              <span style="min-width:0">
+                <span class="dashboard-summer-object-name">${esc(entry._object_name||entry.object_name||'Objekt')}</span>
+                <span class="dashboard-summer-object-address">${esc(entry._address||entry.address||'')}</span>
+              </span>
             </span>
+            <span class="dashboard-summer-object-temp">${esc(dashboardSummerWeatherIcon(entry))} ${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))}</span>
+            <span class="dashboard-summer-object-rain">${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}</span>
             <span class="dashboard-summer-object-weather">${esc(dashboardSummerWeatherIcon(entry))} ${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))}<small>Regen ${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}</small></span>
             <span class="dashboard-summer-object-badge ${status}">${esc(dashboardSummerStatusLabel(status))}</span>
             <span class="dashboard-summer-object-actions">
