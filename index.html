@@ -3898,6 +3898,40 @@ table td,table th{
 .ps-related-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.ps-related-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.ps-related{padding:12px;border-radius:13px;background:#10283a;border:1px solid #294a60;display:block}.ps-related-title{font-weight:800;line-height:1.25}.ps-related-sub{color:#b9c7d1;font-size:13px;margin-top:3px}
 @media(max-width:620px){.ps-detail-modal{width:100%;height:100dvh;max-height:100dvh!important;border-radius:0!important}.ps-detail-shell{max-height:100dvh}.ps-detail-scroll{padding:14px 14px 26px}.ps-detail-name{font-size:24px}.ps-kpis{grid-template-columns:1fr}.ps-related-grid{grid-template-columns:1fr}.ps-info-text{font-size:15px}.ps-detail-topbar{padding-top:calc(12px + env(safe-area-inset-top,0px))}.ps-hero-main{align-items:center}.ps-doc-icon{width:58px;height:58px}.ps-detail-actions .ps-label-download{display:none}}
 </style>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQ3ynpF+yo2zs5B+z0nE49j2wL8fTQ8=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<style id="summer-weather-map-v22650">
+.dashboard-summer-panel{cursor:default!important;padding:16px!important}
+.dashboard-summer-head{align-items:center!important}
+.dashboard-summer-head-actions{display:flex;gap:8px;flex-wrap:wrap}
+.dashboard-summer-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px}
+.dashboard-summer-summary-card{background:#0b2030;border:1px solid #31536d;border-radius:13px;padding:10px 12px;min-width:0}
+.dashboard-summer-summary-card strong{display:block;font-size:22px;line-height:1.1}
+.dashboard-summer-summary-card span{display:block;color:var(--muted);font-size:11px;margin-top:4px}
+.dashboard-summer-map-wrap{margin-top:14px;border:1px solid #31536d;border-radius:16px;overflow:hidden;background:#0b2030;position:relative}
+#dashboardSummerMap{height:330px;width:100%;background:#102536}
+.dashboard-summer-map-empty{display:flex;align-items:center;justify-content:center;height:260px;color:var(--muted);padding:20px;text-align:center}
+.dashboard-summer-map-legend{position:absolute;z-index:500;left:10px;bottom:10px;display:flex;gap:7px;flex-wrap:wrap;padding:7px 9px;border-radius:11px;background:rgba(6,17,26,.88);border:1px solid #31536d;backdrop-filter:blur(8px)}
+.dashboard-summer-map-legend span{font-size:11px;color:#dce7ee;display:flex;align-items:center;gap:5px}.summer-dot{width:9px;height:9px;border-radius:50%;display:inline-block}.summer-dot.good{background:#45c878}.summer-dot.check{background:#f1b64a}.summer-dot.avoid{background:#ef5b64}.summer-dot.error{background:#8a98a4}
+.summer-map-pin{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,.35)}
+.summer-map-pin.good{background:#45c878}.summer-map-pin.check{background:#f1b64a}.summer-map-pin.avoid{background:#ef5b64}.summer-map-pin.error{background:#8a98a4}
+.summer-map-pin-inner{transform:rotate(45deg);width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#07141e;font-weight:900;font-size:10px}
+.dashboard-summer-objects{margin-top:14px}
+.dashboard-summer-objects-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.dashboard-summer-objects-head strong{font-size:15px}.dashboard-summer-object-list{display:grid;gap:8px}
+.dashboard-summer-object-row{width:100%;border:1px solid #31536d!important;border-radius:13px!important;background:#0b2030!important;padding:11px 12px!important;display:grid!important;grid-template-columns:12px minmax(0,1fr) auto auto!important;gap:10px!important;align-items:center!important;text-align:left!important;color:inherit!important}
+.dashboard-summer-object-row:hover{border-color:#4d7894!important;background:#0d2638!important}.dashboard-summer-object-row:focus-visible{outline:2px solid #4da3d9;outline-offset:2px}
+.dashboard-summer-object-statusdot{width:10px;height:10px;border-radius:50%}.dashboard-summer-object-statusdot.good{background:#45c878}.dashboard-summer-object-statusdot.check{background:#f1b64a}.dashboard-summer-object-statusdot.avoid{background:#ef5b64}.dashboard-summer-object-statusdot.error{background:#8a98a4}
+.dashboard-summer-object-name{font-weight:850;line-height:1.25}.dashboard-summer-object-address{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dashboard-summer-object-weather{font-weight:800;white-space:nowrap}.dashboard-summer-object-weather small{display:block;color:var(--muted);font-size:10px;font-weight:600;margin-top:2px}
+.dashboard-summer-object-badge{font-size:10px;font-weight:900;border-radius:999px;padding:5px 8px;border:1px solid currentColor;white-space:nowrap}.dashboard-summer-object-badge.good{color:#8ee3aa}.dashboard-summer-object-badge.check{color:#f2ca72}.dashboard-summer-object-badge.avoid{color:#ff9a9f}.dashboard-summer-object-badge.error{color:#aab5bd}
+.dashboard-summer-object-detail{margin-top:10px;padding:12px;border:1px solid #31536d;border-radius:13px;background:#0a1d2b;display:none}.dashboard-summer-object-detail.is-open{display:block}
+.dashboard-summer-object-detail-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.dashboard-summer-object-detail-grid>div{border:1px solid #29485e;border-radius:10px;padding:9px}.dashboard-summer-object-detail-grid span{display:block;font-size:10px;color:var(--muted)}.dashboard-summer-object-detail-grid strong{display:block;margin-top:3px;font-size:14px}
+.leaflet-container{font-family:inherit}.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#0b2030;color:#fff}.leaflet-popup-content-wrapper{border:1px solid #31536d;border-radius:12px}.summer-popup-title{font-weight:900;margin-bottom:4px}.summer-popup-meta{color:#b9c7d1;font-size:12px;line-height:1.4}
+@media(max-width:700px){#dashboardSummerMap{height:285px}.dashboard-summer-summary{grid-template-columns:1fr 1fr}.dashboard-summer-object-row{grid-template-columns:12px minmax(0,1fr) auto!important}.dashboard-summer-object-weather{grid-column:2/3}.dashboard-summer-object-badge{grid-column:3/4;grid-row:1/3}.dashboard-summer-object-detail-grid{grid-template-columns:1fr 1fr}.dashboard-summer-head-actions{width:100%}.dashboard-summer-head-actions .tenant-action-btn{flex:1}.dashboard-summer-statusline{font-size:12px}}
+</style>
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -4261,41 +4295,39 @@ table td,table th{
     </div>
   </div>
 
-  <div id="dashboardSummerPanel" class="dashboard-summer-panel" style="display:none" role="button" tabindex="0"
-    aria-label="Außenanlagenpflege in Touren und Einsätze öffnen"
-    onclick="if(!event.target.closest('button,select,input,a'))openSummerCarePlanning()"
-    onkeydown="if((event.key==='Enter'||event.key===' ')&&!event.target.closest('button,select,input,a')){event.preventDefault();openSummerCarePlanning();}">
+  <div id="dashboardSummerPanel" class="dashboard-summer-panel" style="display:none">
     <div class="dashboard-summer-head">
       <div>
         <div class="dashboard-summer-title">Außenanlagenpflege · Wetterlage</div>
-        <div id="dashboardSummerStatus" class="dashboard-summer-sub">Pflegewetter wird geladen …</div>
+        <div id="dashboardSummerStatus" class="dashboard-summer-sub dashboard-summer-statusline">Objektbezogene Wetterlage wird geladen …</div>
       </div>
-      <button class="tenant-action-btn" type="button" onclick="openSummerCarePlanning()">Außenpflege planen ›</button>
-    </div>
-    <div class="dashboard-summer-grid">
-      <div class="dashboard-summer-kpi">
-        <div class="value" id="dashboardSummerWindow">—</div>
-        <div class="label">Pflegefenster</div>
-      </div>
-      <div class="dashboard-summer-kpi">
-        <div class="value" id="dashboardSummerTemp">—</div>
-        <div class="label">Max. Temperatur · 24 h</div>
-      </div>
-      <div class="dashboard-summer-kpi">
-        <div class="value" id="dashboardSummerRain">—</div>
-        <div class="label">Max. Niederschlagswahr. · 24 h</div>
-      </div>
-      <div class="dashboard-summer-kpi">
-        <div class="value" id="dashboardSummerWarnings">—</div>
-        <div class="label">DWD-Warnungen</div>
+      <div class="dashboard-summer-head-actions">
+        <button id="dashboardSummerRefreshBtn" class="tenant-action-btn" type="button" onclick="refreshDashboardSummerWeather()">Aktualisieren</button>
+        <button class="tenant-action-btn" type="button" onclick="openSummerCarePlanning()">Außenpflege planen ›</button>
       </div>
     </div>
-    <div class="dashboard-summer-detail-toggle">
-      <button id="dashboardSummerDetailsBtn" class="tenant-action-btn" type="button"
-        onclick="event.stopPropagation();toggleDashboardSummerDetails()">Wetterdetails anzeigen</button>
+
+    <div class="dashboard-summer-summary">
+      <div class="dashboard-summer-summary-card"><strong id="dashboardSummerObjectCount">—</strong><span>Objekte</span></div>
+      <div class="dashboard-summer-summary-card"><strong id="dashboardSummerGood" class="dashboard-summer-good">—</strong><span>geeignet</span></div>
+      <div class="dashboard-summer-summary-card"><strong id="dashboardSummerCheck" class="dashboard-summer-check">—</strong><span>beobachten</span></div>
+      <div class="dashboard-summer-summary-card"><strong id="dashboardSummerAvoid" class="dashboard-summer-avoid">—</strong><span>kritisch / Datenfehler</span></div>
     </div>
-    <div id="dashboardSummerDetails" class="dashboard-summer-details" onclick="event.stopPropagation()">
-      <div id="dashboardSummerDetailsGrid" class="dashboard-summer-detail-grid"></div>
+
+    <div class="dashboard-summer-map-wrap">
+      <div id="dashboardSummerMap"></div>
+      <div class="dashboard-summer-map-legend">
+        <span><i class="summer-dot good"></i> geeignet</span>
+        <span><i class="summer-dot check"></i> beobachten</span>
+        <span><i class="summer-dot avoid"></i> kritisch</span>
+        <span><i class="summer-dot error"></i> Daten fehlen</span>
+      </div>
+    </div>
+
+    <div class="dashboard-summer-objects">
+      <div class="dashboard-summer-objects-head"><strong>Alle Außenpflegeobjekte</strong><span id="dashboardSummerCoverage" class="muted">—</span></div>
+      <div id="dashboardSummerObjectList" class="dashboard-summer-object-list"></div>
+      <div id="dashboardSummerObjectDetail" class="dashboard-summer-object-detail"></div>
     </div>
   </div>
 
@@ -18134,6 +18166,9 @@ async function openWinterPlanning(){
 
 let dashboardSummerLoadToken=0;
 let dashboardSummerWeatherEntries=[];
+let dashboardSummerMap=null;
+let dashboardSummerMapMarkers=[];
+let dashboardSummerSelectedObjectId='';
 
 function dashboardSummerFmtNumber(value,digits=0,suffix=''){
   const n=Number(value);
@@ -18144,249 +18179,164 @@ function dashboardSummerFmtTime(value){
   const d=new Date(value);
   return Number.isNaN(d.getTime())?'—':d.toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
 }
-function renderDashboardSummerDetails(){
-  const grid=document.getElementById('dashboardSummerDetailsGrid');
-  if(!grid)return;
-  const rows=Array.isArray(dashboardSummerWeatherEntries)?dashboardSummerWeatherEntries:[];
-  if(!rows.length){
-    grid.innerHTML='<div class="muted">Keine Wetterdetails verfügbar.</div>';
-    return;
-  }
-
-  grid.innerHTML=rows.map(entry=>{
-    const care=entry?.care_24h||{};
-    const status=String(care.status||'check').toLowerCase();
-    const statusLabel=summerStatusLabel(status);
-    const cls=summerStatusClass(status);
-    const recs=Array.isArray(care.recommendations)?care.recommendations:[];
-    const alerts=Array.isArray(entry?.alerts)?entry.alerts:[];
-    return `<div class="dashboard-summer-detail-card">
-      <div class="dashboard-summer-detail-head">
-        <div>
-          <div class="dashboard-summer-detail-name">${esc(entry?.object_name||'Objekt')}</div>
-          <div class="dashboard-summer-detail-address">${esc(entry?.address||'')}</div>
-        </div>
-        <span class="dashboard-summer-detail-status ${cls}">${esc(statusLabel)}</span>
-      </div>
-      <div class="dashboard-summer-detail-metrics">
-        <div class="dashboard-summer-detail-metric">
-          <div class="label">Max. Temperatur</div>
-          <div class="value">${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))}</div>
-        </div>
-        <div class="dashboard-summer-detail-metric">
-          <div class="label">Niederschlagswahr.</div>
-          <div class="value">${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}</div>
-        </div>
-        <div class="dashboard-summer-detail-metric">
-          <div class="label">Niederschlag gesamt</div>
-          <div class="value">${esc(dashboardSummerFmtNumber(care.precipitation_total,1,' mm'))}</div>
-        </div>
-        <div class="dashboard-summer-detail-metric">
-          <div class="label">Max. Wind</div>
-          <div class="value">${esc(dashboardSummerFmtNumber(care.max_wind_speed,0,' km/h'))}</div>
-        </div>
-      </div>
-      ${recs.length?`<div class="dashboard-summer-detail-recs"><strong>Empfehlung:</strong> ${recs.map(esc).join(' · ')}</div>`:''}
-      ${alerts.length?`<div class="dashboard-summer-detail-warnings"><strong>DWD-Warnungen:</strong> ${alerts.slice(0,3).map(a=>esc(a.headline||a.event||'Wetterwarnung')).join(' · ')}</div>`:''}
-      <div class="muted" style="font-size:11px;margin-top:9px">Stand ${esc(dashboardSummerFmtTime(entry?.fetched_at))}${entry?.cached?' · Cache':''}</div>
-    </div>`;
-  }).join('');
+function dashboardSummerObjectById(id){
+  return (db.objects||[]).find(o=>String(o.id)===String(id))||null;
 }
-function toggleDashboardSummerDetails(){
-  const host=document.getElementById('dashboardSummerDetails');
-  const btn=document.getElementById('dashboardSummerDetailsBtn');
-  if(!host||!btn)return;
-  const open=!host.classList.contains('is-open');
-  host.classList.toggle('is-open',open);
-  btn.textContent=open?'Wetterdetails ausblenden':'Wetterdetails anzeigen';
-  if(open)renderDashboardSummerDetails();
+function dashboardSummerEntryStatus(entry){
+  if(entry?._error)return 'error';
+  const s=String(entry?.care_24h?.status||'').toLowerCase();
+  return ['good','check','avoid'].includes(s)?s:'error';
 }
-
-
-function summerCareServiceMatches(st){
-  try{
-    return osaServiceScopeCode(st)==='GRUENPFLEGE';
-  }catch(_e){
-    const q=String(st?.qualification_code||'').toLowerCase();
-    const n=String(st?.name||'').toLowerCase();
-    return ['gartenpflege','gruenpflege','aussenpflege'].includes(q)
-      || n.includes('gartenpflege')
-      || n.includes('grünpflege')
-      || n.includes('gruenpflege')
-      || n.includes('außenpflege')
-      || n.includes('aussenpflege')
-      || n.includes('grünanlagen')
-      || n.includes('gruenanlagen');
-  }
+function dashboardSummerStatusLabel(status){
+  return status==='avoid'?'KRITISCH':status==='check'?'BEOBACHTEN':status==='good'?'GEEIGNET':'DATEN FEHLEN';
 }
-
-async function objectWeatherRequest(objectId,scope='green_care',force=false){
-  if(!cloudSession?.access_token)throw new Error('Keine aktive Anmeldung.');
-  const r=await fetch(`${SUPABASE_URL}/functions/v1/object-weather`,{
-    method:'POST',
-    headers:{
-      'apikey':SUPABASE_PUBLISHABLE_KEY,
-      'Authorization':`Bearer ${cloudSession.access_token}`,
-      'Content-Type':'application/json'
-    },
-    body:JSON.stringify({
-      organization_id:currentOrganizationId(),
-      object_id:objectId,
-      scope,
-      force:force===true
-    })
-  });
-  const raw=await r.text();
-  let data={};
-  try{data=raw?JSON.parse(raw):{}}catch(_e){}
-  if(!r.ok||data?.success!==true)throw new Error(data?.error||raw||`HTTP ${r.status}`);
-  return data;
+function dashboardSummerWeatherIcon(entry){
+  if(entry?._error)return '—';
+  const care=entry?.care_24h||{};
+  const rain=Number(care.max_precipitation_probability);
+  const temp=Number(care.max_temperature);
+  if(Number.isFinite(rain)&&rain>=70)return '☔';
+  if(Number.isFinite(rain)&&rain>=35)return '☁';
+  if(Number.isFinite(temp)&&temp<=3)return '❄';
+  return '☀';
 }
-
-function summerWorstStatus(entries){
-  const rank={good:1,check:2,avoid:3};
-  let worst='good';
-  for(const e of entries){
-    const s=String(e?.care_24h?.status||'good').toLowerCase();
-    if((rank[s]||1)>(rank[worst]||1))worst=s;
-  }
-  return worst;
-}
-
 function summerStatusLabel(status){
   return status==='avoid'?'NICHT GEEIGNET':status==='check'?'EINGESCHRÄNKT':'GEEIGNET';
 }
-
 function summerStatusClass(status){
   return status==='avoid'?'dashboard-summer-avoid':status==='check'?'dashboard-summer-check':'dashboard-summer-good';
 }
-
-async function openSummerCarePlanning(){
-  try{
-    showSection('operations');
-    await new Promise(resolve=>setTimeout(resolve,100));
-    const section=document.getElementById('operations');
-    section?.scrollIntoView({behavior:'smooth',block:'start'});
-  }catch(e){
-    console.error('Außenanlagenplanung konnte nicht geöffnet werden',e);
-    alert('Touren & Einsätze konnten nicht vollständig geöffnet werden: '+(e.message||e));
+function summerCareServiceMatches(st){
+  try{return osaServiceScopeCode(st)==='GRUENPFLEGE';}
+  catch(_e){
+    const q=String(st?.qualification_code||'').toLowerCase();
+    const n=String(st?.name||'').toLowerCase();
+    return ['gartenpflege','gruenpflege','aussenpflege'].includes(q)
+      || n.includes('gartenpflege')||n.includes('grünpflege')||n.includes('gruenpflege')
+      || n.includes('außenpflege')||n.includes('aussenpflege')||n.includes('grünanlagen')||n.includes('gruenanlagen');
   }
 }
-
-async function loadDashboardSummerSummary(){
-  const orgId=currentOrganizationId();
-  if(!orgId)return;
-
-  const token=++dashboardSummerLoadToken;
-  const panel=document.getElementById('dashboardSummerPanel');
-  const status=document.getElementById('dashboardSummerStatus');
-  if(status)status.textContent='Außenanlagen-Leistungen und Wetter werden geladen …';
-
+async function objectWeatherRequest(objectId,scope='green_care',force=false){
+  if(!cloudSession?.access_token)throw new Error('Keine aktive Anmeldung.');
+  const r=await fetch(`${SUPABASE_URL}/functions/v1/object-weather`,{
+    method:'POST',headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Authorization':`Bearer ${cloudSession.access_token}`,'Content-Type':'application/json'},
+    body:JSON.stringify({organization_id:currentOrganizationId(),object_id:objectId,scope,force:force===true})
+  });
+  const raw=await r.text();let data={};try{data=raw?JSON.parse(raw):{}}catch(_e){}
+  if(!r.ok||data?.success!==true)throw new Error(data?.error||raw||`HTTP ${r.status}`);
+  return data;
+}
+function dashboardSummerPinIcon(status,index){
+  if(typeof L==='undefined')return null;
+  return L.divIcon({
+    className:'',
+    html:`<div class="summer-map-pin ${status}"><div class="summer-map-pin-inner">${index+1}</div></div>`,
+    iconSize:[30,30],iconAnchor:[15,28],popupAnchor:[0,-28]
+  });
+}
+function dashboardSummerDestroyMap(){
+  if(dashboardSummerMap){try{dashboardSummerMap.remove()}catch(_e){}dashboardSummerMap=null;}
+  dashboardSummerMapMarkers=[];
+}
+function renderDashboardSummerMap(){
+  const host=document.getElementById('dashboardSummerMap');if(!host)return;
+  const rows=Array.isArray(dashboardSummerWeatherEntries)?dashboardSummerWeatherEntries:[];
+  const located=rows.filter(e=>Number.isFinite(Number(e?._latitude))&&Number.isFinite(Number(e?._longitude)));
+  if(typeof L==='undefined'){
+    dashboardSummerDestroyMap();
+    host.innerHTML='<div class="dashboard-summer-map-empty">Kartenbibliothek konnte nicht geladen werden. Alle Objekte bleiben in der Liste darunter sichtbar.</div>';
+    return;
+  }
+  if(!located.length){
+    dashboardSummerDestroyMap();
+    host.innerHTML='<div class="dashboard-summer-map-empty">Für die Außenpflegeobjekte sind noch keine verwertbaren Koordinaten hinterlegt. Alle Objekte bleiben in der Liste darunter sichtbar.</div>';
+    return;
+  }
+  if(!dashboardSummerMap){
+    host.innerHTML='';
+    dashboardSummerMap=L.map(host,{zoomControl:true,attributionControl:true,scrollWheelZoom:false});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(dashboardSummerMap);
+  }else{
+    dashboardSummerMapMarkers.forEach(m=>{try{m.remove()}catch(_e){}});dashboardSummerMapMarkers=[];
+  }
+  const bounds=[];
+  located.forEach((entry,index)=>{
+    const lat=Number(entry._latitude),lon=Number(entry._longitude),status=dashboardSummerEntryStatus(entry),care=entry?.care_24h||{};
+    const marker=L.marker([lat,lon],{icon:dashboardSummerPinIcon(status,index)}).addTo(dashboardSummerMap);
+    marker.bindPopup(`<div class="summer-popup-title">${esc(entry._object_name||entry.object_name||'Objekt')}</div><div class="summer-popup-meta">${esc(entry._address||entry.address||'')}<br>${esc(dashboardSummerStatusLabel(status))} · ${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))} · Regen ${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}</div>`);
+    marker.on('click',()=>dashboardSummerSelectObject(entry._object_id,true));
+    dashboardSummerMapMarkers.push(marker);bounds.push([lat,lon]);
+  });
+  if(bounds.length===1)dashboardSummerMap.setView(bounds[0],14);else dashboardSummerMap.fitBounds(bounds,{padding:[28,28],maxZoom:14});
+  setTimeout(()=>dashboardSummerMap?.invalidateSize(),50);
+}
+function renderDashboardSummerObjectList(){
+  const host=document.getElementById('dashboardSummerObjectList');if(!host)return;
+  const rows=Array.isArray(dashboardSummerWeatherEntries)?dashboardSummerWeatherEntries:[];
+  if(!rows.length){host.innerHTML='<div class="muted">Keine Außenpflegeobjekte vorhanden.</div>';return;}
+  host.innerHTML=rows.map(entry=>{
+    const care=entry?.care_24h||{},status=dashboardSummerEntryStatus(entry);
+    return `<button class="dashboard-summer-object-row" type="button" onclick="dashboardSummerSelectObject('${esc(entry._object_id)}')">
+      <span class="dashboard-summer-object-statusdot ${status}"></span>
+      <span><span class="dashboard-summer-object-name">${esc(entry._object_name||entry.object_name||'Objekt')}</span><span class="dashboard-summer-object-address">${esc(entry._address||entry.address||'')}</span></span>
+      <span class="dashboard-summer-object-weather">${esc(dashboardSummerWeatherIcon(entry))} ${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))}<small>Regen ${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}</small></span>
+      <span class="dashboard-summer-object-badge ${status}">${esc(dashboardSummerStatusLabel(status))}</span>
+    </button>`;
+  }).join('');
+}
+function dashboardSummerSelectObject(objectId,fromMap=false){
+  dashboardSummerSelectedObjectId=String(objectId||'');
+  const host=document.getElementById('dashboardSummerObjectDetail');if(!host)return;
+  const entry=(dashboardSummerWeatherEntries||[]).find(e=>String(e._object_id)===dashboardSummerSelectedObjectId);
+  if(!entry){host.classList.remove('is-open');host.innerHTML='';return;}
+  const care=entry?.care_24h||{},status=dashboardSummerEntryStatus(entry),recs=Array.isArray(care.recommendations)?care.recommendations:[],alerts=Array.isArray(entry?.alerts)?entry.alerts:[];
+  host.innerHTML=`<div class="row space" style="gap:10px;align-items:flex-start"><div><strong>${esc(entry._object_name||entry.object_name||'Objekt')}</strong><div class="muted" style="margin-top:3px">${esc(entry._address||entry.address||'')}</div></div><span class="dashboard-summer-object-badge ${status}">${esc(dashboardSummerStatusLabel(status))}</span></div>
+    ${entry._error?`<div class="bad" style="margin-top:10px">Wetterdaten nicht verfügbar: ${esc(entry._error)}</div>`:`<div class="dashboard-summer-object-detail-grid" style="margin-top:10px"><div><span>Max. Temperatur</span><strong>${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))}</strong></div><div><span>Niederschlagswahr.</span><strong>${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}</strong></div><div><span>Niederschlag</span><strong>${esc(dashboardSummerFmtNumber(care.precipitation_total,1,' mm'))}</strong></div><div><span>Max. Wind</span><strong>${esc(dashboardSummerFmtNumber(care.max_wind_speed,0,' km/h'))}</strong></div></div>${recs.length?`<div style="margin-top:10px"><strong>Empfehlung:</strong> ${recs.map(esc).join(' · ')}</div>`:''}${alerts.length?`<div class="dashboard-summer-detail-warnings"><strong>DWD:</strong> ${alerts.slice(0,3).map(a=>esc(a.headline||a.event||'Wetterwarnung')).join(' · ')}</div>`:''}<div class="muted" style="font-size:11px;margin-top:9px">Stand ${esc(dashboardSummerFmtTime(entry?.fetched_at))}${entry?.cached?' · Cache':''}</div>`}`;
+  host.classList.add('is-open');
+  if(!fromMap)host.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function renderDashboardSummerOverview(){
+  const rows=Array.isArray(dashboardSummerWeatherEntries)?dashboardSummerWeatherEntries:[];
+  const counts={good:0,check:0,avoid:0,error:0};rows.forEach(e=>counts[dashboardSummerEntryStatus(e)]++);
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=String(v)};
+  set('dashboardSummerObjectCount',rows.length);set('dashboardSummerGood',counts.good);set('dashboardSummerCheck',counts.check);set('dashboardSummerAvoid',counts.avoid+counts.error);
+  const coverage=document.getElementById('dashboardSummerCoverage');if(coverage)coverage.textContent=`${rows.length-counts.error} / ${rows.length} mit Wetterdaten`;
+  renderDashboardSummerObjectList();renderDashboardSummerMap();
+}
+async function refreshDashboardSummerWeather(){
+  const btn=document.getElementById('dashboardSummerRefreshBtn');if(btn)btn.disabled=true;
+  try{await loadDashboardSummerSummary(true)}finally{if(btn)btn.disabled=false;}
+}
+async function openSummerCarePlanning(){
+  try{showSection('operations');await new Promise(resolve=>setTimeout(resolve,100));document.getElementById('operations')?.scrollIntoView({behavior:'smooth',block:'start'});}
+  catch(e){console.error('Außenanlagenplanung konnte nicht geöffnet werden',e);alert('Touren & Einsätze konnten nicht vollständig geöffnet werden: '+(e.message||e));}
+}
+async function loadDashboardSummerSummary(force=false){
+  const orgId=currentOrganizationId();if(!orgId)return;
+  const token=++dashboardSummerLoadToken,panel=document.getElementById('dashboardSummerPanel'),status=document.getElementById('dashboardSummerStatus');
+  if(status)status.textContent='Außenpflegeobjekte und Wetter werden geladen …';
   try{
     const [assignments,services]=await Promise.all([
       cloudRequest(`object_service_assignments?select=id,object_id,service_type_id,process_type,active,valid_from,valid_until&organization_id=eq.${encodeURIComponent(orgId)}&active=eq.true&order=created_at.desc`),
       cloudRequest(`service_types?select=id,name,qualification_code,active&organization_id=eq.${encodeURIComponent(orgId)}&active=eq.true&order=name.asc`)
     ]);
     if(token!==dashboardSummerLoadToken)return;
-
-    const serviceById=new Map((services||[]).map(s=>[String(s.id),s]));
-    const today=wsToday();
-    const ids=[...new Set((assignments||[])
-      .filter(a=>a.active!==false)
-      .filter(a=>!a.valid_from || String(a.valid_from)<=today)
-      .filter(a=>!a.valid_until || String(a.valid_until)>=today)
-      .filter(a=>summerCareServiceMatches(serviceById.get(String(a.service_type_id))))
-      .map(a=>String(a.object_id||''))
-      .filter(Boolean)
-    )];
-
-    const windowEl=document.getElementById('dashboardSummerWindow');
-    const tempEl=document.getElementById('dashboardSummerTemp');
-    const rainEl=document.getElementById('dashboardSummerRain');
-    const warningEl=document.getElementById('dashboardSummerWarnings');
-
-    if(!ids.length){
-      dashboardSummerWeatherEntries=[];
-      renderDashboardSummerDetails();
-
-      // 2.24.03: Kein fachlicher Anwendungsfall = kein Dashboard-Modul.
-      // Leere Wetterkarten und irrelevante Planungsbuttons werden vermieden.
-      if(panel)panel.style.display='none';
-
-      if(windowEl){windowEl.textContent='—';windowEl.className='value';}
-      if(tempEl)tempEl.textContent='—';
-      if(rainEl)rainEl.textContent='—';
-      if(warningEl)warningEl.textContent='—';
-      if(status)status.textContent='';
-      return;
-    }
-
+    const serviceById=new Map((services||[]).map(s=>[String(s.id),s])),today=wsToday();
+    const ids=[...new Set((assignments||[]).filter(a=>a.active!==false).filter(a=>!a.valid_from||String(a.valid_from)<=today).filter(a=>!a.valid_until||String(a.valid_until)>=today).filter(a=>summerCareServiceMatches(serviceById.get(String(a.service_type_id)))).map(a=>String(a.object_id||'')).filter(Boolean))];
+    if(!ids.length){dashboardSummerWeatherEntries=[];dashboardSummerDestroyMap();if(panel)panel.style.display='none';if(status)status.textContent='';return;}
     if(panel)panel.style.display='';
-
-    const results=await Promise.allSettled(ids.map(id=>objectWeatherRequest(id,'green_care',false)));
+    const results=await Promise.allSettled(ids.map(id=>objectWeatherRequest(id,'green_care',force)));
     if(token!==dashboardSummerLoadToken)return;
-
-    const entries=results.filter(r=>r.status==='fulfilled').map(r=>r.value);
-    dashboardSummerWeatherEntries=entries;
-    renderDashboardSummerDetails();
-    const rejected=results.filter(r=>r.status==='rejected');
-    const errors=rejected.length;
-    const firstError=rejected[0]?.reason?.message||String(rejected[0]?.reason||'');
-
-    const maxTemps=entries
-      .map(e=>Number(e?.care_24h?.max_temperature))
-      .filter(Number.isFinite);
-    const maxRainProb=entries
-      .map(e=>Number(e?.care_24h?.max_precipitation_probability))
-      .filter(Number.isFinite);
-    const warnings=entries.reduce((sum,e)=>sum+(Array.isArray(e?.alerts)?e.alerts.length:0),0);
-
-    if(!entries.length){
-      if(windowEl){
-        windowEl.textContent='DATENFEHLER';
-        windowEl.className='value dashboard-summer-avoid';
-      }
-      if(tempEl)tempEl.textContent='—';
-      if(rainEl)rainEl.textContent='—';
-      if(warningEl)warningEl.textContent='—';
-      if(status){
-        status.textContent=
-          `0 von ${ids.length} Wetterdatensätzen verfügbar`
-          +(firstError?` · ${firstError}`:'');
-      }
-      const detailsBtn=document.getElementById('dashboardSummerDetailsBtn');
-      if(detailsBtn)detailsBtn.disabled=true;
-      console.error('Außenpflege-Wetter: keine verwertbaren Wetterdaten',{
-        organization_id:orgId,
-        object_ids:ids,
-        errors:rejected.map(r=>r.reason?.message||String(r.reason||''))
-      });
-      return;
-    }
-
-    const worst=summerWorstStatus(entries);
-    const detailsBtn=document.getElementById('dashboardSummerDetailsBtn');
-    if(detailsBtn)detailsBtn.disabled=false;
-
-    if(windowEl){
-      windowEl.textContent=summerStatusLabel(worst);
-      windowEl.className='value '+summerStatusClass(worst);
-    }
-    if(tempEl)tempEl.textContent=maxTemps.length?`${Math.round(Math.max(...maxTemps))} °C`:'—';
-    if(rainEl)rainEl.textContent=maxRainProb.length?`${Math.round(Math.max(...maxRainProb))} %`:'—';
-    if(warningEl)warningEl.textContent=String(warnings);
-
-    const hints=[...new Set(entries.flatMap(e=>Array.isArray(e?.care_24h?.recommendations)?e.care_24h.recommendations:[]))];
-    if(status){
-      status.textContent=
-        `${entries.length} von ${ids.length} Außenpflegeobjekten ausgewertet · Pflegefenster ${summerStatusLabel(worst)}`
-        +(hints.length?` · ${hints.slice(0,2).join(' · ')}`:'')
-        +(errors?` · ${errors} Wetterdatenfehler`:'');
-    }
-  }catch(e){
-    console.error('Sommer-Dashboard konnte nicht geladen werden',e);
-    if(status)status.textContent='Pflegewetter konnte nicht vollständig geladen werden.';
-  }
+    dashboardSummerWeatherEntries=ids.map((id,index)=>{
+      const obj=dashboardSummerObjectById(id),r=results[index],base={_object_id:id,_object_name:obj?.name||'Objekt',_address:obj?.address||[obj?.street,[obj?.postalCode,obj?.city].filter(Boolean).join(' ')].filter(Boolean).join(', '),_latitude:Number.isFinite(Number(obj?.latitude))?Number(obj.latitude):null,_longitude:Number.isFinite(Number(obj?.longitude))?Number(obj.longitude):null};
+      if(r?.status==='fulfilled')return {...r.value,...base};
+      return {...base,_error:r?.reason?.message||String(r?.reason||'Wetterdaten nicht verfügbar.')};
+    });
+    renderDashboardSummerOverview();
+    const errors=dashboardSummerWeatherEntries.filter(e=>dashboardSummerEntryStatus(e)==='error').length;
+    const located=dashboardSummerWeatherEntries.filter(e=>Number.isFinite(Number(e._latitude))&&Number.isFinite(Number(e._longitude))).length;
+    if(status)status.textContent=`${ids.length} Außenpflegeobjekt${ids.length===1?'':'e'} · ${ids.length-errors} Wetterdaten verfügbar · ${located} auf Karte${errors?` · ${errors} Datenfehler`:''}`;
+  }catch(e){console.error('Sommer-Dashboard konnte nicht geladen werden',e);if(status)status.textContent='Pflegewetter konnte nicht vollständig geladen werden.';}
 }
 
 async function loadDashboardWinterSummary(){
