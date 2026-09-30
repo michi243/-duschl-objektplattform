@@ -3923,7 +3923,47 @@ table td,table th{
    UNVERÄNDERT: Wetterdaten, Statuslogik, Objektliste, Pins, Planung, Rollen/RLS.
    BACKEND: keine SQL-/RLS-/RPC-Änderung.
 -->
+<!-- RELEASE 2.26.5.4 | BASIS 2.26.5.3 | 30.09.2026
+   HOTFIX: Leaflet-Core-CSS zusätzlich inline abgesichert.
+   FIX: Kartenkacheln werden absolut positioniert und auf 256x256 px begrenzt.
+   FIX: globale Bild-/Layoutregeln können Leaflet-Tiles nicht mehr verzerren.
+   UX: Objektname und Adresse werden sauber untereinander dargestellt.
+   BACKEND: keine SQL-/RLS-/RPC-Änderung.
+-->
 <style id="summer-weather-map-v22650">
+
+/* Leaflet critical core CSS inline fallback · 2.26.5.4
+   Verhindert fehlerhafte Tile-Darstellung, falls CDN-CSS geblockt/nicht geladen wird. */
+#dashboardSummerMap.leaflet-container{overflow:hidden;outline:0;position:absolute!important;-webkit-tap-highlight-color:transparent}
+#dashboardSummerMap .leaflet-pane,
+#dashboardSummerMap .leaflet-tile,
+#dashboardSummerMap .leaflet-marker-icon,
+#dashboardSummerMap .leaflet-marker-shadow,
+#dashboardSummerMap .leaflet-tile-container,
+#dashboardSummerMap .leaflet-pane>svg,
+#dashboardSummerMap .leaflet-pane>canvas,
+#dashboardSummerMap .leaflet-zoom-box,
+#dashboardSummerMap .leaflet-image-layer,
+#dashboardSummerMap .leaflet-layer{position:absolute;left:0;top:0}
+#dashboardSummerMap .leaflet-container img.leaflet-tile,
+#dashboardSummerMap img.leaflet-tile{max-width:none!important;max-height:none!important;width:256px!important;height:256px!important;padding:0!important;margin:0!important;border:0!important;object-fit:fill!important}
+#dashboardSummerMap .leaflet-tile-pane{z-index:200}
+#dashboardSummerMap .leaflet-overlay-pane{z-index:400}
+#dashboardSummerMap .leaflet-shadow-pane{z-index:500}
+#dashboardSummerMap .leaflet-marker-pane{z-index:600}
+#dashboardSummerMap .leaflet-tooltip-pane{z-index:650}
+#dashboardSummerMap .leaflet-popup-pane{z-index:700}
+#dashboardSummerMap .leaflet-map-pane canvas{z-index:100}
+#dashboardSummerMap .leaflet-control{position:relative;z-index:800;pointer-events:auto}
+#dashboardSummerMap .leaflet-top,#dashboardSummerMap .leaflet-bottom{position:absolute;z-index:1000;pointer-events:none}
+#dashboardSummerMap .leaflet-top{top:0}#dashboardSummerMap .leaflet-right{right:0}#dashboardSummerMap .leaflet-bottom{bottom:0}#dashboardSummerMap .leaflet-left{left:0}
+#dashboardSummerMap .leaflet-top .leaflet-control{margin-top:10px}#dashboardSummerMap .leaflet-bottom .leaflet-control{margin-bottom:10px}#dashboardSummerMap .leaflet-left .leaflet-control{margin-left:10px}#dashboardSummerMap .leaflet-right .leaflet-control{margin-right:10px}
+#dashboardSummerMap .leaflet-zoom-animated{transform-origin:0 0}
+#dashboardSummerMap .leaflet-tile{visibility:hidden}
+#dashboardSummerMap .leaflet-tile-loaded{visibility:inherit}
+#dashboardSummerMap .leaflet-marker-icon,#dashboardSummerMap .leaflet-marker-shadow{display:block}
+#dashboardSummerMap .leaflet-zoom-hide{visibility:hidden}
+
 .dashboard-summer-panel{cursor:default!important;padding:16px!important}
 .dashboard-summer-head{align-items:center!important}
 .dashboard-summer-head-actions{display:flex;gap:8px;flex-wrap:wrap}
@@ -3945,7 +3985,7 @@ table td,table th{
 .dashboard-summer-object-row{width:100%;border:1px solid #31536d!important;border-radius:13px!important;background:#0b2030!important;padding:11px 12px!important;display:grid!important;grid-template-columns:12px minmax(0,1fr) auto auto!important;gap:10px!important;align-items:center!important;text-align:left!important;color:inherit!important}
 .dashboard-summer-object-row:hover{border-color:#4d7894!important;background:#0d2638!important}.dashboard-summer-object-row:focus-visible{outline:2px solid #4da3d9;outline-offset:2px}
 .dashboard-summer-object-statusdot{width:10px;height:10px;border-radius:50%}.dashboard-summer-object-statusdot.good{background:#45c878}.dashboard-summer-object-statusdot.check{background:#f1b64a}.dashboard-summer-object-statusdot.avoid{background:#ef5b64}.dashboard-summer-object-statusdot.error{background:#8a98a4}
-.dashboard-summer-object-name{font-weight:850;line-height:1.25}.dashboard-summer-object-address{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dashboard-summer-object-name{display:block;font-weight:850;line-height:1.25}.dashboard-summer-object-address{display:block;font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dashboard-summer-object-weather{font-weight:800;white-space:nowrap}.dashboard-summer-object-weather small{display:block;color:var(--muted);font-size:10px;font-weight:600;margin-top:2px}
 .dashboard-summer-object-badge{font-size:10px;font-weight:900;border-radius:999px;padding:5px 8px;border:1px solid currentColor;white-space:nowrap}.dashboard-summer-object-badge.good{color:#8ee3aa}.dashboard-summer-object-badge.check{color:#f2ca72}.dashboard-summer-object-badge.avoid{color:#ff9a9f}.dashboard-summer-object-badge.error{color:#aab5bd}
 .dashboard-summer-object-detail{margin-top:10px;padding:12px;border:1px solid #31536d;border-radius:13px;background:#0a1d2b;display:none}.dashboard-summer-object-detail.is-open{display:block}
@@ -7767,7 +7807,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Download-Aktion zusätzlich an verknüpften Standards
    - keine SQL-/RLS-/RPC-Änderung
 */
-const APP_VERSION='2.26.5.3'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.5.4'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
