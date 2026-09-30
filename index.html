@@ -3883,6 +3883,21 @@ table td,table th{
 .ds-checklist-status-ok{color:#86D5A6}.ds-checklist-status-open{color:#F0CC73}
 @media(max-width:620px){.ds-checklist-head{flex-direction:column}.ds-checklist-note{grid-template-columns:1fr}.ds-checklist-note button{width:100%}}
 </style>
+
+<style id="psRuntimeDetailStyles">
+.ps-detail-modal{width:min(760px,100%);padding:0!important;overflow:hidden!important;max-height:94dvh!important;background:linear-gradient(180deg,#0d2232 0%,#071721 100%)!important;border:1px solid #294b62!important;border-radius:22px!important}
+.ps-detail-shell{display:flex;flex-direction:column;max-height:94dvh}
+.ps-detail-topbar{position:sticky;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 18px;background:rgba(7,23,33,.96);border-bottom:1px solid rgba(255,255,255,.08);backdrop-filter:blur(14px)}
+.ps-detail-topbar-title{font-weight:800;font-size:20px;letter-spacing:.01em}
+.ps-detail-actions{display:flex;align-items:center;gap:8px}.ps-icon-btn{width:44px;min-width:44px;height:44px;padding:0!important;border-radius:12px!important;display:inline-flex;align-items:center;justify-content:center;font-size:20px;background:#102d42!important;border:1px solid #315a74!important;color:#fff!important}.ps-icon-btn.primary-download{background:#143d59!important;border-color:#4c91bc!important}.ps-icon-btn span{font-size:20px}.ps-detail-scroll{padding:16px 18px 24px;overflow:auto;-webkit-overflow-scrolling:touch}
+.ps-hero{padding:18px;border-radius:18px;background:linear-gradient(145deg,#102b40,#0b1f2e);border:1px solid #294d65;box-shadow:0 14px 34px rgba(0,0,0,.24)}
+.ps-hero-main{display:flex;gap:14px;align-items:flex-start}.ps-doc-icon{width:66px;height:66px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#173e5a,#0d2b40);border:1px solid #376a8b;font-size:31px;flex:0 0 auto}.ps-hero-copy{min-width:0;flex:1}.ps-detail-name{font-size:27px;font-weight:800;line-height:1.08;margin:0 0 5px;color:#f7fbff}.ps-detail-code{font-size:16px;color:#b7c6d1}.ps-type-pill,.ps-version-pill,.ps-status-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;font-size:13px;font-weight:700}.ps-type-pill{background:#334b60;color:#fff}.ps-version-pill{background:#18334a;color:#c9d7e2}.ps-status-pill{background:rgba(61,184,108,.14);color:#91e2ae;border:1px solid rgba(61,184,108,.35)}
+.ps-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:15px}.ps-kpi{padding:11px 12px;border-radius:13px;background:#10283a;border:1px solid #28465b}.ps-kpi strong{display:block;font-size:15px}.ps-kpi small{display:block;margin-top:2px}
+.ps-info-card,.ps-content-card,.ps-related-wrap{margin-top:12px;padding:15px;border-radius:16px;background:linear-gradient(180deg,#0e2536,#0b1f2d);border:1px solid #28475d}.ps-info-row{display:grid;grid-template-columns:52px 1fr 22px;gap:12px;align-items:start}.ps-info-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#173a55;border:1px solid #315d7a;font-size:22px}.ps-info-title{font-size:18px;font-weight:800;margin:0 0 5px}.ps-info-text{font-size:16px;line-height:1.45;color:#dce7ee}.ps-chevron{color:#dce7ee;font-size:24px;line-height:1}
+.ps-steps{margin-top:12px;margin-left:4px}.ps-step{display:grid;grid-template-columns:42px 1fr 28px;gap:10px;align-items:center;position:relative;padding:8px 0}.ps-step:not(:last-child):before{content:'';position:absolute;left:20px;top:41px;bottom:-9px;width:1px;background:#477b9c}.ps-step-num{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#76b9f0;color:#071721;font-weight:900;border:1px solid #a9d8ff;z-index:1}.ps-step-text{padding:10px 12px;border-radius:11px;background:#0d2231;border:1px solid #233f52;font-size:15px;line-height:1.35}.ps-step-check{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#76b9f0;color:#071721;font-weight:900}
+.ps-related-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.ps-related-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.ps-related{padding:12px;border-radius:13px;background:#10283a;border:1px solid #294a60;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.ps-related-title{font-weight:800;line-height:1.25}.ps-related-sub{color:#b9c7d1;font-size:13px;margin-top:3px}.ps-related-actions{display:flex;gap:6px;align-items:center}.ps-mini-btn{width:36px;height:36px;padding:0!important;border-radius:10px!important;display:flex;align-items:center;justify-content:center;background:#173a55!important;border:1px solid #315d7a!important}
+@media(max-width:620px){.ps-detail-modal{width:100%;height:100dvh;max-height:100dvh!important;border-radius:0!important}.ps-detail-shell{max-height:100dvh}.ps-detail-scroll{padding:14px 14px 26px}.ps-detail-name{font-size:24px}.ps-kpis{grid-template-columns:1fr}.ps-related-grid{grid-template-columns:1fr}.ps-info-text{font-size:15px}.ps-detail-topbar{padding-top:calc(12px + env(safe-area-inset-top,0px))}.ps-hero-main{align-items:center}.ps-doc-icon{width:58px;height:58px}.ps-detail-actions .ps-label-download{display:none}}
+</style>
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -7688,7 +7703,17 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Bereits aktive Leistungen bleiben gegen Doppelzuordnung geschützt.
    - Keine SQL-/RLS-/RPC-Änderung.
 */
-const APP_VERSION='2.26.4.3'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+
+/* RELEASE 2.26.4.4 | BASIS 2.26.4.3 | 30.09.2026
+   UX: Standards-Detailansicht nach mobilem Zielbild neu strukturiert.
+   - klare Kopfkarte mit Typ, Version und Kennzahlen
+   - Zweck, Geltungsbereich, Verantwortung, Inhalt und Hinweise als strukturierte Karten
+   - verknüpfte Standards direkt navigierbar
+   - Herunterladen des aktuell angezeigten Standards als eigenständige HTML-Datei
+   - Download-Aktion zusätzlich an verknüpften Standards
+   - keine SQL-/RLS-/RPC-Änderung
+*/
+const APP_VERSION='2.26.4.4'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -27861,25 +27886,69 @@ function psRuntimeCardHtml(rows,{serviceLabel='',openJs=''}={}){
 }
 function psRuntimeItemHtml(item){
   const text=esc(item.item_text||'');
-  if(item.item_type==='heading')return `<div style="font-weight:700;margin-top:12px">${text}</div>`;
-  if(item.item_type==='warning')return `<div class="card" style="margin:8px 0;padding:9px"><strong>Hinweis:</strong> ${text}</div>`;
+  if(item.item_type==='heading')return `<div style="font-weight:800;margin:12px 0 4px">${text}</div>`;
+  if(item.item_type==='warning')return `<div class="ps-info-card" style="margin-top:8px"><strong>Hinweis</strong><div class="ps-info-text">${text}</div></div>`;
   if(item.item_type==='note')return `<div class="muted" style="margin:6px 0">${text}</div>`;
-  if(item.item_type==='check')return `<div style="margin:6px 0">☐ ${text}${item.required?' <strong>(Pflicht)</strong>':''}</div>`;
-  return `<div style="margin:6px 0">• ${text}</div>`;
+  return text;
+}
+
+let psRuntimeActiveStandards=[];
+let psRuntimeActiveStandardId='';
+let psRuntimeActiveTitle='Standards';
+
+function psRuntimeRelatedStandards(standard,standards){
+  if(!standard)return [];
+  const all=Array.isArray(standards)?standards:[];
+  const id=String(standard.id||'');
+  const parent=String(standard.parent_standard_id||'');
+  if(standard.standard_type==='sop')return all.filter(x=>String(x.parent_standard_id||'')===id);
+  return all.filter(x=>String(x.id)!==id && (String(x.id)===parent || (parent && String(x.parent_standard_id||'')===parent)));
+}
+function psRuntimeIcon(type){return type==='checklist'?'☑':type==='work_instruction'?'▤':'▧';}
+function psRuntimeSafeFileName(v){return String(v||'Standard').replace(/[\/:*?"<>|]+/g,'-').replace(/\s+/g,'_').slice(0,120);}
+function psRuntimeBuildDownloadHtml(x){
+  const items=(x.items||[]).map((item,i)=>`<li>${esc(item.item_text||'')}</li>`).join('');
+  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(x.code||'')} · ${esc(x.title||'')}</title><style>body{font-family:Arial,sans-serif;max-width:860px;margin:40px auto;padding:0 24px;color:#17222b;line-height:1.5}h1{margin-bottom:4px}.meta{color:#65727d;margin-bottom:24px}.box{border:1px solid #ccd5db;border-radius:12px;padding:16px;margin:14px 0}li{margin:8px 0}@media print{body{margin:0;max-width:none}}</style></head><body><h1>${esc(x.title||'Standard')}</h1><div class="meta">${esc(x.code||'')} · ${esc(psRuntimeTypeLabel(x.standard_type))} · Version ${esc(x.version||'1.0')}</div>${x.purpose?`<div class="box"><h2>Zweck</h2><div>${esc(x.purpose)}</div></div>`:''}${x.scope?`<div class="box"><h2>Geltungsbereich</h2><div>${esc(x.scope)}</div></div>`:''}${x.responsibility?`<div class="box"><h2>Verantwortung</h2><div>${esc(x.responsibility)}</div></div>`:''}${items?`<div class="box"><h2>Inhalt</h2><ol>${items}</ol></div>`:''}${x.notes?`<div class="box"><h2>Hinweise</h2><div>${esc(x.notes)}</div></div>`:''}<p class="meta">Export aus Duschl Service Objektplattform · ${new Date().toLocaleString('de-DE')}</p></body></html>`;
+}
+function psRuntimeDownloadStandard(id){
+  const x=(psRuntimeActiveStandards||[]).find(s=>String(s.id)===String(id));
+  if(!x)return alert('Standard nicht gefunden.');
+  const blob=new Blob([psRuntimeBuildDownloadHtml(x)],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`${psRuntimeSafeFileName(x.code||x.title)}_V${psRuntimeSafeFileName(x.version||'1.0')}.html`;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+function psRuntimeOpenLinked(id){
+  if(!(psRuntimeActiveStandards||[]).some(x=>String(x.id)===String(id)))return;
+  psRuntimeActiveStandardId=String(id);psRuntimeRenderDetail();
+}
+function psRuntimeDetailInfo(icon,title,text){
+  if(!text)return '';
+  return `<div class="ps-info-card"><div class="ps-info-row"><div class="ps-info-icon">${icon}</div><div><div class="ps-info-title">${esc(title)}</div><div class="ps-info-text">${esc(text)}</div></div><div class="ps-chevron">›</div></div></div>`;
+}
+function psRuntimeRenderDetail(){
+  const standards=psRuntimeActiveStandards||[];
+  const x=standards.find(s=>String(s.id)===String(psRuntimeActiveStandardId))||standards[0];
+  if(!x)return;psRuntimeActiveStandardId=String(x.id);
+  const related=psRuntimeRelatedStandards(x,standards);
+  const workCount=related.filter(r=>r.standard_type==='work_instruction').length;
+  const checklistCount=related.filter(r=>r.standard_type==='checklist').length;
+  const stepItems=(x.items||[]).filter(i=>!['heading','warning','note'].includes(String(i.item_type||'')));
+  const content=stepItems.length?`<div class="ps-content-card"><div class="ps-info-row" style="grid-template-columns:52px 1fr"><div class="ps-info-icon">☷</div><div><div class="ps-info-title">Inhalt</div><div class="muted">${stepItems.length} Arbeitsschritt${stepItems.length===1?'':'e'} im Ablauf</div></div></div><div class="ps-steps">${stepItems.map((item,i)=>`<div class="ps-step"><div class="ps-step-num">${i+1}</div><div class="ps-step-text">${esc(item.item_text||'')}</div><div class="ps-step-check">✓</div></div>`).join('')}</div></div>`:'';
+  const relatedHtml=related.length?`<div class="ps-related-wrap"><div class="ps-related-head"><strong>🔗 Verknüpfte Standards</strong><span class="muted">${related.length} verknüpft</span></div><div class="ps-related-grid">${related.map(r=>`<div class="ps-related"><div role="button" tabindex="0" onclick="psRuntimeOpenLinked('${esc(r.id)}')"><div class="ps-related-title">${esc(r.code)} · ${esc(r.title)}</div><div class="ps-related-sub">${esc(psRuntimeTypeLabel(r.standard_type))} · Version ${esc(r.version||'1.0')}</div></div><div class="ps-related-actions"><button class="ps-mini-btn" type="button" title="Herunterladen" aria-label="Herunterladen" onclick="event.stopPropagation();psRuntimeDownloadStandard('${esc(r.id)}')">⇩</button><button class="ps-mini-btn" type="button" title="Öffnen" aria-label="Öffnen" onclick="psRuntimeOpenLinked('${esc(r.id)}')">›</button></div></div>`).join('')}</div></div>`:'';
+  const root=document.querySelector('#modalRoot .ps-detail-modal');
+  const shell=`<div class="ps-detail-shell"><div class="ps-detail-topbar"><div class="row" style="gap:10px;align-items:center"><button class="ps-icon-btn" type="button" onclick="closeModal()" aria-label="Zurück">‹</button><div class="ps-detail-topbar-title">Standard</div></div><div class="ps-detail-actions"><button class="ps-icon-btn primary-download" type="button" onclick="psRuntimeDownloadStandard('${esc(x.id)}')" title="Herunterladen" aria-label="Herunterladen"><span>⇩</span></button><button class="ps-icon-btn" type="button" onclick="closeModal()" title="Schließen" aria-label="Schließen">✕</button></div></div><div class="ps-detail-scroll"><div class="ps-hero"><div class="ps-hero-main"><div class="ps-doc-icon">${psRuntimeIcon(x.standard_type)}</div><div class="ps-hero-copy"><div class="ps-detail-name">${esc(x.title||'Standard')}</div><div class="row" style="gap:8px;flex-wrap:wrap;align-items:center"><span class="ps-detail-code">${esc(x.code||'')}</span><span class="ps-type-pill">${esc(psRuntimeTypeLabel(x.standard_type))}</span><span class="ps-version-pill">Version ${esc(x.version||'1.0')}</span></div></div><span class="ps-status-pill">● Aktiv</span></div><div class="ps-kpis"><div class="ps-kpi"><strong>${stepItems.length} Schritt${stepItems.length===1?'':'e'}</strong><small>im Ablauf</small></div><div class="ps-kpi"><strong>${workCount} Arbeitsanweisung${workCount===1?'':'en'}</strong><small>verknüpft</small></div><div class="ps-kpi"><strong>${checklistCount} Checkliste${checklistCount===1?'':'n'}</strong><small>verknüpft</small></div></div></div>${psRuntimeDetailInfo('◎','Zweck',x.purpose)}${psRuntimeDetailInfo('▦','Geltungsbereich',x.scope)}${psRuntimeDetailInfo('♙','Verantwortung',x.responsibility)}${content}${psRuntimeDetailInfo('ⓘ','Hinweise',x.notes)}${relatedHtml}</div></div>`;
+  if(root)root.innerHTML=shell;
 }
 function psRuntimeOpenRows(rows,title='Prozesse & Standards'){
   const standards=psRuntimeNormalizeRows(rows).sort((a,b)=>psRuntimeTypeOrder(a.standard_type)-psRuntimeTypeOrder(b.standard_type)||String(a.code).localeCompare(String(b.code),'de'));
   if(!standards.length)return alert('Für diese Leistung sind keine freigegebenen strukturierten Standards hinterlegt.');
-  modal(`<div class="row space"><div><div class="eyebrow">OPERATIVE VORGABEN</div><h2 style="margin:2px 0 0">${esc(title)}</h2></div><button type="button" onclick="closeModal()">✕</button></div>
-    <div class="muted" style="margin-top:8px">Nur Lesemodus im Einsatz. Änderungen erfolgen zentral unter „Prozesse & Standards“.</div>
-    <div style="margin-top:14px">${standards.map((x,i)=>`<details ${i===0?'open':''} class="card" style="margin:10px 0;padding:12px"><summary><strong>${esc(x.code)} · ${esc(x.title)}</strong> <span class="badge" style="margin-left:6px">${esc(psRuntimeTypeLabel(x.standard_type))}</span></summary>
-      <div class="muted" style="margin-top:8px">Version ${esc(x.version||'1.0')}</div>
-      ${x.purpose?`<div style="margin-top:10px"><strong>Zweck</strong><div>${esc(x.purpose)}</div></div>`:''}
-      ${x.scope?`<div style="margin-top:10px"><strong>Geltungsbereich</strong><div>${esc(x.scope)}</div></div>`:''}
-      ${x.responsibility?`<div style="margin-top:10px"><strong>Verantwortung</strong><div>${esc(x.responsibility)}</div></div>`:''}
-      ${x.items.length?`<div style="margin-top:10px"><strong>Inhalt</strong>${x.items.map(psRuntimeItemHtml).join('')}</div>`:''}
-      ${x.notes?`<div style="margin-top:10px"><strong>Hinweise</strong><div>${esc(x.notes)}</div></div>`:''}
-    </details>`).join('')}</div>`);
+  psRuntimeActiveStandards=standards;psRuntimeActiveStandardId=String((standards.find(x=>x.standard_type==='sop')||standards[0]).id);psRuntimeActiveTitle=title;
+  const root=document.getElementById('modalRoot');
+  if(!root)return;
+  root.innerHTML='<div class="modal-backdrop ds-modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal-dialog-dark ds-modal-dialog ps-detail-modal"></div></div>';
+  psRuntimeRenderDetail();
 }
 function psRuntimeOpenService(org,serviceTypeId,title){return psRuntimeOpenRows(psRuntimeRowsForService(org,serviceTypeId),title||'Prozesse & Standards');}
 function psRuntimeOpenWinter(executionId,title){return psRuntimeOpenRows(psRuntimeRowsForWinter(executionId),title||'Winterdienst · Prozesse & Standards');}
