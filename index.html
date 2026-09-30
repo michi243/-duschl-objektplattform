@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.18</title>
+<title>Duschl Service – Objektplattform v2.26.6.19</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -663,7 +663,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 
 
 
-/* === Objektmodal Übersicht · 2.26.6.18 === */
+/* === Objektmodal Übersicht · 2.26.6.19 === */
 .object-edit-section{
   margin-top:12px;
   padding:14px;
@@ -753,6 +753,79 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
   .object-edit-section{padding:11px}
   .object-edit-section-head{align-items:flex-start}
   .object-edit-section-head .muted{max-width:230px}
+}
+
+
+/* === Wochensteuerung Tourenlogik · 2.26.6.19 === */
+.rp-week-summary{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+}
+.rp-week-summary>div{
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:12px;
+  background:#081a27;
+  padding:10px 12px;
+}
+.rp-week-summary span{
+  display:block;
+  color:#8fa8b9;
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  font-weight:800;
+}
+.rp-week-summary strong{
+  display:block;
+  margin-top:3px;
+  font-size:18px;
+}
+.rp-week-table tr.rp-clickable{cursor:pointer}
+.rp-week-table tr.rp-clickable:hover{background:rgba(86,140,172,.08)}
+.rp-util{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:56px;
+  border-radius:999px;
+  padding:4px 8px;
+  border:1px solid rgba(255,255,255,.14);
+  font-size:11px;
+  font-weight:900;
+}
+.rp-util.is-high{border-color:#b98542;background:#2b2113}
+.rp-util.is-over{border-color:#b75c5c;background:#301616}
+.rp-week-actions{
+  display:flex;
+  gap:5px;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+}
+.rp-week-actions button{font-size:10px;padding:6px 8px}
+.rp-week-detail-list{display:grid;gap:8px;margin-top:12px}
+.rp-week-detail-item{
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:11px;
+  padding:10px;
+  background:#081a27;
+}
+.rp-week-detail-item .rp-week-detail-meta{
+  color:#9db3c1;
+  font-size:11px;
+  margin-top:3px;
+}
+.rp-week-detail-warning{
+  margin-top:10px;
+  border:1px solid #6e5e2e;
+  background:#241f10;
+  color:#e2cf8f;
+  border-radius:10px;
+  padding:8px 10px;
+  font-size:11px;
+}
+@media(max-width:900px){
+  .rp-week-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
 /* === GPS-Plausibilitätsprüfung · 2.21.61 === */
@@ -5495,13 +5568,15 @@ table td,table th{
 </style>
 
 <!--
-RELEASE 2.26.6.18 | BASIS 2.26.6.17 | 30.09.2026
-OBJEKTMODAL KOMPAKTER UND ÜBERSICHTLICHER
-- Geografischen Standort verdichtet und technische Details eingeklappt.
-- Plausibilitätsprüfung, Speicherstatus und Koordinaten klar getrennt.
-- Notizen kompakter gestaltet.
-- Testobjekt als saubere Option statt übergroßer Checkboxdarstellung.
-- Betreuung / Dienstleister kompakter dargestellt.
+RELEASE 2.26.6.19 | BASIS 2.26.6.18 | 30.09.2026
+WOCHENSTEUERUNG AUF TATSÄCHLICHE TOUREN UMGESTELLT
+- Geplante Stunden aus operation_runs + operation_run_stops der gewählten Woche.
+- Wiederkehrende Touren, Hybridtouren und Stand-alone-Einmalaufträge berücksichtigt.
+- Stornierte Einsätze ausgeschlossen; abgeschlossene Einsätze bleiben als verbrauchte Wochenkapazität enthalten.
+- Winterdienst separat gezählt.
+- Mitarbeiterzeile öffnet Wochenansicht mit konkreten Einsätzen.
+- Direkte Aktion für Einmalauftrag und Tour-Disposition.
+- Warnung bei Stopps ohne Soll-Dauer.
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <section class="section" id="operations">
@@ -6148,40 +6223,49 @@ OBJEKTMODAL KOMPAKTER UND ÜBERSICHTLICHER
     </div>
   </div>
 
-  <div class="card" style="margin-top:14px">
+  <div class="card rp-week-control" style="margin-top:14px">
     <div class="row space" style="gap:10px;align-items:end;flex-wrap:wrap">
       <div>
         <h3 style="margin:0">Wochensteuerung</h3>
-        <div class="muted" style="margin-top:5px">Verfügbare und bereits durch Standardtouren gebundene Kapazität je Ressource.</div>
+        <div class="muted" style="margin-top:5px">Disposition auf Basis der tatsächlich geplanten Tourtermine und Einmalaufträge dieser Woche.</div>
       </div>
       <label style="min-width:180px">Woche ab
         <input id="rpWeekStart" type="date" onchange="loadResourcePlanningOverview()">
       </label>
     </div>
 
+    <div id="rpWeekSummary" class="rp-week-summary" style="margin-top:12px">
+      <div><span>Verfügbar</span><strong id="rpWeekAvailable">—</strong></div>
+      <div><span>Geplant</span><strong id="rpWeekPlanned">—</strong></div>
+      <div><span>Frei</span><strong id="rpWeekFree">—</strong></div>
+      <div><span>Auslastung</span><strong id="rpWeekUtil">—</strong></div>
+    </div>
+
     <div class="resource-table-wrap" style="margin-top:12px">
-      <table class="resource-table">
+      <table class="resource-table rp-week-table">
         <thead>
           <tr>
             <th>Mitarbeiter</th>
-            <th>Modell</th>
-            <th>verfügbar</th>
-            <th>geplant</th>
-            <th>frei</th>
+            <th>Verfügbar</th>
+            <th>Geplant</th>
+            <th>Frei</th>
             <th>Auslastung</th>
-            <th>Vollkosten/h</th>
-            <th>Wintertouren</th>
+            <th>Touren</th>
+            <th>Einmalaufträge</th>
+            <th>Winter</th>
+            <th></th>
           </tr>
         </thead>
         <tbody id="rpOverviewBody">
-          <tr><td colspan="8" class="muted">Ressourcenplanung wird geladen …</td></tr>
+          <tr><td colspan="9" class="muted">Ressourcenplanung wird geladen …</td></tr>
         </tbody>
       </table>
     </div>
 
     <div class="resource-calculation-note" style="margin-top:12px">
-      <strong>Steuerungslogik:</strong> Standardtouren werden über die hinterlegte Soll-Dauer der Leistungspläne in Stunden bewertet.
-      Winterdiensttouren werden separat gezählt und noch nicht pauschal in Stunden umgerechnet, weil dafür aktuell keine belastbare Soll-Dauer je Winterstopp hinterlegt ist.
+      <strong>Steuerungslogik:</strong> Geplante Stunden = Summe der Soll-Dauern aller Stopps aus zugewiesenen Tourterminen und Stand-alone-Einmalaufträgen der gewählten Woche.
+      Stornierte Einsätze werden nicht berücksichtigt. Winterdienst bleibt separat, solange keine belastbare Soll-Dauer je Winterstopp hinterlegt ist.
+      Fahrtzeiten werden aktuell nicht automatisch hinzugerechnet.
     </div>
   </div>
 </section>
@@ -8655,7 +8739,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.10.
    BACKEND: SQL 2.26.6.11 erforderlich.
 */
-/* RELEASE 2.26.6.18 | BASIS 2.26.6.12 | 30.09.2026
+/* RELEASE 2.26.6.19 | BASIS 2.26.6.12 | 30.09.2026
    WETTER-FALLBACK HARDENING:
    - Außenpflege akzeptiert object-weather nur noch bei verwertbarem care_24h-Datensatz.
    - Formal erfolgreiche, aber inhaltlich leere/ungültige Antworten lösen jetzt
@@ -8667,7 +8751,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.11.
    BACKEND: keine SQL-Änderung.
 */
-const APP_VERSION='2.26.6.18'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.6.19'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -16090,7 +16174,10 @@ let resourcePlanningState={
   settings:null,
   users:[],
   profiles:[],
-  overview:[]
+  overview:[],
+  weekRuns:[],
+  weekStops:[],
+  weekWinterRuns:[]
 };
 
 function resourcePlanningCanAdmin(){
@@ -16336,58 +16423,238 @@ async function deactivateResourceProfile(){
   }
 }
 
+
+function rpWeekEnd(weekStart){
+  const d=new Date(`${weekStart}T12:00:00`);
+  d.setDate(d.getDate()+6);
+  return d.toISOString().slice(0,10);
+}
+
+function rpRunTypeLabel(run){
+  const type=String(run?.run_type||'recurring');
+  if(type==='one_off')return 'Einmalauftrag';
+  if(type==='hybrid')return 'Tour + Zusatzauftrag';
+  return 'Tour';
+}
+
+function rpRunPlannedMinutes(runId){
+  const stops=(resourcePlanningState.weekStops||[]).filter(s=>String(s.run_id||'')===String(runId||''));
+  const minutes=stops.reduce((sum,s)=>{
+    const n=Number(s.planned_duration_minutes);
+    return sum+(Number.isFinite(n)&&n>0?n:0);
+  },0);
+  const missing=stops.filter(s=>{
+    const n=Number(s.planned_duration_minutes);
+    return !(Number.isFinite(n)&&n>0);
+  }).length;
+  return {minutes,missing,stops};
+}
+
+function rpUserWeekData(userId){
+  const uid=String(userId||'');
+  const runs=(resourcePlanningState.weekRuns||[])
+    .filter(r=>String(r.assigned_user_id||'')===uid)
+    .filter(r=>String(r.status||'planned').toLowerCase()!=='cancelled');
+
+  let totalMinutes=0, missingDurations=0, recurringRuns=0, oneOffRuns=0;
+  const items=runs.map(run=>{
+    const calc=rpRunPlannedMinutes(run.id);
+    totalMinutes+=calc.minutes;
+    missingDurations+=calc.missing;
+    if(String(run.run_type||'recurring')==='one_off')oneOffRuns++;
+    else recurringRuns++;
+    return {...run,_minutes:calc.minutes,_missing:calc.missing,_stopCount:calc.stops.length};
+  }).sort((a,b)=>
+    String(a.service_date||'').localeCompare(String(b.service_date||'')) ||
+    String(a.planned_start_time||'').localeCompare(String(b.planned_start_time||''))
+  );
+
+  const winterRuns=(resourcePlanningState.weekWinterRuns||[])
+    .filter(r=>String(r.assigned_user_id||'')===uid)
+    .filter(r=>!['cancelled','completed_cancelled'].includes(String(r.status||'').toLowerCase()));
+
+  return {
+    items,
+    plannedHours:totalMinutes/60,
+    missingDurations,
+    recurringRuns,
+    oneOffRuns,
+    winterRuns
+  };
+}
+
+function rpSetWeekSummary(available,planned){
+  const free=available-planned;
+  const util=available>0?planned/available:0;
+  const values={
+    rpWeekAvailable:rpHours(available),
+    rpWeekPlanned:rpHours(planned),
+    rpWeekFree:rpHours(free),
+    rpWeekUtil:rpPct(util)
+  };
+  Object.entries(values).forEach(([id,val])=>{
+    const el=document.getElementById(id);if(el)el.textContent=val;
+  });
+}
+
+function rpOpenEmployeeWeek(userId){
+  const row=(resourcePlanningState.overview||[]).find(r=>String(r.user_id||'')===String(userId||''));
+  const data=rpUserWeekData(userId);
+  const name=row?.full_name||row?.email||'Mitarbeiter';
+  const weekStart=rpMonday(document.getElementById('rpWeekStart')?.value||'');
+  const weekEnd=rpWeekEnd(weekStart);
+
+  const items=data.items.map(run=>{
+    const start=String(run.planned_start_time||'').slice(0,5);
+    return `<div class="rp-week-detail-item">
+      <strong>${esc(run.service_date||'')} · ${esc(start?start+' Uhr · ':'')}${esc(run.name||rpRunTypeLabel(run))}</strong>
+      <div class="rp-week-detail-meta">${esc(rpRunTypeLabel(run))} · ${esc(rpHours((run._minutes||0)/60))} · ${Number(run._stopCount||0)} Stopps · Status: ${esc(run.status||'planned')}</div>
+      ${run._missing?`<div class="rp-week-detail-meta">⚠ ${Number(run._missing)} Stopp(s) ohne Soll-Dauer – nicht in Stunden enthalten.</div>`:''}
+    </div>`;
+  }).join('');
+
+  const winter=data.winterRuns.map(run=>`<div class="rp-week-detail-item">
+    <strong>${esc(run.service_date||'')} · Winterdienst</strong>
+    <div class="rp-week-detail-meta">${esc(run.name||run.tour_name||'Wintertour')} · separat bewertet</div>
+  </div>`).join('');
+
+  const root=document.getElementById('modalRoot');
+  if(!root)return;
+  root.innerHTML=`<div class="modal-backdrop ds-modal-backdrop" onclick="if(event.target===this)closeModal()">
+    <div class="modal-dialog-dark ds-modal-dialog" style="max-width:760px">
+      <div class="row space" style="gap:10px;align-items:flex-start">
+        <div>
+          <h2 style="margin:0">${esc(name)} · Woche</h2>
+          <div class="muted" style="margin-top:5px">${esc(weekStart)} bis ${esc(weekEnd)} · ${esc(rpHours(data.plannedHours))} geplant</div>
+        </div>
+        <button type="button" onclick="closeModal()">Schließen</button>
+      </div>
+      <div class="rp-week-detail-list">${items||'<div class="muted">Keine Standardtouren oder Einmalaufträge zugewiesen.</div>'}</div>
+      ${winter?`<h3 style="margin:16px 0 0">Winterdienst</h3><div class="rp-week-detail-list">${winter}</div>`:''}
+      ${data.missingDurations?`<div class="rp-week-detail-warning">${data.missingDurations} Stopp(s) besitzen keine Soll-Dauer. Diese Zeit fehlt in der Auslastung.</div>`:''}
+      <div class="modal-actions">
+        <button class="primary" type="button" onclick="closeModal();rpOpenOperationsForAssignment('${esc(userId)}')">Touren disponieren</button>
+        <button type="button" onclick="closeModal();rpPlanOneOffForUser('${esc(userId)}')">Einmalauftrag planen</button>
+        <button type="button" onclick="closeModal()">Schließen</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function rpOpenOperationsForAssignment(userId){
+  showSection('operations');
+  setTimeout(()=>{
+    document.getElementById('opsRunList')?.scrollIntoView({behavior:'smooth',block:'start'});
+  },120);
+}
+
+function rpPlanOneOffForUser(userId){
+  showSection('operations');
+  setTimeout(()=>{
+    opsOpenOneoffPlanner();
+    const sel=document.getElementById('opsOneoffAssignee');
+    if(sel && [...sel.options].some(o=>String(o.value)===String(userId)))sel.value=String(userId);
+  },180);
+}
+
+async function rpLoadActualWeekOperations(weekStart){
+  const org=currentOrganizationId();
+  const weekEnd=rpWeekEnd(weekStart);
+
+  const runs=await cloudRequest(
+    `operation_runs?select=*&organization_id=eq.${encodeURIComponent(org)}&service_date=gte.${encodeURIComponent(weekStart)}&service_date=lte.${encodeURIComponent(weekEnd)}&order=service_date.asc,planned_start_time.asc`
+  ).catch(e=>{console.warn('Tourtermine für Wochensteuerung konnten nicht geladen werden',e);return [];});
+
+  const runIds=(runs||[]).map(r=>String(r.id||'')).filter(Boolean);
+  let stops=[];
+  if(runIds.length){
+    const ids=runIds.map(id=>id.replace(/[^0-9a-fA-F-]/g,'')).join(',');
+    stops=await cloudRequest(
+      `operation_run_stops?select=*&organization_id=eq.${encodeURIComponent(org)}&run_id=in.(${ids})&order=run_id.asc,sort_order.asc`
+    ).catch(e=>{console.warn('Tourstopps für Wochensteuerung konnten nicht geladen werden',e);return [];});
+  }
+
+  const winterRuns=await cloudRequest(
+    `winter_service_runs?select=*&organization_id=eq.${encodeURIComponent(org)}&service_date=gte.${encodeURIComponent(weekStart)}&service_date=lte.${encodeURIComponent(weekEnd)}&order=service_date.asc`
+  ).catch(e=>{console.warn('Wintertouren für Wochensteuerung konnten nicht geladen werden',e);return [];});
+
+  resourcePlanningState.weekRuns=Array.isArray(runs)?runs:[];
+  resourcePlanningState.weekStops=Array.isArray(stops)?stops:[];
+  resourcePlanningState.weekWinterRuns=Array.isArray(winterRuns)?winterRuns:[];
+}
+
 async function loadResourcePlanningOverview(){
   if(!resourcePlanningCanAdmin())return;
   const host=document.getElementById('rpOverviewBody');
   const weekStart=rpMonday(document.getElementById('rpWeekStart')?.value||'');
   const week=document.getElementById('rpWeekStart');if(week)week.value=weekStart;
-  if(host)host.innerHTML='<tr><td colspan="8" class="muted">Kapazitäten werden berechnet …</td></tr>';
+  if(host)host.innerHTML='<tr><td colspan="9" class="muted">Kapazitäten und Tourtermine werden berechnet …</td></tr>';
 
   try{
-    const rows=await cloudRequest('rpc/get_resource_capacity_overview_v1',{
-      method:'POST',
-      body:JSON.stringify({
-        p_organization_id:currentOrganizationId(),
-        p_week_start:weekStart
-      })
-    })||[];
+    const [rows]=await Promise.all([
+      cloudRequest('rpc/get_resource_capacity_overview_v1',{
+        method:'POST',
+        body:JSON.stringify({
+          p_organization_id:currentOrganizationId(),
+          p_week_start:weekStart
+        })
+      }).catch(e=>{console.warn('Kapazitätsbasis konnte nicht geladen werden',e);return [];}),
+      rpLoadActualWeekOperations(weekStart)
+    ]);
 
     resourcePlanningState.overview=Array.isArray(rows)?rows:[];
 
     const active=resourcePlanningState.overview.filter(x=>x.profile_active===true);
-    const available=active.reduce((s,x)=>s+Number(x.weekly_available_hours||0),0);
-    const planned=active.reduce((s,x)=>s+Number(x.standard_planned_hours||0),0);
-    const free=available-planned;
-    const util=available>0?planned/available:0;
+
+    let totalAvailable=0;
+    let totalPlanned=0;
+
+    const enriched=active.map(r=>{
+      const weekData=rpUserWeekData(r.user_id);
+      const available=Number(r.weekly_available_hours||0);
+      totalAvailable+=available;
+      totalPlanned+=weekData.plannedHours;
+      return {...r,_week:weekData,_available:available};
+    });
+
+    rpSetWeekSummary(totalAvailable,totalPlanned);
 
     const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
-    set('rpKpiAvailable',rpHours(available));
-    set('rpKpiPlanned',rpHours(planned));
-    set('rpKpiFree',rpHours(free));
-    set('rpKpiUtilization',rpPct(util));
+    set('rpKpiAvailable',rpHours(totalAvailable));
+    set('rpKpiPlanned',rpHours(totalPlanned));
+    set('rpKpiFree',rpHours(totalAvailable-totalPlanned));
+    set('rpKpiUtilization',rpPct(totalAvailable>0?totalPlanned/totalAvailable:0));
 
     if(host){
-      host.innerHTML=active.length?active.map(r=>{
-        const freeHours=Number(r.weekly_available_hours||0)-Number(r.standard_planned_hours||0);
-        const utilization=Number(r.weekly_available_hours||0)>0
-          ?Number(r.standard_planned_hours||0)/Number(r.weekly_available_hours||0)
-          :0;
-        const cls=utilization>1?'resource-over':'';
-        return `<tr class="${cls}">
-          <td><strong>${esc(r.full_name||r.email||'Mitarbeiter')}</strong></td>
-          <td>${esc(rpModelLabel(r.resource_model))}</td>
-          <td>${esc(rpHours(r.weekly_available_hours))}</td>
-          <td>${esc(rpHours(r.standard_planned_hours))}</td>
+      host.innerHTML=enriched.length?enriched.map(r=>{
+        const planned=Number(r._week.plannedHours||0);
+        const freeHours=Number(r._available||0)-planned;
+        const utilization=Number(r._available||0)>0?planned/Number(r._available||0):0;
+        const utilCls=utilization>1?'is-over':utilization>=0.85?'is-high':'';
+        const warning=r._week.missingDurations
+          ?`<div class="muted" style="font-size:10px;margin-top:3px">${r._week.missingDurations} Stopp(s) ohne Dauer</div>`
+          :'';
+        return `<tr class="rp-clickable ${utilization>1?'resource-over':''}" onclick="rpOpenEmployeeWeek('${esc(r.user_id)}')">
+          <td><strong>${esc(r.full_name||r.email||'Mitarbeiter')}</strong><div class="muted" style="font-size:10px">${esc(rpModelLabel(r.resource_model))}</div></td>
+          <td>${esc(rpHours(r._available))}</td>
+          <td><strong>${esc(rpHours(planned))}</strong>${warning}</td>
           <td>${esc(rpHours(freeHours))}</td>
-          <td><span class="badge">${esc(rpPct(utilization))}</span></td>
-          <td>${esc(rpEuro(r.cost_per_billable_hour))}</td>
-          <td>${Number(r.winter_run_count||0)}</td>
+          <td><span class="rp-util ${utilCls}">${esc(rpPct(utilization))}</span></td>
+          <td>${Number(r._week.recurringRuns||0)}</td>
+          <td>${Number(r._week.oneOffRuns||0)}</td>
+          <td>${Number(r._week.winterRuns?.length||0)}</td>
+          <td onclick="event.stopPropagation()">
+            <div class="rp-week-actions">
+              <button type="button" onclick="rpOpenEmployeeWeek('${esc(r.user_id)}')">Woche</button>
+              <button type="button" onclick="rpPlanOneOffForUser('${esc(r.user_id)}')">+ Auftrag</button>
+            </div>
+          </td>
         </tr>`;
-      }).join(''):'<tr><td colspan="8" class="muted">Noch keine aktive Ressource konfiguriert.</td></tr>';
+      }).join(''):'<tr><td colspan="9" class="muted">Noch keine aktive Ressource konfiguriert.</td></tr>';
     }
   }catch(e){
     console.error('Ressourcenübersicht konnte nicht geladen werden',e);
-    if(host)host.innerHTML=`<tr><td colspan="8" class="bad">Fehler: ${esc(e.message||e)}</td></tr>`;
+    if(host)host.innerHTML=`<tr><td colspan="9" class="bad">Fehler: ${esc(e.message||e)}</td></tr>`;
   }
 }
 
@@ -27231,7 +27498,7 @@ function opsWeekdayLabel(v){const m={0:'So',1:'Mo',2:'Di',3:'Mi',4:'Do',5:'Fr',6
 function opsIntervalLabel(v){return ({1:'wöchentlich',2:'alle 2 Wochen',4:'alle 4 Wochen'})[Number(v)]||`alle ${v} Wochen`;}
 function opsTimeWindowLabel(p){const a=String(p?.time_window_start||'').slice(0,5),b=String(p?.time_window_end||'').slice(0,5);return a&&b?`${a}–${b}`:a?`ab ${a}`:b?`bis ${b}`:'kein Zeitfenster';}
 
-/* RELEASE 2.26.6.18 | BASIS 2.26.6.13 | 30.09.2026
+/* RELEASE 2.26.6.19 | BASIS 2.26.6.13 | 30.09.2026
    EINMALIGER AUFTRAG: STAND-ALONE ODER TOURTERMIN
    - Begriff "Einzeltour" im Planungsdialog durch "Einmaliger Auftrag" ersetzt.
    - Kein Rhythmus / keine Wochentage für Ad-hoc-Aufträge.
