@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.0</title>
+<title>Duschl Service – Objektplattform v2.26.6.1</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -4095,6 +4095,23 @@ table td,table th{
   .ops-tour-template-actions,.ops-run-admin-actions{justify-content:flex-start}
 }
 </style>
+
+<style id="ops-tour-stop-editor-v22661">
+.ops-tour-stop-editor{border:1px solid #29485e;border-radius:13px;padding:12px;background:#091b28}
+.ops-tour-draft-stops{display:grid;gap:7px}
+.ops-tour-draft-row{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:9px;align-items:center;padding:9px;border:1px solid #31536d;border-radius:11px;background:#0b2030}
+.ops-tour-draft-index{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#173a55;border:1px solid #3e6680;font-weight:900;font-size:12px}
+.ops-tour-draft-title{font-weight:850;font-size:12px;line-height:1.25}
+.ops-tour-draft-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.ops-tour-draft-actions{display:flex;gap:4px}
+.ops-tour-draft-btn{width:34px;height:34px;padding:0!important;display:flex!important;align-items:center;justify-content:center;border-radius:9px!important;font-size:15px!important;min-height:0!important}
+.ops-tour-draft-btn.danger{border-color:#914d55!important;color:#ff9fa6!important;background:#28151a!important}
+.ops-tour-draft-empty{padding:12px;border:1px dashed #31536d;border-radius:10px;color:var(--muted);text-align:center;font-size:11px}
+@media(max-width:700px){
+  .ops-tour-draft-row{grid-template-columns:30px minmax(0,1fr);padding:9px}
+  .ops-tour-draft-actions{grid-column:2/3;justify-content:flex-start}
+}
+</style>
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -5178,7 +5195,18 @@ table td,table th{
   </div>
   <div class="grid g2 ops-planning-only" style="margin-top:14px">
     <div class="card"><h3>Tourvorlagen</h3><div class="grid2"><label>Name<input id="opsTourName" placeholder="z. B. Dienstag Nord"></label><label>Startzeit<input id="opsTourStart" type="time" value="07:00"></label></div>
-      <label style="margin-top:10px">Regelmäßige Leistungen in Reihenfolge<select id="opsTourPlans" multiple size="8"></select></label>
+      <div class="ops-tour-stop-editor" style="margin-top:10px">
+        <label>Leistung hinzufügen
+          <select id="opsTourPlanAdd">
+            <option value="">Leistungsplan wählen …</option>
+          </select>
+        </label>
+        <div class="row" style="margin-top:8px">
+          <button type="button" class="primary" onclick="opsTourAddSelectedPlan()">+ Hinzufügen</button>
+        </div>
+        <div class="muted" style="margin-top:8px">Die Reihenfolge unten entspricht der späteren Tourreihenfolge.</div>
+        <div id="opsTourDraftStops" class="ops-tour-draft-stops" style="margin-top:10px"></div>
+      </div>
       <div class="row" style="margin-top:10px;gap:8px">
         <button id="opsTourSaveBtn" class="primary" type="button" onclick="opsSaveTour()">Tourvorlage speichern</button>
         <button id="opsTourCancelBtn" class="hidden" type="button" onclick="opsCancelTourEdit()">Abbrechen</button>
@@ -7973,7 +8001,17 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    GOVERNANCE: Historie bleibt erhalten; keine harte Löschung produktiver Einsätze.
    BACKEND: keine SQL-/RLS-/RPC-Änderung.
 */
-const APP_VERSION='2.26.6.0'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.26.6.1 | BASIS 2.26.6.0 | 30.09.2026
+   TOURVORLAGEN:
+   - Mehrfachauswahl durch expliziten Stop-Editor ersetzt.
+   - Leistungsplan auswählen -> Hinzufügen.
+   - Sichtbare Stoppliste mit Hoch / Runter / Entfernen.
+   - Reihenfolge wird über sort_order gespeichert.
+   - Bearbeiten bestehender Vorlagen lädt die vorhandene Reihenfolge.
+   MOBILE: vollständig touch-tauglich.
+   BACKEND: keine SQL-/RLS-/RPC-Änderung.
+*/
+const APP_VERSION='2.26.6.1'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -26030,6 +26068,7 @@ let opsState={services:[],plans:[],tours:[],stops:[],runs:[],runStops:[],assignm
 let opsEditingPlanId=null;
 let opsFocusRunId='';
 let opsEditingTourId=null;
+let opsTourDraftPlanIds=[];
 
 function opsEsc(v){return String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));}
 function opsOrg(){return currentOrganizationId();}
@@ -26892,8 +26931,18 @@ function opsPopulate(){
   if(!opsEditingPlanId)opsPlanObjectChanged();
   else if(assignment?.value)opsPlanAssignmentChanged();
 
-  const tp=document.getElementById('opsTourPlans');
-  if(tp)tp.innerHTML=opsState.plans.filter(opsIsPlanableGenericPlan).map(p=>`<option value="${opsEsc(p.id)}">${opsEsc(opsObjName(p.object_id))} · ${opsEsc(opsServiceName(p.service_type_id))} · ${opsEsc(opsIntervalLabel(p.interval_weeks))}</option>`).join('');
+  const tp=document.getElementById('opsTourPlanAdd');
+  if(tp){
+    const current=tp.value||'';
+    tp.innerHTML='<option value="">Leistungsplan wählen …</option>'+
+      opsState.plans
+        .filter(opsIsPlanableGenericPlan)
+        .filter(p=>!opsTourDraftPlanIds.includes(String(p.id)))
+        .map(p=>`<option value="${opsEsc(p.id)}">${opsEsc(opsObjName(p.object_id))} · ${opsEsc(opsServiceName(p.service_type_id))} · ${opsEsc(opsIntervalLabel(p.interval_weeks))}</option>`)
+        .join('');
+    if([...tp.options].some(o=>String(o.value)===String(current)))tp.value=current;
+  }
+  opsRenderTourDraftStops();
 }
 function opsPlanObjectChanged(){
   const oid=document.getElementById('opsPlanObject')?.value||'';
@@ -27193,14 +27242,76 @@ async function opsSavePlan(){
     opsResetPlanForm();await opsLoad();
   }catch(e){alert('Leistungsplan konnte nicht gespeichert werden: '+(e.message||e));}
 }
+function opsTourPlanById(id){
+  return (opsState.plans||[]).find(p=>String(p.id)===String(id))||null;
+}
+function opsRenderTourPlanAddOptions(){
+  const sel=document.getElementById('opsTourPlanAdd');if(!sel)return;
+  const keep=sel.value||'';
+  sel.innerHTML='<option value="">Leistungsplan wählen …</option>'+
+    (opsState.plans||[])
+      .filter(opsIsPlanableGenericPlan)
+      .filter(p=>!opsTourDraftPlanIds.includes(String(p.id)))
+      .map(p=>`<option value="${opsEsc(p.id)}">${opsEsc(opsObjName(p.object_id))} · ${opsEsc(opsServiceName(p.service_type_id))} · ${opsEsc(opsIntervalLabel(p.interval_weeks))}</option>`)
+      .join('');
+  if([...sel.options].some(o=>String(o.value)===String(keep)))sel.value=keep;
+}
+function opsRenderTourDraftStops(){
+  const host=document.getElementById('opsTourDraftStops');if(!host)return;
+  const rows=opsTourDraftPlanIds.map(id=>opsTourPlanById(id)).filter(Boolean);
+  if(!rows.length){
+    host.innerHTML='<div class="ops-tour-draft-empty">Noch keine Leistung hinzugefügt.</div>';
+    opsRenderTourPlanAddOptions();
+    return;
+  }
+  host.innerHTML=rows.map((p,i)=>`<div class="ops-tour-draft-row">
+    <div class="ops-tour-draft-index">${i+1}</div>
+    <div>
+      <div class="ops-tour-draft-title">${opsEsc(opsObjName(p.object_id))} · ${opsEsc(opsServiceName(p.service_type_id))}</div>
+      <div class="ops-tour-draft-sub">${opsEsc(opsIntervalLabel(p.interval_weeks))} · ${opsEsc(p.planned_duration_minutes||60)} Min.</div>
+    </div>
+    <div class="ops-tour-draft-actions">
+      <button class="ops-tour-draft-btn" type="button" onclick="opsTourMovePlan(${i},-1)" ${i===0?'disabled':''} aria-label="Nach oben">↑</button>
+      <button class="ops-tour-draft-btn" type="button" onclick="opsTourMovePlan(${i},1)" ${i===rows.length-1?'disabled':''} aria-label="Nach unten">↓</button>
+      <button class="ops-tour-draft-btn danger" type="button" onclick="opsTourRemovePlan(${i})" aria-label="Entfernen">×</button>
+    </div>
+  </div>`).join('');
+  opsRenderTourPlanAddOptions();
+}
+function opsTourAddSelectedPlan(){
+  const sel=document.getElementById('opsTourPlanAdd');
+  const id=String(sel?.value||'');
+  if(!id)return alert('Bitte zuerst einen Leistungsplan auswählen.');
+  if(opsTourDraftPlanIds.includes(id))return;
+  const p=opsTourPlanById(id);
+  if(!p||!opsIsPlanableGenericPlan(p))return alert('Dieser Leistungsplan ist nicht verfügbar.');
+  opsTourDraftPlanIds.push(id);
+  if(sel)sel.value='';
+  opsRenderTourDraftStops();
+}
+function opsTourRemovePlan(index){
+  if(index<0||index>=opsTourDraftPlanIds.length)return;
+  opsTourDraftPlanIds.splice(index,1);
+  opsRenderTourDraftStops();
+}
+function opsTourMovePlan(index,delta){
+  const target=index+delta;
+  if(index<0||target<0||index>=opsTourDraftPlanIds.length||target>=opsTourDraftPlanIds.length)return;
+  const [id]=opsTourDraftPlanIds.splice(index,1);
+  opsTourDraftPlanIds.splice(target,0,id);
+  opsRenderTourDraftStops();
+}
+
 function opsResetTourForm(){
   opsEditingTourId=null;
+  opsTourDraftPlanIds=[];
   const n=document.getElementById('opsTourName');if(n)n.value='';
   const s=document.getElementById('opsTourStart');if(s)s.value='07:00';
-  const plans=document.getElementById('opsTourPlans');if(plans)[...plans.options].forEach(o=>o.selected=false);
+  const add=document.getElementById('opsTourPlanAdd');if(add)add.value='';
   const b=document.getElementById('opsTourSaveBtn');if(b)b.textContent='Tourvorlage speichern';
   document.getElementById('opsTourCancelBtn')?.classList.add('hidden');
   document.getElementById('opsTourEditInfo')?.classList.add('hidden');
+  opsRenderTourDraftStops();
 }
 function opsCancelTourEdit(){opsResetTourForm();}
 function opsEditTour(id){
@@ -27209,8 +27320,12 @@ function opsEditTour(id){
   opsEditingTourId=t.id;
   const name=document.getElementById('opsTourName');if(name)name.value=t.name||'';
   const start=document.getElementById('opsTourStart');if(start)start.value=String(t.default_start_time||'07:00').slice(0,5);
-  const planIds=new Set((opsState.stops||[]).filter(x=>String(x.tour_template_id)===String(t.id)&&x.active!==false).sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0)).map(x=>String(x.recurring_plan_id)));
-  const plans=document.getElementById('opsTourPlans');if(plans)[...plans.options].forEach(o=>o.selected=planIds.has(String(o.value)));
+  opsTourDraftPlanIds=(opsState.stops||[])
+    .filter(x=>String(x.tour_template_id)===String(t.id)&&x.active!==false)
+    .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0))
+    .map(x=>String(x.recurring_plan_id))
+    .filter(Boolean);
+  opsRenderTourDraftStops();
   const b=document.getElementById('opsTourSaveBtn');if(b)b.textContent='Änderungen speichern';
   document.getElementById('opsTourCancelBtn')?.classList.remove('hidden');
   document.getElementById('opsTourEditInfo')?.classList.remove('hidden');
@@ -27234,8 +27349,8 @@ async function opsDeleteTour(id){
 async function opsSaveTour(){
   try{
     const name=document.getElementById('opsTourName').value.trim();
-    const ids=[...document.getElementById('opsTourPlans').selectedOptions].map(x=>x.value);
-    if(!name||!ids.length)throw new Error('Name und Leistungspläne erforderlich.');
+    const ids=[...opsTourDraftPlanIds];
+    if(!name||!ids.length)throw new Error('Name und mindestens eine hinzugefügte Leistung sind erforderlich.');
 
     const selectedPlans=ids.map(id=>opsState.plans.find(p=>String(p.id)===String(id))).filter(Boolean);
     if(selectedPlans.length!==ids.length)throw new Error('Mindestens ein Leistungsplan ist nicht mehr verfügbar.');
