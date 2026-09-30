@@ -3902,18 +3902,26 @@ table td,table th{
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQ3ynpF+yo2zs5B+z0nE49j2wL8fTQ8=" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
+<!-- RELEASE 2.26.5.1 | 30.09.2026
+   SOMMER-WETTERKARTE Q-GATE:
+   - Wetterdatenfehler fachlich getrennt von kritischem Wetterstatus.
+   - Fünfte KPI "Daten fehlen"; keine künstliche Rotbewertung bei Datenfehlern.
+   - Leaflet-Rendering mit ResizeObserver + verzögertem invalidateSize/fitBounds stabilisiert.
+   - Alle Objekte bleiben in Karte und Liste sichtbar; fehlende Wetterdaten erhalten grauen Status.
+   - Keine SQL-/RLS-/Backend-Änderung.
+-->
 <style id="summer-weather-map-v22650">
 .dashboard-summer-panel{cursor:default!important;padding:16px!important}
 .dashboard-summer-head{align-items:center!important}
 .dashboard-summer-head-actions{display:flex;gap:8px;flex-wrap:wrap}
-.dashboard-summer-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px}
+.dashboard-summer-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:14px}
 .dashboard-summer-summary-card{background:#0b2030;border:1px solid #31536d;border-radius:13px;padding:10px 12px;min-width:0}
 .dashboard-summer-summary-card strong{display:block;font-size:22px;line-height:1.1}
 .dashboard-summer-summary-card span{display:block;color:var(--muted);font-size:11px;margin-top:4px}
 .dashboard-summer-map-wrap{margin-top:14px;border:1px solid #31536d;border-radius:16px;overflow:hidden;background:#0b2030;position:relative}
-#dashboardSummerMap{height:330px;width:100%;background:#102536}
+#dashboardSummerMap{height:330px;width:100%;min-width:0;background:#102536;position:relative;isolation:isolate}.dashboard-summer-map-wrap .leaflet-container{width:100%!important;height:100%!important}
 .dashboard-summer-map-empty{display:flex;align-items:center;justify-content:center;height:260px;color:var(--muted);padding:20px;text-align:center}
-.dashboard-summer-map-legend{position:absolute;z-index:500;left:10px;bottom:10px;display:flex;gap:7px;flex-wrap:wrap;padding:7px 9px;border-radius:11px;background:rgba(6,17,26,.88);border:1px solid #31536d;backdrop-filter:blur(8px)}
+.dashboard-summer-map-legend{position:absolute;z-index:500;left:10px;top:10px;bottom:auto;display:flex;gap:7px;flex-wrap:wrap;padding:7px 9px;border-radius:11px;background:rgba(6,17,26,.88);border:1px solid #31536d;backdrop-filter:blur(8px)}
 .dashboard-summer-map-legend span{font-size:11px;color:#dce7ee;display:flex;align-items:center;gap:5px}.summer-dot{width:9px;height:9px;border-radius:50%;display:inline-block}.summer-dot.good{background:#45c878}.summer-dot.check{background:#f1b64a}.summer-dot.avoid{background:#ef5b64}.summer-dot.error{background:#8a98a4}
 .summer-map-pin{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,.35)}
 .summer-map-pin.good{background:#45c878}.summer-map-pin.check{background:#f1b64a}.summer-map-pin.avoid{background:#ef5b64}.summer-map-pin.error{background:#8a98a4}
@@ -3930,7 +3938,7 @@ table td,table th{
 .dashboard-summer-object-detail{margin-top:10px;padding:12px;border:1px solid #31536d;border-radius:13px;background:#0a1d2b;display:none}.dashboard-summer-object-detail.is-open{display:block}
 .dashboard-summer-object-detail-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.dashboard-summer-object-detail-grid>div{border:1px solid #29485e;border-radius:10px;padding:9px}.dashboard-summer-object-detail-grid span{display:block;font-size:10px;color:var(--muted)}.dashboard-summer-object-detail-grid strong{display:block;margin-top:3px;font-size:14px}
 .leaflet-container{font-family:inherit}.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#0b2030;color:#fff}.leaflet-popup-content-wrapper{border:1px solid #31536d;border-radius:12px}.summer-popup-title{font-weight:900;margin-bottom:4px}.summer-popup-meta{color:#b9c7d1;font-size:12px;line-height:1.4}
-@media(max-width:700px){#dashboardSummerMap{height:285px}.dashboard-summer-summary{grid-template-columns:1fr 1fr}.dashboard-summer-object-row{grid-template-columns:12px minmax(0,1fr) auto!important}.dashboard-summer-object-weather{grid-column:2/3}.dashboard-summer-object-badge{grid-column:3/4;grid-row:1/3}.dashboard-summer-object-detail-grid{grid-template-columns:1fr 1fr}.dashboard-summer-head-actions{width:100%}.dashboard-summer-head-actions .tenant-action-btn{flex:1}.dashboard-summer-statusline{font-size:12px}}
+@media(max-width:700px){#dashboardSummerMap{height:300px}.dashboard-summer-summary{grid-template-columns:1fr 1fr}.dashboard-summer-summary-card:first-child{grid-column:1/-1}.dashboard-summer-object-row{grid-template-columns:12px minmax(0,1fr) auto!important}.dashboard-summer-object-weather{grid-column:2/3}.dashboard-summer-object-badge{grid-column:3/4;grid-row:1/3}.dashboard-summer-object-detail-grid{grid-template-columns:1fr 1fr}.dashboard-summer-head-actions{width:100%}.dashboard-summer-head-actions .tenant-action-btn{flex:1}.dashboard-summer-statusline{font-size:12px}}
 </style>
 </head>
 <body>
@@ -4311,7 +4319,8 @@ table td,table th{
       <div class="dashboard-summer-summary-card"><strong id="dashboardSummerObjectCount">—</strong><span>Objekte</span></div>
       <div class="dashboard-summer-summary-card"><strong id="dashboardSummerGood" class="dashboard-summer-good">—</strong><span>geeignet</span></div>
       <div class="dashboard-summer-summary-card"><strong id="dashboardSummerCheck" class="dashboard-summer-check">—</strong><span>beobachten</span></div>
-      <div class="dashboard-summer-summary-card"><strong id="dashboardSummerAvoid" class="dashboard-summer-avoid">—</strong><span>kritisch / Datenfehler</span></div>
+      <div class="dashboard-summer-summary-card"><strong id="dashboardSummerAvoid" class="dashboard-summer-avoid">—</strong><span>kritisch</span></div>
+      <div class="dashboard-summer-summary-card"><strong id="dashboardSummerError">—</strong><span>Daten fehlen</span></div>
     </div>
 
     <div class="dashboard-summer-map-wrap">
@@ -18168,6 +18177,8 @@ let dashboardSummerLoadToken=0;
 let dashboardSummerWeatherEntries=[];
 let dashboardSummerMap=null;
 let dashboardSummerMapMarkers=[];
+let dashboardSummerMapResizeObserver=null;
+let dashboardSummerLastBounds=[];
 let dashboardSummerSelectedObjectId='';
 
 function dashboardSummerFmtNumber(value,digits=0,suffix=''){
@@ -18235,8 +18246,26 @@ function dashboardSummerPinIcon(status,index){
   });
 }
 function dashboardSummerDestroyMap(){
+  if(dashboardSummerMapResizeObserver){try{dashboardSummerMapResizeObserver.disconnect()}catch(_e){}dashboardSummerMapResizeObserver=null;}
   if(dashboardSummerMap){try{dashboardSummerMap.remove()}catch(_e){}dashboardSummerMap=null;}
   dashboardSummerMapMarkers=[];
+  dashboardSummerLastBounds=[];
+}
+function dashboardSummerMapRefit(){
+  if(!dashboardSummerMap)return;
+  try{
+    dashboardSummerMap.invalidateSize({pan:false,animate:false});
+    const b=dashboardSummerLastBounds||[];
+    if(b.length===1)dashboardSummerMap.setView(b[0],14,{animate:false});
+    else if(b.length>1)dashboardSummerMap.fitBounds(b,{padding:[34,34],maxZoom:14,animate:false});
+  }catch(e){console.warn('Sommer-Wetterkarte konnte nicht neu ausgerichtet werden',e);}
+}
+function dashboardSummerScheduleMapRefit(){
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    dashboardSummerMapRefit();
+    setTimeout(dashboardSummerMapRefit,120);
+    setTimeout(dashboardSummerMapRefit,350);
+  }));
 }
 function renderDashboardSummerMap(){
   const host=document.getElementById('dashboardSummerMap');if(!host)return;
@@ -18254,8 +18283,13 @@ function renderDashboardSummerMap(){
   }
   if(!dashboardSummerMap){
     host.innerHTML='';
-    dashboardSummerMap=L.map(host,{zoomControl:true,attributionControl:true,scrollWheelZoom:false});
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(dashboardSummerMap);
+    dashboardSummerMap=L.map(host,{zoomControl:true,attributionControl:true,scrollWheelZoom:false,fadeAnimation:false,zoomAnimation:false,markerZoomAnimation:false});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap',updateWhenIdle:false,keepBuffer:4}).addTo(dashboardSummerMap);
+    if('ResizeObserver' in window){
+      dashboardSummerMapResizeObserver=new ResizeObserver(()=>dashboardSummerScheduleMapRefit());
+      dashboardSummerMapResizeObserver.observe(host);
+      const panel=document.getElementById('dashboardSummerPanel');if(panel)dashboardSummerMapResizeObserver.observe(panel);
+    }
   }else{
     dashboardSummerMapMarkers.forEach(m=>{try{m.remove()}catch(_e){}});dashboardSummerMapMarkers=[];
   }
@@ -18263,12 +18297,12 @@ function renderDashboardSummerMap(){
   located.forEach((entry,index)=>{
     const lat=Number(entry._latitude),lon=Number(entry._longitude),status=dashboardSummerEntryStatus(entry),care=entry?.care_24h||{};
     const marker=L.marker([lat,lon],{icon:dashboardSummerPinIcon(status,index)}).addTo(dashboardSummerMap);
-    marker.bindPopup(`<div class="summer-popup-title">${esc(entry._object_name||entry.object_name||'Objekt')}</div><div class="summer-popup-meta">${esc(entry._address||entry.address||'')}<br>${esc(dashboardSummerStatusLabel(status))} · ${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))} · Regen ${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}</div>`);
+    marker.bindPopup(`<div class="summer-popup-title">${esc(entry._object_name||entry.object_name||'Objekt')}</div><div class="summer-popup-meta">${esc(entry._address||entry.address||'')}<br>${esc(dashboardSummerStatusLabel(status))}${entry._error?' · Wetterdaten fehlen':` · ${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))} · Regen ${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}`}</div>`);
     marker.on('click',()=>dashboardSummerSelectObject(entry._object_id,true));
     dashboardSummerMapMarkers.push(marker);bounds.push([lat,lon]);
   });
-  if(bounds.length===1)dashboardSummerMap.setView(bounds[0],14);else dashboardSummerMap.fitBounds(bounds,{padding:[28,28],maxZoom:14});
-  setTimeout(()=>dashboardSummerMap?.invalidateSize(),50);
+  dashboardSummerLastBounds=bounds;
+  dashboardSummerScheduleMapRefit();
 }
 function renderDashboardSummerObjectList(){
   const host=document.getElementById('dashboardSummerObjectList');if(!host)return;
@@ -18299,7 +18333,7 @@ function renderDashboardSummerOverview(){
   const rows=Array.isArray(dashboardSummerWeatherEntries)?dashboardSummerWeatherEntries:[];
   const counts={good:0,check:0,avoid:0,error:0};rows.forEach(e=>counts[dashboardSummerEntryStatus(e)]++);
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=String(v)};
-  set('dashboardSummerObjectCount',rows.length);set('dashboardSummerGood',counts.good);set('dashboardSummerCheck',counts.check);set('dashboardSummerAvoid',counts.avoid+counts.error);
+  set('dashboardSummerObjectCount',rows.length);set('dashboardSummerGood',counts.good);set('dashboardSummerCheck',counts.check);set('dashboardSummerAvoid',counts.avoid);set('dashboardSummerError',counts.error);
   const coverage=document.getElementById('dashboardSummerCoverage');if(coverage)coverage.textContent=`${rows.length-counts.error} / ${rows.length} mit Wetterdaten`;
   renderDashboardSummerObjectList();renderDashboardSummerMap();
 }
