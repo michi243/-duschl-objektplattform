@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.2</title>
+<title>Duschl Service – Objektplattform v2.26.6.3</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -4123,6 +4123,100 @@ table td,table th{
   .ops-tour-object-service-select{grid-template-columns:1fr!important}
 }
 </style>
+
+<style id="mobile-weather-layout-hotfix-v22663">
+@media(max-width:700px){
+  .dashboard-summer-object-row{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    grid-template-rows:auto auto auto!important;
+    gap:7px 10px!important;
+    padding:11px 12px!important;
+    align-items:start!important;
+  }
+  .dashboard-summer-object-row>.dashboard-summer-object-statusdot{
+    display:none!important;
+  }
+  .dashboard-summer-object-main{
+    display:flex!important;
+    grid-column:1/2!important;
+    grid-row:1/2!important;
+    min-width:0!important;
+    gap:9px!important;
+    align-items:flex-start!important;
+  }
+  .dashboard-summer-object-main .dashboard-summer-object-statusdot{
+    display:block!important;
+    flex:0 0 10px!important;
+    margin-top:6px!important;
+  }
+  .dashboard-summer-object-name{
+    display:block!important;
+    font-size:15px!important;
+    line-height:1.2!important;
+    white-space:normal!important;
+    overflow:visible!important;
+  }
+  .dashboard-summer-object-address{
+    display:block!important;
+    margin-top:3px!important;
+    font-size:11px!important;
+    line-height:1.3!important;
+    white-space:normal!important;
+    overflow:visible!important;
+    text-overflow:clip!important;
+    word-break:normal!important;
+  }
+  .dashboard-summer-object-badge{
+    grid-column:2/3!important;
+    grid-row:1/2!important;
+    align-self:center!important;
+    justify-self:end!important;
+    margin:0!important;
+  }
+  .dashboard-summer-object-weather{
+    display:block!important;
+    grid-column:1/3!important;
+    grid-row:2/3!important;
+    margin:0 0 0 19px!important;
+    font-size:14px!important;
+    line-height:1.15!important;
+    white-space:normal!important;
+  }
+  .dashboard-summer-object-weather small{
+    display:inline!important;
+    margin-left:8px!important;
+    font-size:10px!important;
+  }
+  .dashboard-summer-object-temp,.dashboard-summer-object-rain{
+    display:none!important;
+  }
+  .dashboard-summer-object-actions{
+    grid-column:1/3!important;
+    grid-row:3/4!important;
+    margin-left:19px!important;
+    justify-content:flex-start!important;
+    gap:7px!important;
+  }
+  .dashboard-summer-object-actions .dashboard-summer-mini-btn{
+    min-height:36px!important;
+    padding:7px 12px!important;
+    font-size:11px!important;
+  }
+  .dashboard-summer-group-head{
+    min-height:38px!important;
+    padding:8px 10px!important;
+  }
+  .dashboard-summer-group-title{
+    min-width:0!important;
+    font-size:12px!important;
+    line-height:1.25!important;
+  }
+  .dashboard-summer-group-count{
+    flex:0 0 auto!important;
+  }
+}
+</style>
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -8041,7 +8135,16 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    WINTERDIENST: unverändert separater Fachprozess.
    BACKEND: keine SQL-/RLS-/RPC-Änderung.
 */
-const APP_VERSION='2.26.6.2'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.26.6.3 | BASIS 2.26.6.2 | 30.09.2026
+   MOBILE HOTFIX AUSSENPFLEGE-WETTERLAGE:
+   - doppelte Statuspunkte entfernt
+   - Objektname / Adresse / Wetter / Status entkoppelt
+   - keine Textüberlagerungen mehr
+   - Adresse darf mobil umbrechen statt abgeschnitten zu werden
+   - Desktop und Tourenlogik unverändert
+   BACKEND: keine SQL-/RLS-/RPC-Änderung.
+*/
+const APP_VERSION='2.26.6.3'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
