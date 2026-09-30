@@ -7669,7 +7669,15 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Editor scrollt beim Neuanlegen sichtbar in den Eingabebereich.
    - Bestehende historische managed_document_version_id-Werte bleiben unverändert erhalten.
 */
-const APP_VERSION='2.26.4.1'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.26.4.2 | BASIS 2.26.4.1 | 30.09.2026
+   HOTFIX OBJEKT-LEISTUNGSKATALOG:
+   - Eigene Objekte werden über organization_id zum aktiven Mandanten erkannt, nicht über externalManaged.
+   - Eigene Objekte zeigen immer alle aktiven Leistungsarten des Mandanten.
+   - Collaboration-/Scope-Filter greift ausschließlich bei tatsächlich fremden Objekten.
+   - Bereits aktive Leistungen bleiben gegen Doppelzuordnung geschützt.
+   - Keine SQL-/RLS-/RPC-Änderung.
+*/
+const APP_VERSION='2.26.4.2'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -23505,8 +23513,22 @@ function osaExternalAllowedScopeCodes(obj){
   }
   return codes;
 }
+function osaObjectOrganizationId(obj){
+  return String(obj?.organization_id||obj?.organizationId||'').trim();
+}
+function osaIsOwnObject(obj){
+  const activeOrg=String(currentOrganizationId()||'').trim();
+  const objectOrg=osaObjectOrganizationId(obj);
+  // Für eigene Objekte ist die Mandantenzugehörigkeit die Source of Truth.
+  // externalManaged ist nur ein UI-/Herkunftsmerkmal und darf eigene Objekte
+  // nicht irrtümlich auf Collaboration-Scopes reduzieren.
+  return !!activeOrg && !!objectOrg && activeOrg===objectOrg;
+}
+function osaUsesExternalScopeFilter(obj){
+  return !!obj?.externalManaged && !osaIsOwnObject(obj);
+}
 function osaExternalAllowedServices(obj){
-  if(!obj?.externalManaged)return osaState.services;
+  if(!osaUsesExternalScopeFilter(obj))return osaState.services;
   const allowedCodes=osaExternalAllowedScopeCodes(obj);
   return osaState.services.filter(st=>{
     const code=osaServiceScopeCode(st);
@@ -23514,7 +23536,7 @@ function osaExternalAllowedServices(obj){
   });
 }
 function osaExternalScopeLabel(obj){
-  if(!obj?.externalManaged)return '';
+  if(!osaUsesExternalScopeFilter(obj))return '';
   const rows=collaborationScopeRows(obj.collaborationId).filter(x=>x.active!==false);
   if(rows.length){
     return rows.map(x=>x.scope_name||x.name||x.scope_code).filter(Boolean).join(', ');
@@ -23592,7 +23614,7 @@ async function openObjectServicesModal(objectId){
           </div>
           <div id="osaInheritancePreview" class="card" style="padding:10px;margin-top:10px"><div class="muted">Leistungsart wählen – keine Dokumentauswahl erforderlich. SOPs, Arbeitsanweisungen und Checklisten werden automatisch vererbt.</div></div>
           <label style="margin-top:10px">Objektspezifische Ausnahme / Leistungsumfang<textarea id="osaNote" placeholder="Nur Abweichungen vom zentralen Standard, z. B. „Hinterhof nicht räumen“ oder „Hecke nur 2× jährlich“."></textarea></label>
-          ${obj.externalManaged?`<div class="muted" style="margin-top:6px"><strong>Externe Betreuung:</strong> Es sind ausschließlich Leistungen auswählbar, die vom Auftraggeber für diesen Mandanten freigegeben wurden. Freigegeben: ${esc(osaExternalScopeLabel(obj)||'—')}</div>`:''}
+          ${osaUsesExternalScopeFilter(obj)?`<div class="muted" style="margin-top:6px"><strong>Externe Betreuung:</strong> Es sind ausschließlich Leistungen auswählbar, die vom Auftraggeber für diesen Mandanten freigegeben wurden. Freigegeben: ${esc(osaExternalScopeLabel(obj)||'—')}</div>`:''}
           <div class="muted" style="margin-top:6px">Winterdienst wird automatisch dem spezialisierten Winterdienst-Prozess zugeordnet. Andere Leistungen laufen über Touren &amp; Einsätze.</div>
           <div class="row" style="margin-top:10px"><button class="primary" onclick="osaSave('${esc(objectId)}')">Leistung zuordnen</button></div>
         </div>
@@ -23608,7 +23630,7 @@ async function osaSave(objectId){
     const duplicate=(osaState.assignments||[]).find(a=>String(a.object_id)===String(objectId)&&String(a.service_type_id)===String(service_type_id)&&a.active!==false);
     if(duplicate)throw new Error('Diese Leistungsart ist dem Objekt bereits aktiv zugeordnet.');
     const obj=(db.objects||[]).find(o=>String(o.id)===String(objectId));
-    const rpc=obj?.externalManaged?'rpc/set_external_object_service_assignment_v2':'rpc/set_object_service_assignment_v2';
+    const rpc=osaUsesExternalScopeFilter(obj)?'rpc/set_external_object_service_assignment_v2':'rpc/set_object_service_assignment_v2';
     const payload={
       p_object_id:objectId,
       p_service_type_id:service_type_id,
@@ -23617,7 +23639,7 @@ async function osaSave(objectId){
       p_valid_until:document.getElementById('osaUntil')?.value||null,
       p_note:document.getElementById('osaNote')?.value.trim()||null
     };
-    if(obj?.externalManaged)payload.p_collaboration_id=obj.collaborationId||null;
+    if(osaUsesExternalScopeFilter(obj))payload.p_collaboration_id=obj.collaborationId||null;
     await cloudRequest(rpc,{method:'POST',body:JSON.stringify(payload)});
     await openObjectServicesModal(objectId);
   }catch(e){alert('Leistung konnte nicht zugeordnet werden: '+(e.message||e));}
