@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.17</title>
+<title>Duschl Service – Objektplattform v2.26.6.18</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -661,6 +661,99 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
   .ws-hourly-strip{grid-auto-columns:104px}
 }
 
+
+
+/* === Objektmodal Übersicht · 2.26.6.18 === */
+.object-edit-section{
+  margin-top:12px;
+  padding:14px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:14px;
+  background:#0b1f2d;
+}
+.object-edit-section-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+}
+.object-edit-section-head strong{font-size:15px}
+.object-edit-section-head .muted{margin-top:3px;font-size:11px;line-height:1.35}
+.object-geo-state{
+  flex:0 0 auto;
+  padding:5px 8px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:#081824;
+  color:#b8cad6;
+  font-size:10px;
+  font-weight:800;
+  white-space:nowrap;
+}
+.object-geo-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+.object-geo-saved{
+  margin-top:8px;
+  padding:8px 10px;
+  border-radius:10px;
+  background:#071824;
+  border:1px solid rgba(255,255,255,.10);
+}
+.object-geo-saved strong{font-size:11px}
+.object-geo-saved .muted{font-size:11px}
+.object-technical-details{
+  margin-top:8px;
+  border-top:1px solid rgba(255,255,255,.08);
+  padding-top:7px;
+}
+.object-technical-details summary{
+  cursor:pointer;
+  color:#8fa9ba;
+  font-size:10px;
+  font-weight:800;
+  list-style:none;
+}
+.object-technical-details summary::-webkit-details-marker{display:none}
+.object-technical-details summary::after{content:"▾";float:right}
+.object-technical-details[open] summary::after{content:"▴"}
+.object-notes-wrap{margin-top:12px}
+.object-notes-wrap textarea{min-height:86px!important}
+.object-option-card{
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  margin-top:12px!important;
+  padding:10px 12px!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  border-radius:12px!important;
+  background:#091b28!important;
+}
+#oIsTest{
+  width:18px!important;
+  height:18px!important;
+  min-width:18px!important;
+  max-width:18px!important;
+  flex:0 0 18px!important;
+  margin:0!important;
+  padding:0!important;
+}
+.object-collab-card{
+  margin-top:12px!important;
+  padding:12px!important;
+}
+.object-collab-card .row{align-items:center}
+.object-collab-card .muted{font-size:11px;line-height:1.35}
+@media(max-width:680px){
+  .object-edit-section{padding:11px}
+  .object-edit-section-head{align-items:flex-start}
+  .object-edit-section-head .muted{max-width:230px}
+}
 
 /* === GPS-Plausibilitätsprüfung · 2.21.61 === */
 .geo-check-box{
@@ -5402,13 +5495,13 @@ table td,table th{
 </style>
 
 <!--
-RELEASE 2.26.6.17 | BASIS 2.26.6.16 | 30.09.2026
-TOUR ALS FÜHRENDES PLANUNGSOBJEKT
-- Hauptworkflow auf zwei Fälle reduziert: Wiederkehrende Tour + einmaliger Auftrag.
-- Regelbetrieb wird ausschließlich über die Tour geplant.
-- Objektleistungen werden direkt als Tourstopps ausgewählt.
-- Separate wiederkehrende Einzelleistung nur noch als eingeklappter Sonderfall.
-- Keine Doppelplanung für Tourstopps.
+RELEASE 2.26.6.18 | BASIS 2.26.6.17 | 30.09.2026
+OBJEKTMODAL KOMPAKTER UND ÜBERSICHTLICHER
+- Geografischen Standort verdichtet und technische Details eingeklappt.
+- Plausibilitätsprüfung, Speicherstatus und Koordinaten klar getrennt.
+- Notizen kompakter gestaltet.
+- Testobjekt als saubere Option statt übergroßer Checkboxdarstellung.
+- Betreuung / Dienstleister kompakter dargestellt.
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <section class="section" id="operations">
@@ -8562,7 +8655,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.10.
    BACKEND: SQL 2.26.6.11 erforderlich.
 */
-/* RELEASE 2.26.6.17 | BASIS 2.26.6.12 | 30.09.2026
+/* RELEASE 2.26.6.18 | BASIS 2.26.6.12 | 30.09.2026
    WETTER-FALLBACK HARDENING:
    - Außenpflege akzeptiert object-weather nur noch bei verwertbarem care_24h-Datensatz.
    - Formal erfolgreiche, aber inhaltlich leere/ungültige Antworten lösen jetzt
@@ -8574,7 +8667,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.11.
    BACKEND: keine SQL-Änderung.
 */
-const APP_VERSION='2.26.6.17'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.6.18'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -22303,14 +22396,14 @@ async function cloudSaveManualObjectCoordinates(objectId,latitude,longitude){
 function objectGeocodeStatusHtml(o){
   const hasCoords=Number.isFinite(Number(o?.latitude))&&Number.isFinite(Number(o?.longitude));
   if(!hasCoords){
-    return `<div id="oGeoStatus" class="muted">Standort noch nicht geokodiert. Nach dem Speichern wird die vollständige Adresse automatisch aufgelöst.</div>`;
+    return `<div id="oGeoStatus" class="object-geo-saved"><strong>Noch kein Standort gespeichert</strong><div class="muted" style="margin-top:3px">Koordinaten eintragen und Objekt speichern.</div></div>`;
   }
   const at=o?.geocodedAt?new Date(o.geocodedAt).toLocaleString('de-DE'):'—';
   const source=String(o?.geocodeSource||'manual');
-  const sourceLabel=source==='manual'?'manuell gepflegt':source;
-  return `<div id="oGeoStatus">
-    <strong>Standort hinterlegt</strong>
-    <div class="muted" style="margin-top:4px">${Number(o.latitude).toFixed(6)}, ${Number(o.longitude).toFixed(6)} · ${esc(sourceLabel)} · ${esc(at)}</div>
+  const sourceLabel=source==='manual'?'manuell':source;
+  return `<div id="oGeoStatus" class="object-geo-saved">
+    <strong>Gespeicherter Standort</strong>
+    <div class="muted" style="margin-top:3px">${Number(o.latitude).toFixed(6)}, ${Number(o.longitude).toFixed(6)} · ${esc(sourceLabel)} · ${esc(at)}</div>
   </div>`;
 }
 async function cloudGeocodeObject(objectId,{force=false}={}){
@@ -22381,40 +22474,61 @@ function openObjectModal(id=''){
     </label>
   </div>
 
-  <div class="card" style="margin-top:12px;padding:12px">
-    <div>
-      <strong>Geografischer Standort</strong>
-      <div class="muted" style="margin-top:4px">Grundlage für Winterdienst-Wetter und spätere Routenplanung. Koordinaten werden manuell gepflegt.</div>
+  <div class="object-edit-section">
+    <div class="object-edit-section-head">
+      <div>
+        <strong>Geografischer Standort</strong>
+        <div class="muted">Für Wetterbewertung und Routenplanung.</div>
+      </div>
+      <span class="object-geo-state">${o.latitude!=null&&o.longitude!=null?'Koordinaten vorhanden':'Nicht hinterlegt'}</span>
     </div>
 
-    <div class="grid2" style="margin-top:10px">
+    <div class="grid2">
       <label>Breitengrad
-        <input id="oLatitude" inputmode="decimal" oninput="invalidateObjectCoordinateCheck()" value="${o.latitude==null?'':esc(String(o.latitude))}" placeholder="z. B. 48.187118">
+        <input id="oLatitude" inputmode="decimal" oninput="invalidateObjectCoordinateCheck()" value="${o.latitude==null?'':esc(String(o.latitude))}" placeholder="48.187118">
       </label>
       <label>Längengrad
-        <input id="oLongitude" inputmode="decimal" oninput="invalidateObjectCoordinateCheck()" value="${o.longitude==null?'':esc(String(o.longitude))}" placeholder="z. B. 11.592979">
+        <input id="oLongitude" inputmode="decimal" oninput="invalidateObjectCoordinateCheck()" value="${o.longitude==null?'':esc(String(o.longitude))}" placeholder="11.592979">
       </label>
     </div>
 
-    <div class="muted" style="margin-top:7px">Koordinaten z. B. in Windy oder einem Kartendienst ermitteln und hier eintragen.</div>
-
-    <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap">
+    <div class="object-geo-actions">
       <button type="button" onclick="checkObjectCoordinatesPlausibility()">Koordinaten prüfen</button>
+      <span class="muted" style="font-size:11px">Abgleich gegen die eingegebene PLZ</span>
     </div>
 
     <div id="oCoordinateCheckResult" class="geo-check-box" data-state="neutral">
       <div class="geo-check-title">Noch nicht geprüft</div>
-      <div class="geo-check-meta">Die Koordinaten werden nur gegen den Referenzpunkt der eingegebenen PLZ geprüft. Es findet keine Adresssuche statt.</div>
+      <div class="geo-check-meta">Prüft nur die Plausibilität der Koordinaten zur PLZ.</div>
     </div>
 
-    <div style="margin-top:8px">${objectGeocodeStatusHtml(o)}</div>
-    <div class="muted" style="margin-top:7px;font-size:12px">Manuell gespeicherte Koordinaten werden mit Quelle „manual“ dokumentiert. Referenzdaten für die PLZ-Prüfung: Zippopotam.us / GeoNames.</div>
+    ${objectGeocodeStatusHtml(o)}
+
+    <details class="object-technical-details">
+      <summary>Technische Details</summary>
+      <div class="muted" style="margin-top:7px;font-size:11px;line-height:1.4">
+        Koordinaten werden manuell gespeichert und mit Quelle „manual“ dokumentiert.
+        Referenzdaten der PLZ-Prüfung: Zippopotam.us / GeoNames.
+      </div>
+    </details>
   </div>
 
-  <label>Notizen</label><textarea id="oNotes">${esc(o.notes)}</textarea>
-  ${!id?`<div class="card" style="margin-top:14px;padding:12px"><strong>Standardbereiche</strong><div class="muted" style="margin-top:5px">Beim Anlegen werden automatisch folgende Bereiche erzeugt: ${DEFAULT_OBJECT_AREAS.map(esc).join(', ')}. Sie können anschließend objektbezogen umbenannt, deaktiviert oder ergänzt werden.</div></div>`:''}
-  <label class="row" style="gap:10px;align-items:center;margin-top:14px"><input id="oIsTest" type="checkbox" ${o.isTest?'checked':''}><span><strong>Testobjekt</strong><br><span class="muted"></span></span></label>
-  ${id&&hasOperationalAdminAccess()?`<div class="card" style="margin-top:14px;padding:12px"><div class="row space"><div><strong>Betreuung / Dienstleister</strong><div class="muted" style="margin-top:4px">Dieses Objekt einem Dienstleister zur dauerhaften Betreuung mit mehreren Leistungsumfängen zuordnen.</div></div><button type="button" onclick="openObjectCollaborationModal('${id}')">Betreuung vergeben</button></div></div>`:''}
+  <div class="object-notes-wrap">
+    <label>Notizen</label>
+    <textarea id="oNotes" placeholder="Optionale interne Hinweise zum Objekt">${esc(o.notes)}</textarea>
+  </div>
+
+  ${!id?`<div class="card" style="margin-top:12px;padding:12px"><strong>Standardbereiche</strong><div class="muted" style="margin-top:5px">Beim Anlegen werden automatisch folgende Bereiche erzeugt: ${DEFAULT_OBJECT_AREAS.map(esc).join(', ')}. Sie können anschließend objektbezogen umbenannt, deaktiviert oder ergänzt werden.</div></div>`:''}
+
+  <label class="object-option-card">
+    <input id="oIsTest" type="checkbox" ${o.isTest?'checked':''}>
+    <span>
+      <strong>Testobjekt</strong>
+      <span class="muted" style="display:block;margin-top:2px;font-size:11px">Nur aktivieren, wenn dieses Objekt bewusst für Tests verwendet wird.</span>
+    </span>
+  </label>
+
+  ${id&&hasOperationalAdminAccess()?`<div class="card object-collab-card"><div class="row space"><div><strong>Betreuung / Dienstleister</strong><div class="muted" style="margin-top:3px">Dauerhafte Betreuung und Leistungsumfänge verwalten.</div></div><button type="button" onclick="openObjectCollaborationModal('${id}')">Verwalten</button></div></div>`:''}
   <div class="row" style="margin-top:14px"><button class="primary" onclick="saveObject('${id}')">Speichern</button>${id?`<button class="danger" onclick="deleteObject('${id}')">Löschen</button>`:''}</div>`);
 }
 async function saveObject(id){
@@ -27117,7 +27231,7 @@ function opsWeekdayLabel(v){const m={0:'So',1:'Mo',2:'Di',3:'Mi',4:'Do',5:'Fr',6
 function opsIntervalLabel(v){return ({1:'wöchentlich',2:'alle 2 Wochen',4:'alle 4 Wochen'})[Number(v)]||`alle ${v} Wochen`;}
 function opsTimeWindowLabel(p){const a=String(p?.time_window_start||'').slice(0,5),b=String(p?.time_window_end||'').slice(0,5);return a&&b?`${a}–${b}`:a?`ab ${a}`:b?`bis ${b}`:'kein Zeitfenster';}
 
-/* RELEASE 2.26.6.17 | BASIS 2.26.6.13 | 30.09.2026
+/* RELEASE 2.26.6.18 | BASIS 2.26.6.13 | 30.09.2026
    EINMALIGER AUFTRAG: STAND-ALONE ODER TOURTERMIN
    - Begriff "Einzeltour" im Planungsdialog durch "Einmaliger Auftrag" ersetzt.
    - Kein Rhythmus / keine Wochentage für Ad-hoc-Aufträge.
