@@ -3910,6 +3910,19 @@ table td,table th{
    - Alle Objekte bleiben in Karte und Liste sichtbar; fehlende Wetterdaten erhalten grauen Status.
    - Keine SQL-/RLS-/Backend-Änderung.
 -->
+
+<!-- RELEASE 2.26.5.2 | BASIS 2.26.5.1 | 30.09.2026
+   FIX: Wetterkarte erhält feste, mobile Höhe; keine ResizeObserver-Rückkopplung über das Dashboard-Panel.
+   UX: Karte bleibt auf Mobilgeräten kompakt; Objektliste folgt direkt darunter.
+   BACKEND: keine SQL-/RLS-/RPC-Änderung.
+-->
+<!-- RELEASE 2.26.5.3 | BASIS 2.26.5.2 | 30.09.2026
+   HOTFIX: Mobile Wetterkarte bleibt fest auf 260 px begrenzt.
+   FIX: ResizeObserver-Rückkopplung entfernt; kein unendliches vertikales Wachstum mehr.
+   SAFARI: Höhe zusätzlich inline und per min/max-height abgesichert.
+   UNVERÄNDERT: Wetterdaten, Statuslogik, Objektliste, Pins, Planung, Rollen/RLS.
+   BACKEND: keine SQL-/RLS-/RPC-Änderung.
+-->
 <style id="summer-weather-map-v22650">
 .dashboard-summer-panel{cursor:default!important;padding:16px!important}
 .dashboard-summer-head{align-items:center!important}
@@ -3918,8 +3931,8 @@ table td,table th{
 .dashboard-summer-summary-card{background:#0b2030;border:1px solid #31536d;border-radius:13px;padding:10px 12px;min-width:0}
 .dashboard-summer-summary-card strong{display:block;font-size:22px;line-height:1.1}
 .dashboard-summer-summary-card span{display:block;color:var(--muted);font-size:11px;margin-top:4px}
-.dashboard-summer-map-wrap{margin-top:14px;border:1px solid #31536d;border-radius:16px;overflow:hidden;background:#0b2030;position:relative}
-#dashboardSummerMap{height:330px;width:100%;min-width:0;background:#102536;position:relative;isolation:isolate}.dashboard-summer-map-wrap .leaflet-container{width:100%!important;height:100%!important}
+.dashboard-summer-map-wrap{margin-top:14px;border:1px solid #31536d;border-radius:16px;overflow:hidden;background:#0b2030;position:relative;width:100%;height:260px!important;min-height:260px!important;max-height:260px!important;flex:0 0 260px!important}
+#dashboardSummerMap{position:absolute!important;inset:0!important;width:100%!important;height:260px!important;min-height:260px!important;max-height:260px!important;background:#102536;overflow:hidden!important}.dashboard-summer-map-wrap .leaflet-container{position:absolute!important;inset:0!important;width:100%!important;height:260px!important;min-height:260px!important;max-height:260px!important;overflow:hidden!important}
 .dashboard-summer-map-empty{display:flex;align-items:center;justify-content:center;height:260px;color:var(--muted);padding:20px;text-align:center}
 .dashboard-summer-map-legend{position:absolute;z-index:500;left:10px;top:10px;bottom:auto;display:flex;gap:7px;flex-wrap:wrap;padding:7px 9px;border-radius:11px;background:rgba(6,17,26,.88);border:1px solid #31536d;backdrop-filter:blur(8px)}
 .dashboard-summer-map-legend span{font-size:11px;color:#dce7ee;display:flex;align-items:center;gap:5px}.summer-dot{width:9px;height:9px;border-radius:50%;display:inline-block}.summer-dot.good{background:#45c878}.summer-dot.check{background:#f1b64a}.summer-dot.avoid{background:#ef5b64}.summer-dot.error{background:#8a98a4}
@@ -3938,7 +3951,7 @@ table td,table th{
 .dashboard-summer-object-detail{margin-top:10px;padding:12px;border:1px solid #31536d;border-radius:13px;background:#0a1d2b;display:none}.dashboard-summer-object-detail.is-open{display:block}
 .dashboard-summer-object-detail-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.dashboard-summer-object-detail-grid>div{border:1px solid #29485e;border-radius:10px;padding:9px}.dashboard-summer-object-detail-grid span{display:block;font-size:10px;color:var(--muted)}.dashboard-summer-object-detail-grid strong{display:block;margin-top:3px;font-size:14px}
 .leaflet-container{font-family:inherit}.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#0b2030;color:#fff}.leaflet-popup-content-wrapper{border:1px solid #31536d;border-radius:12px}.summer-popup-title{font-weight:900;margin-bottom:4px}.summer-popup-meta{color:#b9c7d1;font-size:12px;line-height:1.4}
-@media(max-width:700px){#dashboardSummerMap{height:300px}.dashboard-summer-summary{grid-template-columns:1fr 1fr}.dashboard-summer-summary-card:first-child{grid-column:1/-1}.dashboard-summer-object-row{grid-template-columns:12px minmax(0,1fr) auto!important}.dashboard-summer-object-weather{grid-column:2/3}.dashboard-summer-object-badge{grid-column:3/4;grid-row:1/3}.dashboard-summer-object-detail-grid{grid-template-columns:1fr 1fr}.dashboard-summer-head-actions{width:100%}.dashboard-summer-head-actions .tenant-action-btn{flex:1}.dashboard-summer-statusline{font-size:12px}}
+@media(max-width:700px){.dashboard-summer-map-wrap{height:260px!important;min-height:260px!important;max-height:260px!important;flex-basis:260px!important}#dashboardSummerMap,.dashboard-summer-map-wrap .leaflet-container{height:260px!important;min-height:260px!important;max-height:260px!important}.dashboard-summer-summary{grid-template-columns:1fr 1fr}.dashboard-summer-summary-card:first-child{grid-column:1/-1}.dashboard-summer-object-row{grid-template-columns:12px minmax(0,1fr) auto!important}.dashboard-summer-object-weather{grid-column:2/3}.dashboard-summer-object-badge{grid-column:3/4;grid-row:1/3}.dashboard-summer-object-detail-grid{grid-template-columns:1fr 1fr}.dashboard-summer-head-actions{width:100%}.dashboard-summer-head-actions .tenant-action-btn{flex:1}.dashboard-summer-statusline{font-size:12px}}
 </style>
 </head>
 <body>
@@ -4323,8 +4336,8 @@ table td,table th{
       <div class="dashboard-summer-summary-card"><strong id="dashboardSummerError">—</strong><span>Daten fehlen</span></div>
     </div>
 
-    <div class="dashboard-summer-map-wrap">
-      <div id="dashboardSummerMap"></div>
+    <div class="dashboard-summer-map-wrap" style="height:260px;min-height:260px;max-height:260px;flex:0 0 260px">
+      <div id="dashboardSummerMap" style="height:260px;min-height:260px;max-height:260px"></div>
       <div class="dashboard-summer-map-legend">
         <span><i class="summer-dot good"></i> geeignet</span>
         <span><i class="summer-dot check"></i> beobachten</span>
@@ -7754,7 +7767,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Download-Aktion zusätzlich an verknüpften Standards
    - keine SQL-/RLS-/RPC-Änderung
 */
-const APP_VERSION='2.26.4.4'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.5.3'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -18261,11 +18274,10 @@ function dashboardSummerMapRefit(){
   }catch(e){console.warn('Sommer-Wetterkarte konnte nicht neu ausgerichtet werden',e);}
 }
 function dashboardSummerScheduleMapRefit(){
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+  requestAnimationFrame(()=>{
     dashboardSummerMapRefit();
     setTimeout(dashboardSummerMapRefit,120);
-    setTimeout(dashboardSummerMapRefit,350);
-  }));
+  });
 }
 function renderDashboardSummerMap(){
   const host=document.getElementById('dashboardSummerMap');if(!host)return;
@@ -18285,11 +18297,6 @@ function renderDashboardSummerMap(){
     host.innerHTML='';
     dashboardSummerMap=L.map(host,{zoomControl:true,attributionControl:true,scrollWheelZoom:false,fadeAnimation:false,zoomAnimation:false,markerZoomAnimation:false});
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap',updateWhenIdle:false,keepBuffer:4}).addTo(dashboardSummerMap);
-    if('ResizeObserver' in window){
-      dashboardSummerMapResizeObserver=new ResizeObserver(()=>dashboardSummerScheduleMapRefit());
-      dashboardSummerMapResizeObserver.observe(host);
-      const panel=document.getElementById('dashboardSummerPanel');if(panel)dashboardSummerMapResizeObserver.observe(panel);
-    }
   }else{
     dashboardSummerMapMarkers.forEach(m=>{try{m.remove()}catch(_e){}});dashboardSummerMapMarkers=[];
   }
