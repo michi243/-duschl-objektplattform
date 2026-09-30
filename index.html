@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.14</title>
+<title>Duschl Service – Objektplattform v2.26.6.15</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5274,14 +5274,165 @@ table td,table th{
   </div>
 </section>
 
+
+<style id="ops-planning-clarity-v226615">
+.ops-planning-guide{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+  margin-top:14px;
+}
+.ops-planning-choice{
+  border:1px solid #2f5066;
+  border-radius:14px;
+  padding:14px;
+  background:linear-gradient(180deg,#0d2636 0%,#0a1d2a 100%);
+  min-height:150px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  gap:12px;
+}
+.ops-planning-choice.is-primary{border-color:#5d87a2;background:linear-gradient(180deg,#123247 0%,#0b2231 100%)}
+.ops-planning-choice-kicker{
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  font-weight:900;
+  color:#8fb0c4;
+}
+.ops-planning-choice h3{margin:4px 0 5px;font-size:15px}
+.ops-planning-choice p{margin:0;color:#b4c7d4;font-size:11px;line-height:1.45}
+.ops-planning-choice .ops-choice-example{
+  margin-top:8px;
+  padding:7px 8px;
+  border-radius:9px;
+  background:#071722;
+  border:1px solid #27465b;
+  color:#d8e5ed;
+  font-size:10px;
+  line-height:1.35;
+}
+.ops-planning-choice button{width:100%}
+
+.ops-planning-section-card{
+  position:relative;
+  overflow:hidden;
+  border-color:#31566e!important;
+}
+.ops-planning-section-card::before{
+  content:"";
+  position:absolute;
+  left:0;top:0;bottom:0;
+  width:4px;
+  background:#4a7895;
+}
+.ops-planning-section-head{
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  margin-bottom:12px;
+}
+.ops-planning-step{
+  flex:0 0 30px;
+  width:30px;height:30px;
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:#163e57;
+  border:1px solid #49728d;
+  font-size:12px;
+  font-weight:900;
+}
+.ops-planning-section-title h3{margin:0}
+.ops-planning-section-title .muted{margin-top:4px}
+.ops-when-use{
+  margin:10px 0 12px;
+  border:1px solid #31536d;
+  border-radius:11px;
+  padding:9px 10px;
+  background:#081a27;
+  font-size:10px;
+  line-height:1.45;
+  color:#c3d3dd;
+}
+.ops-when-use strong{color:#fff}
+.ops-no-double-plan{
+  margin-top:8px;
+  padding:8px 10px;
+  border-radius:10px;
+  border:1px solid #6d5e2d;
+  background:#241f0f;
+  color:#ead58d;
+  font-size:10px;
+  line-height:1.4;
+}
+.ops-assignment-management details summary{
+  cursor:pointer;
+  font-weight:900;
+  list-style:none;
+}
+.ops-assignment-management details summary::-webkit-details-marker{display:none}
+.ops-assignment-management details summary::after{
+  content:"▾";
+  float:right;
+  color:#9bb6c7;
+}
+.ops-assignment-management details[open] summary::after{content:"▴"}
+.ops-section-divider{
+  margin:16px 0 8px;
+  border-top:1px solid #244255;
+}
+@media(max-width:900px){
+  .ops-planning-guide{grid-template-columns:1fr}
+  .ops-planning-choice{min-height:0}
+}
+</style>
+
+/* RELEASE 2.26.6.15 | BASIS 2.26.6.14 | 30.09.2026
+   PLANUNGSLOGIK UI / UX
+   - Drei klar getrennte Planungstypen als Einstieg: Einzelleistung, Tour, Einmalauftrag.
+   - Wiederkehrender Leistungsplan verständlich in "Regelmäßige Einzelleistung" umbenannt.
+   - Tourvorlage verständlich in "Wiederkehrende Tour" umbenannt.
+   - Klare Hinweise gegen Doppelplanung: Tourstopps benötigen keinen separaten Leistungsplan.
+   - Planbare Objektleistungen als Grundlagenbereich visuell zurückgenommen.
+   - Geplante Einsätze als automatisch erzeugte Tourtermine bezeichnet.
+   - Keine SQL-, RLS- oder Edge-Änderung.
+*/
 <section class="section" id="operations">
   <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
-    <div><h2 style="margin:0">Touren &amp; Einsätze</h2><div class="muted" style="margin-top:6px"><span id="opsSubtitle">Regelmäßige Leistungen automatisch planen und mit zusätzlichen Aufgaben ergänzen.</span></div></div>
+    <div><h2 style="margin:0">Touren &amp; Einsätze</h2><div class="muted" style="margin-top:6px"><span id="opsSubtitle">Wähle zuerst den Planungstyp: Einzelleistung, wiederkehrende Tour oder einmaliger Auftrag.</span></div></div>
     <button type="button" onclick="opsLoad()">↻ Aktualisieren</button>
   </div>
-  <div class="ops-planning-only ops-planning-actions">
-    <button class="primary" type="button" onclick="opsOpenOneoffPlanner()">+ Einmaligen Auftrag planen</button>
-    <button type="button" onclick="document.getElementById('opsTourName')?.scrollIntoView({behavior:'smooth',block:'center'})">+ Wiederkehrende Tour planen</button>
+  <div class="ops-planning-only ops-planning-guide">
+    <div class="ops-planning-choice">
+      <div>
+        <div class="ops-planning-choice-kicker">Fall 1 · eine Leistung</div>
+        <h3>Regelmäßige Einzelleistung</h3>
+        <p>Nutzen, wenn genau eine Objektleistung regelmäßig erledigt wird und nicht Bestandteil einer festen Tour ist.</p>
+        <div class="ops-choice-example">Beispiel: Jeden Freitag Müllbereitstellung bei WEG Stoerstrasse.</div>
+      </div>
+      <button type="button" onclick="document.getElementById('opsSinglePlanCard')?.scrollIntoView({behavior:'smooth',block:'start'})">Einzelleistung planen</button>
+    </div>
+
+    <div class="ops-planning-choice is-primary">
+      <div>
+        <div class="ops-planning-choice-kicker">Fall 2 · mehrere Stopps</div>
+        <h3>Wiederkehrende Tour</h3>
+        <p>Nutzen, wenn mehrere Objektleistungen regelmäßig gemeinsam in einer festen Reihenfolge gefahren werden.</p>
+        <div class="ops-choice-example">Beispiel: Dienstag Nord – Müll → Hausmeisterservice → Außenpflege.</div>
+      </div>
+      <button class="primary" type="button" onclick="document.getElementById('opsTourTemplateCard')?.scrollIntoView({behavior:'smooth',block:'start'})">Tour planen</button>
+    </div>
+
+    <div class="ops-planning-choice">
+      <div>
+        <div class="ops-planning-choice-kicker">Fall 3 · einmalig</div>
+        <h3>Einmaliger Auftrag</h3>
+        <p>Freier Ad-hoc-Auftrag – als eigener Einsatz oder einmalig zu einem konkreten Tourtermin hinzufügen.</p>
+        <div class="ops-choice-example">Beispiel: Beim Bäcker Material abholen.</div>
+      </div>
+      <button type="button" onclick="opsOpenOneoffPlanner()">Einmaligen Auftrag planen</button>
+    </div>
   </div>
 
   <div id="opsOneoffPlanner" class="card ops-planning-only ops-oneoff-card hidden" style="margin-top:14px">
@@ -5361,17 +5512,26 @@ table td,table th{
   </div>
   <div class="grid g2 ops-planning-only" style="margin-top:14px">
     <div class="card ops-assignment-management">
-      <h3>Planbare Objektleistungen</h3>
-      <div class="muted">Aktive Objekt-Leistungszuordnungen. Winterdienst bleibt im separaten Fachprozess.</div>
-      <input id="opsAssignmentSearch" type="search" placeholder="Objekt oder Leistung suchen …" style="margin-top:10px" oninput="opsRenderAssignmentManagement()">
-      <div id="opsAssignmentList" style="margin-top:10px"></div>
+      <details open>
+        <summary>Grundlage: planbare Objektleistungen</summary>
+        <div class="muted" style="margin-top:7px">Hier siehst du, welche Objekt-Leistungszuordnungen für Einzelleistungen und Touren verfügbar sind. Winterdienst bleibt separat.</div>
+        <input id="opsAssignmentSearch" type="search" placeholder="Objekt oder Leistung suchen …" style="margin-top:10px" oninput="opsRenderAssignmentManagement()">
+        <div id="opsAssignmentList" style="margin-top:10px"></div>
+      </details>
     </div>
 
-    <div class="card">
+    <div class="card ops-planning-section-card" id="opsSinglePlanCard">
       <div class="row space" style="gap:10px;align-items:flex-start">
-        <div><h3 style="margin:0">Wiederkehrender Leistungsplan</h3><div class="muted" style="margin-top:5px">Rhythmus und Zeitbedarf für eine verbindlich zugeordnete Objektleistung.</div></div>
+        <div class="ops-planning-section-head" style="margin-bottom:0">
+          <div class="ops-planning-step">1</div>
+          <div class="ops-planning-section-title">
+            <h3>Regelmäßige Einzelleistung</h3>
+            <div class="muted">Eine einzelne Objektleistung bekommt ihren eigenen Rhythmus.</div>
+          </div>
+        </div>
         <span id="opsPlanEditBadge" class="badge hidden">Bearbeitung</span>
       </div>
+      <div class="ops-when-use"><strong>Wann nutzen?</strong> Wenn diese Leistung unabhängig von einer Tour wiederkehrt. Ist sie fester Bestandteil einer wiederkehrenden Tour, plane sie direkt dort und lege hier keinen zusätzlichen Leistungsplan an.</div>
 
       <div class="grid2 ops-plan-selection" style="margin-top:12px">
         <label>1. Objekt
@@ -5409,16 +5569,25 @@ table td,table th{
       </label>
 
       <div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">
-        <button id="opsPlanSaveBtn" class="primary" onclick="opsSavePlan()">Leistungsplan speichern</button>
+        <button id="opsPlanSaveBtn" class="primary" onclick="opsSavePlan()">Regelmäßige Einzelleistung speichern</button>
         <button id="opsPlanCancelBtn" class="hidden" onclick="opsCancelPlanEdit()">Bearbeitung abbrechen</button>
       </div>
       <div id="opsPlanList" style="display:none"></div>
     </div>
   </div>
   <div class="grid g2 ops-planning-only" style="margin-top:14px">
-    <div class="card"><h3>Tourvorlagen</h3>
-      <div class="grid2">
-        <label>Name<input id="opsTourName" placeholder="z. B. Dienstag Nord"></label>
+    <div class="card ops-planning-section-card" id="opsTourTemplateCard">
+      <div class="ops-planning-section-head">
+        <div class="ops-planning-step">2</div>
+        <div class="ops-planning-section-title">
+          <h3>Wiederkehrende Tour</h3>
+          <div class="muted">Mehrere Objektleistungen gemeinsam planen – mit einem Rhythmus und einer festen Reihenfolge.</div>
+        </div>
+      </div>
+      <div class="ops-when-use"><strong>Wann nutzen?</strong> Wenn mehrere Stopps regelmäßig gemeinsam gefahren werden. Der Rhythmus wird nur einmal für die gesamte Tour definiert.</div>
+      <div class="ops-no-double-plan">Wichtig: Für Stopps dieser Tour ist kein zusätzlicher wiederkehrender Leistungsplan erforderlich.</div>
+      <div class="grid2" style="margin-top:12px">
+        <label>Tourname<input id="opsTourName" placeholder="z. B. Dienstag Nord"></label>
         <label>Startzeit<input id="opsTourStart" type="time" value="07:00"></label>
       </div>
       <div class="grid2" style="margin-top:10px">
@@ -5446,7 +5615,7 @@ table td,table th{
         <label>Gültig von<input id="opsTourFrom" type="date"></label>
         <label>Gültig bis<input id="opsTourUntil" type="date"></label>
       </div>
-      <div class="muted" style="margin-top:7px">Der Rhythmus gilt für die gesamte Tour. Einzelne Tourstopps benötigen keinen separaten Leistungsplan mehr.</div>
+      <div class="muted" style="margin-top:7px">Rhythmus, Wochentage und Gültigkeit gelten für die komplette Tour.</div>
       <div class="ops-tour-stop-editor" style="margin-top:10px">
         <div class="grid2 ops-tour-object-service-select">
           <label>1. Objekt
@@ -5468,12 +5637,12 @@ table td,table th{
         <div id="opsTourDraftStops" class="ops-tour-draft-stops" style="margin-top:10px"></div>
       </div>
       <div class="row" style="margin-top:10px;gap:8px">
-        <button id="opsTourSaveBtn" class="primary" type="button" onclick="opsSaveTour()">Tourvorlage speichern</button>
+        <button id="opsTourSaveBtn" class="primary" type="button" onclick="opsSaveTour()">Wiederkehrende Tour speichern</button>
         <button id="opsTourCancelBtn" class="hidden" type="button" onclick="opsCancelTourEdit()">Abbrechen</button>
       </div>
       <div id="opsTourEditInfo" class="muted hidden" style="margin-top:8px">Bearbeitungsmodus: bestehende Tourvorlage.</div>
       <div id="opsTourList" style="margin-top:12px"></div></div>
-    <div class="card"><h3>Geplante Einsätze</h3><div class="muted">Tagestouren entstehen automatisch aus Rhythmus und Stoppreihenfolge der Tourvorlage. Zusatzaufgaben aus dem Arbeitsvorrat werden objektbezogen ergänzt.</div><div id="opsRunList" style="margin-top:12px"></div></div>
+    <div class="card"><h3>Automatisch erzeugte Tourtermine</h3><div class="muted">Aus der wiederkehrenden Tour entstehen konkrete Einsätze. Änderungen an einem einzelnen Termin verändern die Tourvorlage nicht.</div><div id="opsRunList" style="margin-top:12px"></div></div>
   </div>
 
   <div id="opsOperativeView" class="hidden" style="margin-top:14px">
@@ -8381,7 +8550,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.10.
    BACKEND: SQL 2.26.6.11 erforderlich.
 */
-/* RELEASE 2.26.6.14 | BASIS 2.26.6.12 | 30.09.2026
+/* RELEASE 2.26.6.15 | BASIS 2.26.6.12 | 30.09.2026
    WETTER-FALLBACK HARDENING:
    - Außenpflege akzeptiert object-weather nur noch bei verwertbarem care_24h-Datensatz.
    - Formal erfolgreiche, aber inhaltlich leere/ungültige Antworten lösen jetzt
@@ -8393,7 +8562,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.11.
    BACKEND: keine SQL-Änderung.
 */
-const APP_VERSION='2.26.6.14'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.6.15'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -26936,7 +27105,7 @@ function opsWeekdayLabel(v){const m={0:'So',1:'Mo',2:'Di',3:'Mi',4:'Do',5:'Fr',6
 function opsIntervalLabel(v){return ({1:'wöchentlich',2:'alle 2 Wochen',4:'alle 4 Wochen'})[Number(v)]||`alle ${v} Wochen`;}
 function opsTimeWindowLabel(p){const a=String(p?.time_window_start||'').slice(0,5),b=String(p?.time_window_end||'').slice(0,5);return a&&b?`${a}–${b}`:a?`ab ${a}`:b?`bis ${b}`:'kein Zeitfenster';}
 
-/* RELEASE 2.26.6.14 | BASIS 2.26.6.13 | 30.09.2026
+/* RELEASE 2.26.6.15 | BASIS 2.26.6.13 | 30.09.2026
    EINMALIGER AUFTRAG: STAND-ALONE ODER TOURTERMIN
    - Begriff "Einzeltour" im Planungsdialog durch "Einmaliger Auftrag" ersetzt.
    - Kein Rhythmus / keine Wochentage für Ad-hoc-Aufträge.
