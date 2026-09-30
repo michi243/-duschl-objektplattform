@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.15</title>
+<title>Duschl Service – Objektplattform v2.26.6.16</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5388,16 +5388,13 @@ table td,table th{
 }
 </style>
 
-/* RELEASE 2.26.6.15 | BASIS 2.26.6.14 | 30.09.2026
-   PLANUNGSLOGIK UI / UX
-   - Drei klar getrennte Planungstypen als Einstieg: Einzelleistung, Tour, Einmalauftrag.
-   - Wiederkehrender Leistungsplan verständlich in "Regelmäßige Einzelleistung" umbenannt.
-   - Tourvorlage verständlich in "Wiederkehrende Tour" umbenannt.
-   - Klare Hinweise gegen Doppelplanung: Tourstopps benötigen keinen separaten Leistungsplan.
-   - Planbare Objektleistungen als Grundlagenbereich visuell zurückgenommen.
-   - Geplante Einsätze als automatisch erzeugte Tourtermine bezeichnet.
-   - Keine SQL-, RLS- oder Edge-Änderung.
-*/
+<!--
+RELEASE 2.26.6.16 | BASIS 2.26.6.15 | 30.09.2026
+HOTFIX RELEASE-HINWEIS
+- Sichtbar gerenderten JS-Kommentar aus dem HTML-Body entfernt.
+- Release-Notiz als unsichtbarer HTML-Kommentar hinterlegt.
+- Keine funktionale Änderung an Planung, SQL, RLS oder Edge.
+-->
 <section class="section" id="operations">
   <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
     <div><h2 style="margin:0">Touren &amp; Einsätze</h2><div class="muted" style="margin-top:6px"><span id="opsSubtitle">Wähle zuerst den Planungstyp: Einzelleistung, wiederkehrende Tour oder einmaliger Auftrag.</span></div></div>
@@ -8550,7 +8547,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.10.
    BACKEND: SQL 2.26.6.11 erforderlich.
 */
-/* RELEASE 2.26.6.15 | BASIS 2.26.6.12 | 30.09.2026
+/* RELEASE 2.26.6.16 | BASIS 2.26.6.12 | 30.09.2026
    WETTER-FALLBACK HARDENING:
    - Außenpflege akzeptiert object-weather nur noch bei verwertbarem care_24h-Datensatz.
    - Formal erfolgreiche, aber inhaltlich leere/ungültige Antworten lösen jetzt
@@ -8562,7 +8559,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.11.
    BACKEND: keine SQL-Änderung.
 */
-const APP_VERSION='2.26.6.15'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.6.16'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -27105,7 +27102,7 @@ function opsWeekdayLabel(v){const m={0:'So',1:'Mo',2:'Di',3:'Mi',4:'Do',5:'Fr',6
 function opsIntervalLabel(v){return ({1:'wöchentlich',2:'alle 2 Wochen',4:'alle 4 Wochen'})[Number(v)]||`alle ${v} Wochen`;}
 function opsTimeWindowLabel(p){const a=String(p?.time_window_start||'').slice(0,5),b=String(p?.time_window_end||'').slice(0,5);return a&&b?`${a}–${b}`:a?`ab ${a}`:b?`bis ${b}`:'kein Zeitfenster';}
 
-/* RELEASE 2.26.6.15 | BASIS 2.26.6.13 | 30.09.2026
+/* RELEASE 2.26.6.16 | BASIS 2.26.6.13 | 30.09.2026
    EINMALIGER AUFTRAG: STAND-ALONE ODER TOURTERMIN
    - Begriff "Einzeltour" im Planungsdialog durch "Einmaliger Auftrag" ersetzt.
    - Kein Rhythmus / keine Wochentage für Ad-hoc-Aufträge.
