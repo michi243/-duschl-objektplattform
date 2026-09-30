@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.19</title>
+<title>Duschl Service – Objektplattform v2.26.6.20</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -663,7 +663,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 
 
 
-/* === Objektmodal Übersicht · 2.26.6.19 === */
+/* === Objektmodal Übersicht · 2.26.6.20 === */
 .object-edit-section{
   margin-top:12px;
   padding:14px;
@@ -756,7 +756,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Wochensteuerung Tourenlogik · 2.26.6.19 === */
+/* === Wochensteuerung Tourenlogik · 2.26.6.20 === */
 .rp-week-summary{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
@@ -5568,15 +5568,13 @@ table td,table th{
 </style>
 
 <!--
-RELEASE 2.26.6.19 | BASIS 2.26.6.18 | 30.09.2026
-WOCHENSTEUERUNG AUF TATSÄCHLICHE TOUREN UMGESTELLT
-- Geplante Stunden aus operation_runs + operation_run_stops der gewählten Woche.
-- Wiederkehrende Touren, Hybridtouren und Stand-alone-Einmalaufträge berücksichtigt.
-- Stornierte Einsätze ausgeschlossen; abgeschlossene Einsätze bleiben als verbrauchte Wochenkapazität enthalten.
-- Winterdienst separat gezählt.
-- Mitarbeiterzeile öffnet Wochenansicht mit konkreten Einsätzen.
-- Direkte Aktion für Einmalauftrag und Tour-Disposition.
-- Warnung bei Stopps ohne Soll-Dauer.
+RELEASE 2.26.6.20 | BASIS 2.26.6.19 | 30.09.2026
+HOTFIX TOURVORLAGE BEARBEITEN
+- Direkte Tourstopps werden nicht mehr an recurring_service_plans gekoppelt.
+- Bestehende Tourstopps werden beim Bearbeiten aktualisiert statt pauschal neu eingefügt.
+- Entfernte Stopps werden nur deaktiviert; alte recurring_plan_id-Verknüpfungen werden gelöst.
+- Behebt UNIQUE-Konflikt operation_tour_stops_tour_template_id_recurring_plan_id_key.
+- Tour bleibt führendes Planungsobjekt.
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <section class="section" id="operations">
@@ -8739,7 +8737,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.10.
    BACKEND: SQL 2.26.6.11 erforderlich.
 */
-/* RELEASE 2.26.6.19 | BASIS 2.26.6.12 | 30.09.2026
+/* RELEASE 2.26.6.20 | BASIS 2.26.6.12 | 30.09.2026
    WETTER-FALLBACK HARDENING:
    - Außenpflege akzeptiert object-weather nur noch bei verwertbarem care_24h-Datensatz.
    - Formal erfolgreiche, aber inhaltlich leere/ungültige Antworten lösen jetzt
@@ -8751,7 +8749,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.11.
    BACKEND: keine SQL-Änderung.
 */
-const APP_VERSION='2.26.6.19'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.6.20'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -27498,7 +27496,7 @@ function opsWeekdayLabel(v){const m={0:'So',1:'Mo',2:'Di',3:'Mi',4:'Do',5:'Fr',6
 function opsIntervalLabel(v){return ({1:'wöchentlich',2:'alle 2 Wochen',4:'alle 4 Wochen'})[Number(v)]||`alle ${v} Wochen`;}
 function opsTimeWindowLabel(p){const a=String(p?.time_window_start||'').slice(0,5),b=String(p?.time_window_end||'').slice(0,5);return a&&b?`${a}–${b}`:a?`ab ${a}`:b?`bis ${b}`:'kein Zeitfenster';}
 
-/* RELEASE 2.26.6.19 | BASIS 2.26.6.13 | 30.09.2026
+/* RELEASE 2.26.6.20 | BASIS 2.26.6.13 | 30.09.2026
    EINMALIGER AUFTRAG: STAND-ALONE ODER TOURTERMIN
    - Begriff "Einzeltour" im Planungsdialog durch "Einmaliger Auftrag" ersetzt.
    - Kein Rhythmus / keine Wochentage für Ad-hoc-Aufträge.
@@ -28917,7 +28915,7 @@ function opsRenderTourDraftStops(){
       <div class="ops-tour-draft-index">${i+1}</div>
       <div>
         <div class="ops-tour-draft-title">${opsEsc(opsObjName(a.object_id))} · ${opsEsc(opsServiceName(a.service_type_id))}</div>
-        <div class="ops-tour-draft-sub"><span class="ops-tour-direct-badge">${plan?'Einzelplan optional verknüpft':'Direkter Tourstopp'}</span></div>
+        <div class="ops-tour-draft-sub"><span class="ops-tour-direct-badge">${plan?'Direkter Tourstopp':'Direkter Tourstopp'}</span></div>
         <div class="ops-tour-draft-sop">${opsEsc(opsSopLabel(a))}</div>
         <label class="ops-tour-draft-duration">Dauer
           <input type="number" min="5" max="1440" step="5" value="${opsEsc(item.planned_duration_minutes||60)}" onchange="opsTourSetDuration(${i},this.value)">
@@ -29149,14 +29147,14 @@ async function opsSaveTour(){
       const duration=Number(item.planned_duration_minutes||60);
       if(!Number.isFinite(duration)||duration<5||duration>1440)throw new Error('Die geplante Dauer je Tourstopp muss zwischen 5 und 1440 Minuten liegen.');
 
-      const plan=opsTourPlanForAssignment(a);
-
       return {
         organization_id:opsOrg(),
         object_service_assignment_id:a.id,
         object_id:a.object_id,
         service_type_id:a.service_type_id,
-        recurring_plan_id:plan?.id||null,
+        // 2.26.6.20: Die Tour ist das führende Planungsobjekt.
+        // Direkte Tourstopps benötigen keinen recurring_service_plan.
+        recurring_plan_id:null,
         planned_duration_minutes:duration,
         sort_order:i+1,
         active:true
@@ -29182,17 +29180,72 @@ async function opsSaveTour(){
         body:JSON.stringify(templatePayload)
       });
 
-      await cloudRequest(`operation_tour_stops?tour_template_id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(opsOrg())}`,{
-        method:'PATCH',
-        headers:{Prefer:'return=minimal'},
-        body:JSON.stringify({active:false})
-      });
+      // 2.26.6.20:
+      // Bestehende Tourstopps nicht pauschal deaktivieren und neu einfügen.
+      // Sonst kollidieren historische/inaktive Datensätze mit UNIQUE-Constraints
+      // wie (tour_template_id, recurring_plan_id).
+      // Vorhandene Stopps werden wiederverwendet und aktualisiert.
+      const existingStops=await cloudRequest(
+        `operation_tour_stops?select=*&tour_template_id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(opsOrg())}&order=sort_order.asc`
+      )||[];
 
-      await cloudRequest('operation_tour_stops',{
-        method:'POST',
-        headers:{Prefer:'return=minimal'},
-        body:JSON.stringify(rows.map(x=>({...x,tour_template_id:id})))
-      });
+      const usedStopIds=new Set();
+
+      for(const row of rows){
+        const existing=(existingStops||[]).find(s=>
+          String(s.object_service_assignment_id||'')===String(row.object_service_assignment_id||'')
+          && !usedStopIds.has(String(s.id||''))
+        );
+
+        if(existing?.id){
+          usedStopIds.add(String(existing.id));
+          await cloudRequest(
+            `operation_tour_stops?id=eq.${encodeURIComponent(existing.id)}&organization_id=eq.${encodeURIComponent(opsOrg())}`,
+            {
+              method:'PATCH',
+              headers:{Prefer:'return=minimal'},
+              body:JSON.stringify({
+                object_service_assignment_id:row.object_service_assignment_id,
+                object_id:row.object_id,
+                service_type_id:row.service_type_id,
+                recurring_plan_id:null,
+                planned_duration_minutes:row.planned_duration_minutes,
+                sort_order:row.sort_order,
+                active:true
+              })
+            }
+          );
+        }else{
+          await cloudRequest('operation_tour_stops',{
+            method:'POST',
+            headers:{Prefer:'return=minimal'},
+            body:JSON.stringify({
+              ...row,
+              id:crypto.randomUUID(),
+              tour_template_id:id,
+              recurring_plan_id:null
+            })
+          });
+        }
+      }
+
+      // Nicht mehr verwendete Stopps bleiben aus Historien-/Referenzgründen bestehen,
+      // werden aber deaktiviert. recurring_plan_id wird gelöst, damit keine
+      // veraltete Planverknüpfung spätere Änderungen blockiert.
+      for(const existing of existingStops||[]){
+        if(!existing?.id || usedStopIds.has(String(existing.id)))continue;
+        await cloudRequest(
+          `operation_tour_stops?id=eq.${encodeURIComponent(existing.id)}&organization_id=eq.${encodeURIComponent(opsOrg())}`,
+          {
+            method:'PATCH',
+            headers:{Prefer:'return=minimal'},
+            body:JSON.stringify({
+              active:false,
+              recurring_plan_id:null
+            })
+          }
+        );
+      }
 
       await opsSyncFutureRunsFromTourTemplate(id,{notify:true});
 
@@ -29217,7 +29270,12 @@ async function opsSaveTour(){
     await cloudRequest('operation_tour_stops',{
       method:'POST',
       headers:{Prefer:'return=minimal'},
-      body:JSON.stringify(rows.map(x=>({...x,tour_template_id:id})))
+      body:JSON.stringify(rows.map(x=>({
+        ...x,
+        id:crypto.randomUUID(),
+        tour_template_id:id,
+        recurring_plan_id:null
+      })))
     });
 
     opsResetTourForm();
