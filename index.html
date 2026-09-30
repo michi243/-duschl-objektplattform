@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.1</title>
+<title>Duschl Service – Objektplattform v2.26.6.2</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -4112,6 +4112,17 @@ table td,table th{
   .ops-tour-draft-actions{grid-column:2/3;justify-content:flex-start}
 }
 </style>
+
+<style id="ops-tour-object-service-editor-v22662">
+.ops-tour-object-service-select{align-items:end}
+.ops-tour-service-unavailable{color:#9aa8b2}
+.ops-tour-draft-sop{margin-top:4px;font-size:10px;color:#b7c8d3;line-height:1.35}
+.ops-tour-selection-warning{color:#f0c56b}
+.ops-tour-selection-ok{color:#8ee3aa}
+@media(max-width:700px){
+  .ops-tour-object-service-select{grid-template-columns:1fr!important}
+}
+</style>
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -5196,15 +5207,23 @@ table td,table th{
   <div class="grid g2 ops-planning-only" style="margin-top:14px">
     <div class="card"><h3>Tourvorlagen</h3><div class="grid2"><label>Name<input id="opsTourName" placeholder="z. B. Dienstag Nord"></label><label>Startzeit<input id="opsTourStart" type="time" value="07:00"></label></div>
       <div class="ops-tour-stop-editor" style="margin-top:10px">
-        <label>Leistung hinzufügen
-          <select id="opsTourPlanAdd">
-            <option value="">Leistungsplan wählen …</option>
-          </select>
-        </label>
-        <div class="row" style="margin-top:8px">
-          <button type="button" class="primary" onclick="opsTourAddSelectedPlan()">+ Hinzufügen</button>
+        <div class="grid2 ops-tour-object-service-select">
+          <label>1. Objekt
+            <select id="opsTourObjectAdd" onchange="opsTourObjectChanged()">
+              <option value="">Objekt wählen …</option>
+            </select>
+          </label>
+          <label>2. Leistung
+            <select id="opsTourServiceAdd" disabled onchange="opsTourServiceChanged()">
+              <option value="">Zuerst Objekt wählen …</option>
+            </select>
+          </label>
         </div>
-        <div class="muted" style="margin-top:8px">Die Reihenfolge unten entspricht der späteren Tourreihenfolge.</div>
+        <div id="opsTourSelectionInfo" class="muted" style="margin-top:8px">Objekt auswählen, danach eine aktive Leistung dieses Objekts.</div>
+        <div class="row" style="margin-top:8px">
+          <button id="opsTourAddBtn" type="button" class="primary" onclick="opsTourAddObjectService()" disabled>+ Zur Tour hinzufügen</button>
+        </div>
+        <div class="muted" style="margin-top:8px">SOP, Arbeitsanweisungen und Checklisten werden automatisch über die Leistungsart vererbt. Die Reihenfolge unten entspricht der späteren Tourreihenfolge.</div>
         <div id="opsTourDraftStops" class="ops-tour-draft-stops" style="margin-top:10px"></div>
       </div>
       <div class="row" style="margin-top:10px;gap:8px">
@@ -8011,7 +8030,18 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    MOBILE: vollständig touch-tauglich.
    BACKEND: keine SQL-/RLS-/RPC-Änderung.
 */
-const APP_VERSION='2.26.6.1'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.26.6.2 | BASIS 2.26.6.1 | 30.09.2026
+   TOURVORLAGEN:
+   - Tourstopp-Auswahl jetzt Objekt -> Leistung -> Zur Tour hinzufügen.
+   - Eine Tour kann beliebig viele Objekte und mehrere Leistungen je Objekt enthalten.
+   - SOP wird nicht manuell gewählt, sondern automatisch über die Leistungsart angezeigt.
+   - Bestehendes Datenmodell bleibt erhalten: operation_tour_stops verweist intern weiter auf recurring_plan_id.
+   - Leistungen ohne aktiven Leistungsplan bleiben sichtbar und werden als nicht planbar gekennzeichnet.
+   - Reihenfolge weiterhin über Hoch / Runter / Entfernen steuerbar.
+   WINTERDIENST: unverändert separater Fachprozess.
+   BACKEND: keine SQL-/RLS-/RPC-Änderung.
+*/
+const APP_VERSION='2.26.6.2'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -26931,17 +26961,7 @@ function opsPopulate(){
   if(!opsEditingPlanId)opsPlanObjectChanged();
   else if(assignment?.value)opsPlanAssignmentChanged();
 
-  const tp=document.getElementById('opsTourPlanAdd');
-  if(tp){
-    const current=tp.value||'';
-    tp.innerHTML='<option value="">Leistungsplan wählen …</option>'+
-      opsState.plans
-        .filter(opsIsPlanableGenericPlan)
-        .filter(p=>!opsTourDraftPlanIds.includes(String(p.id)))
-        .map(p=>`<option value="${opsEsc(p.id)}">${opsEsc(opsObjName(p.object_id))} · ${opsEsc(opsServiceName(p.service_type_id))} · ${opsEsc(opsIntervalLabel(p.interval_weeks))}</option>`)
-        .join('');
-    if([...tp.options].some(o=>String(o.value)===String(current)))tp.value=current;
-  }
+  opsRenderTourObjectOptions();
   opsRenderTourDraftStops();
 }
 function opsPlanObjectChanged(){
@@ -27245,48 +27265,151 @@ async function opsSavePlan(){
 function opsTourPlanById(id){
   return (opsState.plans||[]).find(p=>String(p.id)===String(id))||null;
 }
-function opsRenderTourPlanAddOptions(){
-  const sel=document.getElementById('opsTourPlanAdd');if(!sel)return;
+function opsTourAssignmentForPlan(plan){
+  if(!plan)return null;
+  return (opsState.assignments||[]).find(a=>
+    a.active!==false &&
+    String(a.object_id)===String(plan.object_id) &&
+    String(a.service_type_id)===String(plan.service_type_id) &&
+    String(a.process_type||'generic')==='generic'
+  )||null;
+}
+function opsTourPlanForObjectService(objectId,serviceTypeId){
+  return (opsState.plans||[]).find(p=>
+    opsIsPlanableGenericPlan(p) &&
+    String(p.object_id)===String(objectId) &&
+    String(p.service_type_id)===String(serviceTypeId)
+  )||null;
+}
+function opsTourObjectIds(){
+  return [...new Set(
+    opsPlanableAssignments()
+      .map(a=>String(a.object_id||''))
+      .filter(Boolean)
+  )].sort((a,b)=>opsObjName(a).localeCompare(opsObjName(b),'de'));
+}
+function opsRenderTourObjectOptions(){
+  const sel=document.getElementById('opsTourObjectAdd');if(!sel)return;
   const keep=sel.value||'';
-  sel.innerHTML='<option value="">Leistungsplan wählen …</option>'+
-    (opsState.plans||[])
-      .filter(opsIsPlanableGenericPlan)
-      .filter(p=>!opsTourDraftPlanIds.includes(String(p.id)))
-      .map(p=>`<option value="${opsEsc(p.id)}">${opsEsc(opsObjName(p.object_id))} · ${opsEsc(opsServiceName(p.service_type_id))} · ${opsEsc(opsIntervalLabel(p.interval_weeks))}</option>`)
-      .join('');
+  const ids=opsTourObjectIds();
+  sel.innerHTML='<option value="">Objekt wählen …</option>'+
+    ids.map(id=>`<option value="${opsEsc(id)}">${opsEsc(opsObjName(id))}</option>`).join('');
   if([...sel.options].some(o=>String(o.value)===String(keep)))sel.value=keep;
+  opsTourObjectChanged(true);
+}
+function opsTourObjectChanged(preserveService=false){
+  const objectId=document.getElementById('opsTourObjectAdd')?.value||'';
+  const serviceSel=document.getElementById('opsTourServiceAdd');
+  const info=document.getElementById('opsTourSelectionInfo');
+  const btn=document.getElementById('opsTourAddBtn');
+  if(!serviceSel)return;
+
+  const keep=preserveService?(serviceSel.value||''):'';
+  if(!objectId){
+    serviceSel.disabled=true;
+    serviceSel.innerHTML='<option value="">Zuerst Objekt wählen …</option>';
+    if(info){info.textContent='Objekt auswählen, danach eine aktive Leistung dieses Objekts.';info.className='muted';}
+    if(btn)btn.disabled=true;
+    return;
+  }
+
+  const assignments=opsPlanableAssignments()
+    .filter(a=>String(a.object_id)===String(objectId))
+    .sort((a,b)=>opsServiceName(a.service_type_id).localeCompare(opsServiceName(b.service_type_id),'de'));
+
+  serviceSel.disabled=false;
+  serviceSel.innerHTML='<option value="">Leistung wählen …</option>'+
+    assignments.map(a=>{
+      const plan=opsActivePlanForAssignment(a);
+      const already=plan&&opsTourDraftPlanIds.includes(String(plan.id));
+      const suffix=!plan?' · zuerst Leistungsplan anlegen':already?' · bereits in Tour':'';
+      return `<option value="${opsEsc(a.service_type_id)}" ${(!plan||already)?'disabled':''}>${opsEsc(opsServiceName(a.service_type_id)+suffix)}</option>`;
+    }).join('');
+
+  if([...serviceSel.options].some(o=>String(o.value)===String(keep)&&!o.disabled))serviceSel.value=keep;
+  else serviceSel.value='';
+
+  opsTourServiceChanged();
+}
+function opsTourServiceChanged(){
+  const objectId=document.getElementById('opsTourObjectAdd')?.value||'';
+  const serviceTypeId=document.getElementById('opsTourServiceAdd')?.value||'';
+  const info=document.getElementById('opsTourSelectionInfo');
+  const btn=document.getElementById('opsTourAddBtn');
+  if(!objectId||!serviceTypeId){
+    if(info){info.textContent=objectId?'Leistung auswählen.':'Objekt auswählen, danach eine aktive Leistung dieses Objekts.';info.className='muted';}
+    if(btn)btn.disabled=true;
+    return;
+  }
+
+  const assignment=opsPlanableAssignments().find(a=>
+    String(a.object_id)===String(objectId) &&
+    String(a.service_type_id)===String(serviceTypeId)
+  );
+  const plan=assignment?opsActivePlanForAssignment(assignment):null;
+
+  if(!assignment||!plan){
+    if(info){info.textContent='Für diese Objektleistung besteht noch kein aktiver Leistungsplan. Diesen zuerst oben im wiederkehrenden Leistungsplan anlegen.';info.className='muted ops-tour-selection-warning';}
+    if(btn)btn.disabled=true;
+    return;
+  }
+
+  if(opsTourDraftPlanIds.includes(String(plan.id))){
+    if(info){info.textContent='Diese Objektleistung ist bereits in der Tour enthalten.';info.className='muted ops-tour-selection-warning';}
+    if(btn)btn.disabled=true;
+    return;
+  }
+
+  if(info){
+    info.innerHTML=`<span class="ops-tour-selection-ok"><strong>${opsEsc(opsObjName(objectId))} · ${opsEsc(opsServiceName(serviceTypeId))}</strong></span><br>${opsEsc(opsSopLabel(assignment))} · ${opsEsc(opsIntervalLabel(plan.interval_weeks))} · ${opsEsc(plan.planned_duration_minutes||60)} Min.`;
+    info.className='muted';
+  }
+  if(btn)btn.disabled=false;
 }
 function opsRenderTourDraftStops(){
   const host=document.getElementById('opsTourDraftStops');if(!host)return;
   const rows=opsTourDraftPlanIds.map(id=>opsTourPlanById(id)).filter(Boolean);
   if(!rows.length){
-    host.innerHTML='<div class="ops-tour-draft-empty">Noch keine Leistung hinzugefügt.</div>';
-    opsRenderTourPlanAddOptions();
+    host.innerHTML='<div class="ops-tour-draft-empty">Noch keine Objektleistung zur Tour hinzugefügt.</div>';
+    opsTourObjectChanged(true);
     return;
   }
-  host.innerHTML=rows.map((p,i)=>`<div class="ops-tour-draft-row">
-    <div class="ops-tour-draft-index">${i+1}</div>
-    <div>
-      <div class="ops-tour-draft-title">${opsEsc(opsObjName(p.object_id))} · ${opsEsc(opsServiceName(p.service_type_id))}</div>
-      <div class="ops-tour-draft-sub">${opsEsc(opsIntervalLabel(p.interval_weeks))} · ${opsEsc(p.planned_duration_minutes||60)} Min.</div>
-    </div>
-    <div class="ops-tour-draft-actions">
-      <button class="ops-tour-draft-btn" type="button" onclick="opsTourMovePlan(${i},-1)" ${i===0?'disabled':''} aria-label="Nach oben">↑</button>
-      <button class="ops-tour-draft-btn" type="button" onclick="opsTourMovePlan(${i},1)" ${i===rows.length-1?'disabled':''} aria-label="Nach unten">↓</button>
-      <button class="ops-tour-draft-btn danger" type="button" onclick="opsTourRemovePlan(${i})" aria-label="Entfernen">×</button>
-    </div>
-  </div>`).join('');
-  opsRenderTourPlanAddOptions();
+  host.innerHTML=rows.map((p,i)=>{
+    const a=opsTourAssignmentForPlan(p);
+    return `<div class="ops-tour-draft-row">
+      <div class="ops-tour-draft-index">${i+1}</div>
+      <div>
+        <div class="ops-tour-draft-title">${opsEsc(opsObjName(p.object_id))} · ${opsEsc(opsServiceName(p.service_type_id))}</div>
+        <div class="ops-tour-draft-sub">${opsEsc(opsIntervalLabel(p.interval_weeks))} · ${opsEsc(p.planned_duration_minutes||60)} Min.</div>
+        <div class="ops-tour-draft-sop">${opsEsc(a?opsSopLabel(a):'Standards werden über die Leistungsart vererbt')}</div>
+      </div>
+      <div class="ops-tour-draft-actions">
+        <button class="ops-tour-draft-btn" type="button" onclick="opsTourMovePlan(${i},-1)" ${i===0?'disabled':''} aria-label="Nach oben">↑</button>
+        <button class="ops-tour-draft-btn" type="button" onclick="opsTourMovePlan(${i},1)" ${i===rows.length-1?'disabled':''} aria-label="Nach unten">↓</button>
+        <button class="ops-tour-draft-btn danger" type="button" onclick="opsTourRemovePlan(${i})" aria-label="Entfernen">×</button>
+      </div>
+    </div>`;
+  }).join('');
+  opsTourObjectChanged(true);
 }
-function opsTourAddSelectedPlan(){
-  const sel=document.getElementById('opsTourPlanAdd');
-  const id=String(sel?.value||'');
-  if(!id)return alert('Bitte zuerst einen Leistungsplan auswählen.');
-  if(opsTourDraftPlanIds.includes(id))return;
-  const p=opsTourPlanById(id);
-  if(!p||!opsIsPlanableGenericPlan(p))return alert('Dieser Leistungsplan ist nicht verfügbar.');
+function opsTourAddObjectService(){
+  const objectId=document.getElementById('opsTourObjectAdd')?.value||'';
+  const serviceTypeId=document.getElementById('opsTourServiceAdd')?.value||'';
+  if(!objectId||!serviceTypeId)return alert('Bitte zuerst Objekt und Leistung auswählen.');
+
+  const assignment=opsPlanableAssignments().find(a=>
+    String(a.object_id)===String(objectId) &&
+    String(a.service_type_id)===String(serviceTypeId)
+  );
+  if(!assignment)return alert('Diese Objektleistung ist nicht planbar.');
+
+  const plan=opsActivePlanForAssignment(assignment);
+  if(!plan)return alert('Für diese Objektleistung besteht noch kein aktiver Leistungsplan.');
+  const id=String(plan.id);
+  if(opsTourDraftPlanIds.includes(id))return alert('Diese Objektleistung ist bereits in der Tour enthalten.');
+
   opsTourDraftPlanIds.push(id);
-  if(sel)sel.value='';
+  const serviceSel=document.getElementById('opsTourServiceAdd');if(serviceSel)serviceSel.value='';
   opsRenderTourDraftStops();
 }
 function opsTourRemovePlan(index){
@@ -27307,7 +27430,9 @@ function opsResetTourForm(){
   opsTourDraftPlanIds=[];
   const n=document.getElementById('opsTourName');if(n)n.value='';
   const s=document.getElementById('opsTourStart');if(s)s.value='07:00';
-  const add=document.getElementById('opsTourPlanAdd');if(add)add.value='';
+  const obj=document.getElementById('opsTourObjectAdd');if(obj)obj.value='';
+  const svc=document.getElementById('opsTourServiceAdd');if(svc){svc.value='';svc.disabled=true;svc.innerHTML='<option value="">Zuerst Objekt wählen …</option>';}
+  const addBtn=document.getElementById('opsTourAddBtn');if(addBtn)addBtn.disabled=true;
   const b=document.getElementById('opsTourSaveBtn');if(b)b.textContent='Tourvorlage speichern';
   document.getElementById('opsTourCancelBtn')?.classList.add('hidden');
   document.getElementById('opsTourEditInfo')?.classList.add('hidden');
