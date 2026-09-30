@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.20</title>
+<title>Duschl Service – Objektplattform v2.26.6.21</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -663,7 +663,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 
 
 
-/* === Objektmodal Übersicht · 2.26.6.20 === */
+/* === Objektmodal Übersicht · 2.26.6.21 === */
 .object-edit-section{
   margin-top:12px;
   padding:14px;
@@ -756,7 +756,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Wochensteuerung Tourenlogik · 2.26.6.20 === */
+/* === Wochensteuerung Tourenlogik · 2.26.6.21 === */
 .rp-week-summary{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
@@ -826,6 +826,47 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 @media(max-width:900px){
   .rp-week-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+
+/* === Betriebsmittel Einsatzintegration · 2.26.6.21 === */
+.or-process-hint{
+  border-color:#31566e!important;
+  background:linear-gradient(180deg,#0d2636 0%,#091d2a 100%)!important;
+  font-size:12px;
+  line-height:1.5;
+}
+.or-resource-usage{
+  margin-top:10px;
+  padding:9px 10px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:10px;
+  background:#071924;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:center;
+}
+.or-resource-usage.is-unlinked{
+  border-style:dashed;
+  border-color:#6a5a2e;
+  background:#211d10;
+}
+.or-resource-usage .muted{font-size:11px;margin-top:2px}
+.or-resource-service-tags{
+  display:flex;
+  gap:5px;
+  flex-wrap:wrap;
+  margin-top:5px;
+}
+.or-resource-usage button{
+  flex:0 0 auto;
+  font-size:10px;
+  padding:6px 8px;
+}
+@media(max-width:680px){
+  .or-resource-usage{align-items:flex-start;flex-direction:column}
+  .or-resource-usage button{width:100%}
 }
 
 /* === GPS-Plausibilitätsprüfung · 2.21.61 === */
@@ -5568,13 +5609,14 @@ table td,table th{
 </style>
 
 <!--
-RELEASE 2.26.6.20 | BASIS 2.26.6.19 | 30.09.2026
-HOTFIX TOURVORLAGE BEARBEITEN
-- Direkte Tourstopps werden nicht mehr an recurring_service_plans gekoppelt.
-- Bestehende Tourstopps werden beim Bearbeiten aktualisiert statt pauschal neu eingefügt.
-- Entfernte Stopps werden nur deaktiviert; alte recurring_plan_id-Verknüpfungen werden gelöst.
-- Behebt UNIQUE-Konflikt operation_tour_stops_tour_template_id_recurring_plan_id_key.
-- Tour bleibt führendes Planungsobjekt.
+RELEASE 2.26.6.21 | BASIS 2.26.6.20 | 30.09.2026
+BETRIEBSMITTEL ALS OPERATIVES STEUERUNGSINSTRUMENT
+- Bestehende Betriebsmittel-Bedarfslogik sichtbar in den Hauptworkflow integriert.
+- Jedes Betriebsmittel zeigt die verknüpften Leistungsarten.
+- Unverknüpfte Betriebsmittel werden sichtbar markiert.
+- Direkter Einstieg "Leistung zuordnen" aus der Betriebsmittelkarte.
+- KPI "Leistungen verknüpft".
+- Tour-/Einsatzbereitschaft nutzt weiterhin die bestehenden Readiness- und Reservierungs-RPCs.
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <section class="section" id="operations">
@@ -5935,7 +5977,7 @@ HOTFIX TOURVORLAGE BEARBEITEN
     <div>
       <div class="ds-section-eyebrow">BETRIEB</div>
       <h2 style="margin:0">Betriebsmittel</h2>
-      <div class="muted" style="margin-top:6px">Nur betriebsrelevante Ressourcen erfassen – Standort, Verfügbarkeit und Bewegungen ohne Kleinwerkzeug-Bürokratie.</div>
+      <div class="muted" style="margin-top:6px">Betriebsmittel werden Leistungen zugeordnet und bei konkreten Touren automatisch auf Einsatzbereitschaft geprüft.</div>
     </div>
     <button type="button" onclick="loadOperatingResources()">↻ Aktualisieren</button>
   </div>
@@ -5943,8 +5985,13 @@ HOTFIX TOURVORLAGE BEARBEITEN
   <div class="grid g4" style="margin-top:14px">
     <div class="card"><div class="muted">Aktive Betriebsmittel</div><div class="big" id="orKpiActive">—</div></div>
     <div class="card"><div class="muted">Verfügbar</div><div class="big" id="orKpiAvailable">—</div></div>
+    <div class="card"><div class="muted">Leistungen verknüpft</div><div class="big" id="orKpiLinked">—</div></div>
     <div class="card"><div class="muted">Wartung / defekt</div><div class="big" id="orKpiIssue">—</div></div>
-    <div class="card"><div class="muted">Dezentral gelagert</div><div class="big" id="orKpiDecentral">—</div></div>
+  </div>
+  <div class="card or-process-hint" style="margin-top:12px">
+    <strong>So funktioniert die Einsatzprüfung:</strong>
+    Leistung → benötigtes Betriebsmittel → aktueller Standort / Bestand → konkreter Tourtermin.
+    In der Tour erscheint automatisch <strong>Bereit</strong>, <strong>Prüfen</strong> oder <strong>Nicht bereit</strong>.
   </div>
 
   <div class="card operating-resource-admin" id="orAdminCard" style="margin-top:14px">
@@ -6050,11 +6097,11 @@ HOTFIX TOURVORLAGE BEARBEITEN
   <div class="card operating-resource-admin" id="orRequirementAdminCard" style="margin-top:14px">
     <div class="row space" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
       <div>
-        <div class="ds-section-eyebrow">STANDARD-BEDARF</div>
-        <h3 style="margin:0">Betriebsmittel je Leistungsart</h3>
-        <div class="muted" style="margin-top:5px">Einmal je Leistungsart pflegen. Die SOP bleibt das Dokument; hier wird nur der disponierbare Standardbedarf hinterlegt.</div>
+        <div class="ds-section-eyebrow">EINSATZBEDARF</div>
+        <h3 style="margin:0">Leistung mit Betriebsmittel verknüpfen</h3>
+        <div class="muted" style="margin-top:5px">Hier definierst du einmalig, welches Betriebsmittel eine Leistungsart benötigt. Jeder spätere Tourstopp übernimmt diesen Bedarf automatisch.</div>
       </div>
-      <button type="button" onclick="orResetRequirementEditor()">Neu / zurücksetzen</button>
+      <button type="button" onclick="orResetRequirementEditor()">Neue Zuordnung</button>
     </div>
     <input id="orRequirementEditId" type="hidden">
     <div class="grid2" style="margin-top:12px">
@@ -6067,7 +6114,7 @@ HOTFIX TOURVORLAGE BEARBEITEN
     </div>
     <label style="margin-top:10px">Hinweis / Ausnahme<textarea id="orRequirementNote" rows="2" placeholder="Optional, z. B. nur bei stärkerem Bewuchs oder Schneehöhe &gt; 5 cm"></textarea></label>
     <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">
-      <button class="primary" type="button" onclick="orSaveRequirement()">Standardbedarf speichern</button>
+      <button class="primary" type="button" onclick="orSaveRequirement()">Zuordnung speichern</button>
       <button type="button" id="orRequirementDeactivateBtn" class="hidden" onclick="orDeactivateRequirement()">Deaktivieren</button>
     </div>
     <div id="orRequirementList" style="margin-top:12px"></div>
@@ -8737,7 +8784,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.10.
    BACKEND: SQL 2.26.6.11 erforderlich.
 */
-/* RELEASE 2.26.6.20 | BASIS 2.26.6.12 | 30.09.2026
+/* RELEASE 2.26.6.21 | BASIS 2.26.6.12 | 30.09.2026
    WETTER-FALLBACK HARDENING:
    - Außenpflege akzeptiert object-weather nur noch bei verwertbarem care_24h-Datensatz.
    - Formal erfolgreiche, aber inhaltlich leere/ungültige Antworten lösen jetzt
@@ -8749,7 +8796,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.11.
    BACKEND: keine SQL-Änderung.
 */
-const APP_VERSION='2.26.6.20'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.6.21'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -16932,13 +16979,53 @@ async function loadOperatingResources(){
     const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=String(v);};
     set('orKpiActive',active.length);
     set('orKpiAvailable',active.filter(x=>x.status==='available').length);
+    set('orKpiLinked',new Set((operatingResourcesState.requirements||[]).filter(x=>x.active!==false).map(x=>String(x.service_type_id||'')).filter(Boolean)).size);
     set('orKpiIssue',active.filter(x=>['maintenance','defective'].includes(x.status)).length);
-    set('orKpiDecentral',active.filter(x=>['vehicle','object','utility_room','employee','external'].includes(x.current_location_type)).length);
     orRenderList();
   }catch(e){
     console.error('Betriebsmittel konnten nicht geladen werden',e);
     const host=document.getElementById('orResourceList');if(host)host.innerHTML=`<div class="bad">Betriebsmittel konnten nicht geladen werden: ${esc(e.message||e)}</div>`;
   }
+}
+
+
+function orResourceRequirements(resourceId){
+  const rid=String(resourceId||'');
+  return (operatingResourcesState.requirements||[]).filter(r=>
+    r.active!==false && String(r.resource_id||'')===rid
+  );
+}
+function orServiceTypeName(id){
+  return (operatingResourcesState.serviceTypes||[]).find(x=>String(x.id||'')===String(id||''))?.name||'Leistungsart';
+}
+function orResourceUsageHtml(resource){
+  const links=orResourceRequirements(resource?.id);
+  if(!links.length){
+    return `<div class="or-resource-usage is-unlinked">
+      <div><strong>Einsatzbezug</strong><div class="muted">Noch keiner Leistungsart zugeordnet.</div></div>
+      ${operatingResourcesCanAdmin()?`<button type="button" onclick="orStartRequirementForResource('${esc(resource?.id||'')}')">Leistung zuordnen</button>`:''}
+    </div>`;
+  }
+  const unique=[...new Map(links.map(r=>[String(r.service_type_id||''),r])).values()];
+  return `<div class="or-resource-usage">
+    <div><strong>Einsatzbezug</strong><div class="or-resource-service-tags">${
+      unique.map(r=>`<span class="badge">${esc(orServiceTypeName(r.service_type_id))}</span>`).join('')
+    }</div></div>
+    ${operatingResourcesCanAdmin()?`<button type="button" onclick="orStartRequirementForResource('${esc(resource?.id||'')}')">Zuordnung ergänzen</button>`:''}
+  </div>`;
+}
+function orStartRequirementForResource(resourceId){
+  if(!operatingResourcesCanAdmin())return;
+  orResetRequirementEditor();
+  const resource=(operatingResourcesState.resources||[]).find(x=>String(x.id||'')===String(resourceId||''));
+  const rr=document.getElementById('orRequirementResource');
+  if(rr)rr.value=resourceId||'';
+  const n=document.getElementById('orRequirementName');
+  if(n&&resource)n.value=resource.name||'';
+  const u=document.getElementById('orRequirementUnit');
+  if(u&&resource)u.value=resource.unit||(resource.tracking_mode==='individual'?'Stk.':'');
+  document.getElementById('orRequirementAdminCard')?.scrollIntoView({behavior:'smooth',block:'start'});
+  setTimeout(()=>document.getElementById('orRequirementServiceType')?.focus(),350);
 }
 
 function orRenderList(){
@@ -16961,10 +17048,11 @@ function orRenderList(){
         <div class="muted" style="margin-top:5px">${esc(orKindLabel(r.resource_kind))}${qty?` · ${esc(qty)}`:''}</div>
         <div style="margin-top:6px"><strong>Standort:</strong> ${esc(savedLoc?orLocationLabel(savedLoc):orFormatLocation(r))}</div>
         ${r.notes?`<div class="muted" style="margin-top:4px">${esc(r.notes)}</div>`:''}
+        ${orResourceUsageHtml(r)}
       </div>
       <div class="row" style="gap:7px;flex-wrap:wrap;margin-top:10px">
-        <button type="button" class="primary" style="flex:1 1 160px" onclick="orOpenMovement('${esc(r.id)}')">Standort ändern</button>
-        ${operatingResourcesCanAdmin()?`<button type="button" style="flex:1 1 120px" onclick="orEditResource('${esc(r.id)}')">Bearbeiten</button>`:''}
+        <button type="button" class="primary" style="flex:1 1 160px" onclick="orOpenMovement('${esc(r.id)}')">Standort / Bestand ändern</button>
+        ${operatingResourcesCanAdmin()?`<button type="button" style="flex:1 1 120px" onclick="orEditResource('${esc(r.id)}')">Stammdaten</button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -27496,7 +27584,7 @@ function opsWeekdayLabel(v){const m={0:'So',1:'Mo',2:'Di',3:'Mi',4:'Do',5:'Fr',6
 function opsIntervalLabel(v){return ({1:'wöchentlich',2:'alle 2 Wochen',4:'alle 4 Wochen'})[Number(v)]||`alle ${v} Wochen`;}
 function opsTimeWindowLabel(p){const a=String(p?.time_window_start||'').slice(0,5),b=String(p?.time_window_end||'').slice(0,5);return a&&b?`${a}–${b}`:a?`ab ${a}`:b?`bis ${b}`:'kein Zeitfenster';}
 
-/* RELEASE 2.26.6.20 | BASIS 2.26.6.13 | 30.09.2026
+/* RELEASE 2.26.6.21 | BASIS 2.26.6.13 | 30.09.2026
    EINMALIGER AUFTRAG: STAND-ALONE ODER TOURTERMIN
    - Begriff "Einzeltour" im Planungsdialog durch "Einmaliger Auftrag" ersetzt.
    - Kein Rhythmus / keine Wochentage für Ad-hoc-Aufträge.
@@ -29152,7 +29240,7 @@ async function opsSaveTour(){
         object_service_assignment_id:a.id,
         object_id:a.object_id,
         service_type_id:a.service_type_id,
-        // 2.26.6.20: Die Tour ist das führende Planungsobjekt.
+        // 2.26.6.21: Die Tour ist das führende Planungsobjekt.
         // Direkte Tourstopps benötigen keinen recurring_service_plan.
         recurring_plan_id:null,
         planned_duration_minutes:duration,
@@ -29180,7 +29268,7 @@ async function opsSaveTour(){
         body:JSON.stringify(templatePayload)
       });
 
-      // 2.26.6.20:
+      // 2.26.6.21:
       // Bestehende Tourstopps nicht pauschal deaktivieren und neu einfügen.
       // Sonst kollidieren historische/inaktive Datensätze mit UNIQUE-Constraints
       // wie (tour_template_id, recurring_plan_id).
