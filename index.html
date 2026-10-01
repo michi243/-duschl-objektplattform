@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.24</title>
+<title>Duschl Service – Objektplattform v2.26.6.25</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -663,7 +663,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 
 
 
-/* === Objektmodal Übersicht · 2.26.6.24 === */
+/* === Objektmodal Übersicht · 2.26.6.25 === */
 .object-edit-section{
   margin-top:12px;
   padding:14px;
@@ -756,7 +756,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Wochensteuerung Tourenlogik · 2.26.6.24 === */
+/* === Wochensteuerung Tourenlogik · 2.26.6.25 === */
 .rp-week-summary{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
@@ -829,7 +829,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzintegration · 2.26.6.24 === */
+/* === Betriebsmittel Einsatzintegration · 2.26.6.25 === */
 .or-process-hint{
   border-color:#31566e!important;
   background:linear-gradient(180deg,#0d2636 0%,#091d2a 100%)!important;
@@ -870,7 +870,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzarten · 2.26.6.24 === */
+/* === Betriebsmittel Einsatzarten · 2.26.6.25 === */
 .or-scope-hint{
   margin-top:9px;
   padding:8px 10px;
@@ -898,7 +898,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Zusatzauftrag verständliche Darstellung · 2.26.6.24 === */
+/* === Zusatzauftrag verständliche Darstellung · 2.26.6.25 === */
 .ops-run-stop-special{
   border-left:3px solid #6c8faa;
   padding-left:10px;
@@ -915,6 +915,20 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
   font-weight:900;
   text-transform:uppercase;
   letter-spacing:.05em;
+}
+
+
+/* === Regelmäßige Einzelleistung als Sonderfall · 2.26.6.25 === */
+.ops-advanced-planning{
+  margin-top:10px!important;
+  opacity:.94;
+}
+.ops-advanced-planning>details>summary{
+  font-size:11px!important;
+  color:#91a9b8!important;
+}
+.ops-advanced-planning>details:not([open]){
+  padding:8px 10px!important;
 }
 
 /* === GPS-Plausibilitätsprüfung · 2.21.61 === */
@@ -5657,12 +5671,12 @@ table td,table th{
 </style>
 
 <!--
-RELEASE 2.26.6.24 | BASIS 2.26.6.22 | 01.10.2026
-ZUSATZAUFTRAG IN TOUR: VERSTÄNDLICHE DARSTELLUNG
-- Mail-/Notification-Logik unverändert.
-- Einmalige Zusatzaufträge werden eindeutig als solche dargestellt.
-- Titel, Objekt/Einsatzort, Adresse, Beschreibung und Dauer werden sichtbar.
-- Keine irreführende SOP- oder Betriebsmittelanzeige bei freien Zusatzaufträgen.
+RELEASE 2.26.6.25 | BASIS 2.26.6.24 | 01.10.2026
+REGELMÄSSIGE EINZELLEISTUNG NUR NOCH SONDERFALL
+- Hauptworkflow bleibt Wiederkehrende Tour + Einmaliger Auftrag.
+- Regelmäßige Einzelleistung ist standardmäßig eingeklappt.
+- Bezeichnung klar als Sonderfall.
+- Hinweis gegen Doppelplanung verschärft.
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <section class="section" id="operations">
@@ -5769,10 +5783,9 @@ ZUSATZAUFTRAG IN TOUR: VERSTÄNDLICHE DARSTELLUNG
   </div>
   <div class="card ops-planning-only ops-advanced-planning" style="margin-top:14px">
     <details>
-      <summary>Weitere Planungsarten / bestehende Einzelpläne verwalten</summary>
+      <summary>Sonderfall: regelmäßige Einzelleistung</summary>
       <div class="muted" style="margin-top:7px">
-        Nur für Leistungen, die bewusst außerhalb einer Tour regelmäßig ausgeführt werden.
-        Für normale Tourstopps ist kein zusätzlicher Leistungsplan erforderlich.
+        Nur öffnen, wenn eine Leistung regelmäßig ausgeführt wird, aber bewusst keiner wiederkehrenden Tour zugeordnet ist. Für normale Tourstopps ist kein zusätzlicher Leistungsplan erforderlich.
       </div>
       <div class="grid g2" style="margin-top:12px">
     <div class="card ops-assignment-management">
@@ -5789,13 +5802,13 @@ ZUSATZAUFTRAG IN TOUR: VERSTÄNDLICHE DARSTELLUNG
         <div class="ops-planning-section-head" style="margin-bottom:0">
           <div class="ops-planning-step">S</div>
           <div class="ops-planning-section-title">
-            <h3>Regelmäßige Einzelleistung außerhalb einer Tour</h3>
+            <h3>Sonderfall: regelmäßige Einzelleistung</h3>
             <div class="muted">Eine einzelne Objektleistung bekommt ihren eigenen Rhythmus.</div>
           </div>
         </div>
         <span id="opsPlanEditBadge" class="badge hidden">Bearbeitung</span>
       </div>
-      <div class="ops-when-use"><strong>Wann nutzen?</strong> Wenn diese Leistung unabhängig von einer Tour wiederkehrt. Ist sie fester Bestandteil einer wiederkehrenden Tour, plane sie direkt dort und lege hier keinen zusätzlichen Leistungsplan an.</div>
+      <div class="ops-when-use"><strong>Nur für Sonderfälle:</strong> Diese Maske ist nur erforderlich, wenn eine Leistung regelmäßig ausgeführt wird, aber nicht Teil einer wiederkehrenden Tour ist.</div>
 
       <div class="grid2 ops-plan-selection" style="margin-top:12px">
         <label>1. Objekt
@@ -8847,7 +8860,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.10.
    BACKEND: SQL 2.26.6.11 erforderlich.
 */
-/* RELEASE 2.26.6.24 | BASIS 2.26.6.12 | 30.09.2026
+/* RELEASE 2.26.6.25 | BASIS 2.26.6.12 | 30.09.2026
    WETTER-FALLBACK HARDENING:
    - Außenpflege akzeptiert object-weather nur noch bei verwertbarem care_24h-Datensatz.
    - Formal erfolgreiche, aber inhaltlich leere/ungültige Antworten lösen jetzt
@@ -8859,7 +8872,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.11.
    BACKEND: keine SQL-Änderung.
 */
-const APP_VERSION='2.26.6.24'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.6.25'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -27740,7 +27753,7 @@ function opsWeekdayLabel(v){const m={0:'So',1:'Mo',2:'Di',3:'Mi',4:'Do',5:'Fr',6
 function opsIntervalLabel(v){return ({1:'wöchentlich',2:'alle 2 Wochen',4:'alle 4 Wochen'})[Number(v)]||`alle ${v} Wochen`;}
 function opsTimeWindowLabel(p){const a=String(p?.time_window_start||'').slice(0,5),b=String(p?.time_window_end||'').slice(0,5);return a&&b?`${a}–${b}`:a?`ab ${a}`:b?`bis ${b}`:'kein Zeitfenster';}
 
-/* RELEASE 2.26.6.24 | BASIS 2.26.6.13 | 30.09.2026
+/* RELEASE 2.26.6.25 | BASIS 2.26.6.13 | 30.09.2026
    EINMALIGER AUFTRAG: STAND-ALONE ODER TOURTERMIN
    - Begriff "Einzeltour" im Planungsdialog durch "Einmaliger Auftrag" ersetzt.
    - Kein Rhythmus / keine Wochentage für Ad-hoc-Aufträge.
@@ -29435,7 +29448,7 @@ async function opsSaveTour(){
         object_service_assignment_id:a.id,
         object_id:a.object_id,
         service_type_id:a.service_type_id,
-        // 2.26.6.24: Die Tour ist das führende Planungsobjekt.
+        // 2.26.6.25: Die Tour ist das führende Planungsobjekt.
         // Direkte Tourstopps benötigen keinen recurring_service_plan.
         recurring_plan_id:null,
         planned_duration_minutes:duration,
@@ -29463,7 +29476,7 @@ async function opsSaveTour(){
         body:JSON.stringify(templatePayload)
       });
 
-      // 2.26.6.24:
+      // 2.26.6.25:
       // Bestehende Tourstopps nicht pauschal deaktivieren und neu einfügen.
       // Sonst kollidieren historische/inaktive Datensätze mit UNIQUE-Constraints
       // wie (tour_template_id, recurring_plan_id).
