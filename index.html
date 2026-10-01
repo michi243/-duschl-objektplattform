@@ -1847,7 +1847,40 @@ body.public-report-mode>#photoViewer{display:none!important}
   .public-report-photo-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 </style>
-
+<style>
+/* ===== v2.18.49 Spracheingabe ===== */
+.speech-field-host{
+  position:relative;
+}
+.speech-field-host > input[type="text"],
+.speech-field-host > textarea{
+  padding-right:46px !important;
+}
+.speech-mic-btn{
+  position:absolute;
+  right:6px;
+  top:50%;
+  transform:translateY(-50%);
+  width:34px;
+  height:34px;
+  min-width:34px;
+  padding:0;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:2;
+  font-size:16px;
+  line-height:1;
+}
+.speech-field-host.speech-textarea-host .speech-mic-btn{
+  top:8px;
+  transform:none;
+}
+.speech-mic-btn.listening{
+  outline:2px solid currentColor;
+}
+</style>
 <style id="service-scope-ui-v21973">
 /* v2.19.74 – kompakter, eindeutiger Leistungsumfang-Katalog */
 .soc-selected-summary{margin:8px 0 10px;padding:10px 12px;border:1px solid #31536d;border-radius:11px;background:#0b2333}
@@ -5658,11 +5691,11 @@ TEMPORÄRE EINSATZBERECHTIGUNG DURCH TOURZUWEISUNG
 -->
 <!--
 RELEASE 2.26.6.29 | BASIS 2.26.6.28 | 01.10.2026
-SPRACHEINGABE KOMPLETT ENTFERNT
-- Globale Mikrofon-/Spracheingabe für Freitextfelder vollständig entfernt.
-- Keine SpeechRecognition-/webkitSpeechRecognition-Initialisierung mehr.
-- Keine Mikrofon-Buttons, Observer oder speech-spezifischen CSS-Klassen mehr.
-- Eingabefelder wieder ohne reservierten Mikrofonbereich.
+SOP MOBILE OPEN FIX
+- iOS/Safari Pop-up-Blocker behoben.
+- SOP-Zielfenster wird synchron beim Tap geöffnet, bevor RPC/Storage await startet.
+- Nach Download wird das vorab geöffnete Fenster mit dem Blob befüllt.
+- Falls neue Tabs generell gesperrt sind, öffnet die SOP robust im aktuellen Tab.
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <section class="section" id="operations">
@@ -24102,6 +24135,179 @@ if(!bootPublicResidentReport()){
 <div class="photo-viewer-hint">Zum Vergrößern zwei Finger verwenden · × zum Schließen</div>
 </div>
 <script>
+/* ===== v2.18.49 Spracheingabe für alle Freitextfelder ===== */
+(function(){
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SpeechRecognition) return;
+
+  let activeRecognition = null;
+  let activeButton = null;
+
+  function eligible(field){
+    if(!field || field.disabled || field.readOnly) return false;
+    if(field.tagName === 'TEXTAREA') return true;
+    if(field.tagName !== 'INPUT') return false;
+    return (field.getAttribute('type') || 'text').toLowerCase() === 'text';
+  }
+
+  function ensureHost(field){
+    if(field.parentElement && field.parentElement.classList.contains('speech-field-host')){
+      return field.parentElement;
+    }
+
+    const host = document.createElement('span');
+    host.className = 'speech-field-host';
+    if(field.tagName === 'TEXTAREA') host.classList.add('speech-textarea-host');
+
+    const cs = window.getComputedStyle(field);
+    if(cs.display === 'block' || field.tagName === 'TEXTAREA'){
+      host.style.display = 'block';
+      host.style.width = '100%';
+    } else {
+      host.style.display = 'inline-block';
+      host.style.width = cs.width === 'auto' ? '100%' : cs.width;
+      host.style.maxWidth = '100%';
+    }
+
+    field.parentNode.insertBefore(host, field);
+    host.appendChild(field);
+    field.style.width = '100%';
+    return host;
+  }
+
+  function insertTranscript(field, text){
+    const transcript = String(text || '').trim();
+    if(!transcript) return;
+
+    const old = field.value || '';
+    const start = typeof field.selectionStart === 'number' ? field.selectionStart : old.length;
+    const end = typeof field.selectionEnd === 'number' ? field.selectionEnd : start;
+
+    const before = old.slice(0, start);
+    const after = old.slice(end);
+    const spacer = before && !/\s$/.test(before) ? ' ' : '';
+
+    field.value = before + spacer + transcript + after;
+
+    const pos = (before + spacer + transcript).length;
+    try { field.setSelectionRange(pos, pos); } catch(e) {}
+
+    field.dispatchEvent(new Event('input', {bubbles:true}));
+    field.dispatchEvent(new Event('change', {bubbles:true}));
+    field.focus();
+  }
+
+  function resetButton(btn){
+    if(!btn) return;
+    btn.classList.remove('listening');
+    btn.textContent = '🎤';
+    btn.title = 'Spracheingabe starten';
+    btn.setAttribute('aria-label', 'Spracheingabe starten');
+  }
+
+  function stopActiveRecognition(){
+    if(activeRecognition){
+      try { activeRecognition.stop(); } catch(e) {}
+    }
+  }
+
+  function addSpeechButton(field){
+    if(!eligible(field) || field.dataset.speechReady === '1') return;
+    field.dataset.speechReady = '1';
+
+    const host = ensureHost(field);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'speech-mic-btn';
+    btn.textContent = '🎤';
+    btn.title = 'Spracheingabe starten';
+    btn.setAttribute('aria-label', 'Spracheingabe starten');
+    host.appendChild(btn);
+
+    btn.addEventListener('click', function(ev){
+      ev.preventDefault();
+      ev.stopPropagation();
+
+      if(activeButton === btn){
+        stopActiveRecognition();
+        return;
+      }
+
+      stopActiveRecognition();
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'de-DE';
+      recognition.interimResults = false;
+      recognition.continuous = false;
+      recognition.maxAlternatives = 1;
+
+      activeRecognition = recognition;
+      activeButton = btn;
+
+      btn.classList.add('listening');
+      btn.textContent = '■';
+      btn.title = 'Spracheingabe stoppen';
+      btn.setAttribute('aria-label', 'Spracheingabe stoppen');
+
+      recognition.onresult = function(event){
+        let transcript = '';
+        for(let i = event.resultIndex; i < event.results.length; i++){
+          if(event.results[i].isFinal){
+            transcript += event.results[i][0].transcript;
+          }
+        }
+        insertTranscript(field, transcript);
+      };
+
+      recognition.onerror = function(event){
+        if(event.error !== 'aborted' && event.error !== 'no-speech'){
+          console.warn('Spracheingabe:', event.error);
+        }
+      };
+
+      recognition.onend = function(){
+        resetButton(btn);
+        if(activeRecognition === recognition) activeRecognition = null;
+        if(activeButton === btn) activeButton = null;
+      };
+
+      try{
+        recognition.start();
+      }catch(e){
+        console.warn('Spracheingabe konnte nicht gestartet werden', e);
+        recognition.onend();
+      }
+    });
+  }
+
+  function enhance(root){
+    if(root && root.nodeType === 1 && eligible(root)) addSpeechButton(root);
+    if(root && root.querySelectorAll){
+      root.querySelectorAll('textarea,input[type="text"],input:not([type])').forEach(addSpeechButton);
+    }
+  }
+
+  function initSpeechInput(){
+    enhance(document);
+
+    const observer = new MutationObserver(function(mutations){
+      mutations.forEach(function(mutation){
+        mutation.addedNodes.forEach(function(node){
+          if(node.nodeType === 1) enhance(node);
+        });
+      });
+    });
+
+    observer.observe(document.body, {childList:true, subtree:true});
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initSpeechInput);
+  }else{
+    initSpeechInput();
+  }
+})();
+
 document.addEventListener('change',e=>{
   const id=String(e.target?.id||'').toLowerCase();
   const name=String(e.target?.name||'').toLowerCase();
@@ -30144,7 +30350,7 @@ async function slSaveObjectScope(){
 /* === SOP READ-ONLY · OPERATIVE ROLLEN · 2.21.39 ===
    Kein SOP-Menü für Objektbetreuer/Mitarbeiter.
    SOP wird nur kontextbezogen aus einem berechtigten Einsatz/Run geöffnet. */
-async function openManagedDocumentStorageFile(d,{title='SOP / Arbeitsanweisung'}={}){
+async function openManagedDocumentStorageFile(d,{title='SOP / Arbeitsanweisung',targetWindow=null}={}){
   if(!d?.storage_path)throw new Error('Für diese SOP ist keine Datei hinterlegt.');
 
   let response;
@@ -30154,26 +30360,45 @@ async function openManagedDocumentStorageFile(d,{title='SOP / Arbeitsanweisung'}
       {method:'GET'}
     );
   }catch(e){
+    try{ if(targetWindow && !targetWindow.closed) targetWindow.close(); }catch(_e){}
     throw new Error(`Dateizugriff nicht möglich: ${e.message||e}`);
   }
 
   const fileBlob=await response.blob();
-  if(!fileBlob||fileBlob.size===0)throw new Error('Die SOP-Datei ist leer oder konnte nicht geladen werden.');
+  if(!fileBlob||fileBlob.size===0){
+    try{ if(targetWindow && !targetWindow.closed) targetWindow.close(); }catch(_e){}
+    throw new Error('Die SOP-Datei ist leer oder konnte nicht geladen werden.');
+  }
 
   const mime=d.mime_type||fileBlob.type||'application/octet-stream';
   const blob=fileBlob.type?fileBlob:new Blob([fileBlob],{type:mime});
   const url=URL.createObjectURL(blob);
 
-  // Öffnung aus dem laufenden Benutzerereignis heraus. Der Blob bleibt einige
-  // Minuten gültig, damit Browser/mobile WebViews den neuen Tab sicher laden.
-  const opened=window.open(url,'_blank','noopener');
-  if(!opened){
-    URL.revokeObjectURL(url);
-    throw new Error('Der Browser hat das neue Fenster blockiert. Pop-ups für diese Seite zulassen.');
+  // 2.26.6.29:
+  // Mobile Safari/iOS blockiert window.open(), wenn es erst NACH einem await
+  // ausgeführt wird. Deshalb wird das Ziel-Fenster bereits synchron beim
+  // Benutzer-Tap erzeugt und hier nur noch mit dem Blob befüllt.
+  if(targetWindow && !targetWindow.closed){
+    try{
+      targetWindow.location.replace(url);
+      setTimeout(()=>URL.revokeObjectURL(url),300000);
+      return true;
+    }catch(e){
+      console.warn('Vorab geöffnetes SOP-Fenster konnte nicht befüllt werden',e);
+      try{targetWindow.close();}catch(_e){}
+    }
   }
 
-  setTimeout(()=>URL.revokeObjectURL(url),300000);
-  return true;
+  // Robuster Fallback für Browser/WebViews, die neue Tabs grundsätzlich sperren:
+  // im aktuellen Tab öffnen statt den Nutzer mit einer Pop-up-Fehlermeldung zu blockieren.
+  try{
+    window.location.assign(url);
+    setTimeout(()=>URL.revokeObjectURL(url),300000);
+    return true;
+  }catch(e){
+    URL.revokeObjectURL(url);
+    throw new Error('SOP konnte im Browser nicht geöffnet werden.');
+  }
 }
 
 function managedDocumentOpenErrorModal(d,error,label){
@@ -30191,6 +30416,24 @@ function managedDocumentOpenErrorModal(d,error,label){
 
 async function openAssignedOperationSop(runStopId){
   if(!runStopId)return alert('Einsatz fehlt.');
+
+  // Wichtig für iPhone/iPad/Safari:
+  // Das Fenster muss direkt innerhalb des Benutzer-Taps geöffnet werden,
+  // bevor irgendein await/RPC/Storage-Download startet.
+  let targetWindow=null;
+  try{
+    targetWindow=window.open('about:blank','_blank');
+    if(targetWindow){
+      try{
+        targetWindow.document.title='SOP wird geladen …';
+        targetWindow.document.body.innerHTML=
+          '<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;padding:24px;color:#111">SOP wird geladen …</div>';
+      }catch(_e){}
+    }
+  }catch(_e){
+    targetWindow=null;
+  }
+
   try{
     let d=operationSopByRunStop[String(runStopId)]||null;
     if(!d){
@@ -30211,18 +30454,23 @@ async function openAssignedOperationSop(runStopId){
       operationSopByRunStop[String(runStopId)]=d||null;
     }
 
-    if(!d)return alert('Für diesen Einsatz ist keine freigegebene SOP hinterlegt.');
+    if(!d){
+      try{ if(targetWindow && !targetWindow.closed) targetWindow.close(); }catch(_e){}
+      return alert('Für diesen Einsatz ist keine freigegebene SOP hinterlegt.');
+    }
 
     const label=operationSopDisplayName(d);
 
     try{
-      await openManagedDocumentStorageFile(d,{title:label});
+      await openManagedDocumentStorageFile(d,{title:label,targetWindow});
       return;
     }catch(fileError){
+      try{ if(targetWindow && !targetWindow.closed) targetWindow.close(); }catch(_e){}
       console.warn('SOP-Datei konnte nicht geöffnet werden',fileError);
       managedDocumentOpenErrorModal(d,fileError,label);
     }
   }catch(e){
+    try{ if(targetWindow && !targetWindow.closed) targetWindow.close(); }catch(_e){}
     alert('SOP konnte nicht geladen werden: '+(e.message||e));
   }
 }
