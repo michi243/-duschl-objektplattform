@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.21</title>
+<title>Duschl Service – Objektplattform v2.26.6.22</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -663,7 +663,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 
 
 
-/* === Objektmodal Übersicht · 2.26.6.21 === */
+/* === Objektmodal Übersicht · 2.26.6.22 === */
 .object-edit-section{
   margin-top:12px;
   padding:14px;
@@ -756,7 +756,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Wochensteuerung Tourenlogik · 2.26.6.21 === */
+/* === Wochensteuerung Tourenlogik · 2.26.6.22 === */
 .rp-week-summary{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
@@ -829,7 +829,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzintegration · 2.26.6.21 === */
+/* === Betriebsmittel Einsatzintegration · 2.26.6.22 === */
 .or-process-hint{
   border-color:#31566e!important;
   background:linear-gradient(180deg,#0d2636 0%,#091d2a 100%)!important;
@@ -867,6 +867,34 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 @media(max-width:680px){
   .or-resource-usage{align-items:flex-start;flex-direction:column}
   .or-resource-usage button{width:100%}
+}
+
+
+/* === Betriebsmittel Einsatzarten · 2.26.6.22 === */
+.or-scope-hint{
+  margin-top:9px;
+  padding:8px 10px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:10px;
+  background:#071924;
+  color:#a9bfcd;
+  font-size:11px;
+  line-height:1.4;
+}
+.or-scope-group{
+  padding:10px 0;
+  border-bottom:1px solid var(--line,#334);
+}
+.or-scope-group-title{
+  font-weight:900;
+  margin-bottom:5px;
+}
+.or-scope-row{
+  gap:8px;
+  align-items:flex-start;
+  flex-wrap:wrap;
+  margin-top:7px;
+  padding:8px 0;
 }
 
 /* === GPS-Plausibilitätsprüfung · 2.21.61 === */
@@ -5609,15 +5637,15 @@ table td,table th{
 </style>
 
 <!--
-RELEASE 2.26.6.21 | BASIS 2.26.6.20 | 30.09.2026
-BETRIEBSMITTEL ALS OPERATIVES STEUERUNGSINSTRUMENT
-- Bestehende Betriebsmittel-Bedarfslogik sichtbar in den Hauptworkflow integriert.
-- Jedes Betriebsmittel zeigt die verknüpften Leistungsarten.
-- Unverknüpfte Betriebsmittel werden sichtbar markiert.
-- Direkter Einstieg "Leistung zuordnen" aus der Betriebsmittelkarte.
-- KPI "Leistungen verknüpft".
-- Tour-/Einsatzbereitschaft nutzt weiterhin die bestehenden Readiness- und Reservierungs-RPCs.
-- Keine SQL-, RLS- oder Edge-Änderung.
+RELEASE 2.26.6.22 | BASIS 2.26.6.21 | 01.10.2026
+BETRIEBSMITTEL: FLEXIBLE EINSATZARTEN
+- Leistungsart ist nicht mehr für jedes Betriebsmittel verpflichtend.
+- Drei Einsatzarten: leistungsbezogen, objektbezogen, allgemein.
+- Nur leistungsbezogene Zuordnungen fließen automatisch in die Tour-Readiness ein.
+- Objektbezogene Betriebsmittel werden einem konkreten Objekt zugeordnet.
+- Allgemeine Betriebsmittel bleiben leistungsübergreifend verfügbar.
+- Bestehende leistungsbezogene Zuordnungen bleiben erhalten.
+- SQL 2.26.6.22 erforderlich; keine Edge-Änderung.
 -->
 <section class="section" id="operations">
   <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -5985,13 +6013,13 @@ BETRIEBSMITTEL ALS OPERATIVES STEUERUNGSINSTRUMENT
   <div class="grid g4" style="margin-top:14px">
     <div class="card"><div class="muted">Aktive Betriebsmittel</div><div class="big" id="orKpiActive">—</div></div>
     <div class="card"><div class="muted">Verfügbar</div><div class="big" id="orKpiAvailable">—</div></div>
-    <div class="card"><div class="muted">Leistungen verknüpft</div><div class="big" id="orKpiLinked">—</div></div>
+    <div class="card"><div class="muted">Einsatzzuordnungen</div><div class="big" id="orKpiLinked">—</div></div>
     <div class="card"><div class="muted">Wartung / defekt</div><div class="big" id="orKpiIssue">—</div></div>
   </div>
   <div class="card or-process-hint" style="margin-top:12px">
     <strong>So funktioniert die Einsatzprüfung:</strong>
-    Leistung → benötigtes Betriebsmittel → aktueller Standort / Bestand → konkreter Tourtermin.
-    In der Tour erscheint automatisch <strong>Bereit</strong>, <strong>Prüfen</strong> oder <strong>Nicht bereit</strong>.
+    Leistungsbezogene Zuordnung → automatische Einsatzprüfung im Tourstopp. Objektbezogene und allgemeine Betriebsmittel bleiben flexibel verfügbar und benötigen keine künstliche Leistungsart.
+    In der Tour erscheint für leistungsbezogenen Bedarf automatisch <strong>Bereit</strong>, <strong>Prüfen</strong> oder <strong>Nicht bereit</strong>.
   </div>
 
   <div class="card operating-resource-admin" id="orAdminCard" style="margin-top:14px">
@@ -6099,18 +6127,35 @@ BETRIEBSMITTEL ALS OPERATIVES STEUERUNGSINSTRUMENT
       <div>
         <div class="ds-section-eyebrow">EINSATZBEDARF</div>
         <h3 style="margin:0">Leistung mit Betriebsmittel verknüpfen</h3>
-        <div class="muted" style="margin-top:5px">Hier definierst du einmalig, welches Betriebsmittel eine Leistungsart benötigt. Jeder spätere Tourstopp übernimmt diesen Bedarf automatisch.</div>
+        <div class="muted" style="margin-top:5px">Betriebsmittel können leistungsbezogen, einem Objekt fest zugeordnet oder als allgemeiner Bestand geführt werden.</div>
       </div>
       <button type="button" onclick="orResetRequirementEditor()">Neue Zuordnung</button>
     </div>
     <input id="orRequirementEditId" type="hidden">
     <div class="grid2" style="margin-top:12px">
-      <label>Leistungsart *<select id="orRequirementServiceType"><option value="">Leistungsart wählen …</option></select></label>
+      <label>Einsatzart *
+        <select id="orRequirementScopeType" onchange="orRequirementScopeChanged()">
+          <option value="service">Leistungsbezogen</option>
+          <option value="object">Objektbezogen</option>
+          <option value="general">Allgemeines Betriebsmittel</option>
+        </select>
+      </label>
       <label>Vorhandenes Betriebsmittel (optional)<select id="orRequirementResource" onchange="orRequirementResourceChanged()"><option value="">Freier Bedarf / kein konkretes Asset</option></select></label>
-      <label>Bedarf / Bezeichnung *<input id="orRequirementName" placeholder="z. B. Hochdruckreiniger oder Streumittel"></label>
+
+      <label id="orRequirementServiceWrap">Leistungsart *
+        <select id="orRequirementServiceType"><option value="">Leistungsart wählen …</option></select>
+      </label>
+      <label id="orRequirementObjectWrap" class="hidden">Objekt *
+        <select id="orRequirementObject"><option value="">Objekt wählen …</option></select>
+      </label>
+
+      <label>Bedarf / Bezeichnung *<input id="orRequirementName" placeholder="z. B. Hochdruckreiniger, Transporter oder Streumittel"></label>
       <label>Menge<input id="orRequirementQuantity" type="number" min="0" step="0.1" value="1"></label>
       <label>Einheit<input id="orRequirementUnit" placeholder="z. B. Stk., kg, l"></label>
-      <label style="display:flex;align-items:center;gap:8px;margin-top:24px"><input id="orRequirementRequired" type="checkbox" checked style="width:auto">Zwingend erforderlich</label>
+      <label id="orRequirementRequiredWrap" style="display:flex;align-items:center;gap:8px;margin-top:24px"><input id="orRequirementRequired" type="checkbox" checked style="width:auto">Zwingend erforderlich</label>
+    </div>
+    <div id="orRequirementScopeHint" class="or-scope-hint">
+      Leistungsbezogen: wird bei Tourstopps dieser Leistungsart automatisch auf Einsatzbereitschaft geprüft.
     </div>
     <label style="margin-top:10px">Hinweis / Ausnahme<textarea id="orRequirementNote" rows="2" placeholder="Optional, z. B. nur bei stärkerem Bewuchs oder Schneehöhe &gt; 5 cm"></textarea></label>
     <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">
@@ -8784,7 +8829,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.10.
    BACKEND: SQL 2.26.6.11 erforderlich.
 */
-/* RELEASE 2.26.6.21 | BASIS 2.26.6.12 | 30.09.2026
+/* RELEASE 2.26.6.22 | BASIS 2.26.6.12 | 30.09.2026
    WETTER-FALLBACK HARDENING:
    - Außenpflege akzeptiert object-weather nur noch bei verwertbarem care_24h-Datensatz.
    - Formal erfolgreiche, aber inhaltlich leere/ungültige Antworten lösen jetzt
@@ -8796,7 +8841,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.11.
    BACKEND: keine SQL-Änderung.
 */
-const APP_VERSION='2.26.6.21'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.6.22'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -16837,12 +16882,54 @@ function orFillRequirementSelects(){
     st.innerHTML='<option value="">Leistungsart wählen …</option>'+((operatingResourcesState.serviceTypes||[]).filter(x=>x.active!==false).map(x=>`<option value="${esc(x.id)}">${esc(x.name||'Leistungsart')}</option>`).join(''));
     if([...st.options].some(x=>x.value===keep))st.value=keep;
   }
+  const obj=document.getElementById('orRequirementObject');
+  if(obj){
+    const keep=obj.value;
+    const objects=(db.objects||[]).filter(x=>x.active!==false).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'de'));
+    obj.innerHTML='<option value="">Objekt wählen …</option>'+objects.map(x=>`<option value="${esc(x.id)}">${esc(x.name||'Objekt')}</option>`).join('');
+    if([...obj.options].some(x=>x.value===keep))obj.value=keep;
+  }
   const rr=document.getElementById('orRequirementResource');
   if(rr){
     const keep=rr.value;
     rr.innerHTML='<option value="">Freier Bedarf / kein konkretes Asset</option>'+((operatingResourcesState.resources||[]).filter(x=>x.active!==false&&x.planning_relevant!==false).map(x=>`<option value="${esc(x.id)}">${esc(x.name||'Betriebsmittel')}</option>`).join(''));
     if([...rr.options].some(x=>x.value===keep))rr.value=keep;
   }
+  orRequirementScopeChanged();
+}
+
+
+function orRequirementScopeLabel(scope){
+  if(scope==='object')return 'Objektbezogen';
+  if(scope==='general')return 'Allgemein';
+  return 'Leistungsbezogen';
+}
+function orRequirementScopeChanged(){
+  const scope=document.getElementById('orRequirementScopeType')?.value||'service';
+  const serviceWrap=document.getElementById('orRequirementServiceWrap');
+  const objectWrap=document.getElementById('orRequirementObjectWrap');
+  const requiredWrap=document.getElementById('orRequirementRequiredWrap');
+  const hint=document.getElementById('orRequirementScopeHint');
+
+  serviceWrap?.classList.toggle('hidden',scope!=='service');
+  objectWrap?.classList.toggle('hidden',scope!=='object');
+
+  if(requiredWrap)requiredWrap.style.display=scope==='service'?'flex':'none';
+
+  if(hint){
+    hint.textContent=
+      scope==='service'
+        ?'Leistungsbezogen: wird bei Tourstopps dieser Leistungsart automatisch auf Einsatzbereitschaft geprüft.'
+        :scope==='object'
+          ?'Objektbezogen: gehört dauerhaft bzw. überwiegend zu diesem Objekt. Keine zusätzliche Leistungsart erforderlich.'
+          :'Allgemein: steht leistungsübergreifend zur Verfügung, z. B. Transporter, Anhänger, Leiter oder Werkzeugkoffer.';
+  }
+}
+function orRequirementContextLabel(r){
+  const scope=String(r?.scope_type||'service');
+  if(scope==='general')return 'Allgemeiner Bestand';
+  if(scope==='object')return `Objekt · ${orObjectName(r?.object_id)}`;
+  return `Leistung · ${orServiceTypeName(r?.service_type_id)}`;
 }
 
 function orRequirementResourceChanged(){
@@ -16854,53 +16941,102 @@ function orRequirementResourceChanged(){
 }
 
 function orResetRequirementEditor(){
-  const vals={orRequirementEditId:'',orRequirementServiceType:'',orRequirementResource:'',orRequirementName:'',orRequirementQuantity:'1',orRequirementUnit:'',orRequirementNote:''};
+  const vals={orRequirementEditId:'',orRequirementScopeType:'service',orRequirementServiceType:'',orRequirementObject:'',orRequirementResource:'',orRequirementName:'',orRequirementQuantity:'1',orRequirementUnit:'',orRequirementNote:''};
   Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
   const rq=document.getElementById('orRequirementRequired');if(rq)rq.checked=true;
   const b=document.getElementById('orRequirementDeactivateBtn');if(b)b.classList.add('hidden');
+  orRequirementScopeChanged();
 }
 
 function orEditRequirement(id){
   if(!operatingResourcesCanAdmin())return;
   const r=(operatingResourcesState.requirements||[]).find(x=>String(x.id)===String(id));if(!r)return;
-  const vals={orRequirementEditId:r.id||'',orRequirementServiceType:r.service_type_id||'',orRequirementResource:r.resource_id||'',orRequirementName:r.requirement_name||'',orRequirementQuantity:r.required_quantity??1,orRequirementUnit:r.unit||'',orRequirementNote:r.note||''};
+  const vals={
+    orRequirementEditId:r.id||'',
+    orRequirementScopeType:r.scope_type||'service',
+    orRequirementServiceType:r.service_type_id||'',
+    orRequirementObject:r.object_id||'',
+    orRequirementResource:r.resource_id||'',
+    orRequirementName:r.requirement_name||'',
+    orRequirementQuantity:r.required_quantity??1,
+    orRequirementUnit:r.unit||'',
+    orRequirementNote:r.note||''
+  };
   Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
   const rq=document.getElementById('orRequirementRequired');if(rq)rq.checked=r.required!==false;
   const b=document.getElementById('orRequirementDeactivateBtn');if(b)b.classList.remove('hidden');
+  orRequirementScopeChanged();
   document.getElementById('orRequirementAdminCard')?.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 function orRenderRequirements(){
   const host=document.getElementById('orRequirementList');if(!host)return;
   const rows=(operatingResourcesState.requirements||[]).filter(x=>x.active!==false);
-  if(!rows.length){host.innerHTML='<div class="muted">Noch kein Standardbedarf hinterlegt. Das ist zulässig – die SOP bleibt weiterhin unabhängig nutzbar.</div>';return;}
-  const stName=id=>((operatingResourcesState.serviceTypes||[]).find(x=>String(x.id)===String(id))?.name||'Leistungsart');
-  const grouped={}; rows.forEach(r=>(grouped[r.service_type_id]??=[]).push(r));
-  host.innerHTML=Object.entries(grouped).map(([sid,items])=>`<div style="padding:10px 0;border-bottom:1px solid var(--line,#ddd)"><strong>${esc(stName(sid))}</strong>${items.map(r=>`<div class="row space" style="gap:8px;align-items:flex-start;flex-wrap:wrap;margin-top:7px"><div style="min-width:0;flex:1"><span class="badge">${r.required===false?'Optional':'Pflicht'}</span> ${esc(r.requirement_name||'Bedarf')} · ${Number(r.required_quantity??1).toLocaleString('de-DE',{maximumFractionDigits:3})}${r.unit?' '+esc(r.unit):''}${r.note?`<div class="muted" style="margin-top:3px">${esc(r.note)}</div>`:''}</div><button type="button" onclick="orEditRequirement('${esc(r.id)}')">Bearbeiten</button></div>`).join('')}</div>`).join('');
+  if(!rows.length){
+    host.innerHTML='<div class="muted">Noch keine Einsatzzuordnung hinterlegt. Betriebsmittel dürfen auch ohne Leistungsart geführt werden.</div>';
+    return;
+  }
+
+  const groups=[
+    {key:'service',title:'Leistungsbezogen'},
+    {key:'object',title:'Objektbezogen'},
+    {key:'general',title:'Allgemeiner Bestand'}
+  ];
+
+  host.innerHTML=groups.map(g=>{
+    const items=rows.filter(r=>String(r.scope_type||'service')===g.key);
+    if(!items.length)return '';
+    return `<div class="or-scope-group">
+      <div class="or-scope-group-title">${esc(g.title)} <span class="badge">${items.length}</span></div>
+      ${items.map(r=>`<div class="row space or-scope-row">
+        <div style="min-width:0;flex:1">
+          <div><strong>${esc(r.requirement_name||'Betriebsmittel')}</strong> <span class="badge">${esc(orRequirementContextLabel(r))}</span></div>
+          <div class="muted" style="margin-top:3px">
+            ${g.key==='service'?(r.required===false?'Optional':'Pflicht')+' · ':''}${Number(r.required_quantity??1).toLocaleString('de-DE',{maximumFractionDigits:3})}${r.unit?' '+esc(r.unit):''}
+          </div>
+          ${r.note?`<div class="muted" style="margin-top:3px">${esc(r.note)}</div>`:''}
+        </div>
+        <button type="button" onclick="orEditRequirement('${esc(r.id)}')">Bearbeiten</button>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
 }
 
 async function orSaveRequirement(){
-  if(!operatingResourcesCanAdmin())return alert('Nur der Mandanten-Admin darf Standardbedarfe verwalten.');
+  if(!operatingResourcesCanAdmin())return alert('Nur der Mandanten-Admin darf Einsatzzuordnungen verwalten.');
+
+  const scope=document.getElementById('orRequirementScopeType')?.value||'service';
   const service=document.getElementById('orRequirementServiceType')?.value||'';
+  const objectId=document.getElementById('orRequirementObject')?.value||'';
   const name=String(document.getElementById('orRequirementName')?.value||'').trim();
-  if(!service)return alert('Leistungsart wählen.');
+
+  if(scope==='service'&&!service)return alert('Leistungsart wählen.');
+  if(scope==='object'&&!objectId)return alert('Objekt wählen.');
   if(!name)return alert('Bedarf / Bezeichnung eingeben.');
+
   const qRaw=String(document.getElementById('orRequirementQuantity')?.value||'').trim();
-  const qty=qRaw===''?1:Number(qRaw);if(!Number.isFinite(qty)||qty<0)return alert('Menge ist ungültig.');
+  const qty=qRaw===''?1:Number(qRaw);
+  if(!Number.isFinite(qty)||qty<0)return alert('Menge ist ungültig.');
+
   try{
-    await cloudRequest('rpc/save_operating_resource_requirement_v1',{method:'POST',body:JSON.stringify({
+    await cloudRequest('rpc/save_operating_resource_requirement_v2',{method:'POST',body:JSON.stringify({
       p_organization_id:currentOrganizationId(),
       p_requirement_id:document.getElementById('orRequirementEditId')?.value||null,
-      p_service_type_id:service,
+      p_scope_type:scope,
+      p_service_type_id:scope==='service'?service:null,
+      p_object_id:scope==='object'?objectId:null,
       p_resource_id:document.getElementById('orRequirementResource')?.value||null,
       p_requirement_name:name,
       p_required_quantity:qty,
       p_unit:String(document.getElementById('orRequirementUnit')?.value||'').trim()||null,
-      p_required:document.getElementById('orRequirementRequired')?.checked!==false,
+      p_required:scope==='service'?(document.getElementById('orRequirementRequired')?.checked!==false):false,
       p_note:String(document.getElementById('orRequirementNote')?.value||'').trim()||null
     })});
-    orResetRequirementEditor();await loadOperatingResources();
-  }catch(e){alert('Standardbedarf konnte nicht gespeichert werden: '+(e.message||e));}
+    orResetRequirementEditor();
+    await loadOperatingResources();
+  }catch(e){
+    alert('Einsatzzuordnung konnte nicht gespeichert werden: '+(e.message||e));
+  }
 }
 
 async function orDeactivateRequirement(){
@@ -16979,7 +17115,7 @@ async function loadOperatingResources(){
     const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=String(v);};
     set('orKpiActive',active.length);
     set('orKpiAvailable',active.filter(x=>x.status==='available').length);
-    set('orKpiLinked',new Set((operatingResourcesState.requirements||[]).filter(x=>x.active!==false).map(x=>String(x.service_type_id||'')).filter(Boolean)).size);
+    set('orKpiLinked',(operatingResourcesState.requirements||[]).filter(x=>x.active!==false).length);
     set('orKpiIssue',active.filter(x=>['maintenance','defective'].includes(x.status)).length);
     orRenderList();
   }catch(e){
@@ -17002,14 +17138,13 @@ function orResourceUsageHtml(resource){
   const links=orResourceRequirements(resource?.id);
   if(!links.length){
     return `<div class="or-resource-usage is-unlinked">
-      <div><strong>Einsatzbezug</strong><div class="muted">Noch keiner Leistungsart zugeordnet.</div></div>
-      ${operatingResourcesCanAdmin()?`<button type="button" onclick="orStartRequirementForResource('${esc(resource?.id||'')}')">Leistung zuordnen</button>`:''}
+      <div><strong>Einsatzbezug</strong><div class="muted">Noch keine Einsatzart zugeordnet.</div></div>
+      ${operatingResourcesCanAdmin()?`<button type="button" onclick="orStartRequirementForResource('${esc(resource?.id||'')}')">Einsatzart zuordnen</button>`:''}
     </div>`;
   }
-  const unique=[...new Map(links.map(r=>[String(r.service_type_id||''),r])).values()];
   return `<div class="or-resource-usage">
     <div><strong>Einsatzbezug</strong><div class="or-resource-service-tags">${
-      unique.map(r=>`<span class="badge">${esc(orServiceTypeName(r.service_type_id))}</span>`).join('')
+      links.map(r=>`<span class="badge">${esc(orRequirementContextLabel(r))}</span>`).join('')
     }</div></div>
     ${operatingResourcesCanAdmin()?`<button type="button" onclick="orStartRequirementForResource('${esc(resource?.id||'')}')">Zuordnung ergänzen</button>`:''}
   </div>`;
@@ -17018,14 +17153,17 @@ function orStartRequirementForResource(resourceId){
   if(!operatingResourcesCanAdmin())return;
   orResetRequirementEditor();
   const resource=(operatingResourcesState.resources||[]).find(x=>String(x.id||'')===String(resourceId||''));
+  const scope=document.getElementById('orRequirementScopeType');
+  if(scope)scope.value='general';
   const rr=document.getElementById('orRequirementResource');
   if(rr)rr.value=resourceId||'';
   const n=document.getElementById('orRequirementName');
   if(n&&resource)n.value=resource.name||'';
   const u=document.getElementById('orRequirementUnit');
   if(u&&resource)u.value=resource.unit||(resource.tracking_mode==='individual'?'Stk.':'');
+  orRequirementScopeChanged();
   document.getElementById('orRequirementAdminCard')?.scrollIntoView({behavior:'smooth',block:'start'});
-  setTimeout(()=>document.getElementById('orRequirementServiceType')?.focus(),350);
+  setTimeout(()=>document.getElementById('orRequirementScopeType')?.focus(),350);
 }
 
 function orRenderList(){
@@ -27584,7 +27722,7 @@ function opsWeekdayLabel(v){const m={0:'So',1:'Mo',2:'Di',3:'Mi',4:'Do',5:'Fr',6
 function opsIntervalLabel(v){return ({1:'wöchentlich',2:'alle 2 Wochen',4:'alle 4 Wochen'})[Number(v)]||`alle ${v} Wochen`;}
 function opsTimeWindowLabel(p){const a=String(p?.time_window_start||'').slice(0,5),b=String(p?.time_window_end||'').slice(0,5);return a&&b?`${a}–${b}`:a?`ab ${a}`:b?`bis ${b}`:'kein Zeitfenster';}
 
-/* RELEASE 2.26.6.21 | BASIS 2.26.6.13 | 30.09.2026
+/* RELEASE 2.26.6.22 | BASIS 2.26.6.13 | 30.09.2026
    EINMALIGER AUFTRAG: STAND-ALONE ODER TOURTERMIN
    - Begriff "Einzeltour" im Planungsdialog durch "Einmaliger Auftrag" ersetzt.
    - Kein Rhythmus / keine Wochentage für Ad-hoc-Aufträge.
@@ -29240,7 +29378,7 @@ async function opsSaveTour(){
         object_service_assignment_id:a.id,
         object_id:a.object_id,
         service_type_id:a.service_type_id,
-        // 2.26.6.21: Die Tour ist das führende Planungsobjekt.
+        // 2.26.6.22: Die Tour ist das führende Planungsobjekt.
         // Direkte Tourstopps benötigen keinen recurring_service_plan.
         recurring_plan_id:null,
         planned_duration_minutes:duration,
@@ -29268,7 +29406,7 @@ async function opsSaveTour(){
         body:JSON.stringify(templatePayload)
       });
 
-      // 2.26.6.21:
+      // 2.26.6.22:
       // Bestehende Tourstopps nicht pauschal deaktivieren und neu einfügen.
       // Sonst kollidieren historische/inaktive Datensätze mit UNIQUE-Constraints
       // wie (tour_template_id, recurring_plan_id).
