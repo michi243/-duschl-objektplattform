@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.28</title>
+<title>Duschl Service – Objektplattform v2.26.6.29</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -663,7 +663,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 
 
 
-/* === Objektmodal Übersicht · 2.26.6.28 === */
+/* === Objektmodal Übersicht · 2.26.6.29 === */
 .object-edit-section{
   margin-top:12px;
   padding:14px;
@@ -756,7 +756,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Wochensteuerung Tourenlogik · 2.26.6.28 === */
+/* === Wochensteuerung Tourenlogik · 2.26.6.29 === */
 .rp-week-summary{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
@@ -829,7 +829,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzintegration · 2.26.6.28 === */
+/* === Betriebsmittel Einsatzintegration · 2.26.6.29 === */
 .or-process-hint{
   border-color:#31566e!important;
   background:linear-gradient(180deg,#0d2636 0%,#091d2a 100%)!important;
@@ -870,7 +870,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzarten · 2.26.6.28 === */
+/* === Betriebsmittel Einsatzarten · 2.26.6.29 === */
 .or-scope-hint{
   margin-top:9px;
   padding:8px 10px;
@@ -898,7 +898,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Zusatzauftrag verständliche Darstellung · 2.26.6.28 === */
+/* === Zusatzauftrag verständliche Darstellung · 2.26.6.29 === */
 .ops-run-stop-special{
   border-left:3px solid #6c8faa;
   padding-left:10px;
@@ -918,7 +918,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Regelmäßige Einzelleistung als Sonderfall · 2.26.6.28 === */
+/* === Regelmäßige Einzelleistung als Sonderfall · 2.26.6.29 === */
 .ops-advanced-planning{
   margin-top:10px!important;
   opacity:.94;
@@ -1847,40 +1847,7 @@ body.public-report-mode>#photoViewer{display:none!important}
   .public-report-photo-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 </style>
-<style>
-/* ===== v2.18.49 Spracheingabe ===== */
-.speech-field-host{
-  position:relative;
-}
-.speech-field-host > input[type="text"],
-.speech-field-host > textarea{
-  padding-right:46px !important;
-}
-.speech-mic-btn{
-  position:absolute;
-  right:6px;
-  top:50%;
-  transform:translateY(-50%);
-  width:34px;
-  height:34px;
-  min-width:34px;
-  padding:0;
-  border-radius:8px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:2;
-  font-size:16px;
-  line-height:1;
-}
-.speech-field-host.speech-textarea-host .speech-mic-btn{
-  top:8px;
-  transform:none;
-}
-.speech-mic-btn.listening{
-  outline:2px solid currentColor;
-}
-</style>
+
 <style id="service-scope-ui-v21973">
 /* v2.19.74 – kompakter, eindeutiger Leistungsumfang-Katalog */
 .soc-selected-summary{margin:8px 0 10px;padding:10px 12px;border:1px solid #31536d;border-radius:11px;background:#0b2333}
@@ -5671,7 +5638,7 @@ table td,table th{
 </style>
 
 <!--
-RELEASE 2.26.6.28 | BASIS 2.26.6.24 | 01.10.2026
+RELEASE 2.26.6.29 | BASIS 2.26.6.24 | 01.10.2026
 REGELMÄSSIGE EINZELLEISTUNG NUR NOCH SONDERFALL
 - Hauptworkflow bleibt Wiederkehrende Tour + Einmaliger Auftrag.
 - Regelmäßige Einzelleistung ist standardmäßig eingeklappt.
@@ -5680,7 +5647,7 @@ REGELMÄSSIGE EINZELLEISTUNG NUR NOCH SONDERFALL
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.28 | BASIS 2.26.6.25 + SQL-HOTFIXES 2.26.6.26/27 | 01.10.2026
+RELEASE 2.26.6.29 | BASIS 2.26.6.25 + SQL-HOTFIXES 2.26.6.26/27 | 01.10.2026
 TEMPORÄRE EINSATZBERECHTIGUNG DURCH TOURZUWEISUNG
 - Jeder aktive operative Mandantenbenutzer kann einer konkreten Tour zugewiesen werden.
 - Fehlende dauerhafte Objekt-/Kollaborationszuweisung blockiert die Tourzuweisung nicht mehr.
@@ -5688,6 +5655,15 @@ TEMPORÄRE EINSATZBERECHTIGUNG DURCH TOURZUWEISUNG
 - Temporäre Berechtigung gilt serverseitig für alle Objekte/Leistungsumfänge der offenen Tour.
 - Zugriff endet automatisch mit Abschluss/Stornierung bzw. Entzug der Tourzuweisung.
 - Kein Edge-Change.
+-->
+<!--
+RELEASE 2.26.6.29 | BASIS 2.26.6.28 | 01.10.2026
+SPRACHEINGABE KOMPLETT ENTFERNT
+- Globale Mikrofon-/Spracheingabe für Freitextfelder vollständig entfernt.
+- Keine SpeechRecognition-/webkitSpeechRecognition-Initialisierung mehr.
+- Keine Mikrofon-Buttons, Observer oder speech-spezifischen CSS-Klassen mehr.
+- Eingabefelder wieder ohne reservierten Mikrofonbereich.
+- Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <section class="section" id="operations">
   <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -8870,7 +8846,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.10.
    BACKEND: SQL 2.26.6.11 erforderlich.
 */
-/* RELEASE 2.26.6.28 | BASIS 2.26.6.12 | 30.09.2026
+/* RELEASE 2.26.6.29 | BASIS 2.26.6.12 | 30.09.2026
    WETTER-FALLBACK HARDENING:
    - Außenpflege akzeptiert object-weather nur noch bei verwertbarem care_24h-Datensatz.
    - Formal erfolgreiche, aber inhaltlich leere/ungültige Antworten lösen jetzt
@@ -8882,7 +8858,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.11.
    BACKEND: keine SQL-Änderung.
 */
-const APP_VERSION='2.26.6.28'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.6.29'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -24126,179 +24102,6 @@ if(!bootPublicResidentReport()){
 <div class="photo-viewer-hint">Zum Vergrößern zwei Finger verwenden · × zum Schließen</div>
 </div>
 <script>
-/* ===== v2.18.49 Spracheingabe für alle Freitextfelder ===== */
-(function(){
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SpeechRecognition) return;
-
-  let activeRecognition = null;
-  let activeButton = null;
-
-  function eligible(field){
-    if(!field || field.disabled || field.readOnly) return false;
-    if(field.tagName === 'TEXTAREA') return true;
-    if(field.tagName !== 'INPUT') return false;
-    return (field.getAttribute('type') || 'text').toLowerCase() === 'text';
-  }
-
-  function ensureHost(field){
-    if(field.parentElement && field.parentElement.classList.contains('speech-field-host')){
-      return field.parentElement;
-    }
-
-    const host = document.createElement('span');
-    host.className = 'speech-field-host';
-    if(field.tagName === 'TEXTAREA') host.classList.add('speech-textarea-host');
-
-    const cs = window.getComputedStyle(field);
-    if(cs.display === 'block' || field.tagName === 'TEXTAREA'){
-      host.style.display = 'block';
-      host.style.width = '100%';
-    } else {
-      host.style.display = 'inline-block';
-      host.style.width = cs.width === 'auto' ? '100%' : cs.width;
-      host.style.maxWidth = '100%';
-    }
-
-    field.parentNode.insertBefore(host, field);
-    host.appendChild(field);
-    field.style.width = '100%';
-    return host;
-  }
-
-  function insertTranscript(field, text){
-    const transcript = String(text || '').trim();
-    if(!transcript) return;
-
-    const old = field.value || '';
-    const start = typeof field.selectionStart === 'number' ? field.selectionStart : old.length;
-    const end = typeof field.selectionEnd === 'number' ? field.selectionEnd : start;
-
-    const before = old.slice(0, start);
-    const after = old.slice(end);
-    const spacer = before && !/\s$/.test(before) ? ' ' : '';
-
-    field.value = before + spacer + transcript + after;
-
-    const pos = (before + spacer + transcript).length;
-    try { field.setSelectionRange(pos, pos); } catch(e) {}
-
-    field.dispatchEvent(new Event('input', {bubbles:true}));
-    field.dispatchEvent(new Event('change', {bubbles:true}));
-    field.focus();
-  }
-
-  function resetButton(btn){
-    if(!btn) return;
-    btn.classList.remove('listening');
-    btn.textContent = '🎤';
-    btn.title = 'Spracheingabe starten';
-    btn.setAttribute('aria-label', 'Spracheingabe starten');
-  }
-
-  function stopActiveRecognition(){
-    if(activeRecognition){
-      try { activeRecognition.stop(); } catch(e) {}
-    }
-  }
-
-  function addSpeechButton(field){
-    if(!eligible(field) || field.dataset.speechReady === '1') return;
-    field.dataset.speechReady = '1';
-
-    const host = ensureHost(field);
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'speech-mic-btn';
-    btn.textContent = '🎤';
-    btn.title = 'Spracheingabe starten';
-    btn.setAttribute('aria-label', 'Spracheingabe starten');
-    host.appendChild(btn);
-
-    btn.addEventListener('click', function(ev){
-      ev.preventDefault();
-      ev.stopPropagation();
-
-      if(activeButton === btn){
-        stopActiveRecognition();
-        return;
-      }
-
-      stopActiveRecognition();
-
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'de-DE';
-      recognition.interimResults = false;
-      recognition.continuous = false;
-      recognition.maxAlternatives = 1;
-
-      activeRecognition = recognition;
-      activeButton = btn;
-
-      btn.classList.add('listening');
-      btn.textContent = '■';
-      btn.title = 'Spracheingabe stoppen';
-      btn.setAttribute('aria-label', 'Spracheingabe stoppen');
-
-      recognition.onresult = function(event){
-        let transcript = '';
-        for(let i = event.resultIndex; i < event.results.length; i++){
-          if(event.results[i].isFinal){
-            transcript += event.results[i][0].transcript;
-          }
-        }
-        insertTranscript(field, transcript);
-      };
-
-      recognition.onerror = function(event){
-        if(event.error !== 'aborted' && event.error !== 'no-speech'){
-          console.warn('Spracheingabe:', event.error);
-        }
-      };
-
-      recognition.onend = function(){
-        resetButton(btn);
-        if(activeRecognition === recognition) activeRecognition = null;
-        if(activeButton === btn) activeButton = null;
-      };
-
-      try{
-        recognition.start();
-      }catch(e){
-        console.warn('Spracheingabe konnte nicht gestartet werden', e);
-        recognition.onend();
-      }
-    });
-  }
-
-  function enhance(root){
-    if(root && root.nodeType === 1 && eligible(root)) addSpeechButton(root);
-    if(root && root.querySelectorAll){
-      root.querySelectorAll('textarea,input[type="text"],input:not([type])').forEach(addSpeechButton);
-    }
-  }
-
-  function initSpeechInput(){
-    enhance(document);
-
-    const observer = new MutationObserver(function(mutations){
-      mutations.forEach(function(mutation){
-        mutation.addedNodes.forEach(function(node){
-          if(node.nodeType === 1) enhance(node);
-        });
-      });
-    });
-
-    observer.observe(document.body, {childList:true, subtree:true});
-  }
-
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', initSpeechInput);
-  }else{
-    initSpeechInput();
-  }
-})();
-
 document.addEventListener('change',e=>{
   const id=String(e.target?.id||'').toLowerCase();
   const name=String(e.target?.name||'').toLowerCase();
@@ -27714,7 +27517,7 @@ async function opsLoadSharedAssignmentContext(){
 }
 
 function opsSelectableUsersForRun(run){
-  // 2.26.6.28:
+  // 2.26.6.29:
   // Eine konkrete Tourzuweisung erzeugt serverseitig eine temporäre
   // Einsatzberechtigung für alle Objekte dieser Tour. Deshalb dürfen hier
   // alle aktiven operativen Benutzer des Mandanten ausgewählt werden.
@@ -27766,7 +27569,7 @@ function opsWeekdayLabel(v){const m={0:'So',1:'Mo',2:'Di',3:'Mi',4:'Do',5:'Fr',6
 function opsIntervalLabel(v){return ({1:'wöchentlich',2:'alle 2 Wochen',4:'alle 4 Wochen'})[Number(v)]||`alle ${v} Wochen`;}
 function opsTimeWindowLabel(p){const a=String(p?.time_window_start||'').slice(0,5),b=String(p?.time_window_end||'').slice(0,5);return a&&b?`${a}–${b}`:a?`ab ${a}`:b?`bis ${b}`:'kein Zeitfenster';}
 
-/* RELEASE 2.26.6.28 | BASIS 2.26.6.13 | 30.09.2026
+/* RELEASE 2.26.6.29 | BASIS 2.26.6.13 | 30.09.2026
    EINMALIGER AUFTRAG: STAND-ALONE ODER TOURTERMIN
    - Begriff "Einzeltour" im Planungsdialog durch "Einmaliger Auftrag" ersetzt.
    - Kein Rhythmus / keine Wochentage für Ad-hoc-Aufträge.
@@ -29466,7 +29269,7 @@ async function opsSaveTour(){
         object_service_assignment_id:a.id,
         object_id:a.object_id,
         service_type_id:a.service_type_id,
-        // 2.26.6.28: Die Tour ist das führende Planungsobjekt.
+        // 2.26.6.29: Die Tour ist das führende Planungsobjekt.
         // Direkte Tourstopps benötigen keinen recurring_service_plan.
         recurring_plan_id:null,
         planned_duration_minutes:duration,
@@ -29494,7 +29297,7 @@ async function opsSaveTour(){
         body:JSON.stringify(templatePayload)
       });
 
-      // 2.26.6.28:
+      // 2.26.6.29:
       // Bestehende Tourstopps nicht pauschal deaktivieren und neu einfügen.
       // Sonst kollidieren historische/inaktive Datensätze mit UNIQUE-Constraints
       // wie (tour_template_id, recurring_plan_id).
