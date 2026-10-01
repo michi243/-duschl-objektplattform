@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.22</title>
+<title>Duschl Service – Objektplattform v2.26.6.24</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -663,7 +663,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 
 
 
-/* === Objektmodal Übersicht · 2.26.6.22 === */
+/* === Objektmodal Übersicht · 2.26.6.24 === */
 .object-edit-section{
   margin-top:12px;
   padding:14px;
@@ -756,7 +756,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Wochensteuerung Tourenlogik · 2.26.6.22 === */
+/* === Wochensteuerung Tourenlogik · 2.26.6.24 === */
 .rp-week-summary{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
@@ -829,7 +829,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzintegration · 2.26.6.22 === */
+/* === Betriebsmittel Einsatzintegration · 2.26.6.24 === */
 .or-process-hint{
   border-color:#31566e!important;
   background:linear-gradient(180deg,#0d2636 0%,#091d2a 100%)!important;
@@ -870,7 +870,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzarten · 2.26.6.22 === */
+/* === Betriebsmittel Einsatzarten · 2.26.6.24 === */
 .or-scope-hint{
   margin-top:9px;
   padding:8px 10px;
@@ -895,6 +895,26 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
   flex-wrap:wrap;
   margin-top:7px;
   padding:8px 0;
+}
+
+
+/* === Zusatzauftrag verständliche Darstellung · 2.26.6.24 === */
+.ops-run-stop-special{
+  border-left:3px solid #6c8faa;
+  padding-left:10px;
+}
+.ops-special-task-kicker{
+  display:inline-block;
+  margin-bottom:4px;
+  padding:3px 7px;
+  border-radius:999px;
+  background:#16364a;
+  border:1px solid #3b627b;
+  color:#d6e7f1;
+  font-size:9px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.05em;
 }
 
 /* === GPS-Plausibilitätsprüfung · 2.21.61 === */
@@ -5637,15 +5657,13 @@ table td,table th{
 </style>
 
 <!--
-RELEASE 2.26.6.22 | BASIS 2.26.6.21 | 01.10.2026
-BETRIEBSMITTEL: FLEXIBLE EINSATZARTEN
-- Leistungsart ist nicht mehr für jedes Betriebsmittel verpflichtend.
-- Drei Einsatzarten: leistungsbezogen, objektbezogen, allgemein.
-- Nur leistungsbezogene Zuordnungen fließen automatisch in die Tour-Readiness ein.
-- Objektbezogene Betriebsmittel werden einem konkreten Objekt zugeordnet.
-- Allgemeine Betriebsmittel bleiben leistungsübergreifend verfügbar.
-- Bestehende leistungsbezogene Zuordnungen bleiben erhalten.
-- SQL 2.26.6.22 erforderlich; keine Edge-Änderung.
+RELEASE 2.26.6.24 | BASIS 2.26.6.22 | 01.10.2026
+ZUSATZAUFTRAG IN TOUR: VERSTÄNDLICHE DARSTELLUNG
+- Mail-/Notification-Logik unverändert.
+- Einmalige Zusatzaufträge werden eindeutig als solche dargestellt.
+- Titel, Objekt/Einsatzort, Adresse, Beschreibung und Dauer werden sichtbar.
+- Keine irreführende SOP- oder Betriebsmittelanzeige bei freien Zusatzaufträgen.
+- Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <section class="section" id="operations">
   <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -8829,7 +8847,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.10.
    BACKEND: SQL 2.26.6.11 erforderlich.
 */
-/* RELEASE 2.26.6.22 | BASIS 2.26.6.12 | 30.09.2026
+/* RELEASE 2.26.6.24 | BASIS 2.26.6.12 | 30.09.2026
    WETTER-FALLBACK HARDENING:
    - Außenpflege akzeptiert object-weather nur noch bei verwertbarem care_24h-Datensatz.
    - Formal erfolgreiche, aber inhaltlich leere/ungültige Antworten lösen jetzt
@@ -8841,7 +8859,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.11.
    BACKEND: keine SQL-Änderung.
 */
-const APP_VERSION='2.26.6.22'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.6.24'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -27722,7 +27740,7 @@ function opsWeekdayLabel(v){const m={0:'So',1:'Mo',2:'Di',3:'Mi',4:'Do',5:'Fr',6
 function opsIntervalLabel(v){return ({1:'wöchentlich',2:'alle 2 Wochen',4:'alle 4 Wochen'})[Number(v)]||`alle ${v} Wochen`;}
 function opsTimeWindowLabel(p){const a=String(p?.time_window_start||'').slice(0,5),b=String(p?.time_window_end||'').slice(0,5);return a&&b?`${a}–${b}`:a?`ab ${a}`:b?`bis ${b}`:'kein Zeitfenster';}
 
-/* RELEASE 2.26.6.22 | BASIS 2.26.6.13 | 30.09.2026
+/* RELEASE 2.26.6.24 | BASIS 2.26.6.13 | 30.09.2026
    EINMALIGER AUFTRAG: STAND-ALONE ODER TOURTERMIN
    - Begriff "Einzeltour" im Planungsdialog durch "Einmaliger Auftrag" ersetzt.
    - Kein Rhythmus / keine Wochentage für Ad-hoc-Aufträge.
@@ -27735,11 +27753,14 @@ let opsAdhocMode='standalone';
 
 function opsRunStopObjectLabel(stop){
   if(stop?.object_id)return opsObjName(stop.object_id);
-  return String(stop?.location_name||'Freier Einsatzort');
+  return String(stop?.location_name||stop?.location_address||'Freier Einsatzort');
 }
 function opsRunStopServiceLabel(stop){
+  if(String(stop?.stop_kind||'')==='special_task' || stop?.is_one_off===true){
+    return String(stop?.custom_title||'Einmaliger Zusatzauftrag');
+  }
   if(stop?.service_type_id)return opsServiceName(stop.service_type_id);
-  return String(stop?.custom_title||'Einmaliger Auftrag');
+  return 'Leistung';
 }
 
 function opsOpenOneoffPlanner(){
@@ -28186,6 +28207,9 @@ function opsReadinessRowsForRun(runId){
     : [];
 }
 function opsReadinessRowsForStop(stopId){
+  const stop=(opsState.runStops||[]).find(x=>String(x.id||'')===String(stopId||''));
+  if(stop && (String(stop.stop_kind||'')==='special_task' || stop.is_one_off===true))return [];
+
   const sid=String(stopId||'');
   const rows=[];
   Object.values(opsState.resourceReadiness||{}).forEach(xs=>{
@@ -28933,8 +28957,40 @@ function opsRender(){
         `Verantwortlich: ${opsUserName(r.assigned_user_id)}`
       ].join(' · ');
 
-      const stopsHtml=xs.map(x=>`
-        <div class="ops-run-stop-row">
+      const stopsHtml=xs.map(x=>{
+        const special=String(x.stop_kind||'')==='special_task' || x.is_one_off===true;
+
+        if(special){
+          const place=x.object_id
+            ? opsObjName(x.object_id)
+            : (x.location_name||x.location_address||'Freier Einsatzort');
+
+          const address=x.location_address && String(x.location_address)!==String(place)
+            ? `<div class="muted" style="margin-top:2px">${opsEsc(x.location_address)}</div>`
+            :'';
+
+          const note=x.custom_note
+            ? `<div class="muted" style="margin-top:4px">${opsEsc(x.custom_note)}</div>`
+            :'';
+
+          const duration=Number(x.planned_duration_minutes||0)>0
+            ? `<div class="muted" style="margin-top:4px">Geplante Dauer: ${opsEsc(x.planned_duration_minutes)} Min.</div>`
+            :'';
+
+          return `<div class="ops-run-stop-row ops-run-stop-special">
+            <span>${opsEsc(x.sort_order)}.</span>
+            <div>
+              <div class="ops-special-task-kicker">Einmaliger Zusatzauftrag</div>
+              <strong>${opsEsc(x.custom_title||'Zusatzauftrag')}</strong>
+              <div class="muted" style="margin-top:2px">${opsEsc(place)}</div>
+              ${address}
+              ${note}
+              ${duration}
+            </div>
+          </div>`;
+        }
+
+        return `<div class="ops-run-stop-row">
           <span>${opsEsc(x.sort_order)}.</span>
           <div>
             <strong>${opsEsc(opsObjName(x.object_id))}</strong>
@@ -28942,7 +28998,8 @@ function opsRender(){
             <div class="ops-run-stop-sop" style="margin-top:3px">SOP: ${operationSopLinkHtml(x.id,opsEsc)}</div>
             ${opsResourceReadinessHtml(opsReadinessRowsForStop(x.id),{compact:true})}
           </div>
-        </div>`).join('');
+        </div>`;
+      }).join('');
 
       return `<div class="card ops-admin-run-card ${compact?'is-compact':''}">
         <div class="ops-admin-run-head">
@@ -29378,7 +29435,7 @@ async function opsSaveTour(){
         object_service_assignment_id:a.id,
         object_id:a.object_id,
         service_type_id:a.service_type_id,
-        // 2.26.6.22: Die Tour ist das führende Planungsobjekt.
+        // 2.26.6.24: Die Tour ist das führende Planungsobjekt.
         // Direkte Tourstopps benötigen keinen recurring_service_plan.
         recurring_plan_id:null,
         planned_duration_minutes:duration,
@@ -29406,7 +29463,7 @@ async function opsSaveTour(){
         body:JSON.stringify(templatePayload)
       });
 
-      // 2.26.6.22:
+      // 2.26.6.24:
       // Bestehende Tourstopps nicht pauschal deaktivieren und neu einfügen.
       // Sonst kollidieren historische/inaktive Datensätze mit UNIQUE-Constraints
       // wie (tour_template_id, recurring_plan_id).
