@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.31</title>
+<title>Duschl Service – Objektplattform v2.26.6.32</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -663,7 +663,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 
 
 
-/* === Objektmodal Übersicht · 2.26.6.31 === */
+/* === Objektmodal Übersicht · 2.26.6.32 === */
 .object-edit-section{
   margin-top:12px;
   padding:14px;
@@ -756,7 +756,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Wochensteuerung Tourenlogik · 2.26.6.31 === */
+/* === Wochensteuerung Tourenlogik · 2.26.6.32 === */
 .rp-week-summary{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
@@ -829,7 +829,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzintegration · 2.26.6.31 === */
+/* === Betriebsmittel Einsatzintegration · 2.26.6.32 === */
 .or-process-hint{
   border-color:#31566e!important;
   background:linear-gradient(180deg,#0d2636 0%,#091d2a 100%)!important;
@@ -870,7 +870,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzarten · 2.26.6.31 === */
+/* === Betriebsmittel Einsatzarten · 2.26.6.32 === */
 .or-scope-hint{
   margin-top:9px;
   padding:8px 10px;
@@ -898,7 +898,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Zusatzauftrag verständliche Darstellung · 2.26.6.31 === */
+/* === Zusatzauftrag verständliche Darstellung · 2.26.6.32 === */
 .ops-run-stop-special{
   border-left:3px solid #6c8faa;
   padding-left:10px;
@@ -918,7 +918,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Regelmäßige Einzelleistung als Sonderfall · 2.26.6.31 === */
+/* === Regelmäßige Einzelleistung als Sonderfall · 2.26.6.32 === */
 .ops-advanced-planning{
   margin-top:10px!important;
   opacity:.94;
@@ -932,13 +932,13 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Spracheingabe vollständig entfernt · 2.26.6.31 === */
+/* === Spracheingabe vollständig entfernt · 2.26.6.32 === */
 .speech-mic-btn{display:none!important}
 .speech-field-host>input[type="text"],
 .speech-field-host>textarea{padding-right:12px!important}
 
 
-/* === Navigation + interne Aufgabendokumentation · 2.26.6.31 === */
+/* === Navigation + interne Aufgabendokumentation · 2.26.6.32 === */
 .ds-global-back{
   width:42px!important;height:42px!important;min-width:42px!important;padding:0!important;
   display:grid!important;place-items:center!important;border-radius:12px!important;
@@ -954,6 +954,16 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
   .app-topbar{gap:8px!important}
   .ds-global-back{width:40px!important;height:40px!important;min-width:40px!important}
   .app-brand h1{font-size:17px!important}
+}
+
+
+/* === Legacy-SOP aus operativen Standardtouren entfernt · 2.26.6.32 ===
+   Source of Truth: strukturierte Prozesse & Standards nach service_type_id.
+   Historische managed_document_version_id-Daten bleiben unangetastet. */
+.ops-work-sop-row,
+.ops-run-stop-sop,
+.om-tour-sop{
+  display:none!important;
 }
 
 /* === GPS-Plausibilitätsprüfung · 2.21.61 === */
@@ -5663,7 +5673,7 @@ table td,table th{
 </style>
 
 <!--
-RELEASE 2.26.6.31 | BASIS 2.26.6.24 | 01.10.2026
+RELEASE 2.26.6.32 | BASIS 2.26.6.24 | 01.10.2026
 REGELMÄSSIGE EINZELLEISTUNG NUR NOCH SONDERFALL
 - Hauptworkflow bleibt Wiederkehrende Tour + Einmaliger Auftrag.
 - Regelmäßige Einzelleistung ist standardmäßig eingeklappt.
@@ -5672,7 +5682,7 @@ REGELMÄSSIGE EINZELLEISTUNG NUR NOCH SONDERFALL
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.31 | BASIS 2.26.6.25 + SQL-HOTFIXES 2.26.6.26/27 | 01.10.2026
+RELEASE 2.26.6.32 | BASIS 2.26.6.25 + SQL-HOTFIXES 2.26.6.26/27 | 01.10.2026
 TEMPORÄRE EINSATZBERECHTIGUNG DURCH TOURZUWEISUNG
 - Jeder aktive operative Mandantenbenutzer kann einer konkreten Tour zugewiesen werden.
 - Fehlende dauerhafte Objekt-/Kollaborationszuweisung blockiert die Tourzuweisung nicht mehr.
@@ -5682,7 +5692,7 @@ TEMPORÄRE EINSATZBERECHTIGUNG DURCH TOURZUWEISUNG
 - Kein Edge-Change.
 -->
 <!--
-RELEASE 2.26.6.31 | BASIS 2.26.6.28 | 01.10.2026
+RELEASE 2.26.6.32 | BASIS 2.26.6.28 | 01.10.2026
 SOP MOBILE OPEN FIX
 - iOS/Safari Pop-up-Blocker behoben.
 - SOP-Zielfenster wird synchron beim Tap geöffnet, bevor RPC/Storage await startet.
@@ -5691,7 +5701,7 @@ SOP MOBILE OPEN FIX
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.31 | BASIS 2.26.6.29 | 01.10.2026
+RELEASE 2.26.6.32 | BASIS 2.26.6.29 | 01.10.2026
 SPRACHEINGABE VOLLSTÄNDIG ENTFERNT
 - Alte globale Spracheingabe-Injektion aus v2.18.49 vollständig entfernt.
 - Keine Mikrofon-Schaltflächen mehr an Freitextfeldern, auch nicht in dynamisch erzeugten Checklisten/Modals.
@@ -5699,13 +5709,23 @@ SPRACHEINGABE VOLLSTÄNDIG ENTFERNT
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.31 | BASIS 2.26.6.30 | 01.10.2026
+RELEASE 2.26.6.32 | BASIS 2.26.6.30 | 01.10.2026
 INTERNE AUFGABE: DOKUMENTATION + GLOBALE ZURÜCK-NAVIGATION
 - Interne Aufgaben besitzen jetzt "Durchführung dokumentieren".
 - Nutzung der bestehenden Leistungsdokumentation mit Tätigkeit, Vorher/Nachher, Bemerkung und Status.
 - Bei Abschluss der Dokumentation wird die interne Aufgabe automatisch abgeschlossen; sonst In Bearbeitung.
 - Globaler Zurück-Button oben in der Kopfzeile auf jeder Ansicht.
 - Zurück schließt zuerst ein offenes Modal; danach Rückkehr zur vorherigen Section.
+- Keine SQL-, RLS- oder Edge-Änderung.
+-->
+<!--
+RELEASE 2.26.6.32 | BASIS 2.26.6.31 | 01.10.2026
+LEGACY-SOP AUS OPERATIVER STANDARDTOUR ENTFERNT
+- Separate alte SOP-Datei/Managed-Document-Anzeige wird in Standardtouren nicht mehr gezeigt.
+- Operativ führend sind ausschließlich "Prozesse & Standards" sowie die digitale Checkliste.
+- Dashboard und geplante Stoppliste zeigen keine parallele Legacy-SOP-Verknüpfung mehr.
+- Legacy managed_document_version_id / historische Dokumentdaten bleiben unverändert erhalten.
+- Winterdienst-Fachprozess bleibt unverändert.
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <section class="section" id="operations">
@@ -8889,7 +8909,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.10.
    BACKEND: SQL 2.26.6.11 erforderlich.
 */
-/* RELEASE 2.26.6.31 | BASIS 2.26.6.12 | 30.09.2026
+/* RELEASE 2.26.6.32 | BASIS 2.26.6.12 | 30.09.2026
    WETTER-FALLBACK HARDENING:
    - Außenpflege akzeptiert object-weather nur noch bei verwertbarem care_24h-Datensatz.
    - Formal erfolgreiche, aber inhaltlich leere/ungültige Antworten lösen jetzt
@@ -8901,7 +8921,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.11.
    BACKEND: keine SQL-Änderung.
 */
-const APP_VERSION='2.26.6.31'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.6.32'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -20705,7 +20725,6 @@ function omNormalOperationalHtml(item){
     ? `${windowStart||'—'}–${windowEnd||'—'} Uhr`
     : (plannedStart?`Start ${plannedStart} Uhr`:'ohne feste Zeit');
   const duration=Number(plan?.planned_duration_minutes||next?.planned_duration_minutes||0);
-  const sopHtml=operationSopLinkHtml(next.id,esc);
 
   return `
     <div class="om-tour-progress">
@@ -20719,7 +20738,6 @@ function omNormalOperationalHtml(item){
         <span><strong>Leistung:</strong> ${esc(omNormalServiceName(next.service_type_id))}</span>
         <span><strong>Zeit:</strong> ${esc(timeWindow)}</span>
         ${duration?`<span><strong>Dauer:</strong> ${duration} Min.</span>`:''}
-        <span class="om-tour-sop"><strong>SOP:</strong> ${sopHtml}</span>
       </div>
       ${tourObjectWorkQueueHtml(next.object_id,{compact:true})}
     </div>`;
@@ -20869,8 +20887,8 @@ async function refreshObjectManagerTours(){
       }
     }
 
-    await loadOperationSopMetaForStops(normalStops,{force:true});
-
+    // Strukturierte Prozesse & Standards sind für Standardtouren führend.
+    // Legacy-Managed-SOP-Metadaten werden operativ nicht mehr geladen.
     if(winterIds.length){
       const inList=winterIds.map(id=>id.replace(/[^0-9a-fA-F-]/g,'')).join(',');
       winterExecutions=await cloudRequest(
