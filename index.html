@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.30</title>
+<title>Duschl Service – Objektplattform v2.26.6.31</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -663,7 +663,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 
 
 
-/* === Objektmodal Übersicht · 2.26.6.30 === */
+/* === Objektmodal Übersicht · 2.26.6.31 === */
 .object-edit-section{
   margin-top:12px;
   padding:14px;
@@ -756,7 +756,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Wochensteuerung Tourenlogik · 2.26.6.30 === */
+/* === Wochensteuerung Tourenlogik · 2.26.6.31 === */
 .rp-week-summary{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
@@ -829,7 +829,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzintegration · 2.26.6.30 === */
+/* === Betriebsmittel Einsatzintegration · 2.26.6.31 === */
 .or-process-hint{
   border-color:#31566e!important;
   background:linear-gradient(180deg,#0d2636 0%,#091d2a 100%)!important;
@@ -870,7 +870,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzarten · 2.26.6.30 === */
+/* === Betriebsmittel Einsatzarten · 2.26.6.31 === */
 .or-scope-hint{
   margin-top:9px;
   padding:8px 10px;
@@ -898,7 +898,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Zusatzauftrag verständliche Darstellung · 2.26.6.30 === */
+/* === Zusatzauftrag verständliche Darstellung · 2.26.6.31 === */
 .ops-run-stop-special{
   border-left:3px solid #6c8faa;
   padding-left:10px;
@@ -918,7 +918,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Regelmäßige Einzelleistung als Sonderfall · 2.26.6.30 === */
+/* === Regelmäßige Einzelleistung als Sonderfall · 2.26.6.31 === */
 .ops-advanced-planning{
   margin-top:10px!important;
   opacity:.94;
@@ -932,10 +932,29 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Spracheingabe vollständig entfernt · 2.26.6.30 === */
+/* === Spracheingabe vollständig entfernt · 2.26.6.31 === */
 .speech-mic-btn{display:none!important}
 .speech-field-host>input[type="text"],
 .speech-field-host>textarea{padding-right:12px!important}
+
+
+/* === Navigation + interne Aufgabendokumentation · 2.26.6.31 === */
+.ds-global-back{
+  width:42px!important;height:42px!important;min-width:42px!important;padding:0!important;
+  display:grid!important;place-items:center!important;border-radius:12px!important;
+  font-size:32px!important;line-height:1!important;font-weight:500!important;
+}
+.ds-global-back:disabled{opacity:.35!important;cursor:default!important}
+.internal-task-doc-hint{
+  margin-top:12px;padding:11px 12px;border:1px solid rgba(255,255,255,.12);
+  border-radius:12px;background:rgba(255,255,255,.025);
+}
+.internal-task-doc-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+@media(max-width:680px){
+  .app-topbar{gap:8px!important}
+  .ds-global-back{width:40px!important;height:40px!important;min-width:40px!important}
+  .app-brand h1{font-size:17px!important}
+}
 
 /* === GPS-Plausibilitätsprüfung · 2.21.61 === */
 .geo-check-box{
@@ -4579,6 +4598,7 @@ table td,table th{
 <button aria-controls="appMenu" aria-expanded="false" aria-label="Menü öffnen" class="menu-toggle" id="appMenuBtn" onclick="toggleAppMenu()" type="button">
 <span></span><span></span><span></span>
 </button>
+<button aria-label="Zurück zur vorherigen Ansicht" class="ds-global-back" id="dsGlobalBackBtn" onclick="dsNavigateBack()" type="button" title="Zurück">‹</button>
 <div class="app-brand">
 <div aria-hidden="true" class="app-brand-mark">⌂</div>
 <div><h1 id="appBrandName">Duschl Service</h1><small>Objektplattform</small></div>
@@ -5643,7 +5663,7 @@ table td,table th{
 </style>
 
 <!--
-RELEASE 2.26.6.30 | BASIS 2.26.6.24 | 01.10.2026
+RELEASE 2.26.6.31 | BASIS 2.26.6.24 | 01.10.2026
 REGELMÄSSIGE EINZELLEISTUNG NUR NOCH SONDERFALL
 - Hauptworkflow bleibt Wiederkehrende Tour + Einmaliger Auftrag.
 - Regelmäßige Einzelleistung ist standardmäßig eingeklappt.
@@ -5652,7 +5672,7 @@ REGELMÄSSIGE EINZELLEISTUNG NUR NOCH SONDERFALL
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.30 | BASIS 2.26.6.25 + SQL-HOTFIXES 2.26.6.26/27 | 01.10.2026
+RELEASE 2.26.6.31 | BASIS 2.26.6.25 + SQL-HOTFIXES 2.26.6.26/27 | 01.10.2026
 TEMPORÄRE EINSATZBERECHTIGUNG DURCH TOURZUWEISUNG
 - Jeder aktive operative Mandantenbenutzer kann einer konkreten Tour zugewiesen werden.
 - Fehlende dauerhafte Objekt-/Kollaborationszuweisung blockiert die Tourzuweisung nicht mehr.
@@ -5662,7 +5682,7 @@ TEMPORÄRE EINSATZBERECHTIGUNG DURCH TOURZUWEISUNG
 - Kein Edge-Change.
 -->
 <!--
-RELEASE 2.26.6.30 | BASIS 2.26.6.28 | 01.10.2026
+RELEASE 2.26.6.31 | BASIS 2.26.6.28 | 01.10.2026
 SOP MOBILE OPEN FIX
 - iOS/Safari Pop-up-Blocker behoben.
 - SOP-Zielfenster wird synchron beim Tap geöffnet, bevor RPC/Storage await startet.
@@ -5671,11 +5691,21 @@ SOP MOBILE OPEN FIX
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.30 | BASIS 2.26.6.29 | 01.10.2026
+RELEASE 2.26.6.31 | BASIS 2.26.6.29 | 01.10.2026
 SPRACHEINGABE VOLLSTÄNDIG ENTFERNT
 - Alte globale Spracheingabe-Injektion aus v2.18.49 vollständig entfernt.
 - Keine Mikrofon-Schaltflächen mehr an Freitextfeldern, auch nicht in dynamisch erzeugten Checklisten/Modals.
 - Legacy-CSS-Sicherheitsregel blendet vorhandene speech-mic-btn aus.
+- Keine SQL-, RLS- oder Edge-Änderung.
+-->
+<!--
+RELEASE 2.26.6.31 | BASIS 2.26.6.30 | 01.10.2026
+INTERNE AUFGABE: DOKUMENTATION + GLOBALE ZURÜCK-NAVIGATION
+- Interne Aufgaben besitzen jetzt "Durchführung dokumentieren".
+- Nutzung der bestehenden Leistungsdokumentation mit Tätigkeit, Vorher/Nachher, Bemerkung und Status.
+- Bei Abschluss der Dokumentation wird die interne Aufgabe automatisch abgeschlossen; sonst In Bearbeitung.
+- Globaler Zurück-Button oben in der Kopfzeile auf jeder Ansicht.
+- Zurück schließt zuerst ein offenes Modal; danach Rückkehr zur vorherigen Section.
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <section class="section" id="operations">
@@ -8859,7 +8889,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.10.
    BACKEND: SQL 2.26.6.11 erforderlich.
 */
-/* RELEASE 2.26.6.30 | BASIS 2.26.6.12 | 30.09.2026
+/* RELEASE 2.26.6.31 | BASIS 2.26.6.12 | 30.09.2026
    WETTER-FALLBACK HARDENING:
    - Außenpflege akzeptiert object-weather nur noch bei verwertbarem care_24h-Datensatz.
    - Formal erfolgreiche, aber inhaltlich leere/ungültige Antworten lösen jetzt
@@ -8871,7 +8901,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.11.
    BACKEND: keine SQL-Änderung.
 */
-const APP_VERSION='2.26.6.30'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.6.31'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -17326,6 +17356,43 @@ async function orLoadMovementHistory(resourceId){
   }catch(e){if(host)host.innerHTML=`<span class="bad">Historie konnte nicht geladen werden: ${esc(e.message||e)}</span>`;}
 }
 
+
+let dsSectionHistory=[];
+let dsSuppressSectionHistory=false;
+
+function dsCurrentSectionId(){
+  return document.querySelector('.section.active')?.id||'';
+}
+function dsUpdateBackButton(){
+  const btn=document.getElementById('dsGlobalBackBtn');
+  if(!btn)return;
+  const root=document.getElementById('modalRoot');
+  const modalOpen=!!String(root?.innerHTML||'').trim();
+  btn.disabled=!modalOpen && dsSectionHistory.length===0 && dsCurrentSectionId()==='dashboard';
+}
+function dsNavigateBack(){
+  const root=document.getElementById('modalRoot');
+  if(root && String(root.innerHTML||'').trim()){
+    closeModal();
+    dsUpdateBackButton();
+    return;
+  }
+  const previous=dsSectionHistory.pop();
+  if(previous){
+    dsSuppressSectionHistory=true;
+    try{showSection(previous);}finally{dsSuppressSectionHistory=false;}
+    dsUpdateBackButton();
+    window.scrollTo({top:0,behavior:'smooth'});
+    return;
+  }
+  if(dsCurrentSectionId()!=='dashboard'){
+    dsSuppressSectionHistory=true;
+    try{showSection('dashboard');}finally{dsSuppressSectionHistory=false;}
+    dsUpdateBackButton();
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+}
+
 function showSection(id){
  if(id==='sopServices'){setTimeout(()=>slLoad(),0);}
 
@@ -17348,6 +17415,15 @@ function showSection(id){
   if(id==='resourcePlanning'&&!resourcePlanningCanAdmin())return requireAdminUI('Ressourcenplanung');
   if(id==='settings'&&!canUseSettingsUI())return requireAdminUI('Daten & Administration');
   closeAppMenu();
+
+  const previousSection=dsCurrentSectionId();
+  if(!dsSuppressSectionHistory && previousSection && previousSection!==id){
+    if(dsSectionHistory[dsSectionHistory.length-1]!==previousSection){
+      dsSectionHistory.push(previousSection);
+      if(dsSectionHistory.length>30)dsSectionHistory.shift();
+    }
+  }
+
   document.querySelectorAll('.section').forEach(x=>{
     x.classList.remove('active');
     x.style.setProperty('display','none','important');
@@ -17381,6 +17457,7 @@ function showSection(id){
   if(id==='objects'){renderObjectsDirect();try{renderObjects();}catch(e){console.error('Detail-Renderer Objektseite fehlgeschlagen',e);}}
   if(id==='platformUsers' && isAdminRole() && !isPlatformTenantMode()){refreshPlatformOrphanUserCard();}
   if(id==='dashboard'&&isAdminRole()){loadPlatformSystemStatus();}if(id==='processStandards'){psLoad();}if(id==='operatingResources'){loadOperatingResources();}if(id==='resourcePlanning'){loadResourcePlanning();}if(id==='partnerDirectory'){loadPartnerDirectory();}if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='externalOrders')cloudLoadExternalOrders();if(id==='users')loadUserAdminData();if(id==='winterService'){wsApplyWinterServiceViewMode();loadWinterService();}
+  dsUpdateBackButton();
 }
 function priorityLabel(p){
   return ({P1:'Sofort',P2:'Dringend',P3:'Planbar',P4:'Beobachten'})[p]||p||'';
@@ -20391,6 +20468,72 @@ function tourWorkQueueOpen(item){
   if(item.findingId && typeof openWorkItem==='function')openWorkItem(item.findingId);
 }
 
+
+let internalTaskDocumentationContext=null;
+
+function openInternalTaskDocumentation(taskId){
+  const task=(db.tasks||[]).find(t=>String(t.id||'')===String(taskId||''));
+  if(!task || task.source!=='internal')return alert('Interne Aufgabe nicht gefunden.');
+
+  internalTaskDocumentationContext={
+    taskId:String(task.id||''),
+    objectId:String(task.objectId||''),
+    title:String(task.title||'Aufgabe'),
+    details:String(task.workNote||''),
+    priority:String(task.priority||'P4'),
+    dueDate:String(task.dueDate||'')
+  };
+
+  closeModal();
+  openFindingModal(task.objectId||'','','',false);
+
+  setTimeout(()=>{
+    const type=document.getElementById('fType');
+    const title=document.getElementById('fTitle');
+    const serviceNote=document.getElementById('fServiceNote');
+    const status=document.getElementById('fStatus');
+
+    if(type){
+      type.value='Leistung';
+      if(typeof toggleDocType==='function')toggleDocType();
+    }
+    if(title)title.value=task.title||'Interne Aufgabe';
+    if(serviceNote && !serviceNote.value)serviceNote.value=task.workNote||'';
+    if(status && ['Offen','Geplant'].includes(String(status.value||'')))status.value='In Bearbeitung';
+
+    const dialog=document.querySelector('#modalRoot .ds-modal-dialog');
+    if(dialog){
+      const hint=document.createElement('div');
+      hint.className='internal-task-doc-hint';
+      hint.innerHTML=`<strong>Dokumentation zur internen Aufgabe</strong>
+        <div class="muted" style="margin-top:4px">
+          ${esc(task.title||'Aufgabe')} · Die Dokumentation wird am Objekt gespeichert.
+          Wird sie als erledigt abgeschlossen, wird auch die interne Aufgabe abgeschlossen.
+        </div>`;
+      const firstHeading=dialog.querySelector('h2');
+      firstHeading?.parentElement?.insertAdjacentElement('afterend',hint);
+    }
+  },0);
+}
+
+async function syncInternalTaskAfterDocumentation(taskContext,documentationStatus){
+  if(!taskContext?.taskId)return;
+  const task=(db.tasks||[]).find(t=>String(t.id||'')===String(taskContext.taskId||''));
+  const completed=String(documentationStatus||'').toLowerCase()==='erledigt';
+  const nextStatus=completed?'completed':'in_progress';
+
+  await cloudRequest('rpc/update_internal_task_v1',{
+    method:'POST',
+    body:JSON.stringify({
+      p_task_id:taskContext.taskId,
+      p_status:nextStatus,
+      p_due_date:task?.dueDate||taskContext.dueDate||null,
+      p_priority:task?.priority||taskContext.priority||'P4',
+      p_details:task?.workNote||taskContext.details||null
+    })
+  });
+}
+
 function openTourTaskOnly(taskId){
   const task=(db.tasks||[]).find(t=>String(t.id||'')===String(taskId||''));
   if(!task)return alert('Aufgabe nicht gefunden.');
@@ -20411,8 +20554,13 @@ function openTourTaskOnly(taskId){
       </div>
       <label>Fällig am<input id="itDue" type="date" value="${esc(task.dueDate||'')}"></label>
       <label>Arbeitsinformation<textarea id="itDetails">${esc(task.workNote||'')}</textarea></label>
-      <div class="row" style="margin-top:14px">
-        <button type="button" class="primary" onclick="saveInternalTaskUpdate('${esc(task.id)}')">Speichern</button>
+      <div class="internal-task-doc-hint">
+        <strong>Ausführung dokumentieren</strong>
+        <div class="muted" style="margin-top:4px">Leistungsnachweis mit Tätigkeit, Vorher-/Nachher-Fotos, Bemerkung und Abschlussstatus erfassen.</div>
+      </div>
+      <div class="internal-task-doc-actions">
+        <button type="button" class="primary" onclick="openInternalTaskDocumentation('${esc(task.id)}')">Durchführung dokumentieren</button>
+        <button type="button" onclick="saveInternalTaskUpdate('${esc(task.id)}')">Auftrag speichern</button>
         <button type="button" onclick="closeModal()">Schließen</button>
       </div>`);
     return;
@@ -22272,10 +22420,12 @@ function modal(html){
   if(!root)return;
   root.innerHTML=`<div class="modal-backdrop ds-modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal-dialog-dark ds-modal-dialog">${html}</div></div>`;
   dsEnsureGlobalModalClose();
+  dsUpdateBackButton();
 }
 function closeModal(){
   const root=document.getElementById('modalRoot');
   if(root)root.innerHTML='';
+  dsUpdateBackButton();
 }
 
 // Erfasst auch ältere Dialoge, die modalRoot direkt befüllen und nicht modal() nutzen.
@@ -23874,6 +24024,19 @@ async function saveFinding(id){
     cloudSetStatus('Dokumentation und Fotos werden gespeichert …','wait');
     const row=await cloudSaveFinding(id,data);
 
+    const internalTaskReturnContext=internalTaskDocumentationContext
+      ? {...internalTaskDocumentationContext}
+      : null;
+    let internalTaskSyncError=null;
+    if(internalTaskReturnContext?.taskId){
+      try{
+        await syncInternalTaskAfterDocumentation(internalTaskReturnContext,data.status);
+      }catch(e){
+        internalTaskSyncError=e;
+        console.error('Interne Aufgabe konnte nach Dokumentation nicht synchronisiert werden',e);
+      }
+    }
+
     // Winterdienst nutzt die zentrale Dokumentation als einzigen Leistungsnachweis.
     // Bei Neuanlage wird die Dokumentation mit dem Tourstopp verknüpft; bei jeder
     // weiteren Bearbeitung wird der Stop-Status aus dem Dokumentationsstatus synchronisiert.
@@ -23982,8 +24145,10 @@ async function saveFinding(id){
     cloudSetStatus(`Verbunden · Foto-Speicherung aktiv`,'ok');
     const returnToExternalOrderId=externalOrderDocumentationContext?.orderId||'';
     const returnToWinter=winterReturnContext;
+    const returnToInternalTask=internalTaskReturnContext;
     externalOrderDocumentationContext=null;
     winterDocumentationContext=null;
+    internalTaskDocumentationContext=null;
     closeModal();
     await cloudLoadExternalOrders(false);
     renderAll();hydrateMediaImages();
@@ -24004,6 +24169,18 @@ async function saveFinding(id){
     }else if(returnToExternalOrderId){
       showSection('workqueue');
       renderWorkQueue();
+    }else if(returnToInternalTask?.taskId){
+      await cloudLoadTasks();
+      const previous=[...dsSectionHistory].reverse().find(Boolean)||'';
+      if(previous==='operations' || dsCurrentSectionId()==='operations'){
+        showSection('operations');
+      }else{
+        showSection('workqueue');
+        renderWorkQueue();
+      }
+      if(internalTaskSyncError){
+        alert('Die Dokumentation wurde gespeichert, der Status der internen Aufgabe konnte aber nicht synchronisiert werden: '+(internalTaskSyncError.message||internalTaskSyncError));
+      }
     }else{
       showSection('findings');
     }
