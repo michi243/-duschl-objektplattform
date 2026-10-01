@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.25</title>
+<title>Duschl Service – Objektplattform v2.26.6.28</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -663,7 +663,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 
 
 
-/* === Objektmodal Übersicht · 2.26.6.25 === */
+/* === Objektmodal Übersicht · 2.26.6.28 === */
 .object-edit-section{
   margin-top:12px;
   padding:14px;
@@ -756,7 +756,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Wochensteuerung Tourenlogik · 2.26.6.25 === */
+/* === Wochensteuerung Tourenlogik · 2.26.6.28 === */
 .rp-week-summary{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
@@ -829,7 +829,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzintegration · 2.26.6.25 === */
+/* === Betriebsmittel Einsatzintegration · 2.26.6.28 === */
 .or-process-hint{
   border-color:#31566e!important;
   background:linear-gradient(180deg,#0d2636 0%,#091d2a 100%)!important;
@@ -870,7 +870,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzarten · 2.26.6.25 === */
+/* === Betriebsmittel Einsatzarten · 2.26.6.28 === */
 .or-scope-hint{
   margin-top:9px;
   padding:8px 10px;
@@ -898,7 +898,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Zusatzauftrag verständliche Darstellung · 2.26.6.25 === */
+/* === Zusatzauftrag verständliche Darstellung · 2.26.6.28 === */
 .ops-run-stop-special{
   border-left:3px solid #6c8faa;
   padding-left:10px;
@@ -918,7 +918,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Regelmäßige Einzelleistung als Sonderfall · 2.26.6.25 === */
+/* === Regelmäßige Einzelleistung als Sonderfall · 2.26.6.28 === */
 .ops-advanced-planning{
   margin-top:10px!important;
   opacity:.94;
@@ -5671,13 +5671,23 @@ table td,table th{
 </style>
 
 <!--
-RELEASE 2.26.6.25 | BASIS 2.26.6.24 | 01.10.2026
+RELEASE 2.26.6.28 | BASIS 2.26.6.24 | 01.10.2026
 REGELMÄSSIGE EINZELLEISTUNG NUR NOCH SONDERFALL
 - Hauptworkflow bleibt Wiederkehrende Tour + Einmaliger Auftrag.
 - Regelmäßige Einzelleistung ist standardmäßig eingeklappt.
 - Bezeichnung klar als Sonderfall.
 - Hinweis gegen Doppelplanung verschärft.
 - Keine SQL-, RLS- oder Edge-Änderung.
+-->
+<!--
+RELEASE 2.26.6.28 | BASIS 2.26.6.25 + SQL-HOTFIXES 2.26.6.26/27 | 01.10.2026
+TEMPORÄRE EINSATZBERECHTIGUNG DURCH TOURZUWEISUNG
+- Jeder aktive operative Mandantenbenutzer kann einer konkreten Tour zugewiesen werden.
+- Fehlende dauerhafte Objekt-/Kollaborationszuweisung blockiert die Tourzuweisung nicht mehr.
+- Dauerhafte vs. temporäre Berechtigung wird in der Disposition transparent angezeigt.
+- Temporäre Berechtigung gilt serverseitig für alle Objekte/Leistungsumfänge der offenen Tour.
+- Zugriff endet automatisch mit Abschluss/Stornierung bzw. Entzug der Tourzuweisung.
+- Kein Edge-Change.
 -->
 <section class="section" id="operations">
   <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -8860,7 +8870,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.10.
    BACKEND: SQL 2.26.6.11 erforderlich.
 */
-/* RELEASE 2.26.6.25 | BASIS 2.26.6.12 | 30.09.2026
+/* RELEASE 2.26.6.28 | BASIS 2.26.6.12 | 30.09.2026
    WETTER-FALLBACK HARDENING:
    - Außenpflege akzeptiert object-weather nur noch bei verwertbarem care_24h-Datensatz.
    - Formal erfolgreiche, aber inhaltlich leere/ungültige Antworten lösen jetzt
@@ -8872,7 +8882,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.11.
    BACKEND: keine SQL-Änderung.
 */
-const APP_VERSION='2.26.6.25'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.6.28'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -27704,11 +27714,14 @@ async function opsLoadSharedAssignmentContext(){
 }
 
 function opsSelectableUsersForRun(run){
-  const eligibleIds=new Set(opsRunEligibleUserIds(run));
-  const users=opsAssignableUsers().filter(u=>eligibleIds.has(String(u.user_id||u.id||'')));
+  // 2.26.6.28:
+  // Eine konkrete Tourzuweisung erzeugt serverseitig eine temporäre
+  // Einsatzberechtigung für alle Objekte dieser Tour. Deshalb dürfen hier
+  // alle aktiven operativen Benutzer des Mandanten ausgewählt werden.
+  // opsRunEligibleUserIds() bleibt bewusst als Kennzeichen für bereits
+  // dauerhaft objekt-/betreuungsberechtigte Benutzer erhalten.
+  const users=[...opsAssignableUsers()];
 
-  // Bestehende Backend-Zuweisung muss auch dann sichtbar bleiben,
-  // wenn der Kandidatenkontext durch RLS/Reload noch nicht vollständig geladen ist.
   const assignedId=String(run?.assigned_user_id||'');
   if(assignedId && !users.some(u=>String(u.user_id||u.id||'')===assignedId)){
     const fallback=(opsState.tenantUsers||[]).find(u=>String(u.user_id||u.id||'')===assignedId);
@@ -27753,7 +27766,7 @@ function opsWeekdayLabel(v){const m={0:'So',1:'Mo',2:'Di',3:'Mi',4:'Do',5:'Fr',6
 function opsIntervalLabel(v){return ({1:'wöchentlich',2:'alle 2 Wochen',4:'alle 4 Wochen'})[Number(v)]||`alle ${v} Wochen`;}
 function opsTimeWindowLabel(p){const a=String(p?.time_window_start||'').slice(0,5),b=String(p?.time_window_end||'').slice(0,5);return a&&b?`${a}–${b}`:a?`ab ${a}`:b?`bis ${b}`:'kein Zeitfenster';}
 
-/* RELEASE 2.26.6.25 | BASIS 2.26.6.13 | 30.09.2026
+/* RELEASE 2.26.6.28 | BASIS 2.26.6.13 | 30.09.2026
    EINMALIGER AUFTRAG: STAND-ALONE ODER TOURTERMIN
    - Begriff "Einzeltour" im Planungsdialog durch "Einmaliger Auftrag" ersetzt.
    - Kein Rhythmus / keine Wochentage für Ad-hoc-Aufträge.
@@ -28889,13 +28902,8 @@ async function opsAssignRun(runId,userId){
   if(!opsIsPlanningRole())return;
   try{
     const run=(opsState.runs||[]).find(r=>String(r.id)===String(runId));
-    if(userId){
-      const eligible=new Set(opsRunEligibleUserIds(run));
-      const existing=String(run?.assigned_user_id||'');
-      if(!eligible.has(String(userId)) && String(userId)!==existing){
-        throw new Error('Dieser Benutzer ist nicht allen Objekten der Tour operativ zugeordnet.');
-      }
-    }
+    const permanentEligible=new Set(opsRunEligibleUserIds(run));
+    const temporaryGrant=!!userId && !permanentEligible.has(String(userId));
 
     await cloudRequest(
       `operation_runs?id=eq.${encodeURIComponent(runId)}&organization_id=eq.${encodeURIComponent(opsOrg())}`,
@@ -28905,12 +28913,19 @@ async function opsAssignRun(runId,userId){
         body:JSON.stringify({assigned_user_id:userId||null})
       }
     );
+
     const previousAssignee=String(run?.assigned_user_id||'');
     if(run)run.assigned_user_id=userId||null;
     opsRender();
     objectManagerTourDashboardState.loaded=false;
+
     if(userId && String(userId)!==previousAssignee){
-      await opsQueueRunAssignmentNotification(runId,{silent:false,changeReason:'Verantwortlicher geändert'});
+      await opsQueueRunAssignmentNotification(runId,{
+        silent:false,
+        changeReason:temporaryGrant
+          ? 'Verantwortlicher geändert · temporäre Einsatzberechtigung durch Tour'
+          : 'Verantwortlicher geändert'
+      });
     }
   }catch(e){
     alert('Tour konnte nicht zugewiesen werden: '+(e.message||e));
@@ -28951,17 +28966,18 @@ function opsRender(){
       const users=opsSelectableUsersForRun(r);
       const eligibleIds=opsRunEligibleUserIds(r);
       const assignedId=String(r.assigned_user_id||'');
-      const autoAssigned=!!assignedId && eligibleIds.includes(assignedId);
+      const permanentlyAssigned=!!assignedId && eligibleIds.includes(assignedId);
+      const temporaryAssigned=!!assignedId && !permanentlyAssigned;
 
-      const assignmentHint=autoAssigned
-        ? 'Automatisch aus Objekt-/Betreuungszuweisung'
-        : eligibleIds.length===1
-          ? '1 zuständiger Objektbetreuer verfügbar'
-          : eligibleIds.length>1
-            ? `${eligibleIds.length} zuständige Objektbetreuer verfügbar`
-            : assignedId
-              ? 'Bestehende Zuweisung'
-              : 'Kein zuständiger Objektbetreuer ermittelt';
+      const assignmentHint=permanentlyAssigned
+        ? 'Dauerhafte Objekt-/Betreuungszuweisung vorhanden'
+        : temporaryAssigned
+          ? 'Temporäre Einsatzberechtigung durch Tourzuweisung · endet mit Abschluss/Stornierung'
+          : eligibleIds.length===1
+            ? '1 dauerhaft zuständiger Objektbetreuer vorhanden'
+            : eligibleIds.length>1
+              ? `${eligibleIds.length} dauerhaft zuständige Objektbetreuer vorhanden`
+              : 'Keine dauerhafte Objektzuweisung erforderlich · Tourzuweisung erzeugt temporären Zugriff';
 
       const start=String(r.planned_start_time||'').slice(0,5);
       const meta=[
@@ -29037,7 +29053,9 @@ function opsRender(){
               <option value="">Nicht zugewiesen</option>
               ${users.map(u=>{
                 const uid=String(u.user_id||u.id||'');
-                return `<option value="${opsEsc(uid)}" ${assignedId===uid?'selected':''}>${opsEsc(u.full_name||u.email||'Benutzer')}</option>`;
+                const permanent=eligibleIds.includes(uid);
+                const suffix=permanent?' · dauerhaft berechtigt':' · temporär über Tour';
+                return `<option value="${opsEsc(uid)}" ${assignedId===uid?'selected':''}>${opsEsc((u.full_name||u.email||'Benutzer')+suffix)}</option>`;
               }).join('')}
             </select>
           </label>
@@ -29448,7 +29466,7 @@ async function opsSaveTour(){
         object_service_assignment_id:a.id,
         object_id:a.object_id,
         service_type_id:a.service_type_id,
-        // 2.26.6.25: Die Tour ist das führende Planungsobjekt.
+        // 2.26.6.28: Die Tour ist das führende Planungsobjekt.
         // Direkte Tourstopps benötigen keinen recurring_service_plan.
         recurring_plan_id:null,
         planned_duration_minutes:duration,
@@ -29476,7 +29494,7 @@ async function opsSaveTour(){
         body:JSON.stringify(templatePayload)
       });
 
-      // 2.26.6.25:
+      // 2.26.6.28:
       // Bestehende Tourstopps nicht pauschal deaktivieren und neu einfügen.
       // Sonst kollidieren historische/inaktive Datensätze mit UNIQUE-Constraints
       // wie (tour_template_id, recurring_plan_id).
@@ -29612,7 +29630,12 @@ function opsEditRun(runId){
     <label style="margin-top:10px">Verantwortlich
       <select id="opsRunEditUser">
         <option value="">Nicht zugewiesen</option>
-        ${users.map(u=>{const uid=String(u.user_id||u.id||'');return `<option value="${opsEsc(uid)}" ${uid===assigned?'selected':''}>${opsEsc(u.full_name||u.email||'Benutzer')}</option>`}).join('')}
+        ${users.map(u=>{
+          const uid=String(u.user_id||u.id||'');
+          const permanent=opsRunEligibleUserIds(r).includes(uid);
+          const suffix=permanent?' · dauerhaft berechtigt':' · temporär über Tour';
+          return `<option value="${opsEsc(uid)}" ${uid===assigned?'selected':''}>${opsEsc((u.full_name||u.email||'Benutzer')+suffix)}</option>`;
+        }).join('')}
       </select>
     </label>
     <div class="row" style="margin-top:14px;gap:8px">
@@ -29630,12 +29653,8 @@ async function opsSaveRunEdit(runId){
     const planned_start_time=document.getElementById('opsRunEditStart')?.value||null;
     const assigned_user_id=document.getElementById('opsRunEditUser')?.value||null;
     if(!service_date)throw new Error('Datum ist erforderlich.');
-    if(assigned_user_id){
-      const eligible=new Set(opsRunEligibleUserIds(r));
-      if(!eligible.has(String(assigned_user_id))&&String(assigned_user_id)!==String(r.assigned_user_id||'')){
-        throw new Error('Dieser Benutzer ist nicht allen Objekten der Tour operativ zugeordnet.');
-      }
-    }
+    const permanentEligible=new Set(opsRunEligibleUserIds(r));
+    const temporaryGrant=!!assigned_user_id && !permanentEligible.has(String(assigned_user_id));
     await cloudRequest(`operation_runs?id=eq.${encodeURIComponent(runId)}&organization_id=eq.${encodeURIComponent(opsOrg())}`,{
       method:'PATCH',
       headers:{Prefer:'return=minimal'},
@@ -29643,7 +29662,12 @@ async function opsSaveRunEdit(runId){
     });
     const modal=document.getElementById('opsRunEditModal');if(modal)modal.style.display='none';
     if(assigned_user_id){
-      await opsQueueRunAssignmentNotification(runId,{silent:false,changeReason:'Tourdaten geändert'});
+      await opsQueueRunAssignmentNotification(runId,{
+        silent:false,
+        changeReason:temporaryGrant
+          ? 'Tourdaten geändert · temporäre Einsatzberechtigung durch Tour'
+          : 'Tourdaten geändert'
+      });
     }
     await opsLoad();
   }catch(e){alert('Einsatz konnte nicht geändert werden: '+(e.message||e));}
