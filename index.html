@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.39</title>
+<title>Duschl Service – Objektplattform v2.26.6.40</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -663,7 +663,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 
 
 
-/* === Objektmodal Übersicht · 2.26.6.39 === */
+/* === Objektmodal Übersicht · 2.26.6.40 === */
 .object-edit-section{
   margin-top:12px;
   padding:14px;
@@ -756,7 +756,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Wochensteuerung Tourenlogik · 2.26.6.39 === */
+/* === Wochensteuerung Tourenlogik · 2.26.6.40 === */
 .rp-week-summary{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
@@ -829,7 +829,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzintegration · 2.26.6.39 === */
+/* === Betriebsmittel Einsatzintegration · 2.26.6.40 === */
 .or-process-hint{
   border-color:#31566e!important;
   background:linear-gradient(180deg,#0d2636 0%,#091d2a 100%)!important;
@@ -870,7 +870,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzarten · 2.26.6.39 === */
+/* === Betriebsmittel Einsatzarten · 2.26.6.40 === */
 .or-scope-hint{
   margin-top:9px;
   padding:8px 10px;
@@ -898,7 +898,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Zusatzauftrag verständliche Darstellung · 2.26.6.39 === */
+/* === Zusatzauftrag verständliche Darstellung · 2.26.6.40 === */
 .ops-run-stop-special{
   border-left:3px solid #6c8faa;
   padding-left:10px;
@@ -918,7 +918,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Regelmäßige Einzelleistung als Sonderfall · 2.26.6.39 === */
+/* === Regelmäßige Einzelleistung als Sonderfall · 2.26.6.40 === */
 .ops-advanced-planning{
   margin-top:10px!important;
   opacity:.94;
@@ -932,7 +932,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Stabilitäts-Rebuild 2.26.6.39 === */
+/* === Stabilitäts-Rebuild 2.26.6.40 === */
 .speech-mic-btn{display:none!important}
 .speech-field-host>input[type="text"],
 .speech-field-host>textarea{padding-right:12px!important}
@@ -963,7 +963,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Deaktivierte Mandanten getrennt · 2.26.6.39 === */
+/* === Deaktivierte Mandanten getrennt · 2.26.6.40 === */
 .platform-inactive-tenants{
   border-top:1px solid var(--line);
   padding-top:4px;
@@ -989,7 +989,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Mandantenmodule & Profile · 2.26.6.39 === */
+/* === Mandantenmodule & Profile · 2.26.6.40 === */
 .tenant-module-group{margin-top:16px}
 .tenant-module-group-title{
   font-size:12px;
@@ -1020,6 +1020,65 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 @media(max-width:680px){
   .tenant-module-grid{grid-template-columns:1fr}
+}
+
+
+/* === Außenpflege Mehrfachauswahl · 2.26.6.40 === */
+.dashboard-summer-selection-bar{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  padding:12px;
+  margin-bottom:12px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:rgba(255,255,255,.025);
+}
+.dashboard-summer-select-all,
+.dashboard-summer-object-select{
+  display:flex!important;
+  align-items:center;
+  gap:8px;
+  margin:0!important;
+  cursor:pointer;
+}
+.dashboard-summer-select-all input,
+.dashboard-summer-object-select input{
+  width:22px!important;
+  height:22px!important;
+  min-width:22px;
+  margin:0!important;
+}
+.dashboard-summer-selection-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.dashboard-summer-object-select{
+  margin-bottom:8px!important;
+  color:var(--muted);
+  font-size:13px;
+  font-weight:800;
+}
+.dashboard-summer-selection-actions button:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+@media(max-width:680px){
+  .dashboard-summer-selection-bar,
+  .dashboard-summer-selection-actions{
+    align-items:stretch;
+  }
+  .dashboard-summer-selection-actions{
+    width:100%;
+    flex-direction:column;
+  }
+  .dashboard-summer-selection-actions button{
+    width:100%;
+  }
 }
 
 /* === GPS-Plausibilitätsprüfung · 2.21.61 === */
@@ -5763,7 +5822,7 @@ table td,table th{
 </style>
 
 <!--
-RELEASE 2.26.6.39 | BASIS 2.26.6.24 | 01.10.2026
+RELEASE 2.26.6.40 | BASIS 2.26.6.24 | 01.10.2026
 REGELMÄSSIGE EINZELLEISTUNG NUR NOCH SONDERFALL
 - Hauptworkflow bleibt Wiederkehrende Tour + Einmaliger Auftrag.
 - Regelmäßige Einzelleistung ist standardmäßig eingeklappt.
@@ -5772,7 +5831,7 @@ REGELMÄSSIGE EINZELLEISTUNG NUR NOCH SONDERFALL
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.39 | BASIS 2.26.6.25 + SQL-HOTFIXES 2.26.6.26/27 | 01.10.2026
+RELEASE 2.26.6.40 | BASIS 2.26.6.25 + SQL-HOTFIXES 2.26.6.26/27 | 01.10.2026
 TEMPORÄRE EINSATZBERECHTIGUNG DURCH TOURZUWEISUNG
 - Jeder aktive operative Mandantenbenutzer kann einer konkreten Tour zugewiesen werden.
 - Fehlende dauerhafte Objekt-/Kollaborationszuweisung blockiert die Tourzuweisung nicht mehr.
@@ -5782,7 +5841,7 @@ TEMPORÄRE EINSATZBERECHTIGUNG DURCH TOURZUWEISUNG
 - Kein Edge-Change.
 -->
 <!--
-RELEASE 2.26.6.39 | BASIS 2.26.6.28 | 01.10.2026
+RELEASE 2.26.6.40 | BASIS 2.26.6.28 | 01.10.2026
 SOP MOBILE OPEN FIX
 - iOS/Safari Pop-up-Blocker behoben.
 - SOP-Zielfenster wird synchron beim Tap geöffnet, bevor RPC/Storage await startet.
@@ -5791,7 +5850,7 @@ SOP MOBILE OPEN FIX
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.39 | STABILITÄTS-REBUILD | BASIS 2.26.6.29 | 01.10.2026
+RELEASE 2.26.6.40 | STABILITÄTS-REBUILD | BASIS 2.26.6.29 | 01.10.2026
 - Vollständiger Neuaufbau ab letzter strukturell intakter Version 2.26.6.29.
 - Ursache des Login-/Mandantenfehlers beseitigt: In 2.26.6.30 wurde beim Entfernen der Spracheingabe versehentlich ein großer JavaScript-Block mit Kernfunktionen gelöscht.
 - Spracheingabe jetzt nur deaktiviert; kein Scriptblock wird entfernt.
@@ -5801,7 +5860,7 @@ RELEASE 2.26.6.39 | STABILITÄTS-REBUILD | BASIS 2.26.6.29 | 01.10.2026
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.39 | BASIS 2.26.6.36 | 04.10.2026
+RELEASE 2.26.6.40 | BASIS 2.26.6.36 | 04.10.2026
 DEAKTIVIERTE MANDANTEN GETRENNT
 - Aktive Mandanten bleiben in der normalen Mandantenübersicht.
 - Deaktivierte Mandanten werden in einen separaten, standardmäßig eingeklappten Bereich verschoben.
@@ -5812,7 +5871,7 @@ DEAKTIVIERTE MANDANTEN GETRENNT
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.39 | BASIS 2.26.6.37 | 04.10.2026
+RELEASE 2.26.6.40 | BASIS 2.26.6.37 | 04.10.2026
 MANDANTENPROFILE + INDIVIDUELLE MODULE
 - Mandantenmenü ist jetzt produktseitig konfigurierbar und bleibt zusätzlich rollenbasiert geschützt.
 - Profile: Vollumfang, Objektservice, Hausverwaltung, Winterdienst, Gebäudereinigung, Individuell.
@@ -5821,11 +5880,11 @@ MANDANTENPROFILE + INDIVIDUELLE MODULE
 - Einzelne Module können nach Profilwahl individuell ein-/ausgeschaltet werden.
 - Dashboard und Systemfunktionen (Daten/Aktualisieren/Passwort/Sicherung/Abmelden) bleiben außerhalb der Modulkonfiguration.
 - Ausblenden eines Moduls verändert keine RLS- oder Backend-Berechtigung; Rollenmodell bleibt führend.
-- Benötigt SQL 2.26.6.39 für organizations.module_profile und organizations.enabled_modules.
+- Benötigt SQL 2.26.6.40 für organizations.module_profile und organizations.enabled_modules.
 - Keine Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.39 | BASIS 2.26.6.38 | 04.10.2026
+RELEASE 2.26.6.40 | BASIS 2.26.6.38 | 04.10.2026
 DASHBOARD-FACHLOGIK
 - Dashboard-Kacheln folgen jetzt ebenfalls der Mandantenmodul-/Profilsteuerung.
 - Winterdienst-Einsatzlage wird nur angezeigt, wenn das Winterdienst-Modul aktiv ist UND aktive Winterdienstumfänge vorhanden sind.
@@ -5834,6 +5893,17 @@ DASHBOARD-FACHLOGIK
 - Außenanlagenpflege bleibt zusätzlich an tatsächlich aktive Grün-/Außenpflege-Leistungszuweisungen gekoppelt.
 - Profil "Facility Management" ergänzt; "Objektservice" wird als "Hausmeister / Objektservice" bezeichnet.
 - Direkte Fachnavigation auf deaktivierte Dashboard-Funktionen wird abgefangen.
+- Keine SQL-, RLS- oder Edge-Änderung.
+-->
+<!--
+RELEASE 2.26.6.40 | BASIS 2.26.6.39 | 04.10.2026
+AUSSENPFLEGE: MEHRFACHAUSWAHL
+- Außenpflegeobjekte können per Checkbox einzeln ausgewählt werden.
+- "Alle sichtbaren auswählen" berücksichtigt Suche und aktuellen Statusfilter.
+- Auswahl bleibt beim Filtern erhalten.
+- Zähler zeigt die Anzahl ausgewählter Objekte.
+- Gemeinsame Aktion "Auswahl planen" ersetzt die redundante Planen-Schaltfläche je Karte.
+- Bestehender Einzelplanungsaufruf bleibt rückwärtskompatibel und führt in dieselbe Auswahlplanung.
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <section class="section" id="operations">
@@ -9017,7 +9087,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.10.
    BACKEND: SQL 2.26.6.11 erforderlich.
 */
-/* RELEASE 2.26.6.39 | BASIS 2.26.6.12 | 30.09.2026
+/* RELEASE 2.26.6.40 | BASIS 2.26.6.12 | 30.09.2026
    WETTER-FALLBACK HARDENING:
    - Außenpflege akzeptiert object-weather nur noch bei verwertbarem care_24h-Datensatz.
    - Formal erfolgreiche, aber inhaltlich leere/ungültige Antworten lösen jetzt
@@ -9029,7 +9099,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.11.
    BACKEND: keine SQL-Änderung.
 */
-const APP_VERSION='2.26.6.39'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.6.40'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -20148,6 +20218,7 @@ let dashboardSummerWeatherEntries=[];
 let dashboardSummerSelectedObjectId='';
 let dashboardSummerActiveFilter='all';
 let dashboardSummerSearchTerm='';
+let dashboardSummerSelectedObjectIds=new Set();
 
 function dashboardSummerFmtNumber(value,digits=0,suffix=''){
   const n=Number(value);
@@ -20399,9 +20470,83 @@ function dashboardSummerSyncFilterUi(){
 }
 function dashboardSummerPlanObject(objectId){
   if(!dashboardAllowsExteriorCare())return;
-  sessionStorage.setItem('dashboardSummerPlanObjectId',String(objectId||''));
+  const id=String(objectId||'');
+  if(!id)return;
+  dashboardSummerSelectedObjectIds.add(id);
+  dashboardSummerPlanSelection();
+}
+
+function dashboardSummerSelectionCount(){
+  return dashboardSummerSelectedObjectIds.size;
+}
+
+function dashboardSummerVisibleObjectIds(){
+  return (Array.isArray(dashboardSummerWeatherEntries)?dashboardSummerWeatherEntries:[])
+    .map(entry=>({...entry,_status:dashboardSummerEntryStatus(entry)}))
+    .filter(entry=>dashboardSummerActiveFilter==='all'||entry._status===dashboardSummerActiveFilter)
+    .filter(entry=>{
+      if(!dashboardSummerSearchTerm)return true;
+      const hay=[entry._object_name,entry.object_name,entry._address,entry.address]
+        .filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(dashboardSummerSearchTerm);
+    })
+    .map(entry=>String(entry._object_id||entry.object_id||''))
+    .filter(Boolean);
+}
+
+function dashboardSummerToggleObject(objectId,checked){
+  const id=String(objectId||'');
+  if(!id)return;
+  if(checked)dashboardSummerSelectedObjectIds.add(id);
+  else dashboardSummerSelectedObjectIds.delete(id);
+  dashboardSummerSyncSelectionUi();
+}
+
+function dashboardSummerToggleAllVisible(checked){
+  const ids=dashboardSummerVisibleObjectIds();
+  ids.forEach(id=>{
+    if(checked)dashboardSummerSelectedObjectIds.add(id);
+    else dashboardSummerSelectedObjectIds.delete(id);
+  });
+  renderDashboardSummerObjectList();
+  dashboardSummerSyncSelectionUi();
+}
+
+function dashboardSummerSyncSelectionUi(){
+  const count=dashboardSummerSelectionCount();
+  const countEl=document.getElementById('dashboardSummerSelectedCount');
+  const btn=document.getElementById('dashboardSummerPlanSelectionBtn');
+  const selectAll=document.getElementById('dashboardSummerSelectAll');
+  const visible=dashboardSummerVisibleObjectIds();
+
+  if(countEl)countEl.textContent=`${count} Objekt${count===1?'':'e'} ausgewählt`;
+  if(btn){
+    btn.disabled=count===0;
+    btn.textContent=count===1?'Auswahl planen':'Auswahl planen';
+  }
+  if(selectAll){
+    const visibleSelected=visible.filter(id=>dashboardSummerSelectedObjectIds.has(id)).length;
+    selectAll.checked=visible.length>0 && visibleSelected===visible.length;
+    selectAll.indeterminate=visibleSelected>0 && visibleSelected<visible.length;
+  }
+}
+
+function dashboardSummerPlanSelection(){
+  const ids=[...dashboardSummerSelectedObjectIds];
+  if(!ids.length){
+    alert('Bitte mindestens ein Objekt auswählen.');
+    return;
+  }
+  if(!dashboardAllowsExteriorCare()){
+    alert('Außenanlagenpflege ist für diesen Mandantentyp nicht vorgesehen.');
+    return;
+  }
+
+  sessionStorage.setItem('dashboardSummerPlanObjectIds',JSON.stringify(ids));
+  sessionStorage.removeItem('dashboardSummerPlanObjectId');
   openSummerCarePlanning();
 }
+
 function renderDashboardSummerObjectList(){
   const host=document.getElementById('dashboardSummerObjectList');if(!host)return;
   const rows=(Array.isArray(dashboardSummerWeatherEntries)?dashboardSummerWeatherEntries:[])
@@ -20420,11 +20565,31 @@ function renderDashboardSummerObjectList(){
 
   if(!rows.length){
     host.innerHTML='<div class="dashboard-summer-empty">Keine Objekte für den aktuellen Filter gefunden.</div>';
+    dashboardSummerSyncSelectionUi();
     return;
   }
 
+  const visibleIds=rows.map(r=>String(r._object_id||r.object_id||'')).filter(Boolean);
+  const visibleSelected=visibleIds.filter(id=>dashboardSummerSelectedObjectIds.has(id)).length;
+
+  const selectionToolbar=`
+    <div class="dashboard-summer-selection-bar">
+      <label class="dashboard-summer-select-all">
+        <input id="dashboardSummerSelectAll" type="checkbox"
+          ${visibleIds.length&&visibleSelected===visibleIds.length?'checked':''}
+          onchange="dashboardSummerToggleAllVisible(this.checked)">
+        <span>Alle sichtbaren auswählen</span>
+      </label>
+      <div class="dashboard-summer-selection-actions">
+        <strong id="dashboardSummerSelectedCount">${dashboardSummerSelectionCount()} Objekt${dashboardSummerSelectionCount()===1?'':'e'} ausgewählt</strong>
+        <button id="dashboardSummerPlanSelectionBtn" class="primary" type="button"
+          ${dashboardSummerSelectionCount()===0?'disabled':''}
+          onclick="dashboardSummerPlanSelection()">Auswahl planen</button>
+      </div>
+    </div>`;
+
   const statuses=['avoid','check','error','good'];
-  host.innerHTML=statuses.map(status=>{
+  host.innerHTML=selectionToolbar+statuses.map(status=>{
     const items=rows.filter(r=>r._status===status);
     if(!items.length)return '';
     return `<section class="dashboard-summer-group ${status==='error'?'error-group':''}">
@@ -20457,8 +20622,9 @@ function renderDashboardSummerObjectList(){
       </div>
     </section>`;
   }).join('');
-  dashboardSummerSyncFilterUi();
+  dashboardSummerSyncFilterUi();  dashboardSummerSyncSelectionUi();
 }
+
 function dashboardSummerSelectObject(objectId){
   dashboardSummerSelectedObjectId=String(objectId||'');
   const host=document.getElementById('dashboardSummerObjectDetail');if(!host)return;
@@ -20527,6 +20693,9 @@ async function loadDashboardSummerSummary(force=false){
       return {...base,_error:r?.reason?.message||String(r?.reason||'Wetterdaten nicht verfügbar.')};
     });
     dashboardSummerActiveFilter='all';dashboardSummerSearchTerm='';
+    dashboardSummerSelectedObjectIds=new Set(
+      [...dashboardSummerSelectedObjectIds].filter(id=>ids.includes(String(id)))
+    );
     const search=document.getElementById('dashboardSummerSearch');if(search)search.value='';
     const filter=document.getElementById('dashboardSummerFilter');if(filter)filter.value='all';
     const detail=document.getElementById('dashboardSummerObjectDetail');if(detail){detail.classList.remove('is-open');detail.innerHTML='';}
@@ -24758,7 +24927,7 @@ if(!bootPublicResidentReport()){
 <script>
 /* ===== v2.18.49 Spracheingabe für alle Freitextfelder ===== */
 (function(){
-  const SpeechRecognition = null; // 2.26.6.39: Spracheingabe deaktiviert
+  const SpeechRecognition = null; // 2.26.6.40: Spracheingabe deaktiviert
   if(!SpeechRecognition) return;
 
   let activeRecognition = null;
@@ -28344,7 +28513,7 @@ async function opsLoadSharedAssignmentContext(){
 }
 
 function opsSelectableUsersForRun(run){
-  // 2.26.6.39:
+  // 2.26.6.40:
   // Eine konkrete Tourzuweisung erzeugt serverseitig eine temporäre
   // Einsatzberechtigung für alle Objekte dieser Tour. Deshalb dürfen hier
   // alle aktiven operativen Benutzer des Mandanten ausgewählt werden.
@@ -28396,7 +28565,7 @@ function opsWeekdayLabel(v){const m={0:'So',1:'Mo',2:'Di',3:'Mi',4:'Do',5:'Fr',6
 function opsIntervalLabel(v){return ({1:'wöchentlich',2:'alle 2 Wochen',4:'alle 4 Wochen'})[Number(v)]||`alle ${v} Wochen`;}
 function opsTimeWindowLabel(p){const a=String(p?.time_window_start||'').slice(0,5),b=String(p?.time_window_end||'').slice(0,5);return a&&b?`${a}–${b}`:a?`ab ${a}`:b?`bis ${b}`:'kein Zeitfenster';}
 
-/* RELEASE 2.26.6.39 | BASIS 2.26.6.13 | 30.09.2026
+/* RELEASE 2.26.6.40 | BASIS 2.26.6.13 | 30.09.2026
    EINMALIGER AUFTRAG: STAND-ALONE ODER TOURTERMIN
    - Begriff "Einzeltour" im Planungsdialog durch "Einmaliger Auftrag" ersetzt.
    - Kein Rhythmus / keine Wochentage für Ad-hoc-Aufträge.
@@ -30096,7 +30265,7 @@ async function opsSaveTour(){
         object_service_assignment_id:a.id,
         object_id:a.object_id,
         service_type_id:a.service_type_id,
-        // 2.26.6.39: Die Tour ist das führende Planungsobjekt.
+        // 2.26.6.40: Die Tour ist das führende Planungsobjekt.
         // Direkte Tourstopps benötigen keinen recurring_service_plan.
         recurring_plan_id:null,
         planned_duration_minutes:duration,
@@ -30124,7 +30293,7 @@ async function opsSaveTour(){
         body:JSON.stringify(templatePayload)
       });
 
-      // 2.26.6.39:
+      // 2.26.6.40:
       // Bestehende Tourstopps nicht pauschal deaktivieren und neu einfügen.
       // Sonst kollidieren historische/inaktive Datensätze mit UNIQUE-Constraints
       // wie (tour_template_id, recurring_plan_id).
@@ -30995,7 +31164,7 @@ async function openManagedDocumentStorageFile(d,{title='SOP / Arbeitsanweisung',
   const blob=fileBlob.type?fileBlob:new Blob([fileBlob],{type:mime});
   const url=URL.createObjectURL(blob);
 
-  // 2.26.6.39:
+  // 2.26.6.40:
   // Mobile Safari/iOS blockiert window.open(), wenn es erst NACH einem await
   // ausgeführt wird. Deshalb wird das Ziel-Fenster bereits synchron beim
   // Benutzer-Tap erzeugt und hier nur noch mit dem Blob befüllt.
