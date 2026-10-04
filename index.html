@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.37</title>
+<title>Duschl Service – Objektplattform v2.26.6.38</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -663,7 +663,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 
 
 
-/* === Objektmodal Übersicht · 2.26.6.37 === */
+/* === Objektmodal Übersicht · 2.26.6.38 === */
 .object-edit-section{
   margin-top:12px;
   padding:14px;
@@ -756,7 +756,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Wochensteuerung Tourenlogik · 2.26.6.37 === */
+/* === Wochensteuerung Tourenlogik · 2.26.6.38 === */
 .rp-week-summary{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
@@ -829,7 +829,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzintegration · 2.26.6.37 === */
+/* === Betriebsmittel Einsatzintegration · 2.26.6.38 === */
 .or-process-hint{
   border-color:#31566e!important;
   background:linear-gradient(180deg,#0d2636 0%,#091d2a 100%)!important;
@@ -870,7 +870,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzarten · 2.26.6.37 === */
+/* === Betriebsmittel Einsatzarten · 2.26.6.38 === */
 .or-scope-hint{
   margin-top:9px;
   padding:8px 10px;
@@ -898,7 +898,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Zusatzauftrag verständliche Darstellung · 2.26.6.37 === */
+/* === Zusatzauftrag verständliche Darstellung · 2.26.6.38 === */
 .ops-run-stop-special{
   border-left:3px solid #6c8faa;
   padding-left:10px;
@@ -918,7 +918,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Regelmäßige Einzelleistung als Sonderfall · 2.26.6.37 === */
+/* === Regelmäßige Einzelleistung als Sonderfall · 2.26.6.38 === */
 .ops-advanced-planning{
   margin-top:10px!important;
   opacity:.94;
@@ -932,7 +932,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Stabilitäts-Rebuild 2.26.6.37 === */
+/* === Stabilitäts-Rebuild 2.26.6.38 === */
 .speech-mic-btn{display:none!important}
 .speech-field-host>input[type="text"],
 .speech-field-host>textarea{padding-right:12px!important}
@@ -963,7 +963,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Deaktivierte Mandanten getrennt · 2.26.6.37 === */
+/* === Deaktivierte Mandanten getrennt · 2.26.6.38 === */
 .platform-inactive-tenants{
   border-top:1px solid var(--line);
   padding-top:4px;
@@ -986,6 +986,40 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 .tenant-admin-card-inactive{
   opacity:.86!important;
   border-style:dashed!important;
+}
+
+
+/* === Mandantenmodule & Profile · 2.26.6.38 === */
+.tenant-module-group{margin-top:16px}
+.tenant-module-group-title{
+  font-size:12px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  font-weight:900;
+  color:var(--muted);
+  margin-bottom:8px;
+}
+.tenant-module-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+.tenant-module-option{
+  display:flex!important;
+  align-items:center;
+  gap:10px;
+  margin:0!important;
+  padding:10px 12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+}
+.tenant-module-option input{
+  width:auto!important;
+  min-width:18px;
+  margin:0!important;
+}
+@media(max-width:680px){
+  .tenant-module-grid{grid-template-columns:1fr}
 }
 
 /* === GPS-Plausibilitätsprüfung · 2.21.61 === */
@@ -5729,7 +5763,7 @@ table td,table th{
 </style>
 
 <!--
-RELEASE 2.26.6.37 | BASIS 2.26.6.24 | 01.10.2026
+RELEASE 2.26.6.38 | BASIS 2.26.6.24 | 01.10.2026
 REGELMÄSSIGE EINZELLEISTUNG NUR NOCH SONDERFALL
 - Hauptworkflow bleibt Wiederkehrende Tour + Einmaliger Auftrag.
 - Regelmäßige Einzelleistung ist standardmäßig eingeklappt.
@@ -5738,7 +5772,7 @@ REGELMÄSSIGE EINZELLEISTUNG NUR NOCH SONDERFALL
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.37 | BASIS 2.26.6.25 + SQL-HOTFIXES 2.26.6.26/27 | 01.10.2026
+RELEASE 2.26.6.38 | BASIS 2.26.6.25 + SQL-HOTFIXES 2.26.6.26/27 | 01.10.2026
 TEMPORÄRE EINSATZBERECHTIGUNG DURCH TOURZUWEISUNG
 - Jeder aktive operative Mandantenbenutzer kann einer konkreten Tour zugewiesen werden.
 - Fehlende dauerhafte Objekt-/Kollaborationszuweisung blockiert die Tourzuweisung nicht mehr.
@@ -5748,7 +5782,7 @@ TEMPORÄRE EINSATZBERECHTIGUNG DURCH TOURZUWEISUNG
 - Kein Edge-Change.
 -->
 <!--
-RELEASE 2.26.6.37 | BASIS 2.26.6.28 | 01.10.2026
+RELEASE 2.26.6.38 | BASIS 2.26.6.28 | 01.10.2026
 SOP MOBILE OPEN FIX
 - iOS/Safari Pop-up-Blocker behoben.
 - SOP-Zielfenster wird synchron beim Tap geöffnet, bevor RPC/Storage await startet.
@@ -5757,7 +5791,7 @@ SOP MOBILE OPEN FIX
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.37 | STABILITÄTS-REBUILD | BASIS 2.26.6.29 | 01.10.2026
+RELEASE 2.26.6.38 | STABILITÄTS-REBUILD | BASIS 2.26.6.29 | 01.10.2026
 - Vollständiger Neuaufbau ab letzter strukturell intakter Version 2.26.6.29.
 - Ursache des Login-/Mandantenfehlers beseitigt: In 2.26.6.30 wurde beim Entfernen der Spracheingabe versehentlich ein großer JavaScript-Block mit Kernfunktionen gelöscht.
 - Spracheingabe jetzt nur deaktiviert; kein Scriptblock wird entfernt.
@@ -5767,7 +5801,7 @@ RELEASE 2.26.6.37 | STABILITÄTS-REBUILD | BASIS 2.26.6.29 | 01.10.2026
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.37 | BASIS 2.26.6.36 | 04.10.2026
+RELEASE 2.26.6.38 | BASIS 2.26.6.36 | 04.10.2026
 DEAKTIVIERTE MANDANTEN GETRENNT
 - Aktive Mandanten bleiben in der normalen Mandantenübersicht.
 - Deaktivierte Mandanten werden in einen separaten, standardmäßig eingeklappten Bereich verschoben.
@@ -5776,6 +5810,19 @@ DEAKTIVIERTE MANDANTEN GETRENNT
 - Es wird ausschließlich der bestehende Statusschalter verwendet.
 - Daten, Benutzer, Speicher und Historie bleiben unverändert erhalten.
 - Keine SQL-, RLS- oder Edge-Änderung.
+-->
+<!--
+RELEASE 2.26.6.38 | BASIS 2.26.6.37 | 04.10.2026
+MANDANTENPROFILE + INDIVIDUELLE MODULE
+- Mandantenmenü ist jetzt produktseitig konfigurierbar und bleibt zusätzlich rollenbasiert geschützt.
+- Profile: Vollumfang, Objektservice, Hausverwaltung, Winterdienst, Gebäudereinigung, Individuell.
+- Meldungen sind in allen drei Fachprofilen standardmäßig aktiv.
+- Winterdienstprofil blendet reguläre Touren aus; Gebäudereinigung blendet Winterdienst aus.
+- Einzelne Module können nach Profilwahl individuell ein-/ausgeschaltet werden.
+- Dashboard und Systemfunktionen (Daten/Aktualisieren/Passwort/Sicherung/Abmelden) bleiben außerhalb der Modulkonfiguration.
+- Ausblenden eines Moduls verändert keine RLS- oder Backend-Berechtigung; Rollenmodell bleibt führend.
+- Benötigt SQL 2.26.6.38 für organizations.module_profile und organizations.enabled_modules.
+- Keine Edge-Änderung.
 -->
 <section class="section" id="operations">
   <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -8958,7 +9005,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.10.
    BACKEND: SQL 2.26.6.11 erforderlich.
 */
-/* RELEASE 2.26.6.37 | BASIS 2.26.6.12 | 30.09.2026
+/* RELEASE 2.26.6.38 | BASIS 2.26.6.12 | 30.09.2026
    WETTER-FALLBACK HARDENING:
    - Außenpflege akzeptiert object-weather nur noch bei verwertbarem care_24h-Datensatz.
    - Formal erfolgreiche, aber inhaltlich leere/ungültige Antworten lösen jetzt
@@ -8970,7 +9017,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.11.
    BACKEND: keine SQL-Änderung.
 */
-const APP_VERSION='2.26.6.37'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.6.38'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -10204,6 +10251,185 @@ function isPlatformTenantMode(){
   return isPlatformOperatorRole() && !!platformTenantModeOrgId;
 }
 
+
+const TENANT_MODULE_DEFINITIONS=[
+  {key:'resident_reports',label:'Meldungen',group:'Kern'},
+  {key:'workqueue',label:'Arbeitsvorrat',group:'Kern'},
+  {key:'objects',label:'Objekte',group:'Kern'},
+  {key:'document_management',label:'Dokumentenmanagement',group:'Betrieb'},
+  {key:'process_standards',label:'Prozesse & Standards',group:'Betrieb'},
+  {key:'operations',label:'Touren & Einsätze',group:'Betrieb'},
+  {key:'winter_service',label:'Winterdienst',group:'Betrieb'},
+  {key:'operating_resources',label:'Betriebsmittel',group:'Betrieb'},
+  {key:'findings',label:'Dokumentation',group:'Kern'},
+  {key:'reports',label:'Berichte',group:'Kern'},
+  {key:'partner_directory',label:'Partnerverzeichnis',group:'Verwaltung'},
+  {key:'users',label:'Benutzer & Berechtigungen',group:'Verwaltung'},
+  {key:'resource_planning',label:'Ressourcenplanung',group:'Verwaltung'},
+  {key:'settings',label:'Einstellungen',group:'Verwaltung'},
+  {key:'external_orders',label:'Externe Aufträge',group:'Verwaltung'},
+  {key:'decisions',label:'Entscheidungen',group:'Verwaltung'},
+  {key:'notifications',label:'Benachrichtigungen',group:'Verwaltung'}
+];
+
+function tenantModulePreset(profile){
+  const all=Object.fromEntries(TENANT_MODULE_DEFINITIONS.map(m=>[m.key,true]));
+  const off=(...keys)=>{for(const k of keys)all[k]=false;return all;};
+
+  if(profile==='property_management'){
+    return off(
+      'operations',
+      'winter_service',
+      'operating_resources',
+      'resource_planning',
+      'external_orders',
+      'partner_directory',
+      'process_standards'
+    );
+  }
+
+  if(profile==='winter_service'){
+    return off(
+      'operations',
+      'partner_directory',
+      'external_orders',
+      'decisions',
+      'document_management',
+      'process_standards',
+      'operating_resources',
+      'resource_planning'
+    );
+  }
+
+  if(profile==='building_cleaning'){
+    return off(
+      'winter_service',
+      'partner_directory',
+      'external_orders',
+      'decisions',
+      'document_management',
+      'operating_resources',
+      'resource_planning'
+    );
+  }
+
+  // Vollumfang / Objektservice
+  return all;
+}
+
+function normalizeTenantModules(value,profile='full'){
+  const preset=tenantModulePreset(profile);
+  const raw=(value&&typeof value==='object'&&!Array.isArray(value))?value:{};
+  return Object.fromEntries(
+    TENANT_MODULE_DEFINITIONS.map(m=>[
+      m.key,
+      raw[m.key]===undefined ? preset[m.key]!==false : raw[m.key]!==false
+    ])
+  );
+}
+
+function tenantModuleEnabled(key){
+  if(!key)return true;
+  if(isPlatformOperatorRole()&&!isPlatformTenantMode())return true;
+  const org=currentOrganization||platformTenantModeOrganization||null;
+  if(!org)return true;
+  const profile=String(org.module_profile||'full');
+  const modules=normalizeTenantModules(org.enabled_modules,profile);
+  return modules[key]!==false;
+}
+
+const TENANT_SECTION_MODULE_MAP={
+  objects:'objects',
+  residentReports:'resident_reports',
+  workqueue:'workqueue',
+  operations:'operations',
+  winterService:'winter_service',
+  operatingResources:'operating_resources',
+  documentManagement:'document_management',
+  processStandards:'process_standards',
+  externalOrders:'external_orders',
+  findings:'findings',
+  reports:'reports',
+  partnerDirectory:'partner_directory',
+  users:'users',
+  resourcePlanning:'resource_planning',
+  settings:'settings',
+  decisions:'decisions',
+  notificationSettings:'notifications'
+};
+
+function tenantSectionEnabled(sectionId){
+  const key=TENANT_SECTION_MODULE_MAP[String(sectionId||'')];
+  return key?tenantModuleEnabled(key):true;
+}
+
+function organizationModuleEditorHtml(org){
+  const profile=String(org?.module_profile||'full');
+  const modules=normalizeTenantModules(org?.enabled_modules,profile);
+  const groups=['Kern','Betrieb','Verwaltung'];
+
+  return `
+    <div class="card tenant-module-config" style="margin-top:16px">
+      <h3 style="margin-top:0">Aktive Module</h3>
+      <div class="muted" style="margin-bottom:12px">
+        Das Profil ist eine Startkonfiguration. Einzelne Module können anschließend individuell ein- oder ausgeschaltet werden.
+        Dashboard sowie Systemfunktionen wie Aktualisieren, Passwort, Sicherung und Abmelden bleiben immer verfügbar.
+      </div>
+
+      <label>Modulprofil
+        <select id="orgModuleProfile" onchange="orgApplyModuleProfile(this.value)">
+          <option value="full" ${profile==='full'?'selected':''}>Vollumfang</option>
+          <option value="object_service" ${profile==='object_service'?'selected':''}>Objektservice</option>
+          <option value="property_management" ${profile==='property_management'?'selected':''}>Hausverwaltung</option>
+          <option value="winter_service" ${profile==='winter_service'?'selected':''}>Winterdienst</option>
+          <option value="building_cleaning" ${profile==='building_cleaning'?'selected':''}>Gebäudereinigung</option>
+          <option value="custom" ${profile==='custom'?'selected':''}>Individuell</option>
+        </select>
+      </label>
+
+      ${groups.map(group=>`
+        <div class="tenant-module-group">
+          <div class="tenant-module-group-title">${esc(group)}</div>
+          <div class="tenant-module-grid">
+            ${TENANT_MODULE_DEFINITIONS.filter(m=>m.group===group).map(m=>`
+              <label class="tenant-module-option">
+                <input
+                  type="checkbox"
+                  class="org-module-check"
+                  data-module-key="${esc(m.key)}"
+                  ${modules[m.key]!==false?'checked':''}
+                  onchange="orgMarkModuleCustom()"
+                >
+                <span>${esc(m.label)}</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+function orgApplyModuleProfile(profile){
+  if(profile==='custom')return;
+  const modules=tenantModulePreset(profile);
+  document.querySelectorAll('.org-module-check').forEach(cb=>{
+    cb.checked=modules[String(cb.dataset.moduleKey||'')]!==false;
+  });
+}
+
+function orgMarkModuleCustom(){
+  const sel=document.getElementById('orgModuleProfile');
+  if(sel)sel.value='custom';
+}
+
+function orgReadEnabledModules(){
+  const out={};
+  document.querySelectorAll('.org-module-check').forEach(cb=>{
+    out[String(cb.dataset.moduleKey||'')]=!!cb.checked;
+  });
+  return out;
+}
+
 const ROLE_LABELS={
   platform_admin:'Plattform-Admin',
   platform_admin_delegate:'Plattform-Admin-Vertretung',
@@ -10602,7 +10828,7 @@ async function cloudLoadCurrentProfile(){
     currentOrganizationMembership=dsMembershipForOrganization(savedOrgId)||currentUserMemberships[0]||null;
     if(currentOrganizationMembership?.organization_id){
       dsSetActiveOrganizationId(currentOrganizationMembership.organization_id);
-      const orgRows=await cloudRequest(`organizations?select=id,name,organization_type,public_code,active&id=eq.${encodeURIComponent(currentOrganizationMembership.organization_id)}&limit=1`);
+      const orgRows=await cloudRequest(`organizations?select=id,name,organization_type,public_code,active,module_profile,enabled_modules&id=eq.${encodeURIComponent(currentOrganizationMembership.organization_id)}&limit=1`);
       currentOrganization=orgRows?.[0]||null;
       // v2.20.85: Aktivität erst erfassen, wenn die Membership und der aktive Mandant sicher feststehen.
       // Der Aufruf ist unabhängig vom Legacy-Heartbeat und blockiert den Login bei einem Fehler nicht.
@@ -10916,25 +11142,25 @@ function applyRoleUI(){
   const hasAppRole=!!role;
   const platformMode=isPlatformOperatorRole()&&!isPlatformTenantMode();
   show('navDashboard',hasAppRole);
-  show('navObjects',hasAppRole && !platformMode);
+  show('navObjects',hasAppRole && !platformMode && tenantModuleEnabled('objects'));
   show('navInspections',false);
-  show('navFindings',hasAppRole && !platformMode && canCreateDocumentationUI());
-  show('navResidentReports',hasAppRole && !platformMode && !isCustomerRole() && !isPropertyManagerRole());
-  show('navWorkqueue',hasAppRole && !platformMode && canUseWorkQueueUI());
-  show('navOperations',hasAppRole && !platformMode);
-  show('navWinterService',hasAppRole && !platformMode);
-  show('navOperatingResources',hasAppRole && !platformMode && operatingResourcesCanUse());
-  show('navDocumentManagement',hasAppRole && !platformMode && (slTenantAdmin() || isPlatformTenantMode()));
-  show('navProcessStandards',hasAppRole && !platformMode && (slTenantAdmin() || isPlatformTenantMode()));
-  show('navExternalOrders',hasAppRole && !platformMode && (hasOperationalAdminAccess()||isPropertyManagerRole()||isObjectManagerRole()));
-  show('navReports',hasAppRole && !platformMode);
-  show('navPartnerDirectory',hasAppRole);
-  show('navDecisions',hasAppRole && !platformMode && canUseDecisionsUI());
+  show('navFindings',hasAppRole && !platformMode && tenantModuleEnabled('findings') && canCreateDocumentationUI());
+  show('navResidentReports',hasAppRole && !platformMode && tenantModuleEnabled('resident_reports') && !isCustomerRole() && !isPropertyManagerRole());
+  show('navWorkqueue',hasAppRole && !platformMode && tenantModuleEnabled('workqueue') && canUseWorkQueueUI());
+  show('navOperations',hasAppRole && !platformMode && tenantModuleEnabled('operations'));
+  show('navWinterService',hasAppRole && !platformMode && tenantModuleEnabled('winter_service'));
+  show('navOperatingResources',hasAppRole && !platformMode && tenantModuleEnabled('operating_resources') && operatingResourcesCanUse());
+  show('navDocumentManagement',hasAppRole && !platformMode && tenantModuleEnabled('document_management') && (slTenantAdmin() || isPlatformTenantMode()));
+  show('navProcessStandards',hasAppRole && !platformMode && tenantModuleEnabled('process_standards') && (slTenantAdmin() || isPlatformTenantMode()));
+  show('navExternalOrders',hasAppRole && !platformMode && tenantModuleEnabled('external_orders') && (hasOperationalAdminAccess()||isPropertyManagerRole()||isObjectManagerRole()));
+  show('navReports',hasAppRole && !platformMode && tenantModuleEnabled('reports'));
+  show('navPartnerDirectory',hasAppRole && (platformMode || tenantModuleEnabled('partner_directory')));
+  show('navDecisions',hasAppRole && !platformMode && tenantModuleEnabled('decisions') && canUseDecisionsUI());
   show('navOrganizations',hasAppRole && platformMode);
-  show('navUsers',hasAppRole && !platformMode && canManageUsersUI());
-  show('navResourcePlanning',hasAppRole && !platformMode && resourcePlanningCanAdmin());
-  show('navNotifications',hasAppRole && !platformMode && !!currentOrganization && !isPlatformOperatorRole());
-  show('navSettings',hasAppRole && !platformMode && !!currentOrganization && dashboardSeasonCanAdmin());
+  show('navUsers',hasAppRole && !platformMode && tenantModuleEnabled('users') && canManageUsersUI());
+  show('navResourcePlanning',hasAppRole && !platformMode && tenantModuleEnabled('resource_planning') && resourcePlanningCanAdmin());
+  show('navNotifications',hasAppRole && !platformMode && tenantModuleEnabled('notifications') && !!currentOrganization && !isPlatformOperatorRole());
+  show('navSettings',hasAppRole && !platformMode && tenantModuleEnabled('settings') && !!currentOrganization && dashboardSeasonCanAdmin());
   show('headerTenantSwitchBtn',hasAppRole && !platformMode && (currentUserMemberships||[]).length>1);
   show('headerDataBtn',hasAppRole && !platformMode && dsCanManageTenantData());
   show('orphanUserCleanupBtn',isAdminRole() && platformMode);
@@ -11034,6 +11260,11 @@ function applyRoleUI(){
   }
   if(!canManageUsersUI() && document.getElementById('users')?.classList.contains('active')) showSection('dashboard');
   if(!canUseSettingsUI() && document.getElementById('settings')?.classList.contains('active')){
+    showSection('dashboard');
+  }
+
+  const activeSection=document.querySelector('.section.active')?.id||'dashboard';
+  if(!platformMode && !tenantSectionEnabled(activeSection)){
     showSection('dashboard');
   }
 
@@ -14235,7 +14466,7 @@ async function cloudLoadOrganizations(){
     platformTenantActivity=[];
     return cloudOrganizations;
   }
-  const rows=await cloudRequest('organizations?select=id,name,organization_type,public_code,active,storage_limit_bytes,storage_warning_percent,created_at&order=name.asc');
+  const rows=await cloudRequest('organizations?select=id,name,organization_type,public_code,active,storage_limit_bytes,storage_warning_percent,module_profile,enabled_modules,created_at&order=name.asc');
   cloudOrganizations=Array.isArray(rows)?rows:[];
   if(isPlatformOperatorRole()){
     try{
@@ -15067,6 +15298,7 @@ function openOrganizationModal(id=''){
     </div>
     <div class="muted" style="margin-top:6px">Das Speicherlimit ist Bestandteil der vertraglichen Mandantenvereinbarung. Die Warnschwelle steuert die Plattformhinweise.</div>
     <label class="row" style="gap:10px;align-items:center;margin-top:14px"><input id="orgActive" type="checkbox" ${org.active!==false?'checked':''}><span>Unternehmen aktiv</span></label>
+    ${organizationModuleEditorHtml(org)}
     ${adminFields}
     <div class="row" style="margin-top:14px"><button class="primary" onclick="saveOrganization('${esc(id)}')">${id?'Speichern':'Mandant + Admin anlegen'}</button></div>`);
 }
@@ -15180,7 +15412,9 @@ async function saveOrganization(id=''){
     organization_type:document.getElementById('orgType')?.value||'object_service',
     active:!!document.getElementById('orgActive')?.checked,
     storage_limit_bytes:Math.round(storageLimitGb*1073741824),
-    storage_warning_percent:Math.round(storageWarning)
+    storage_warning_percent:Math.round(storageWarning),
+    module_profile:document.getElementById('orgModuleProfile')?.value||'full',
+    enabled_modules:orgReadEnabledModules()
   };
   const adminName=(document.getElementById('orgAdminName')?.value||'').trim();
   const adminEmail=(document.getElementById('orgAdminEmail')?.value||'').trim().toLowerCase();
@@ -24428,7 +24662,7 @@ if(!bootPublicResidentReport()){
 <script>
 /* ===== v2.18.49 Spracheingabe für alle Freitextfelder ===== */
 (function(){
-  const SpeechRecognition = null; // 2.26.6.37: Spracheingabe deaktiviert
+  const SpeechRecognition = null; // 2.26.6.38: Spracheingabe deaktiviert
   if(!SpeechRecognition) return;
 
   let activeRecognition = null;
@@ -28014,7 +28248,7 @@ async function opsLoadSharedAssignmentContext(){
 }
 
 function opsSelectableUsersForRun(run){
-  // 2.26.6.37:
+  // 2.26.6.38:
   // Eine konkrete Tourzuweisung erzeugt serverseitig eine temporäre
   // Einsatzberechtigung für alle Objekte dieser Tour. Deshalb dürfen hier
   // alle aktiven operativen Benutzer des Mandanten ausgewählt werden.
@@ -28066,7 +28300,7 @@ function opsWeekdayLabel(v){const m={0:'So',1:'Mo',2:'Di',3:'Mi',4:'Do',5:'Fr',6
 function opsIntervalLabel(v){return ({1:'wöchentlich',2:'alle 2 Wochen',4:'alle 4 Wochen'})[Number(v)]||`alle ${v} Wochen`;}
 function opsTimeWindowLabel(p){const a=String(p?.time_window_start||'').slice(0,5),b=String(p?.time_window_end||'').slice(0,5);return a&&b?`${a}–${b}`:a?`ab ${a}`:b?`bis ${b}`:'kein Zeitfenster';}
 
-/* RELEASE 2.26.6.37 | BASIS 2.26.6.13 | 30.09.2026
+/* RELEASE 2.26.6.38 | BASIS 2.26.6.13 | 30.09.2026
    EINMALIGER AUFTRAG: STAND-ALONE ODER TOURTERMIN
    - Begriff "Einzeltour" im Planungsdialog durch "Einmaliger Auftrag" ersetzt.
    - Kein Rhythmus / keine Wochentage für Ad-hoc-Aufträge.
@@ -29766,7 +30000,7 @@ async function opsSaveTour(){
         object_service_assignment_id:a.id,
         object_id:a.object_id,
         service_type_id:a.service_type_id,
-        // 2.26.6.37: Die Tour ist das führende Planungsobjekt.
+        // 2.26.6.38: Die Tour ist das führende Planungsobjekt.
         // Direkte Tourstopps benötigen keinen recurring_service_plan.
         recurring_plan_id:null,
         planned_duration_minutes:duration,
@@ -29794,7 +30028,7 @@ async function opsSaveTour(){
         body:JSON.stringify(templatePayload)
       });
 
-      // 2.26.6.37:
+      // 2.26.6.38:
       // Bestehende Tourstopps nicht pauschal deaktivieren und neu einfügen.
       // Sonst kollidieren historische/inaktive Datensätze mit UNIQUE-Constraints
       // wie (tour_template_id, recurring_plan_id).
@@ -30665,7 +30899,7 @@ async function openManagedDocumentStorageFile(d,{title='SOP / Arbeitsanweisung',
   const blob=fileBlob.type?fileBlob:new Blob([fileBlob],{type:mime});
   const url=URL.createObjectURL(blob);
 
-  // 2.26.6.37:
+  // 2.26.6.38:
   // Mobile Safari/iOS blockiert window.open(), wenn es erst NACH einem await
   // ausgeführt wird. Deshalb wird das Ziel-Fenster bereits synchron beim
   // Benutzer-Tap erzeugt und hier nur noch mit dem Blob befüllt.
