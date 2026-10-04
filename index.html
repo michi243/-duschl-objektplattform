@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.36</title>
+<title>Duschl Service – Objektplattform v2.26.6.37</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -663,7 +663,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 
 
 
-/* === Objektmodal Übersicht · 2.26.6.36 === */
+/* === Objektmodal Übersicht · 2.26.6.37 === */
 .object-edit-section{
   margin-top:12px;
   padding:14px;
@@ -756,7 +756,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Wochensteuerung Tourenlogik · 2.26.6.36 === */
+/* === Wochensteuerung Tourenlogik · 2.26.6.37 === */
 .rp-week-summary{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
@@ -829,7 +829,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzintegration · 2.26.6.36 === */
+/* === Betriebsmittel Einsatzintegration · 2.26.6.37 === */
 .or-process-hint{
   border-color:#31566e!important;
   background:linear-gradient(180deg,#0d2636 0%,#091d2a 100%)!important;
@@ -870,7 +870,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzarten · 2.26.6.36 === */
+/* === Betriebsmittel Einsatzarten · 2.26.6.37 === */
 .or-scope-hint{
   margin-top:9px;
   padding:8px 10px;
@@ -898,7 +898,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Zusatzauftrag verständliche Darstellung · 2.26.6.36 === */
+/* === Zusatzauftrag verständliche Darstellung · 2.26.6.37 === */
 .ops-run-stop-special{
   border-left:3px solid #6c8faa;
   padding-left:10px;
@@ -918,7 +918,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Regelmäßige Einzelleistung als Sonderfall · 2.26.6.36 === */
+/* === Regelmäßige Einzelleistung als Sonderfall · 2.26.6.37 === */
 .ops-advanced-planning{
   margin-top:10px!important;
   opacity:.94;
@@ -932,7 +932,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Stabilitäts-Rebuild 2.26.6.36 === */
+/* === Stabilitäts-Rebuild 2.26.6.37 === */
 .speech-mic-btn{display:none!important}
 .speech-field-host>input[type="text"],
 .speech-field-host>textarea{padding-right:12px!important}
@@ -960,6 +960,32 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
   .app-topbar{gap:8px!important}
   .ds-global-back{width:40px!important;height:40px!important;min-width:40px!important}
   .app-brand h1{font-size:17px!important}
+}
+
+
+/* === Deaktivierte Mandanten getrennt · 2.26.6.37 === */
+.platform-inactive-tenants{
+  border-top:1px solid var(--line);
+  padding-top:4px;
+}
+.platform-inactive-tenants>summary{
+  list-style:none;
+}
+.platform-inactive-tenants>summary::-webkit-details-marker{
+  display:none;
+}
+.platform-inactive-tenants>summary::before{
+  content:'▸';
+  display:inline-block;
+  width:22px;
+  transition:transform .15s ease;
+}
+.platform-inactive-tenants[open]>summary::before{
+  transform:rotate(90deg);
+}
+.tenant-admin-card-inactive{
+  opacity:.86!important;
+  border-style:dashed!important;
 }
 
 /* === GPS-Plausibilitätsprüfung · 2.21.61 === */
@@ -5703,7 +5729,7 @@ table td,table th{
 </style>
 
 <!--
-RELEASE 2.26.6.36 | BASIS 2.26.6.24 | 01.10.2026
+RELEASE 2.26.6.37 | BASIS 2.26.6.24 | 01.10.2026
 REGELMÄSSIGE EINZELLEISTUNG NUR NOCH SONDERFALL
 - Hauptworkflow bleibt Wiederkehrende Tour + Einmaliger Auftrag.
 - Regelmäßige Einzelleistung ist standardmäßig eingeklappt.
@@ -5712,7 +5738,7 @@ REGELMÄSSIGE EINZELLEISTUNG NUR NOCH SONDERFALL
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.36 | BASIS 2.26.6.25 + SQL-HOTFIXES 2.26.6.26/27 | 01.10.2026
+RELEASE 2.26.6.37 | BASIS 2.26.6.25 + SQL-HOTFIXES 2.26.6.26/27 | 01.10.2026
 TEMPORÄRE EINSATZBERECHTIGUNG DURCH TOURZUWEISUNG
 - Jeder aktive operative Mandantenbenutzer kann einer konkreten Tour zugewiesen werden.
 - Fehlende dauerhafte Objekt-/Kollaborationszuweisung blockiert die Tourzuweisung nicht mehr.
@@ -5722,7 +5748,7 @@ TEMPORÄRE EINSATZBERECHTIGUNG DURCH TOURZUWEISUNG
 - Kein Edge-Change.
 -->
 <!--
-RELEASE 2.26.6.36 | BASIS 2.26.6.28 | 01.10.2026
+RELEASE 2.26.6.37 | BASIS 2.26.6.28 | 01.10.2026
 SOP MOBILE OPEN FIX
 - iOS/Safari Pop-up-Blocker behoben.
 - SOP-Zielfenster wird synchron beim Tap geöffnet, bevor RPC/Storage await startet.
@@ -5731,13 +5757,24 @@ SOP MOBILE OPEN FIX
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.36 | STABILITÄTS-REBUILD | BASIS 2.26.6.29 | 01.10.2026
+RELEASE 2.26.6.37 | STABILITÄTS-REBUILD | BASIS 2.26.6.29 | 01.10.2026
 - Vollständiger Neuaufbau ab letzter strukturell intakter Version 2.26.6.29.
 - Ursache des Login-/Mandantenfehlers beseitigt: In 2.26.6.30 wurde beim Entfernen der Spracheingabe versehentlich ein großer JavaScript-Block mit Kernfunktionen gelöscht.
 - Spracheingabe jetzt nur deaktiviert; kein Scriptblock wird entfernt.
 - Zurück-Navigation und Dokumentation interner Aufgaben erneut sauber integriert.
 - Legacy-SOP in Standardtouren nur visuell ausgeblendet; Daten/RPCs bleiben erhalten.
 - Login, Membership-Wechsel, Plattform-Mandantenmodus, Touren, Winterdienst, Standards und Leistungslogik bleiben aus der intakten Basis erhalten.
+- Keine SQL-, RLS- oder Edge-Änderung.
+-->
+<!--
+RELEASE 2.26.6.37 | BASIS 2.26.6.36 | 04.10.2026
+DEAKTIVIERTE MANDANTEN GETRENNT
+- Aktive Mandanten bleiben in der normalen Mandantenübersicht.
+- Deaktivierte Mandanten werden in einen separaten, standardmäßig eingeklappten Bereich verschoben.
+- Deaktivierte Mandanten zeigen keinen "Mandant administrieren"-Button.
+- Der bestehende Statusschalter bleibt erhalten: "Mandant aktivieren" verschiebt den Mandanten automatisch zurück in die aktive Übersicht.
+- Es wird ausschließlich der bestehende Statusschalter verwendet.
+- Daten, Benutzer, Speicher und Historie bleiben unverändert erhalten.
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <section class="section" id="operations">
@@ -8921,7 +8958,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.10.
    BACKEND: SQL 2.26.6.11 erforderlich.
 */
-/* RELEASE 2.26.6.36 | BASIS 2.26.6.12 | 30.09.2026
+/* RELEASE 2.26.6.37 | BASIS 2.26.6.12 | 30.09.2026
    WETTER-FALLBACK HARDENING:
    - Außenpflege akzeptiert object-weather nur noch bei verwertbarem care_24h-Datensatz.
    - Formal erfolgreiche, aber inhaltlich leere/ungültige Antworten lösen jetzt
@@ -8933,7 +8970,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.11.
    BACKEND: keine SQL-Änderung.
 */
-const APP_VERSION='2.26.6.36'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.6.37'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -14305,44 +14342,115 @@ async function openPlatformOrphanManagement(){
 function renderOrganizations(){
   const box=document.getElementById('organizationList');
   if(!box)return;
-  if(!isPlatformOperatorRole()){box.innerHTML='<div class="empty">Nur Plattformadministratoren können Unternehmen verwalten.</div>';return;}
-  if(!cloudOrganizations.length){box.innerHTML='<div class="empty">Noch keine Mandanten vorhanden.</div>';return;}
+
+  if(!isPlatformOperatorRole()){
+    box.innerHTML='<div class="empty">Nur Plattformadministratoren können Unternehmen verwalten.</div>';
+    return;
+  }
+
+  if(!cloudOrganizations.length){
+    box.innerHTML='<div class="empty">Noch keine Mandanten vorhanden.</div>';
+    return;
+  }
+
   const usageByOrg=new Map((platformStorageRows||[]).map(r=>[r.organization_id,r]));
-  box.innerHTML=cloudOrganizations.map(org=>{
+  const activeOrgs=(cloudOrganizations||[])
+    .filter(org=>org.active!==false)
+    .sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'de'));
+
+  const inactiveOrgs=(cloudOrganizations||[])
+    .filter(org=>org.active===false)
+    .sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'de'));
+
+  const renderTenantCard=(org,{inactive=false}={})=>{
     const summary=platformOrganizationUserSummary(org.id);
     const adminText=summary.admins.length
       ? summary.admins.map(p=>esc(p.full_name||p.email||'Mandanten-Admin')).join(', ')
       : 'Noch kein Mandanten-Admin';
+
     const usage=usageByOrg.get(org.id)||{};
     const limit=Number(org.storage_limit_bytes||0);
     const used=Number(usage.used_bytes||0);
     const pct=limit>0?Math.round((used/limit)*100):0;
     const warn=Number(org.storage_warning_percent||80);
-    const storageText=limit>0?`${formatBytes(used)} von ${formatBytes(limit)} · ${pct}%`:'Kein Speicherlimit definiert';
+    const storageText=limit>0
+      ? `${formatBytes(used)} von ${formatBytes(limit)} · ${pct}%`
+      : 'Kein Speicherlimit definiert';
     const storageClass=limit>0&&pct>=warn?'bad':'';
-    return `<div class="card" style="display:block!important;visibility:visible!important;opacity:1!important">
+
+    return `<div class="card tenant-admin-card ${inactive?'tenant-admin-card-inactive':''}" style="display:block!important;visibility:visible!important;opacity:1!important">
       <div class="row space" style="gap:10px">
-        <h3 style="margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis">${esc(org.name)}</h3>
-        <button type="button" aria-label="Details zu ${esc(org.name)} ein- oder ausklappen" onclick="const d=this.closest('.card').querySelector('.tenant-admin-details');const open=d.hidden;d.hidden=!open;this.textContent=open?'⌃':'⌄';this.setAttribute('aria-expanded',open?'true':'false')" aria-expanded="false" style="width:auto;min-width:44px;padding:8px 12px;font-size:20px;line-height:1">⌄</button>
+        <div style="min-width:0">
+          <h3 style="margin:0;overflow:hidden;text-overflow:ellipsis">${esc(org.name)}</h3>
+          ${inactive?'<div class="muted" style="margin-top:4px">Deaktivierter Mandant</div>':''}
+        </div>
+        <button
+          type="button"
+          aria-label="Details zu ${esc(org.name)} ein- oder ausklappen"
+          onclick="const d=this.closest('.card').querySelector('.tenant-admin-details');const open=d.hidden;d.hidden=!open;this.textContent=open?'⌃':'⌄';this.setAttribute('aria-expanded',open?'true':'false')"
+          aria-expanded="false"
+          style="width:auto;min-width:44px;padding:8px 12px;font-size:20px;line-height:1"
+        >⌄</button>
       </div>
-      <button class="primary" style="width:100%;margin-top:12px" onclick="enterPlatformTenantMode('${esc(org.id)}')">Mandant administrieren</button>
+
+      ${inactive
+        ? ''
+        : `<button class="primary" style="width:100%;margin-top:12px" onclick="enterPlatformTenantMode('${esc(org.id)}')">Mandant administrieren</button>`
+      }
+
       <div class="tenant-admin-details" hidden style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
         <div class="row space"><span class="muted">Mandantentyp</span><strong>${esc(org.organization_type||'Unternehmen')}</strong></div>
-        <div class="row space" style="margin-top:8px"><span class="muted">Status</span><strong>${org.active===false?'Inaktiv':'Aktiv'}</strong></div>
-        ${(()=>{const a=platformTenantActivityFor(org.id);return `<div class="row space" style="margin-top:8px"><span class="muted">Mandant zuletzt aktiv</span><strong style="text-align:right"><span class="badge ${a.state.cls}">${esc(a.state.label)}</span><br><span class="muted" style="font-size:12px">${esc(formatLastSeen(a.lastSeen))}</span></strong></div>`})()}
+        <div class="row space" style="margin-top:8px"><span class="muted">Status</span><strong>${inactive?'Inaktiv':'Aktiv'}</strong></div>
+
+        ${(()=>{
+          const a=platformTenantActivityFor(org.id);
+          return `<div class="row space" style="margin-top:8px">
+            <span class="muted">Mandant zuletzt aktiv</span>
+            <strong style="text-align:right">
+              <span class="badge ${a.state.cls}">${esc(a.state.label)}</span><br>
+              <span class="muted" style="font-size:12px">${esc(formatLastSeen(a.lastSeen))}</span>
+            </strong>
+          </div>`;
+        })()}
+
         <div class="row space" style="margin-top:8px"><span class="muted">Benutzer</span><strong>${summary.count}</strong></div>
         <div class="row space" style="margin-top:8px"><span class="muted">Mandanten-Admin</span><strong style="text-align:right">${adminText}</strong></div>
         <div class="row space" style="margin-top:8px"><span class="muted">Vertraglicher Speicher</span><strong class="${storageClass}" style="text-align:right">${storageText}</strong></div>
+
         <div class="row" style="margin-top:14px">
           <button onclick="openOrganizationModal('${esc(org.id)}')">Mandant bearbeiten</button>
           <button onclick="openTenantAdminAssignmentModal('${esc(org.id)}')">${summary.admins.length?'Mandanten-Admin ändern':'Mandanten-Admin festlegen'}</button>
-          ${isAdminRole()?`<button class="platform-warning-btn" onclick="openPlatformTenantDataCleanup('${esc(org.id)}')">Daten bereinigen</button>
-          <button class="${org.active===false?'':'platform-warning-btn'}" onclick="platformToggleTenantActive('${esc(org.id)}',${org.active===false?'true':'false'})">${org.active===false?'Mandant aktivieren':'Mandant deaktivieren'}</button>
-          <button class="platform-danger-btn" onclick="openPlatformTenantDeleteModal('${esc(org.id)}')">Mandant löschen</button>`:''}
+
+          ${isAdminRole()
+            ? `<button class="platform-warning-btn" onclick="openPlatformTenantDataCleanup('${esc(org.id)}')">Daten bereinigen</button>
+               <button class="${inactive?'':'platform-warning-btn'}" onclick="platformToggleTenantActive('${esc(org.id)}',${inactive?'true':'false'})">${inactive?'Mandant aktivieren':'Mandant deaktivieren'}</button>
+               <button class="platform-danger-btn" onclick="openPlatformTenantDeleteModal('${esc(org.id)}')">Mandant löschen</button>`
+            : ''
+          }
         </div>
       </div>
     </div>`;
-  }).join('');
+  };
+
+  const activeHtml=activeOrgs.length
+    ? activeOrgs.map(org=>renderTenantCard(org)).join('')
+    : '<div class="empty">Aktuell ist kein aktiver Mandant vorhanden.</div>';
+
+  const inactiveHtml=inactiveOrgs.length
+    ? `<details class="platform-inactive-tenants" style="margin-top:22px">
+        <summary style="cursor:pointer;font-weight:800;font-size:18px;padding:14px 0">
+          Deaktivierte Mandanten (${inactiveOrgs.length})
+        </summary>
+        <div class="muted" style="margin:0 0 12px">
+          Deaktivierte Mandanten sind aus der aktiven Mandantenübersicht ausgeblendet. Die Daten bleiben erhalten.
+        </div>
+        <div class="platform-inactive-tenant-list">
+          ${inactiveOrgs.map(org=>renderTenantCard(org,{inactive:true})).join('')}
+        </div>
+      </details>`
+    : '';
+
+  box.innerHTML=activeHtml+inactiveHtml;
 }
 
 async function cloudLogPlatformTenantAccess(action,orgId){
@@ -24320,7 +24428,7 @@ if(!bootPublicResidentReport()){
 <script>
 /* ===== v2.18.49 Spracheingabe für alle Freitextfelder ===== */
 (function(){
-  const SpeechRecognition = null; // 2.26.6.36: Spracheingabe deaktiviert
+  const SpeechRecognition = null; // 2.26.6.37: Spracheingabe deaktiviert
   if(!SpeechRecognition) return;
 
   let activeRecognition = null;
@@ -27906,7 +28014,7 @@ async function opsLoadSharedAssignmentContext(){
 }
 
 function opsSelectableUsersForRun(run){
-  // 2.26.6.36:
+  // 2.26.6.37:
   // Eine konkrete Tourzuweisung erzeugt serverseitig eine temporäre
   // Einsatzberechtigung für alle Objekte dieser Tour. Deshalb dürfen hier
   // alle aktiven operativen Benutzer des Mandanten ausgewählt werden.
@@ -27958,7 +28066,7 @@ function opsWeekdayLabel(v){const m={0:'So',1:'Mo',2:'Di',3:'Mi',4:'Do',5:'Fr',6
 function opsIntervalLabel(v){return ({1:'wöchentlich',2:'alle 2 Wochen',4:'alle 4 Wochen'})[Number(v)]||`alle ${v} Wochen`;}
 function opsTimeWindowLabel(p){const a=String(p?.time_window_start||'').slice(0,5),b=String(p?.time_window_end||'').slice(0,5);return a&&b?`${a}–${b}`:a?`ab ${a}`:b?`bis ${b}`:'kein Zeitfenster';}
 
-/* RELEASE 2.26.6.36 | BASIS 2.26.6.13 | 30.09.2026
+/* RELEASE 2.26.6.37 | BASIS 2.26.6.13 | 30.09.2026
    EINMALIGER AUFTRAG: STAND-ALONE ODER TOURTERMIN
    - Begriff "Einzeltour" im Planungsdialog durch "Einmaliger Auftrag" ersetzt.
    - Kein Rhythmus / keine Wochentage für Ad-hoc-Aufträge.
@@ -29658,7 +29766,7 @@ async function opsSaveTour(){
         object_service_assignment_id:a.id,
         object_id:a.object_id,
         service_type_id:a.service_type_id,
-        // 2.26.6.36: Die Tour ist das führende Planungsobjekt.
+        // 2.26.6.37: Die Tour ist das führende Planungsobjekt.
         // Direkte Tourstopps benötigen keinen recurring_service_plan.
         recurring_plan_id:null,
         planned_duration_minutes:duration,
@@ -29686,7 +29794,7 @@ async function opsSaveTour(){
         body:JSON.stringify(templatePayload)
       });
 
-      // 2.26.6.36:
+      // 2.26.6.37:
       // Bestehende Tourstopps nicht pauschal deaktivieren und neu einfügen.
       // Sonst kollidieren historische/inaktive Datensätze mit UNIQUE-Constraints
       // wie (tour_template_id, recurring_plan_id).
@@ -30557,7 +30665,7 @@ async function openManagedDocumentStorageFile(d,{title='SOP / Arbeitsanweisung',
   const blob=fileBlob.type?fileBlob:new Blob([fileBlob],{type:mime});
   const url=URL.createObjectURL(blob);
 
-  // 2.26.6.36:
+  // 2.26.6.37:
   // Mobile Safari/iOS blockiert window.open(), wenn es erst NACH einem await
   // ausgeführt wird. Deshalb wird das Ziel-Fenster bereits synchron beim
   // Benutzer-Tap erzeugt und hier nur noch mit dem Blob befüllt.
