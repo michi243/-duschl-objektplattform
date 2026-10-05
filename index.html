@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.41</title>
+<title>Duschl Service – Objektplattform v2.26.6.42</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -663,7 +663,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 
 
 
-/* === Objektmodal Übersicht · 2.26.6.41 === */
+/* === Objektmodal Übersicht · 2.26.6.42 === */
 .object-edit-section{
   margin-top:12px;
   padding:14px;
@@ -756,7 +756,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Wochensteuerung Tourenlogik · 2.26.6.41 === */
+/* === Wochensteuerung Tourenlogik · 2.26.6.42 === */
 .rp-week-summary{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
@@ -829,7 +829,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzintegration · 2.26.6.41 === */
+/* === Betriebsmittel Einsatzintegration · 2.26.6.42 === */
 .or-process-hint{
   border-color:#31566e!important;
   background:linear-gradient(180deg,#0d2636 0%,#091d2a 100%)!important;
@@ -870,7 +870,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzarten · 2.26.6.41 === */
+/* === Betriebsmittel Einsatzarten · 2.26.6.42 === */
 .or-scope-hint{
   margin-top:9px;
   padding:8px 10px;
@@ -898,7 +898,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Zusatzauftrag verständliche Darstellung · 2.26.6.41 === */
+/* === Zusatzauftrag verständliche Darstellung · 2.26.6.42 === */
 .ops-run-stop-special{
   border-left:3px solid #6c8faa;
   padding-left:10px;
@@ -918,7 +918,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Regelmäßige Einzelleistung als Sonderfall · 2.26.6.41 === */
+/* === Regelmäßige Einzelleistung als Sonderfall · 2.26.6.42 === */
 .ops-advanced-planning{
   margin-top:10px!important;
   opacity:.94;
@@ -932,7 +932,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Stabilitäts-Rebuild 2.26.6.41 === */
+/* === Stabilitäts-Rebuild 2.26.6.42 === */
 .speech-mic-btn{display:none!important}
 .speech-field-host>input[type="text"],
 .speech-field-host>textarea{padding-right:12px!important}
@@ -963,7 +963,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Deaktivierte Mandanten getrennt · 2.26.6.41 === */
+/* === Deaktivierte Mandanten getrennt · 2.26.6.42 === */
 .platform-inactive-tenants{
   border-top:1px solid var(--line);
   padding-top:4px;
@@ -989,7 +989,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Mandantenmodule & Profile · 2.26.6.41 === */
+/* === Mandantenmodule & Profile · 2.26.6.42 === */
 .tenant-module-group{margin-top:16px}
 .tenant-module-group-title{
   font-size:12px;
@@ -1023,7 +1023,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Außenpflege Mehrfachauswahl · 2.26.6.41 === */
+/* === Außenpflege Mehrfachauswahl · 2.26.6.42 === */
 .dashboard-summer-selection-bar{
   display:flex;
   gap:12px;
@@ -1082,7 +1082,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Außenpflege Details + Auswahl Fix · 2.26.6.41 === */
+/* === Außenpflege Details + Auswahl Fix · 2.26.6.42 === */
 .dashboard-summer-object-row-selectable{
   position:relative;
 }
@@ -1104,6 +1104,66 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
   font-size:13px;
   font-weight:800;
   color:var(--muted);
+}
+
+
+/* === Planungskandidaten Außenpflege -> Tour · 2.26.6.42 === */
+.ops-planning-candidates{
+  margin-bottom:14px;
+  padding:14px;
+  border:1px solid rgba(84,177,255,.35);
+  border-radius:14px;
+  background:rgba(84,177,255,.06);
+}
+.ops-planning-candidates-head,
+.ops-planning-candidate-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.ops-planning-candidate-list{
+  display:grid;
+  gap:8px;
+  margin-top:12px;
+}
+.ops-planning-candidate{
+  display:flex!important;
+  align-items:flex-start;
+  gap:10px;
+  margin:0!important;
+  padding:10px 12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:rgba(255,255,255,.02);
+}
+.ops-planning-candidate input{
+  width:22px!important;
+  height:22px!important;
+  min-width:22px;
+  margin:1px 0 0!important;
+}
+.ops-planning-candidate span{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.ops-planning-candidate small,
+.ops-planning-candidate em{
+  color:var(--muted);
+  font-style:normal;
+}
+.ops-planning-candidate.is-transferred{
+  opacity:.65;
+}
+.ops-planning-candidate-footer{
+  margin-top:12px;
+}
+@media(max-width:680px){
+  .ops-planning-candidate-footer button{
+    width:100%;
+  }
 }
 
 /* === GPS-Plausibilitätsprüfung · 2.21.61 === */
@@ -5847,7 +5907,7 @@ table td,table th{
 </style>
 
 <!--
-RELEASE 2.26.6.41 | BASIS 2.26.6.24 | 01.10.2026
+RELEASE 2.26.6.42 | BASIS 2.26.6.24 | 01.10.2026
 REGELMÄSSIGE EINZELLEISTUNG NUR NOCH SONDERFALL
 - Hauptworkflow bleibt Wiederkehrende Tour + Einmaliger Auftrag.
 - Regelmäßige Einzelleistung ist standardmäßig eingeklappt.
@@ -5856,7 +5916,7 @@ REGELMÄSSIGE EINZELLEISTUNG NUR NOCH SONDERFALL
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.41 | BASIS 2.26.6.25 + SQL-HOTFIXES 2.26.6.26/27 | 01.10.2026
+RELEASE 2.26.6.42 | BASIS 2.26.6.25 + SQL-HOTFIXES 2.26.6.26/27 | 01.10.2026
 TEMPORÄRE EINSATZBERECHTIGUNG DURCH TOURZUWEISUNG
 - Jeder aktive operative Mandantenbenutzer kann einer konkreten Tour zugewiesen werden.
 - Fehlende dauerhafte Objekt-/Kollaborationszuweisung blockiert die Tourzuweisung nicht mehr.
@@ -5866,7 +5926,7 @@ TEMPORÄRE EINSATZBERECHTIGUNG DURCH TOURZUWEISUNG
 - Kein Edge-Change.
 -->
 <!--
-RELEASE 2.26.6.41 | BASIS 2.26.6.28 | 01.10.2026
+RELEASE 2.26.6.42 | BASIS 2.26.6.28 | 01.10.2026
 SOP MOBILE OPEN FIX
 - iOS/Safari Pop-up-Blocker behoben.
 - SOP-Zielfenster wird synchron beim Tap geöffnet, bevor RPC/Storage await startet.
@@ -5875,7 +5935,7 @@ SOP MOBILE OPEN FIX
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.41 | STABILITÄTS-REBUILD | BASIS 2.26.6.29 | 01.10.2026
+RELEASE 2.26.6.42 | STABILITÄTS-REBUILD | BASIS 2.26.6.29 | 01.10.2026
 - Vollständiger Neuaufbau ab letzter strukturell intakter Version 2.26.6.29.
 - Ursache des Login-/Mandantenfehlers beseitigt: In 2.26.6.30 wurde beim Entfernen der Spracheingabe versehentlich ein großer JavaScript-Block mit Kernfunktionen gelöscht.
 - Spracheingabe jetzt nur deaktiviert; kein Scriptblock wird entfernt.
@@ -5885,7 +5945,7 @@ RELEASE 2.26.6.41 | STABILITÄTS-REBUILD | BASIS 2.26.6.29 | 01.10.2026
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.41 | BASIS 2.26.6.36 | 04.10.2026
+RELEASE 2.26.6.42 | BASIS 2.26.6.36 | 04.10.2026
 DEAKTIVIERTE MANDANTEN GETRENNT
 - Aktive Mandanten bleiben in der normalen Mandantenübersicht.
 - Deaktivierte Mandanten werden in einen separaten, standardmäßig eingeklappten Bereich verschoben.
@@ -5896,7 +5956,7 @@ DEAKTIVIERTE MANDANTEN GETRENNT
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.41 | BASIS 2.26.6.37 | 04.10.2026
+RELEASE 2.26.6.42 | BASIS 2.26.6.37 | 04.10.2026
 MANDANTENPROFILE + INDIVIDUELLE MODULE
 - Mandantenmenü ist jetzt produktseitig konfigurierbar und bleibt zusätzlich rollenbasiert geschützt.
 - Profile: Vollumfang, Objektservice, Hausverwaltung, Winterdienst, Gebäudereinigung, Individuell.
@@ -5905,11 +5965,11 @@ MANDANTENPROFILE + INDIVIDUELLE MODULE
 - Einzelne Module können nach Profilwahl individuell ein-/ausgeschaltet werden.
 - Dashboard und Systemfunktionen (Daten/Aktualisieren/Passwort/Sicherung/Abmelden) bleiben außerhalb der Modulkonfiguration.
 - Ausblenden eines Moduls verändert keine RLS- oder Backend-Berechtigung; Rollenmodell bleibt führend.
-- Benötigt SQL 2.26.6.41 für organizations.module_profile und organizations.enabled_modules.
+- Benötigt SQL 2.26.6.42 für organizations.module_profile und organizations.enabled_modules.
 - Keine Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.41 | BASIS 2.26.6.38 | 04.10.2026
+RELEASE 2.26.6.42 | BASIS 2.26.6.38 | 04.10.2026
 DASHBOARD-FACHLOGIK
 - Dashboard-Kacheln folgen jetzt ebenfalls der Mandantenmodul-/Profilsteuerung.
 - Winterdienst-Einsatzlage wird nur angezeigt, wenn das Winterdienst-Modul aktiv ist UND aktive Winterdienstumfänge vorhanden sind.
@@ -5921,7 +5981,7 @@ DASHBOARD-FACHLOGIK
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.41 | BASIS 2.26.6.39 | 04.10.2026
+RELEASE 2.26.6.42 | BASIS 2.26.6.39 | 04.10.2026
 AUSSENPFLEGE: MEHRFACHAUSWAHL
 - Außenpflegeobjekte können per Checkbox einzeln ausgewählt werden.
 - "Alle sichtbaren auswählen" berücksichtigt Suche und aktuellen Statusfilter.
@@ -5932,7 +5992,7 @@ AUSSENPFLEGE: MEHRFACHAUSWAHL
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.41 | BASIS 2.26.6.40 | 05.10.2026
+RELEASE 2.26.6.42 | BASIS 2.26.6.40 | 05.10.2026
 AUSSENPFLEGE DETAILS + AUSWAHL FIX
 - Details öffnet jetzt ein echtes Modal statt einer schwer sichtbaren Detailkarte unterhalb der Objektliste.
 - Modal zeigt Wetterwerte, Empfehlung, DWD-Hinweise und Datenstand.
@@ -5940,6 +6000,18 @@ AUSSENPFLEGE DETAILS + AUSWAHL FIX
 - Checkbox je Objekt ist jetzt zuverlässig sichtbar.
 - Einzelne Planen-Schaltflächen je Objekt entfernt; Planung läuft konsistent über die Mehrfachauswahl.
 - Veralteter eingebetteter Detailbereich wird nicht mehr verwendet.
+- Keine SQL-, RLS- oder Edge-Änderung.
+-->
+<!--
+RELEASE 2.26.6.42 | BASIS 2.26.6.41 | 05.10.2026
+AUSSENPFLEGE -> TOURENPLANUNG ALS PLANUNGSKANDIDATEN
+- Wetterauswahl erzeugt keine Tour und keine Tourstopps automatisch.
+- Ausgewählte Außenpflegeobjekte werden als Planungskandidaten an die Tourenplanung übergeben.
+- Tourenplanung zeigt die passenden aktiven Außen-/Grünpflege-Leistungszuweisungen vorausgewählt.
+- Benutzer prüft die Kandidaten und bestätigt bewusst "Markierte in Tour übernehmen".
+- Erst danach werden echte Tour-Draft-Stopps erzeugt; Reihenfolge, Dauer, Rhythmus, Wochentage und Startzeit bleiben vollständig in der Tourenplanung.
+- Doppelte Objekt-Leistungszuordnungen werden nicht erneut übernommen.
+- Kandidaten können verworfen werden.
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <section class="section" id="operations">
@@ -6159,6 +6231,8 @@ AUSSENPFLEGE DETAILS + AUSWAHL FIX
       </div>
       <div class="muted" style="margin-top:7px">Rhythmus, Wochentage und Gültigkeit gelten für die komplette Tour.</div>
       <div class="ops-tour-stop-editor" style="margin-top:10px">
+        <div id="opsPlanningCandidatesBox" class="ops-planning-candidates hidden"></div>
+
         <div class="grid2 ops-tour-object-service-select">
           <label>1. Objekt
             <select id="opsTourObjectAdd" onchange="opsTourObjectChanged()">
@@ -9123,7 +9197,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.10.
    BACKEND: SQL 2.26.6.11 erforderlich.
 */
-/* RELEASE 2.26.6.41 | BASIS 2.26.6.12 | 30.09.2026
+/* RELEASE 2.26.6.42 | BASIS 2.26.6.12 | 30.09.2026
    WETTER-FALLBACK HARDENING:
    - Außenpflege akzeptiert object-weather nur noch bei verwertbarem care_24h-Datensatz.
    - Formal erfolgreiche, aber inhaltlich leere/ungültige Antworten lösen jetzt
@@ -9135,7 +9209,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.11.
    BACKEND: keine SQL-Änderung.
 */
-const APP_VERSION='2.26.6.41'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.6.42'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -20578,7 +20652,13 @@ function dashboardSummerPlanSelection(){
     return;
   }
 
-  sessionStorage.setItem('dashboardSummerPlanObjectIds',JSON.stringify(ids));
+  sessionStorage.setItem('dashboardSummerPlanningCandidatesV1',JSON.stringify({
+    organization_id:currentOrganizationId(),
+    source:'exterior_care_weather',
+    object_ids:ids,
+    created_at:new Date().toISOString()
+  }));
+  sessionStorage.setItem('dashboardSummerPlanObjectIds',JSON.stringify(ids)); // Legacy-Fallback
   sessionStorage.removeItem('dashboardSummerPlanObjectId');
   openSummerCarePlanning();
 }
@@ -20809,8 +20889,34 @@ async function refreshDashboardSummerWeather(){
   try{await loadDashboardSummerSummary(true)}finally{if(btn)btn.disabled=false;}
 }
 async function openSummerCarePlanning(){
-  try{showSection('operations');await new Promise(resolve=>setTimeout(resolve,100));document.getElementById('operations')?.scrollIntoView({behavior:'smooth',block:'start'});}
-  catch(e){console.error('Außenanlagenplanung konnte nicht geöffnet werden',e);alert('Touren & Einsätze konnten nicht vollständig geöffnet werden: '+(e.message||e));}
+  if(!dashboardAllowsExteriorCare()){
+    alert('Außenanlagenpflege ist für diesen Mandantentyp nicht vorgesehen.');
+    return;
+  }
+
+  try{
+    showSection('operations');
+
+    // showSection stößt opsLoad asynchron an. Für die Übergabe der Kandidaten
+    // laden wir bewusst nochmals deterministisch und rendern anschließend.
+    await opsLoad();
+    opsResolvePlanningCandidates();
+
+    await new Promise(resolve=>setTimeout(resolve,50));
+
+    const candidateBox=document.getElementById('opsPlanningCandidatesBox');
+    const target=(!candidateBox?.classList.contains('hidden'))
+      ? candidateBox
+      : document.getElementById('opsTourTemplateCard');
+
+    target?.scrollIntoView({
+      behavior:'smooth',
+      block:'start'
+    });
+  }catch(e){
+    console.error('Außenanlagenplanung konnte nicht geöffnet werden',e);
+    alert('Touren & Einsätze konnten nicht vollständig geöffnet werden: '+(e.message||e));
+  }
 }
 async function loadDashboardSummerSummary(force=false){
   const panel=document.getElementById('dashboardSummerPanel');
@@ -25074,7 +25180,7 @@ if(!bootPublicResidentReport()){
 <script>
 /* ===== v2.18.49 Spracheingabe für alle Freitextfelder ===== */
 (function(){
-  const SpeechRecognition = null; // 2.26.6.41: Spracheingabe deaktiviert
+  const SpeechRecognition = null; // 2.26.6.42: Spracheingabe deaktiviert
   if(!SpeechRecognition) return;
 
   let activeRecognition = null;
@@ -28660,7 +28766,7 @@ async function opsLoadSharedAssignmentContext(){
 }
 
 function opsSelectableUsersForRun(run){
-  // 2.26.6.41:
+  // 2.26.6.42:
   // Eine konkrete Tourzuweisung erzeugt serverseitig eine temporäre
   // Einsatzberechtigung für alle Objekte dieser Tour. Deshalb dürfen hier
   // alle aktiven operativen Benutzer des Mandanten ausgewählt werden.
@@ -28712,7 +28818,7 @@ function opsWeekdayLabel(v){const m={0:'So',1:'Mo',2:'Di',3:'Mi',4:'Do',5:'Fr',6
 function opsIntervalLabel(v){return ({1:'wöchentlich',2:'alle 2 Wochen',4:'alle 4 Wochen'})[Number(v)]||`alle ${v} Wochen`;}
 function opsTimeWindowLabel(p){const a=String(p?.time_window_start||'').slice(0,5),b=String(p?.time_window_end||'').slice(0,5);return a&&b?`${a}–${b}`:a?`ab ${a}`:b?`bis ${b}`:'kein Zeitfenster';}
 
-/* RELEASE 2.26.6.41 | BASIS 2.26.6.13 | 30.09.2026
+/* RELEASE 2.26.6.42 | BASIS 2.26.6.13 | 30.09.2026
    EINMALIGER AUFTRAG: STAND-ALONE ODER TOURTERMIN
    - Begriff "Einzeltour" im Planungsdialog durch "Einmaliger Auftrag" ersetzt.
    - Kein Rhythmus / keine Wochentage für Ad-hoc-Aufträge.
@@ -29884,6 +29990,8 @@ function opsRender(){
   e=document.getElementById('opsPlanList');if(e)e.innerHTML='';
   e=document.getElementById('opsTourList');if(e)e.innerHTML=opsState.tours.map(t=>`<div class="card ops-tour-template-card"><div><strong>${opsEsc(t.name)}</strong><div class="muted">${opsEsc(String(t.default_start_time||'').slice(0,5)||'—')} · ${opsEsc(opsIntervalLabel(t.interval_weeks||1))} · ${opsEsc(opsWeekdayLabel(t.weekdays||[]))} · ${opsState.stops.filter(x=>String(x.tour_template_id)===String(t.id)&&x.active!==false).length} Stopps</div></div><div class="ops-tour-template-actions"><button class="ops-small-action" type="button" onclick="opsEditTour('${opsEsc(t.id)}')">Bearbeiten</button><button class="ops-small-action danger" type="button" onclick="opsDeleteTour('${opsEsc(t.id)}')">Löschen</button></div></div>`).join('')||'<div class="muted">Noch keine Tourvorlagen.</div>';
   const today=new Date().toISOString().slice(0,10);
+  opsResolvePlanningCandidates();
+
   e=document.getElementById('opsRunList');
   if(e){
     const futureRuns=(opsState.runs||[])
@@ -30067,6 +30175,197 @@ async function opsSavePlan(){
     opsResetPlanForm();await opsLoad();
   }catch(e){alert('Leistungsplan konnte nicht gespeichert werden: '+(e.message||e));}
 }
+
+let opsPlanningCandidates=[];
+
+function opsReadPlanningCandidatePayload(){
+  let payload=null;
+
+  try{
+    const raw=sessionStorage.getItem('dashboardSummerPlanningCandidatesV1');
+    if(raw)payload=JSON.parse(raw);
+  }catch(e){
+    console.warn('Planungskandidaten konnten nicht gelesen werden',e);
+  }
+
+  // Rückwärtskompatibel zu 2.26.6.40/41.
+  if(!payload){
+    try{
+      const raw=sessionStorage.getItem('dashboardSummerPlanObjectIds');
+      const ids=raw?JSON.parse(raw):[];
+      if(Array.isArray(ids)&&ids.length){
+        payload={
+          organization_id:currentOrganizationId(),
+          source:'exterior_care_weather',
+          object_ids:ids
+        };
+      }
+    }catch(_e){}
+  }
+
+  if(!payload||!Array.isArray(payload.object_ids))return null;
+  if(payload.organization_id && String(payload.organization_id)!==String(opsOrg()))return null;
+
+  return {
+    ...payload,
+    object_ids:[...new Set(payload.object_ids.map(String).filter(Boolean))]
+  };
+}
+
+function opsClearPlanningCandidates(){
+  opsPlanningCandidates=[];
+  sessionStorage.removeItem('dashboardSummerPlanningCandidatesV1');
+  sessionStorage.removeItem('dashboardSummerPlanObjectIds');
+  sessionStorage.removeItem('dashboardSummerPlanObjectId');
+  opsRenderPlanningCandidates();
+}
+
+function opsResolvePlanningCandidates(){
+  const payload=opsReadPlanningCandidatePayload();
+
+  if(!payload||payload.source!=='exterior_care_weather'){
+    opsPlanningCandidates=[];
+    opsRenderPlanningCandidates();
+    return;
+  }
+
+  const serviceById=new Map(
+    (opsState.services||[]).map(s=>[String(s.id||''),s])
+  );
+
+  const objectIds=new Set(payload.object_ids.map(String));
+
+  opsPlanningCandidates=(opsPlanableAssignments()||[])
+    .filter(a=>objectIds.has(String(a.object_id||'')))
+    .filter(a=>summerCareServiceMatches(serviceById.get(String(a.service_type_id||''))))
+    .sort((a,b)=>{
+      const objectCmp=opsObjName(a.object_id).localeCompare(opsObjName(b.object_id),'de');
+      if(objectCmp)return objectCmp;
+      return opsServiceName(a.service_type_id).localeCompare(opsServiceName(b.service_type_id),'de');
+    })
+    .map(a=>({
+      assignment_id:String(a.id||''),
+      object_id:String(a.object_id||''),
+      service_type_id:String(a.service_type_id||''),
+      selected:true
+    }));
+
+  opsRenderPlanningCandidates();
+}
+
+function opsTogglePlanningCandidate(assignmentId,checked){
+  const row=opsPlanningCandidates.find(x=>String(x.assignment_id)===String(assignmentId));
+  if(!row)return;
+  row.selected=!!checked;
+  opsRenderPlanningCandidateCount();
+}
+
+function opsRenderPlanningCandidateCount(){
+  const count=opsPlanningCandidates.filter(x=>x.selected).length;
+  const countEl=document.getElementById('opsPlanningCandidateCount');
+  const btn=document.getElementById('opsPlanningCandidateApplyBtn');
+
+  if(countEl){
+    countEl.textContent=`${count} Kandidat${count===1?'':'en'} markiert`;
+  }
+  if(btn)btn.disabled=count===0;
+}
+
+function opsRenderPlanningCandidates(){
+  const host=document.getElementById('opsPlanningCandidatesBox');
+  if(!host)return;
+
+  if(!opsPlanningCandidates.length){
+    host.classList.add('hidden');
+    host.innerHTML='';
+    return;
+  }
+
+  host.classList.remove('hidden');
+
+  host.innerHTML=`
+    <div class="ops-planning-candidates-head">
+      <div>
+        <strong>Planungskandidaten aus Außenpflege-Wetterlage</strong>
+        <div class="muted" style="margin-top:4px">
+          Noch keine Tourstopps. Prüfe die Auswahl und übernimm erst danach die gewünschten Objektleistungen in die Tour.
+        </div>
+      </div>
+      <button type="button" onclick="opsClearPlanningCandidates()">Verwerfen</button>
+    </div>
+
+    <div class="ops-planning-candidate-list">
+      ${opsPlanningCandidates.map(row=>{
+        const already=opsTourDraftHasAssignment(row.assignment_id);
+        return `
+          <label class="ops-planning-candidate ${already?'is-transferred':''}">
+            <input
+              type="checkbox"
+              ${row.selected&&!already?'checked':''}
+              ${already?'disabled':''}
+              onchange="opsTogglePlanningCandidate('${opsEsc(row.assignment_id)}',this.checked)">
+            <span>
+              <strong>${opsEsc(opsObjName(row.object_id))}</strong>
+              <small>${opsEsc(opsServiceName(row.service_type_id))}</small>
+              ${already?'<em>bereits in Tour übernommen</em>':''}
+            </span>
+          </label>`;
+      }).join('')}
+    </div>
+
+    <div class="ops-planning-candidate-footer">
+      <strong id="opsPlanningCandidateCount"></strong>
+      <button
+        id="opsPlanningCandidateApplyBtn"
+        type="button"
+        class="primary"
+        onclick="opsApplyPlanningCandidates()">
+        Markierte in Tour übernehmen
+      </button>
+    </div>
+  `;
+
+  opsRenderPlanningCandidateCount();
+}
+
+function opsApplyPlanningCandidates(){
+  const selected=opsPlanningCandidates
+    .filter(x=>x.selected)
+    .filter(x=>!opsTourDraftHasAssignment(x.assignment_id));
+
+  if(!selected.length){
+    alert('Keine neuen Planungskandidaten markiert.');
+    return;
+  }
+
+  for(const row of selected){
+    opsTourDraftItems.push({
+      assignment_id:row.assignment_id,
+      recurring_plan_id:null,
+      planned_duration_minutes:60
+    });
+  }
+
+  // Nach der bewussten Übernahme ist die Tourenplanung wieder führend.
+  sessionStorage.removeItem('dashboardSummerPlanningCandidatesV1');
+  sessionStorage.removeItem('dashboardSummerPlanObjectIds');
+  sessionStorage.removeItem('dashboardSummerPlanObjectId');
+
+  opsPlanningCandidates.forEach(x=>{
+    if(selected.some(s=>String(s.assignment_id)===String(x.assignment_id))){
+      x.selected=false;
+    }
+  });
+
+  opsRenderTourDraftStops();
+  opsRenderPlanningCandidates();
+
+  document.getElementById('opsTourDraftStops')?.scrollIntoView({
+    behavior:'smooth',
+    block:'center'
+  });
+}
+
 function opsTourAssignmentById(id){
   return (opsState.assignments||[]).find(a=>String(a.id||'')===String(id||''))||null;
 }
@@ -30412,7 +30711,7 @@ async function opsSaveTour(){
         object_service_assignment_id:a.id,
         object_id:a.object_id,
         service_type_id:a.service_type_id,
-        // 2.26.6.41: Die Tour ist das führende Planungsobjekt.
+        // 2.26.6.42: Die Tour ist das führende Planungsobjekt.
         // Direkte Tourstopps benötigen keinen recurring_service_plan.
         recurring_plan_id:null,
         planned_duration_minutes:duration,
@@ -30440,7 +30739,7 @@ async function opsSaveTour(){
         body:JSON.stringify(templatePayload)
       });
 
-      // 2.26.6.41:
+      // 2.26.6.42:
       // Bestehende Tourstopps nicht pauschal deaktivieren und neu einfügen.
       // Sonst kollidieren historische/inaktive Datensätze mit UNIQUE-Constraints
       // wie (tour_template_id, recurring_plan_id).
@@ -31311,7 +31610,7 @@ async function openManagedDocumentStorageFile(d,{title='SOP / Arbeitsanweisung',
   const blob=fileBlob.type?fileBlob:new Blob([fileBlob],{type:mime});
   const url=URL.createObjectURL(blob);
 
-  // 2.26.6.41:
+  // 2.26.6.42:
   // Mobile Safari/iOS blockiert window.open(), wenn es erst NACH einem await
   // ausgeführt wird. Deshalb wird das Ziel-Fenster bereits synchron beim
   // Benutzer-Tap erzeugt und hier nur noch mit dem Blob befüllt.
