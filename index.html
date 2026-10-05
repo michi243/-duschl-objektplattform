@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.43</title>
+<title>Duschl Service – Objektplattform v2.26.6.44</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -663,7 +663,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 
 
 
-/* === Objektmodal Übersicht · 2.26.6.43 === */
+/* === Objektmodal Übersicht · 2.26.6.44 === */
 .object-edit-section{
   margin-top:12px;
   padding:14px;
@@ -756,7 +756,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Wochensteuerung Tourenlogik · 2.26.6.43 === */
+/* === Wochensteuerung Tourenlogik · 2.26.6.44 === */
 .rp-week-summary{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
@@ -829,7 +829,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzintegration · 2.26.6.43 === */
+/* === Betriebsmittel Einsatzintegration · 2.26.6.44 === */
 .or-process-hint{
   border-color:#31566e!important;
   background:linear-gradient(180deg,#0d2636 0%,#091d2a 100%)!important;
@@ -870,7 +870,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzarten · 2.26.6.43 === */
+/* === Betriebsmittel Einsatzarten · 2.26.6.44 === */
 .or-scope-hint{
   margin-top:9px;
   padding:8px 10px;
@@ -898,7 +898,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Zusatzauftrag verständliche Darstellung · 2.26.6.43 === */
+/* === Zusatzauftrag verständliche Darstellung · 2.26.6.44 === */
 .ops-run-stop-special{
   border-left:3px solid #6c8faa;
   padding-left:10px;
@@ -918,7 +918,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Regelmäßige Einzelleistung als Sonderfall · 2.26.6.43 === */
+/* === Regelmäßige Einzelleistung als Sonderfall · 2.26.6.44 === */
 .ops-advanced-planning{
   margin-top:10px!important;
   opacity:.94;
@@ -932,7 +932,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Stabilitäts-Rebuild 2.26.6.43 === */
+/* === Stabilitäts-Rebuild 2.26.6.44 === */
 .speech-mic-btn{display:none!important}
 .speech-field-host>input[type="text"],
 .speech-field-host>textarea{padding-right:12px!important}
@@ -963,7 +963,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Deaktivierte Mandanten getrennt · 2.26.6.43 === */
+/* === Deaktivierte Mandanten getrennt · 2.26.6.44 === */
 .platform-inactive-tenants{
   border-top:1px solid var(--line);
   padding-top:4px;
@@ -989,7 +989,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Mandantenmodule & Profile · 2.26.6.43 === */
+/* === Mandantenmodule & Profile · 2.26.6.44 === */
 .tenant-module-group{margin-top:16px}
 .tenant-module-group-title{
   font-size:12px;
@@ -1023,7 +1023,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Außenpflege Mehrfachauswahl · 2.26.6.43 === */
+/* === Außenpflege Mehrfachauswahl · 2.26.6.44 === */
 .dashboard-summer-selection-bar{
   display:flex;
   gap:12px;
@@ -1082,7 +1082,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Außenpflege Details + Auswahl Fix · 2.26.6.43 === */
+/* === Außenpflege Details + Auswahl Fix · 2.26.6.44 === */
 .dashboard-summer-object-row-selectable{
   position:relative;
 }
@@ -1107,7 +1107,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Planungskandidaten Außenpflege -> Tour · 2.26.6.43 === */
+/* === Planungskandidaten Außenpflege -> Tour · 2.26.6.44 === */
 .ops-planning-candidates{
   margin-bottom:14px;
   padding:14px;
@@ -1163,6 +1163,137 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 @media(max-width:680px){
   .ops-planning-candidate-footer button{
     width:100%;
+  }
+}
+
+
+/* === WINTERDIENST RÄUMKARTE · 2.26.6.44 === */
+.ws-clearance-map-card{
+  margin-top:14px;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:rgba(255,255,255,.025);
+}
+.ws-clearance-map-toolbar{
+  display:flex;
+  gap:8px;
+  align-items:end;
+  flex-wrap:wrap;
+  margin-top:12px;
+}
+.ws-clearance-map-toolbar label{
+  min-width:150px;
+  flex:1;
+}
+.ws-clearance-map-stage{
+  position:relative;
+  width:100%;
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#07131d;
+  touch-action:none;
+  user-select:none;
+}
+.ws-clearance-map-stage img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  pointer-events:none;
+}
+.ws-clearance-map-stage svg{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:2;
+  cursor:crosshair;
+}
+.ws-clearance-map-stage.is-readonly svg{
+  cursor:default;
+  pointer-events:none;
+}
+.ws-clearance-map-empty{
+  min-height:260px;
+  display:grid;
+  place-items:center;
+  text-align:center;
+  padding:24px;
+  color:var(--muted);
+}
+.ws-clearance-map-legend{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-top:10px;
+  font-size:13px;
+  color:var(--muted);
+}
+.ws-clearance-legend-item{
+  display:inline-flex;
+  gap:6px;
+  align-items:center;
+}
+.ws-clearance-legend-swatch{
+  width:22px;height:12px;border-radius:3px;border:2px solid currentColor;
+}
+.ws-clearance-legend-clear{color:#64bfff}
+.ws-clearance-legend-grit{color:#ffd35a}
+.ws-clearance-legend-both{color:#76e5cd}
+.ws-clearance-mark-list{
+  display:grid;
+  gap:8px;
+  margin-top:12px;
+}
+.ws-clearance-mark-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+  padding:10px 12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+}
+.ws-clearance-mark-meta{
+  min-width:0;
+}
+.ws-clearance-mark-meta small{
+  display:block;
+  color:var(--muted);
+  margin-top:2px;
+}
+.ws-clearance-editor-hint{
+  margin-top:10px;
+  padding:10px 12px;
+  border-radius:12px;
+  background:rgba(84,177,255,.06);
+  border:1px solid rgba(84,177,255,.22);
+}
+.ws-clearance-map-execution{
+  margin-top:14px;
+}
+.ws-clearance-map-execution .ws-clearance-map-stage{
+  max-height:68vh;
+}
+.ws-clearance-map-execution .ws-clearance-map-stage img{
+  max-height:68vh;
+  object-fit:contain;
+}
+.ws-clearance-map-open-btn{
+  margin-top:10px;
+}
+@media(max-width:680px){
+  .ws-clearance-map-toolbar{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+  .ws-clearance-map-toolbar label{
+    min-width:0;
+  }
+  .ws-clearance-map-toolbar .full{
+    grid-column:1/-1;
   }
 }
 
@@ -5907,7 +6038,7 @@ table td,table th{
 </style>
 
 <!--
-RELEASE 2.26.6.43 | BASIS 2.26.6.24 | 01.10.2026
+RELEASE 2.26.6.44 | BASIS 2.26.6.24 | 01.10.2026
 REGELMÄSSIGE EINZELLEISTUNG NUR NOCH SONDERFALL
 - Hauptworkflow bleibt Wiederkehrende Tour + Einmaliger Auftrag.
 - Regelmäßige Einzelleistung ist standardmäßig eingeklappt.
@@ -5916,7 +6047,7 @@ REGELMÄSSIGE EINZELLEISTUNG NUR NOCH SONDERFALL
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.43 | BASIS 2.26.6.25 + SQL-HOTFIXES 2.26.6.26/27 | 01.10.2026
+RELEASE 2.26.6.44 | BASIS 2.26.6.25 + SQL-HOTFIXES 2.26.6.26/27 | 01.10.2026
 TEMPORÄRE EINSATZBERECHTIGUNG DURCH TOURZUWEISUNG
 - Jeder aktive operative Mandantenbenutzer kann einer konkreten Tour zugewiesen werden.
 - Fehlende dauerhafte Objekt-/Kollaborationszuweisung blockiert die Tourzuweisung nicht mehr.
@@ -5926,7 +6057,7 @@ TEMPORÄRE EINSATZBERECHTIGUNG DURCH TOURZUWEISUNG
 - Kein Edge-Change.
 -->
 <!--
-RELEASE 2.26.6.43 | BASIS 2.26.6.28 | 01.10.2026
+RELEASE 2.26.6.44 | BASIS 2.26.6.28 | 01.10.2026
 SOP MOBILE OPEN FIX
 - iOS/Safari Pop-up-Blocker behoben.
 - SOP-Zielfenster wird synchron beim Tap geöffnet, bevor RPC/Storage await startet.
@@ -5935,7 +6066,7 @@ SOP MOBILE OPEN FIX
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.43 | STABILITÄTS-REBUILD | BASIS 2.26.6.29 | 01.10.2026
+RELEASE 2.26.6.44 | STABILITÄTS-REBUILD | BASIS 2.26.6.29 | 01.10.2026
 - Vollständiger Neuaufbau ab letzter strukturell intakter Version 2.26.6.29.
 - Ursache des Login-/Mandantenfehlers beseitigt: In 2.26.6.30 wurde beim Entfernen der Spracheingabe versehentlich ein großer JavaScript-Block mit Kernfunktionen gelöscht.
 - Spracheingabe jetzt nur deaktiviert; kein Scriptblock wird entfernt.
@@ -5945,7 +6076,7 @@ RELEASE 2.26.6.43 | STABILITÄTS-REBUILD | BASIS 2.26.6.29 | 01.10.2026
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.43 | BASIS 2.26.6.36 | 04.10.2026
+RELEASE 2.26.6.44 | BASIS 2.26.6.36 | 04.10.2026
 DEAKTIVIERTE MANDANTEN GETRENNT
 - Aktive Mandanten bleiben in der normalen Mandantenübersicht.
 - Deaktivierte Mandanten werden in einen separaten, standardmäßig eingeklappten Bereich verschoben.
@@ -5956,7 +6087,7 @@ DEAKTIVIERTE MANDANTEN GETRENNT
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.43 | BASIS 2.26.6.37 | 04.10.2026
+RELEASE 2.26.6.44 | BASIS 2.26.6.37 | 04.10.2026
 MANDANTENPROFILE + INDIVIDUELLE MODULE
 - Mandantenmenü ist jetzt produktseitig konfigurierbar und bleibt zusätzlich rollenbasiert geschützt.
 - Profile: Vollumfang, Objektservice, Hausverwaltung, Winterdienst, Gebäudereinigung, Individuell.
@@ -5965,11 +6096,11 @@ MANDANTENPROFILE + INDIVIDUELLE MODULE
 - Einzelne Module können nach Profilwahl individuell ein-/ausgeschaltet werden.
 - Dashboard und Systemfunktionen (Daten/Aktualisieren/Passwort/Sicherung/Abmelden) bleiben außerhalb der Modulkonfiguration.
 - Ausblenden eines Moduls verändert keine RLS- oder Backend-Berechtigung; Rollenmodell bleibt führend.
-- Benötigt SQL 2.26.6.43 für organizations.module_profile und organizations.enabled_modules.
+- Benötigt SQL 2.26.6.44 für organizations.module_profile und organizations.enabled_modules.
 - Keine Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.43 | BASIS 2.26.6.38 | 04.10.2026
+RELEASE 2.26.6.44 | BASIS 2.26.6.38 | 04.10.2026
 DASHBOARD-FACHLOGIK
 - Dashboard-Kacheln folgen jetzt ebenfalls der Mandantenmodul-/Profilsteuerung.
 - Winterdienst-Einsatzlage wird nur angezeigt, wenn das Winterdienst-Modul aktiv ist UND aktive Winterdienstumfänge vorhanden sind.
@@ -5981,7 +6112,7 @@ DASHBOARD-FACHLOGIK
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.43 | BASIS 2.26.6.39 | 04.10.2026
+RELEASE 2.26.6.44 | BASIS 2.26.6.39 | 04.10.2026
 AUSSENPFLEGE: MEHRFACHAUSWAHL
 - Außenpflegeobjekte können per Checkbox einzeln ausgewählt werden.
 - "Alle sichtbaren auswählen" berücksichtigt Suche und aktuellen Statusfilter.
@@ -5992,7 +6123,7 @@ AUSSENPFLEGE: MEHRFACHAUSWAHL
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.43 | BASIS 2.26.6.40 | 05.10.2026
+RELEASE 2.26.6.44 | BASIS 2.26.6.40 | 05.10.2026
 AUSSENPFLEGE DETAILS + AUSWAHL FIX
 - Details öffnet jetzt ein echtes Modal statt einer schwer sichtbaren Detailkarte unterhalb der Objektliste.
 - Modal zeigt Wetterwerte, Empfehlung, DWD-Hinweise und Datenstand.
@@ -6003,7 +6134,7 @@ AUSSENPFLEGE DETAILS + AUSWAHL FIX
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.43 | BASIS 2.26.6.41 | 05.10.2026
+RELEASE 2.26.6.44 | BASIS 2.26.6.41 | 05.10.2026
 AUSSENPFLEGE -> TOURENPLANUNG ALS PLANUNGSKANDIDATEN
 - Wetterauswahl erzeugt keine Tour und keine Tourstopps automatisch.
 - Ausgewählte Außenpflegeobjekte werden als Planungskandidaten an die Tourenplanung übergeben.
@@ -6015,7 +6146,7 @@ AUSSENPFLEGE -> TOURENPLANUNG ALS PLANUNGSKANDIDATEN
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.43 | BASIS 2.26.6.42 | 05.10.2026
+RELEASE 2.26.6.44 | BASIS 2.26.6.42 | 05.10.2026
 OBJEKTBETREUER-DASHBOARD KONSISTENZ
 - "Meine Touren & Einsätze" erscheint nicht mehr leer bei Mandanten ohne Touren-/Winterdienstmodul.
 - Sichtbar bleibt die persönliche Tourfläche, wenn Touren oder Winterdienst als Mandantenmodul aktiv sind.
@@ -6023,6 +6154,19 @@ OBJEKTBETREUER-DASHBOARD KONSISTENZ
 - Damit bleibt die temporäre Einsatzberechtigung über eine konkrete Tour funktionsfähig, auch wenn das reguläre Tourenmenü ausgeblendet ist.
 - Hausverwaltung ohne Tour-/Winterdienst und ohne persönliche Einsatzzuweisung erhält keine leere Tourkachel.
 - Keine SQL-, RLS- oder Edge-Änderung.
+-->
+<!--
+RELEASE 2.26.6.44 | BASIS 2.26.6.43 | 05.10.2026
+WINTERDIENST RÄUMKARTE
+- Objekt -> Leistungen & Standards -> aktive Winterdienstleistung erhält Schaltfläche "Räumkarte".
+- Basisbild (Foto/Luftbild/Lageplan) wird im bestehenden privaten Supabase-Storage gespeichert.
+- Direkt im Bild können Flächen, Linien und Punkte markiert werden.
+- Markierungstypen: Räumen, Streuen, Räumen + Streuen; zusätzlich Bezeichnung, Priorität und Hinweis.
+- Koordinaten werden normiert gespeichert und bleiben auf Mobil/Desktop responsiv.
+- Räumkarte ist Objektstammdatum und wird im konkreten Winterdiensteinsatz automatisch nur lesend angezeigt.
+- Mitarbeiter kann die Räumkarte im Einsatz nicht verändern.
+- Benötigt SQL 2.26.6.44 für public.winter_service_clearance_maps.
+- Keine Edge-Änderung.
 -->
 <section class="section" id="operations">
   <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -9207,7 +9351,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.10.
    BACKEND: SQL 2.26.6.11 erforderlich.
 */
-/* RELEASE 2.26.6.43 | BASIS 2.26.6.12 | 30.09.2026
+/* RELEASE 2.26.6.44 | BASIS 2.26.6.12 | 30.09.2026
    WETTER-FALLBACK HARDENING:
    - Außenpflege akzeptiert object-weather nur noch bei verwertbarem care_24h-Datensatz.
    - Formal erfolgreiche, aber inhaltlich leere/ungültige Antworten lösen jetzt
@@ -9219,7 +9363,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.11.
    BACKEND: keine SQL-Änderung.
 */
-const APP_VERSION='2.26.6.43'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.6.44'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -25234,7 +25378,7 @@ if(!bootPublicResidentReport()){
 <script>
 /* ===== v2.18.49 Spracheingabe für alle Freitextfelder ===== */
 (function(){
-  const SpeechRecognition = null; // 2.26.6.43: Spracheingabe deaktiviert
+  const SpeechRecognition = null; // 2.26.6.44: Spracheingabe deaktiviert
   if(!SpeechRecognition) return;
 
   let activeRecognition = null;
@@ -26333,6 +26477,490 @@ function osaExternalScopeLabel(obj){
 }
 
 
+
+/* =========================================================
+   WINTERDIENST · RÄUMKARTE · 2.26.6.44
+   Objektstammdaten -> Einsatz (read-only)
+   ========================================================= */
+let wsClearanceMapEditor={
+  objectId:'',
+  row:null,
+  imageRef:'',
+  imageUrl:'',
+  imageFile:null,
+  width:0,
+  height:0,
+  markings:[],
+  draftPoints:[],
+  drawing:false
+};
+const wsClearanceMapCache={};
+
+function wsClearanceTypeLabel(v){
+  return ({clear:'Räumen',grit:'Streuen',both:'Räumen + Streuen'})[String(v||'')]||'Räumen';
+}
+function wsClearanceGeometryLabel(v){
+  return ({polygon:'Fläche',line:'Linie',point:'Punkt'})[String(v||'')]||'Fläche';
+}
+function wsClearanceStroke(v){
+  return String(v)==='grit'?'#ffd35a':String(v)==='both'?'#76e5cd':'#64bfff';
+}
+function wsClearanceFill(v){
+  return String(v)==='grit'?'rgba(255,211,90,.17)':String(v)==='both'?'rgba(118,229,205,.17)':'rgba(100,191,255,.18)';
+}
+function wsClearanceNormPoints(points){
+  return (Array.isArray(points)?points:[])
+    .map(p=>({x:Math.max(0,Math.min(1,Number(p?.x)||0)),y:Math.max(0,Math.min(1,Number(p?.y)||0))}));
+}
+function wsClearanceSanitizeMarking(m,i=0){
+  const g=['polygon','line','point'].includes(String(m?.geometry))?String(m.geometry):'polygon';
+  const type=['clear','grit','both'].includes(String(m?.service))?String(m.service):'clear';
+  return {
+    id:String(m?.id||crypto.randomUUID()),
+    label:String(m?.label||`Bereich ${i+1}`).slice(0,120),
+    geometry:g,
+    service:type,
+    priority:Math.max(1,Math.min(3,Number(m?.priority)||1)),
+    note:String(m?.note||'').slice(0,500),
+    points:wsClearanceNormPoints(m?.points)
+  };
+}
+function wsClearanceCurrentObject(){
+  return (db.objects||[]).find(o=>String(o.id||'')===String(wsClearanceMapEditor.objectId||''))||null;
+}
+async function wsClearanceLoadRow(objectId,{force=false}={}){
+  const key=String(objectId||'');
+  if(!key)return null;
+  if(!force && Object.prototype.hasOwnProperty.call(wsClearanceMapCache,key))return wsClearanceMapCache[key];
+
+  const rows=await cloudRequest(
+    `winter_service_clearance_maps?select=*&organization_id=eq.${encodeURIComponent(currentOrganizationId())}&object_id=eq.${encodeURIComponent(key)}&active=eq.true&limit=1`
+  );
+  const row=rows?.[0]||null;
+  wsClearanceMapCache[key]=row;
+  return row;
+}
+async function wsClearanceImageUrl(ref){
+  if(!ref)return '';
+  try{
+    const blob=await cloudMediaGet(ref);
+    return URL.createObjectURL(blob);
+  }catch(e){
+    console.warn('Räumkartenbild konnte nicht geladen werden',e);
+    return '';
+  }
+}
+function wsClearanceSvg(markings,width,height,{draft=[]}={}){
+  const w=Math.max(1,Number(width)||1000);
+  const h=Math.max(1,Number(height)||700);
+  const toXY=p=>`${(Number(p.x)||0)*w},${(Number(p.y)||0)*h}`;
+
+  const body=(markings||[]).map((m,idx)=>{
+    const points=wsClearanceNormPoints(m.points);
+    const stroke=wsClearanceStroke(m.service);
+    const fill=wsClearanceFill(m.service);
+    const label=esc(m.label||`Bereich ${idx+1}`);
+
+    if(m.geometry==='point' && points[0]){
+      const p=points[0];
+      const x=p.x*w,y=p.y*h;
+      return `<g>
+        <circle cx="${x}" cy="${y}" r="${Math.max(10,Math.min(w,h)*.022)}" fill="${stroke}" stroke="#07131d" stroke-width="${Math.max(2,w/450)}"></circle>
+        <text x="${x}" y="${y+5}" text-anchor="middle" font-size="${Math.max(14,w/42)}" font-weight="800" fill="#07131d">${idx+1}</text>
+        <title>${label}</title>
+      </g>`;
+    }
+
+    if(m.geometry==='line' && points.length>=2){
+      return `<g>
+        <polyline points="${points.map(toXY).join(' ')}" fill="none" stroke="${stroke}" stroke-width="${Math.max(7,w/120)}" stroke-linecap="round" stroke-linejoin="round" opacity=".88"></polyline>
+        <title>${label}</title>
+      </g>`;
+    }
+
+    if(points.length>=3){
+      return `<g>
+        <polygon points="${points.map(toXY).join(' ')}" fill="${fill}" stroke="${stroke}" stroke-width="${Math.max(4,w/220)}" stroke-linejoin="round"></polygon>
+        <title>${label}</title>
+      </g>`;
+    }
+    return '';
+  }).join('');
+
+  const d=wsClearanceNormPoints(draft);
+  const draftSvg=d.length
+    ? `<polyline points="${d.map(toXY).join(' ')}" fill="none" stroke="#ffffff" stroke-width="${Math.max(3,w/280)}" stroke-dasharray="${Math.max(8,w/90)} ${Math.max(5,w/140)}"></polyline>
+       ${d.map(p=>`<circle cx="${p.x*w}" cy="${p.y*h}" r="${Math.max(5,w/250)}" fill="#fff"></circle>`).join('')}`
+    :'';
+
+  return body+draftSvg;
+}
+function wsClearanceEditorRender(){
+  const stage=document.getElementById('wsClearanceEditorStage');
+  const svg=document.getElementById('wsClearanceEditorSvg');
+  const list=document.getElementById('wsClearanceMarkList');
+  const finish=document.getElementById('wsClearanceFinishBtn');
+  if(!stage||!svg||!list)return;
+
+  const w=Math.max(1,wsClearanceMapEditor.width||1000);
+  const h=Math.max(1,wsClearanceMapEditor.height||700);
+  stage.style.aspectRatio=`${w}/${h}`;
+  svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
+  svg.innerHTML=wsClearanceSvg(wsClearanceMapEditor.markings,w,h,{draft:wsClearanceMapEditor.draftPoints});
+
+  const geometry=document.getElementById('wsClearanceGeometry')?.value||'polygon';
+  if(finish)finish.disabled=geometry==='point' || wsClearanceMapEditor.draftPoints.length<(geometry==='line'?2:3);
+
+  list.innerHTML=wsClearanceMapEditor.markings.length
+    ? wsClearanceMapEditor.markings.map((m,i)=>`
+      <div class="ws-clearance-mark-row">
+        <div class="ws-clearance-mark-meta">
+          <strong>${i+1}. ${esc(m.label)}</strong>
+          <small>${esc(wsClearanceGeometryLabel(m.geometry))} · ${esc(wsClearanceTypeLabel(m.service))} · Priorität ${esc(m.priority)}${m.note?` · ${esc(m.note)}`:''}</small>
+        </div>
+        <button type="button" class="danger" onclick="wsClearanceDeleteMark('${esc(m.id)}')">Löschen</button>
+      </div>`).join('')
+    :'<div class="empty">Noch keine Markierungen angelegt.</div>';
+}
+function wsClearanceEditorClick(ev){
+  if(!wsClearanceMapEditor.imageUrl)return;
+  const svg=document.getElementById('wsClearanceEditorSvg');
+  if(!svg)return;
+
+  const rect=svg.getBoundingClientRect();
+  const p={
+    x:(ev.clientX-rect.left)/Math.max(1,rect.width),
+    y:(ev.clientY-rect.top)/Math.max(1,rect.height)
+  };
+  p.x=Math.max(0,Math.min(1,p.x));
+  p.y=Math.max(0,Math.min(1,p.y));
+
+  const geometry=document.getElementById('wsClearanceGeometry')?.value||'polygon';
+  if(geometry==='point'){
+    wsClearanceMapEditor.draftPoints=[p];
+    wsClearanceFinishMark();
+    return;
+  }
+
+  wsClearanceMapEditor.draftPoints.push(p);
+  wsClearanceEditorRender();
+}
+function wsClearanceUndoPoint(){
+  wsClearanceMapEditor.draftPoints.pop();
+  wsClearanceEditorRender();
+}
+function wsClearanceCancelDraft(){
+  wsClearanceMapEditor.draftPoints=[];
+  wsClearanceEditorRender();
+}
+function wsClearanceFinishMark(){
+  const geometry=document.getElementById('wsClearanceGeometry')?.value||'polygon';
+  const min=geometry==='point'?1:geometry==='line'?2:3;
+  if(wsClearanceMapEditor.draftPoints.length<min){
+    alert(geometry==='line'?'Für eine Linie mindestens zwei Punkte setzen.':'Für eine Fläche mindestens drei Punkte setzen.');
+    return;
+  }
+
+  const label=(document.getElementById('wsClearanceLabel')?.value||'').trim()
+    ||`Bereich ${wsClearanceMapEditor.markings.length+1}`;
+  const service=document.getElementById('wsClearanceService')?.value||'clear';
+  const priority=Number(document.getElementById('wsClearancePriority')?.value||1);
+  const note=(document.getElementById('wsClearanceNote')?.value||'').trim();
+
+  wsClearanceMapEditor.markings.push(wsClearanceSanitizeMarking({
+    id:crypto.randomUUID(),
+    label,geometry,service,priority,note,
+    points:[...wsClearanceMapEditor.draftPoints]
+  },wsClearanceMapEditor.markings.length));
+
+  wsClearanceMapEditor.draftPoints=[];
+  const labelEl=document.getElementById('wsClearanceLabel'); if(labelEl)labelEl.value='';
+  const noteEl=document.getElementById('wsClearanceNote'); if(noteEl)noteEl.value='';
+  wsClearanceEditorRender();
+}
+function wsClearanceDeleteMark(id){
+  wsClearanceMapEditor.markings=wsClearanceMapEditor.markings.filter(x=>String(x.id)!==String(id));
+  wsClearanceEditorRender();
+}
+async function wsClearanceFileSelected(input){
+  const file=input?.files?.[0]||null;
+  if(!file)return;
+  if(!String(file.type||'').startsWith('image/'))return alert('Bitte eine Bilddatei auswählen.');
+
+  const url=URL.createObjectURL(file);
+  const img=new Image();
+  img.onload=()=>{
+    if(wsClearanceMapEditor.imageUrl?.startsWith('blob:'))URL.revokeObjectURL(wsClearanceMapEditor.imageUrl);
+    wsClearanceMapEditor.imageUrl=url;
+    wsClearanceMapEditor.imageFile=file;
+    wsClearanceMapEditor.width=img.naturalWidth||1200;
+    wsClearanceMapEditor.height=img.naturalHeight||800;
+    wsClearanceMapEditor.draftPoints=[];
+    const el=document.getElementById('wsClearanceBaseImage');
+    if(el)el.src=url;
+    const empty=document.getElementById('wsClearanceEmpty');
+    if(empty)empty.style.display='none';
+    wsClearanceEditorRender();
+  };
+  img.onerror=()=>alert('Bild konnte nicht gelesen werden.');
+  img.src=url;
+}
+async function wsOpenClearanceMapEditor(objectId){
+  try{
+    if(!slTenantAdmin() && !isPlatformTenantMode())return alert('Keine Administrationsberechtigung für die Räumkarte.');
+
+    const obj=(db.objects||[]).find(o=>String(o.id||'')===String(objectId||''));
+    if(!obj)throw new Error('Objekt nicht gefunden.');
+
+    const row=await wsClearanceLoadRow(objectId,{force:true});
+    const imageRef=String(row?.image_path||'');
+    const imageUrl=imageRef?await wsClearanceImageUrl(imageRef):'';
+
+    wsClearanceMapEditor={
+      objectId:String(objectId),
+      row,
+      imageRef,
+      imageUrl,
+      imageFile:null,
+      width:Number(row?.image_width||0)||1200,
+      height:Number(row?.image_height||0)||800,
+      markings:(Array.isArray(row?.markings)?row.markings:[]).map(wsClearanceSanitizeMarking),
+      draftPoints:[],
+      drawing:false
+    };
+
+    modal(`
+      <div class="row space" style="gap:12px;align-items:flex-start">
+        <div>
+          <h2 style="margin:0">Winterdienst · Räumkarte</h2>
+          <div class="muted" style="margin-top:4px">${esc(obj.name||'Objekt')} · Objektstammdaten</div>
+        </div>
+        <button type="button" onclick="closeModal()">✕</button>
+      </div>
+
+      <div class="ws-clearance-editor-hint">
+        <strong>Pflege am Objekt</strong>
+        <div class="muted" style="margin-top:4px">
+          Basisbild hochladen und Räum-/Streuflächen markieren. Im Winterdiensteinsatz wird die gespeicherte Karte nur lesend angezeigt.
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">
+        <button type="button" class="primary" onclick="document.getElementById('wsClearanceFile').click()">
+          ${imageRef?'Basisbild ersetzen':'Basisbild hochladen'}
+        </button>
+        <input id="wsClearanceFile" type="file" accept="image/*" style="display:none" onchange="wsClearanceFileSelected(this)">
+        <button type="button" onclick="wsClearanceUndoPoint()">Letzten Punkt zurück</button>
+        <button type="button" onclick="wsClearanceCancelDraft()">Markierung abbrechen</button>
+      </div>
+
+      <div class="ws-clearance-map-card">
+        <div id="wsClearanceEditorStage" class="ws-clearance-map-stage">
+          <div id="wsClearanceEmpty" class="ws-clearance-map-empty" style="${imageUrl?'display:none':''}">
+            <div><strong>Noch kein Basisbild</strong><br><span>Foto, Luftbild oder Lageplan hochladen.</span></div>
+          </div>
+          <img id="wsClearanceBaseImage" src="${imageUrl?esc(imageUrl):''}" alt="Basisbild der Räumkarte" style="${imageUrl?'':'display:none'}">
+          <svg id="wsClearanceEditorSvg" onclick="wsClearanceEditorClick(event)"></svg>
+        </div>
+
+        <div class="ws-clearance-map-legend">
+          <span class="ws-clearance-legend-item ws-clearance-legend-clear"><span class="ws-clearance-legend-swatch"></span>Räumen</span>
+          <span class="ws-clearance-legend-item ws-clearance-legend-grit"><span class="ws-clearance-legend-swatch"></span>Streuen</span>
+          <span class="ws-clearance-legend-item ws-clearance-legend-both"><span class="ws-clearance-legend-swatch"></span>Räumen + Streuen</span>
+        </div>
+      </div>
+
+      <div class="ws-clearance-map-toolbar">
+        <label>Geometrie
+          <select id="wsClearanceGeometry" onchange="wsClearanceCancelDraft()">
+            <option value="polygon">Fläche</option>
+            <option value="line">Linie / Weg</option>
+            <option value="point">Punkt / Stelle</option>
+          </select>
+        </label>
+        <label>Leistung
+          <select id="wsClearanceService">
+            <option value="clear">Räumen</option>
+            <option value="grit">Streuen</option>
+            <option value="both">Räumen + Streuen</option>
+          </select>
+        </label>
+        <label>Priorität
+          <select id="wsClearancePriority">
+            <option value="1">1 · zuerst</option>
+            <option value="2">2 · normal</option>
+            <option value="3">3 · nachrangig</option>
+          </select>
+        </label>
+        <label class="full">Bezeichnung
+          <input id="wsClearanceLabel" placeholder="z. B. Gehweg Straßenseite">
+        </label>
+        <label class="full">Hinweis
+          <input id="wsClearanceNote" placeholder="z. B. Treppe vollständig streuen">
+        </label>
+      </div>
+
+      <div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">
+        <button id="wsClearanceFinishBtn" type="button" class="primary" onclick="wsClearanceFinishMark()" disabled>Markierung abschließen</button>
+      </div>
+
+      <div id="wsClearanceMarkList" class="ws-clearance-mark-list"></div>
+
+      <div class="row" style="margin-top:16px;gap:8px;flex-wrap:wrap">
+        <button type="button" class="primary" onclick="wsSaveClearanceMap()">Räumkarte speichern</button>
+        ${row?`<button type="button" class="danger" onclick="wsDeleteClearanceMap()">Räumkarte löschen</button>`:''}
+        <button type="button" onclick="closeModal()">Schließen</button>
+      </div>
+    `);
+
+    const img=document.getElementById('wsClearanceBaseImage');
+    if(img && imageUrl){
+      img.style.display='block';
+      img.onload=()=>{
+        if(!row?.image_width||!row?.image_height){
+          wsClearanceMapEditor.width=img.naturalWidth||wsClearanceMapEditor.width;
+          wsClearanceMapEditor.height=img.naturalHeight||wsClearanceMapEditor.height;
+        }
+        wsClearanceEditorRender();
+      };
+    }
+    wsClearanceEditorRender();
+  }catch(e){
+    alert('Räumkarte konnte nicht geöffnet werden: '+(e.message||e));
+  }
+}
+async function wsSaveClearanceMap(){
+  try{
+    const objectId=wsClearanceMapEditor.objectId;
+    const org=currentOrganizationId();
+    if(!objectId||!org)throw new Error('Objekt oder Mandant fehlt.');
+    if(!wsClearanceMapEditor.imageUrl)throw new Error('Zuerst ein Basisbild hochladen.');
+    if(!wsClearanceMapEditor.markings.length)throw new Error('Mindestens eine Räum-/Streumarkierung anlegen.');
+
+    let imageRef=wsClearanceMapEditor.imageRef;
+    const oldImageRef=imageRef;
+
+    if(wsClearanceMapEditor.imageFile){
+      const file=wsClearanceMapEditor.imageFile;
+      const ext=String(file.type||'').includes('png')?'png':String(file.type||'').includes('webp')?'webp':'jpg';
+      const path=`winter-clearance-maps/${org}/${objectId}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+      imageRef=await cloudMediaPut(path,file);
+    }
+
+    const payload={
+      organization_id:org,
+      object_id:objectId,
+      image_path:imageRef,
+      image_width:Math.round(wsClearanceMapEditor.width||1200),
+      image_height:Math.round(wsClearanceMapEditor.height||800),
+      markings:wsClearanceMapEditor.markings,
+      active:true,
+      updated_by:currentUserId(),
+      updated_at:new Date().toISOString()
+    };
+
+    let saved;
+    if(wsClearanceMapEditor.row?.id){
+      const rows=await cloudRequest(
+        `winter_service_clearance_maps?id=eq.${encodeURIComponent(wsClearanceMapEditor.row.id)}&organization_id=eq.${encodeURIComponent(org)}`,
+        {method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)}
+      );
+      saved=rows?.[0]||{...wsClearanceMapEditor.row,...payload};
+    }else{
+      const rows=await cloudRequest('winter_service_clearance_maps',{
+        method:'POST',
+        headers:{Prefer:'return=representation'},
+        body:JSON.stringify({
+          id:crypto.randomUUID(),
+          ...payload,
+          created_by:currentUserId()
+        })
+      });
+      saved=rows?.[0]||payload;
+    }
+
+    if(wsClearanceMapEditor.imageFile && oldImageRef && oldImageRef!==imageRef){
+      try{await cloudMediaDelete(oldImageRef)}catch(e){console.warn('Altes Räumkartenbild konnte nicht entfernt werden',e)}
+    }
+
+    wsClearanceMapCache[String(objectId)]=saved;
+    wsClearanceMapEditor.row=saved;
+    wsClearanceMapEditor.imageRef=imageRef;
+    wsClearanceMapEditor.imageFile=null;
+
+    alert('Räumkarte gespeichert.');
+    closeModal();
+  }catch(e){
+    alert('Räumkarte konnte nicht gespeichert werden: '+(e.message||e));
+  }
+}
+async function wsDeleteClearanceMap(){
+  if(!wsClearanceMapEditor.row?.id)return;
+  if(!confirm('Räumkarte wirklich löschen? Das Basisbild und alle Markierungen werden entfernt.'))return;
+  try{
+    const row=wsClearanceMapEditor.row;
+    await cloudRequest(
+      `winter_service_clearance_maps?id=eq.${encodeURIComponent(row.id)}&organization_id=eq.${encodeURIComponent(currentOrganizationId())}`,
+      {method:'DELETE',headers:{Prefer:'return=minimal'}}
+    );
+    if(row.image_path){
+      try{await cloudMediaDelete(row.image_path)}catch(e){console.warn('Räumkartenbild konnte nicht aus Storage entfernt werden',e)}
+    }
+    delete wsClearanceMapCache[String(row.object_id)];
+    closeModal();
+    alert('Räumkarte gelöscht.');
+  }catch(e){
+    alert('Räumkarte konnte nicht gelöscht werden: '+(e.message||e));
+  }
+}
+function wsClearanceReadonlyHtml(row,imageUrl){
+  if(!row||!imageUrl)return '';
+  const w=Math.max(1,Number(row.image_width)||1200);
+  const h=Math.max(1,Number(row.image_height)||800);
+  const marks=(Array.isArray(row.markings)?row.markings:[]).map(wsClearanceSanitizeMarking);
+
+  return `<div class="ws-clearance-map-card ws-clearance-map-execution">
+    <div class="row space" style="gap:10px">
+      <div>
+        <strong>Räumkarte</strong>
+        <div class="muted" style="margin-top:3px">Verbindliche Räum- und Streuflächen dieses Objekts.</div>
+      </div>
+      <span class="badge">${marks.length} Markierung${marks.length===1?'':'en'}</span>
+    </div>
+
+    <div class="ws-clearance-map-stage is-readonly" style="aspect-ratio:${w}/${h};margin-top:12px">
+      <img src="${esc(imageUrl)}" alt="Räumkarte">
+      <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${wsClearanceSvg(marks,w,h)}</svg>
+    </div>
+
+    <div class="ws-clearance-map-legend">
+      <span class="ws-clearance-legend-item ws-clearance-legend-clear"><span class="ws-clearance-legend-swatch"></span>Räumen</span>
+      <span class="ws-clearance-legend-item ws-clearance-legend-grit"><span class="ws-clearance-legend-swatch"></span>Streuen</span>
+      <span class="ws-clearance-legend-item ws-clearance-legend-both"><span class="ws-clearance-legend-swatch"></span>Räumen + Streuen</span>
+    </div>
+
+    <div class="ws-clearance-mark-list">
+      ${marks
+        .sort((a,b)=>Number(a.priority||1)-Number(b.priority||1))
+        .map((m,i)=>`<div class="ws-clearance-mark-row">
+          <div class="ws-clearance-mark-meta">
+            <strong>${i+1}. ${esc(m.label)}</strong>
+            <small>${esc(wsClearanceTypeLabel(m.service))} · Priorität ${esc(m.priority)}${m.note?` · ${esc(m.note)}`:''}</small>
+          </div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+async function wsLoadClearanceMapForExecution(objectId){
+  const row=await wsClearanceLoadRow(objectId,{force:true}).catch(e=>{
+    console.warn('Räumkarte für Einsatz konnte nicht geladen werden',e);
+    return null;
+  });
+  if(!row)return {row:null,imageUrl:''};
+  const imageUrl=await wsClearanceImageUrl(row.image_path);
+  return {row,imageUrl};
+}
+
 async function openObjectServicesModal(objectId){
   try{
     if(!slTenantAdmin())return alert('Keine Administrationsberechtigung.');
@@ -26374,7 +27002,10 @@ async function openObjectServicesModal(objectId){
         </div>
         ${a.note?`<div style="margin-top:9px"><strong>Objektspezifische Ausnahme / Hinweis</strong><div class="muted" style="margin-top:3px">${esc(a.note)}</div></div>`:''}
         <div class="muted" style="margin-top:8px">Standards werden zentral gepflegt und nicht am Objekt kopiert.</div>
-        <div class="row" style="margin-top:10px"><button class="danger" onclick="osaDeactivate('${esc(a.id)}','${esc(objectId)}')">Leistung beenden</button></div>
+        <div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">
+          ${a.process_type==='winter_service'?`<button type="button" class="primary" onclick="wsOpenClearanceMapEditor('${esc(objectId)}')">Räumkarte</button>`:''}
+          <button class="danger" onclick="osaDeactivate('${esc(a.id)}','${esc(objectId)}')">Leistung beenden</button>
+        </div>
       </div>`;
     }).join('')||'<div class="empty">Noch keine Leistung zugeordnet.</div>';
     modal.innerHTML=`<div class="modal-content osa-modal-content">
@@ -28498,10 +29129,11 @@ async function wsOpenExecution(id){
     const linkedId=String(x.documentation_finding_id||'');
     const docStatus=linkedDoc?.status||'';
     const documentationDone=docStatus==='Erledigt';
-    const [resourceReadiness,processStandards]=await Promise.all([
+    const [resourceReadiness,processStandards,_checklists,clearanceMap]=await Promise.all([
       wsLoadExecutionResourceReadiness(id),
       psRuntimeLoadWinterExecution(wsOrg(),id),
-      dsChecklistLoadContext('winter_execution',id,{force:true})
+      dsChecklistLoadContext('winter_execution',id,{force:true}),
+      wsLoadClearanceMapForExecution(x.object_id)
     ]);
 
     panel.innerHTML=`
@@ -28538,6 +29170,13 @@ async function wsOpenExecution(id){
 
         <div class="muted" style="margin-top:8px">SOP-Datei: ${wsWinterSopHtmlForExecution(x)}</div>
         ${assignmentNote?`<div class="muted" style="margin-top:5px">Objekthinweis: ${wsEsc(assignmentNote)}</div>`:''}
+
+        ${clearanceMap?.row&&clearanceMap?.imageUrl
+          ?wsClearanceReadonlyHtml(clearanceMap.row,clearanceMap.imageUrl)
+          :`<div class="card" style="margin-top:14px;padding:12px">
+              <strong>Räumkarte</strong>
+              <div class="muted" style="margin-top:5px">Für dieses Winterdienstobjekt ist noch keine Räumkarte hinterlegt.</div>
+            </div>`}
 
         ${psRuntimeCardHtml(processStandards,{serviceLabel:'Winterdienst',openJs:`psRuntimeOpenWinter('${wsEsc(id)}','Winterdienst')`})}
 
@@ -28820,7 +29459,7 @@ async function opsLoadSharedAssignmentContext(){
 }
 
 function opsSelectableUsersForRun(run){
-  // 2.26.6.43:
+  // 2.26.6.44:
   // Eine konkrete Tourzuweisung erzeugt serverseitig eine temporäre
   // Einsatzberechtigung für alle Objekte dieser Tour. Deshalb dürfen hier
   // alle aktiven operativen Benutzer des Mandanten ausgewählt werden.
@@ -28872,7 +29511,7 @@ function opsWeekdayLabel(v){const m={0:'So',1:'Mo',2:'Di',3:'Mi',4:'Do',5:'Fr',6
 function opsIntervalLabel(v){return ({1:'wöchentlich',2:'alle 2 Wochen',4:'alle 4 Wochen'})[Number(v)]||`alle ${v} Wochen`;}
 function opsTimeWindowLabel(p){const a=String(p?.time_window_start||'').slice(0,5),b=String(p?.time_window_end||'').slice(0,5);return a&&b?`${a}–${b}`:a?`ab ${a}`:b?`bis ${b}`:'kein Zeitfenster';}
 
-/* RELEASE 2.26.6.43 | BASIS 2.26.6.13 | 30.09.2026
+/* RELEASE 2.26.6.44 | BASIS 2.26.6.13 | 30.09.2026
    EINMALIGER AUFTRAG: STAND-ALONE ODER TOURTERMIN
    - Begriff "Einzeltour" im Planungsdialog durch "Einmaliger Auftrag" ersetzt.
    - Kein Rhythmus / keine Wochentage für Ad-hoc-Aufträge.
@@ -30765,7 +31404,7 @@ async function opsSaveTour(){
         object_service_assignment_id:a.id,
         object_id:a.object_id,
         service_type_id:a.service_type_id,
-        // 2.26.6.43: Die Tour ist das führende Planungsobjekt.
+        // 2.26.6.44: Die Tour ist das führende Planungsobjekt.
         // Direkte Tourstopps benötigen keinen recurring_service_plan.
         recurring_plan_id:null,
         planned_duration_minutes:duration,
@@ -30793,7 +31432,7 @@ async function opsSaveTour(){
         body:JSON.stringify(templatePayload)
       });
 
-      // 2.26.6.43:
+      // 2.26.6.44:
       // Bestehende Tourstopps nicht pauschal deaktivieren und neu einfügen.
       // Sonst kollidieren historische/inaktive Datensätze mit UNIQUE-Constraints
       // wie (tour_template_id, recurring_plan_id).
@@ -31664,7 +32303,7 @@ async function openManagedDocumentStorageFile(d,{title='SOP / Arbeitsanweisung',
   const blob=fileBlob.type?fileBlob:new Blob([fileBlob],{type:mime});
   const url=URL.createObjectURL(blob);
 
-  // 2.26.6.43:
+  // 2.26.6.44:
   // Mobile Safari/iOS blockiert window.open(), wenn es erst NACH einem await
   // ausgeführt wird. Deshalb wird das Ziel-Fenster bereits synchron beim
   // Benutzer-Tap erzeugt und hier nur noch mit dem Blob befüllt.
