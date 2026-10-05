@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.26.6.40</title>
+<title>Duschl Service – Objektplattform v2.26.6.41</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -663,7 +663,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 
 
 
-/* === Objektmodal Übersicht · 2.26.6.40 === */
+/* === Objektmodal Übersicht · 2.26.6.41 === */
 .object-edit-section{
   margin-top:12px;
   padding:14px;
@@ -756,7 +756,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Wochensteuerung Tourenlogik · 2.26.6.40 === */
+/* === Wochensteuerung Tourenlogik · 2.26.6.41 === */
 .rp-week-summary{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
@@ -829,7 +829,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzintegration · 2.26.6.40 === */
+/* === Betriebsmittel Einsatzintegration · 2.26.6.41 === */
 .or-process-hint{
   border-color:#31566e!important;
   background:linear-gradient(180deg,#0d2636 0%,#091d2a 100%)!important;
@@ -870,7 +870,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Betriebsmittel Einsatzarten · 2.26.6.40 === */
+/* === Betriebsmittel Einsatzarten · 2.26.6.41 === */
 .or-scope-hint{
   margin-top:9px;
   padding:8px 10px;
@@ -898,7 +898,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Zusatzauftrag verständliche Darstellung · 2.26.6.40 === */
+/* === Zusatzauftrag verständliche Darstellung · 2.26.6.41 === */
 .ops-run-stop-special{
   border-left:3px solid #6c8faa;
   padding-left:10px;
@@ -918,7 +918,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Regelmäßige Einzelleistung als Sonderfall · 2.26.6.40 === */
+/* === Regelmäßige Einzelleistung als Sonderfall · 2.26.6.41 === */
 .ops-advanced-planning{
   margin-top:10px!important;
   opacity:.94;
@@ -932,7 +932,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Stabilitäts-Rebuild 2.26.6.40 === */
+/* === Stabilitäts-Rebuild 2.26.6.41 === */
 .speech-mic-btn{display:none!important}
 .speech-field-host>input[type="text"],
 .speech-field-host>textarea{padding-right:12px!important}
@@ -963,7 +963,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Deaktivierte Mandanten getrennt · 2.26.6.40 === */
+/* === Deaktivierte Mandanten getrennt · 2.26.6.41 === */
 .platform-inactive-tenants{
   border-top:1px solid var(--line);
   padding-top:4px;
@@ -989,7 +989,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Mandantenmodule & Profile · 2.26.6.40 === */
+/* === Mandantenmodule & Profile · 2.26.6.41 === */
 .tenant-module-group{margin-top:16px}
 .tenant-module-group-title{
   font-size:12px;
@@ -1023,7 +1023,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
-/* === Außenpflege Mehrfachauswahl · 2.26.6.40 === */
+/* === Außenpflege Mehrfachauswahl · 2.26.6.41 === */
 .dashboard-summer-selection-bar{
   display:flex;
   gap:12px;
@@ -1079,6 +1079,31 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
   .dashboard-summer-selection-actions button{
     width:100%;
   }
+}
+
+
+/* === Außenpflege Details + Auswahl Fix · 2.26.6.41 === */
+.dashboard-summer-object-row-selectable{
+  position:relative;
+}
+.dashboard-summer-object-row-selectable .dashboard-summer-object-select{
+  grid-column:1/-1;
+  display:flex!important;
+  align-items:center;
+  gap:8px;
+  margin:0 0 8px!important;
+  padding:0;
+}
+.dashboard-summer-object-row-selectable .dashboard-summer-object-select input{
+  width:22px!important;
+  height:22px!important;
+  min-width:22px;
+  margin:0!important;
+}
+.dashboard-summer-object-row-selectable .dashboard-summer-object-select span{
+  font-size:13px;
+  font-weight:800;
+  color:var(--muted);
 }
 
 /* === GPS-Plausibilitätsprüfung · 2.21.61 === */
@@ -5071,7 +5096,7 @@ table td,table th{
     <div class="dashboard-summer-objects">
       <div class="dashboard-summer-objects-head"><strong>Priorisierte Objektübersicht</strong><span id="dashboardSummerCoverage" class="muted">—</span></div>
       <div id="dashboardSummerObjectList" class="dashboard-summer-priority-groups"></div>
-      <div id="dashboardSummerObjectDetail" class="dashboard-summer-object-detail"></div>
+      <div id="dashboardSummerObjectDetail" class="dashboard-summer-object-detail" style="display:none"></div>
     </div>
   </div>
 
@@ -5822,7 +5847,7 @@ table td,table th{
 </style>
 
 <!--
-RELEASE 2.26.6.40 | BASIS 2.26.6.24 | 01.10.2026
+RELEASE 2.26.6.41 | BASIS 2.26.6.24 | 01.10.2026
 REGELMÄSSIGE EINZELLEISTUNG NUR NOCH SONDERFALL
 - Hauptworkflow bleibt Wiederkehrende Tour + Einmaliger Auftrag.
 - Regelmäßige Einzelleistung ist standardmäßig eingeklappt.
@@ -5831,7 +5856,7 @@ REGELMÄSSIGE EINZELLEISTUNG NUR NOCH SONDERFALL
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.40 | BASIS 2.26.6.25 + SQL-HOTFIXES 2.26.6.26/27 | 01.10.2026
+RELEASE 2.26.6.41 | BASIS 2.26.6.25 + SQL-HOTFIXES 2.26.6.26/27 | 01.10.2026
 TEMPORÄRE EINSATZBERECHTIGUNG DURCH TOURZUWEISUNG
 - Jeder aktive operative Mandantenbenutzer kann einer konkreten Tour zugewiesen werden.
 - Fehlende dauerhafte Objekt-/Kollaborationszuweisung blockiert die Tourzuweisung nicht mehr.
@@ -5841,7 +5866,7 @@ TEMPORÄRE EINSATZBERECHTIGUNG DURCH TOURZUWEISUNG
 - Kein Edge-Change.
 -->
 <!--
-RELEASE 2.26.6.40 | BASIS 2.26.6.28 | 01.10.2026
+RELEASE 2.26.6.41 | BASIS 2.26.6.28 | 01.10.2026
 SOP MOBILE OPEN FIX
 - iOS/Safari Pop-up-Blocker behoben.
 - SOP-Zielfenster wird synchron beim Tap geöffnet, bevor RPC/Storage await startet.
@@ -5850,7 +5875,7 @@ SOP MOBILE OPEN FIX
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.40 | STABILITÄTS-REBUILD | BASIS 2.26.6.29 | 01.10.2026
+RELEASE 2.26.6.41 | STABILITÄTS-REBUILD | BASIS 2.26.6.29 | 01.10.2026
 - Vollständiger Neuaufbau ab letzter strukturell intakter Version 2.26.6.29.
 - Ursache des Login-/Mandantenfehlers beseitigt: In 2.26.6.30 wurde beim Entfernen der Spracheingabe versehentlich ein großer JavaScript-Block mit Kernfunktionen gelöscht.
 - Spracheingabe jetzt nur deaktiviert; kein Scriptblock wird entfernt.
@@ -5860,7 +5885,7 @@ RELEASE 2.26.6.40 | STABILITÄTS-REBUILD | BASIS 2.26.6.29 | 01.10.2026
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.40 | BASIS 2.26.6.36 | 04.10.2026
+RELEASE 2.26.6.41 | BASIS 2.26.6.36 | 04.10.2026
 DEAKTIVIERTE MANDANTEN GETRENNT
 - Aktive Mandanten bleiben in der normalen Mandantenübersicht.
 - Deaktivierte Mandanten werden in einen separaten, standardmäßig eingeklappten Bereich verschoben.
@@ -5871,7 +5896,7 @@ DEAKTIVIERTE MANDANTEN GETRENNT
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.40 | BASIS 2.26.6.37 | 04.10.2026
+RELEASE 2.26.6.41 | BASIS 2.26.6.37 | 04.10.2026
 MANDANTENPROFILE + INDIVIDUELLE MODULE
 - Mandantenmenü ist jetzt produktseitig konfigurierbar und bleibt zusätzlich rollenbasiert geschützt.
 - Profile: Vollumfang, Objektservice, Hausverwaltung, Winterdienst, Gebäudereinigung, Individuell.
@@ -5880,11 +5905,11 @@ MANDANTENPROFILE + INDIVIDUELLE MODULE
 - Einzelne Module können nach Profilwahl individuell ein-/ausgeschaltet werden.
 - Dashboard und Systemfunktionen (Daten/Aktualisieren/Passwort/Sicherung/Abmelden) bleiben außerhalb der Modulkonfiguration.
 - Ausblenden eines Moduls verändert keine RLS- oder Backend-Berechtigung; Rollenmodell bleibt führend.
-- Benötigt SQL 2.26.6.40 für organizations.module_profile und organizations.enabled_modules.
+- Benötigt SQL 2.26.6.41 für organizations.module_profile und organizations.enabled_modules.
 - Keine Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.40 | BASIS 2.26.6.38 | 04.10.2026
+RELEASE 2.26.6.41 | BASIS 2.26.6.38 | 04.10.2026
 DASHBOARD-FACHLOGIK
 - Dashboard-Kacheln folgen jetzt ebenfalls der Mandantenmodul-/Profilsteuerung.
 - Winterdienst-Einsatzlage wird nur angezeigt, wenn das Winterdienst-Modul aktiv ist UND aktive Winterdienstumfänge vorhanden sind.
@@ -5896,7 +5921,7 @@ DASHBOARD-FACHLOGIK
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <!--
-RELEASE 2.26.6.40 | BASIS 2.26.6.39 | 04.10.2026
+RELEASE 2.26.6.41 | BASIS 2.26.6.39 | 04.10.2026
 AUSSENPFLEGE: MEHRFACHAUSWAHL
 - Außenpflegeobjekte können per Checkbox einzeln ausgewählt werden.
 - "Alle sichtbaren auswählen" berücksichtigt Suche und aktuellen Statusfilter.
@@ -5904,6 +5929,17 @@ AUSSENPFLEGE: MEHRFACHAUSWAHL
 - Zähler zeigt die Anzahl ausgewählter Objekte.
 - Gemeinsame Aktion "Auswahl planen" ersetzt die redundante Planen-Schaltfläche je Karte.
 - Bestehender Einzelplanungsaufruf bleibt rückwärtskompatibel und führt in dieselbe Auswahlplanung.
+- Keine SQL-, RLS- oder Edge-Änderung.
+-->
+<!--
+RELEASE 2.26.6.41 | BASIS 2.26.6.40 | 05.10.2026
+AUSSENPFLEGE DETAILS + AUSWAHL FIX
+- Details öffnet jetzt ein echtes Modal statt einer schwer sichtbaren Detailkarte unterhalb der Objektliste.
+- Modal zeigt Wetterwerte, Empfehlung, DWD-Hinweise und Datenstand.
+- Im Detail kann das Objekt direkt zur Planungsauswahl hinzugefügt/entfernt werden.
+- Checkbox je Objekt ist jetzt zuverlässig sichtbar.
+- Einzelne Planen-Schaltflächen je Objekt entfernt; Planung läuft konsistent über die Mehrfachauswahl.
+- Veralteter eingebetteter Detailbereich wird nicht mehr verwendet.
 - Keine SQL-, RLS- oder Edge-Änderung.
 -->
 <section class="section" id="operations">
@@ -9087,7 +9123,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.10.
    BACKEND: SQL 2.26.6.11 erforderlich.
 */
-/* RELEASE 2.26.6.40 | BASIS 2.26.6.12 | 30.09.2026
+/* RELEASE 2.26.6.41 | BASIS 2.26.6.12 | 30.09.2026
    WETTER-FALLBACK HARDENING:
    - Außenpflege akzeptiert object-weather nur noch bei verwertbarem care_24h-Datensatz.
    - Formal erfolgreiche, aber inhaltlich leere/ungültige Antworten lösen jetzt
@@ -9099,7 +9135,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.11.
    BACKEND: keine SQL-Änderung.
 */
-const APP_VERSION='2.26.6.40'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.26.6.41'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -20548,107 +20584,218 @@ function dashboardSummerPlanSelection(){
 }
 
 function renderDashboardSummerObjectList(){
-  const host=document.getElementById('dashboardSummerObjectList');if(!host)return;
+  const host=document.getElementById('dashboardSummerObjectList');
+  if(!host)return;
+
   const rows=(Array.isArray(dashboardSummerWeatherEntries)?dashboardSummerWeatherEntries:[])
     .map(entry=>({...entry,_status:dashboardSummerEntryStatus(entry)}))
     .filter(entry=>dashboardSummerActiveFilter==='all'||entry._status===dashboardSummerActiveFilter)
     .filter(entry=>{
       if(!dashboardSummerSearchTerm)return true;
-      const hay=[entry._object_name,entry.object_name,entry._address,entry.address].filter(Boolean).join(' ').toLowerCase();
+      const hay=[entry._object_name,entry.object_name,entry._address,entry.address]
+        .filter(Boolean).join(' ').toLowerCase();
       return hay.includes(dashboardSummerSearchTerm);
     })
     .sort((a,b)=>{
       const p=dashboardSummerPriority(a._status)-dashboardSummerPriority(b._status);
       if(p)return p;
-      return String(a._object_name||a.object_name||'').localeCompare(String(b._object_name||b.object_name||''),'de');
+      return String(a._object_name||a.object_name||'').localeCompare(
+        String(b._object_name||b.object_name||''),'de'
+      );
     });
 
-  if(!rows.length){
-    host.innerHTML='<div class="dashboard-summer-empty">Keine Objekte für den aktuellen Filter gefunden.</div>';
-    dashboardSummerSyncSelectionUi();
-    return;
-  }
-
-  const visibleIds=rows.map(r=>String(r._object_id||r.object_id||'')).filter(Boolean);
-  const visibleSelected=visibleIds.filter(id=>dashboardSummerSelectedObjectIds.has(id)).length;
+  const selectedCount=dashboardSummerSelectionCount();
 
   const selectionToolbar=`
     <div class="dashboard-summer-selection-bar">
       <label class="dashboard-summer-select-all">
         <input id="dashboardSummerSelectAll" type="checkbox"
-          ${visibleIds.length&&visibleSelected===visibleIds.length?'checked':''}
           onchange="dashboardSummerToggleAllVisible(this.checked)">
         <span>Alle sichtbaren auswählen</span>
       </label>
       <div class="dashboard-summer-selection-actions">
-        <strong id="dashboardSummerSelectedCount">${dashboardSummerSelectionCount()} Objekt${dashboardSummerSelectionCount()===1?'':'e'} ausgewählt</strong>
-        <button id="dashboardSummerPlanSelectionBtn" class="primary" type="button"
-          ${dashboardSummerSelectionCount()===0?'disabled':''}
-          onclick="dashboardSummerPlanSelection()">Auswahl planen</button>
+        <strong id="dashboardSummerSelectedCount">
+          ${selectedCount} Objekt${selectedCount===1?'':'e'} ausgewählt
+        </strong>
+        <button id="dashboardSummerPlanSelectionBtn"
+          class="primary"
+          type="button"
+          ${selectedCount===0?'disabled':''}
+          onclick="dashboardSummerPlanSelection()">
+          Auswahl planen
+        </button>
       </div>
     </div>`;
 
+  if(!rows.length){
+    host.innerHTML=selectionToolbar+
+      '<div class="dashboard-summer-empty">Keine Objekte für den aktuellen Filter gefunden.</div>';
+    dashboardSummerSyncSelectionUi();
+    return;
+  }
+
   const statuses=['avoid','check','error','good'];
+
   host.innerHTML=selectionToolbar+statuses.map(status=>{
     const items=rows.filter(r=>r._status===status);
     if(!items.length)return '';
+
     return `<section class="dashboard-summer-group ${status==='error'?'error-group':''}">
       <div class="dashboard-summer-group-head">
-        <div class="dashboard-summer-group-title"><span class="dashboard-summer-object-statusdot ${status}"></span><span class="summer-group-title-desktop">${esc(dashboardSummerGroupTitle(status))}</span><span class="summer-group-title-mobile">${esc(dashboardSummerStatusLabel(status))}</span></div>
+        <div class="dashboard-summer-group-title">
+          <span class="dashboard-summer-object-statusdot ${status}"></span>
+          <span class="summer-group-title-desktop">${esc(dashboardSummerGroupTitle(status))}</span>
+          <span class="summer-group-title-mobile">${esc(dashboardSummerStatusLabel(status))}</span>
+        </div>
         <div class="dashboard-summer-group-count">${items.length} Objekt${items.length===1?'':'e'}</div>
       </div>
-      <div class="dashboard-summer-table-head"><span>Objekt</span><span>Wetter</span><span>Regen</span><span>Status</span><span>Aktion</span></div>
+
       <div class="dashboard-summer-object-list">
         ${items.map(entry=>{
           const care=entry?.care_24h||{};
-          return `<div class="dashboard-summer-object-row">
+          const objectId=String(entry._object_id||entry.object_id||'');
+          const checked=dashboardSummerSelectedObjectIds.has(objectId);
+
+          return `<div class="dashboard-summer-object-row dashboard-summer-object-row-selectable">
+            <label class="dashboard-summer-object-select"
+              onclick="event.stopPropagation()">
+              <input type="checkbox"
+                ${checked?'checked':''}
+                onchange="dashboardSummerToggleObject('${esc(objectId)}',this.checked)">
+              <span>Auswählen</span>
+            </label>
+
             <span class="dashboard-summer-object-statusdot ${status}"></span>
+
             <span class="dashboard-summer-object-main">
               <span style="min-width:0">
                 <span class="dashboard-summer-object-name">${esc(entry._object_name||entry.object_name||'Objekt')}</span>
                 <span class="dashboard-summer-object-address">${esc(entry._address||entry.address||'')}</span>
               </span>
             </span>
-            <span class="dashboard-summer-object-temp">${esc(dashboardSummerWeatherIcon(entry))} ${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))}</span>
-            <span class="dashboard-summer-object-rain">${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}</span>
-            <span class="dashboard-summer-object-weather">${esc(dashboardSummerWeatherIcon(entry))} ${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))}<small>Regen ${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}</small></span>
-            <span class="dashboard-summer-object-badge ${status}">${esc(dashboardSummerStatusLabel(status))}</span>
+
+            <span class="dashboard-summer-object-temp">
+              ${esc(dashboardSummerWeatherIcon(entry))}
+              ${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))}
+            </span>
+
+            <span class="dashboard-summer-object-rain">
+              ${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}
+            </span>
+
+            <span class="dashboard-summer-object-weather">
+              ${esc(dashboardSummerWeatherIcon(entry))}
+              ${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))}
+              <small>Regen ${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}</small>
+            </span>
+
+            <span class="dashboard-summer-object-badge ${status}">
+              ${esc(dashboardSummerStatusLabel(status))}
+            </span>
+
             <span class="dashboard-summer-object-actions">
-              <button class="dashboard-summer-mini-btn" type="button" onclick="dashboardSummerSelectObject('${esc(entry._object_id)}')">Details</button>
-              ${status!=='error'?`<button class="dashboard-summer-mini-btn primary" type="button" onclick="dashboardSummerPlanObject('${esc(entry._object_id)}')">Planen</button>`:''}
+              <button class="dashboard-summer-mini-btn"
+                type="button"
+                onclick="dashboardSummerSelectObject('${esc(objectId)}')">
+                Details
+              </button>
             </span>
           </div>`;
         }).join('')}
       </div>
     </section>`;
   }).join('');
-  dashboardSummerSyncFilterUi();  dashboardSummerSyncSelectionUi();
+
+  dashboardSummerSyncFilterUi();
+  dashboardSummerSyncSelectionUi();
 }
 
 function dashboardSummerSelectObject(objectId){
   dashboardSummerSelectedObjectId=String(objectId||'');
-  const host=document.getElementById('dashboardSummerObjectDetail');if(!host)return;
-  const entry=(dashboardSummerWeatherEntries||[]).find(e=>String(e._object_id)===dashboardSummerSelectedObjectId);
-  if(!entry){host.classList.remove('is-open');host.innerHTML='';return;}
-  const care=entry?.care_24h||{},status=dashboardSummerEntryStatus(entry),recs=Array.isArray(care.recommendations)?care.recommendations:[],alerts=Array.isArray(entry?.alerts)?entry.alerts:[];
+  const entry=(dashboardSummerWeatherEntries||[])
+    .find(e=>String(e._object_id||e.object_id||'')===dashboardSummerSelectedObjectId);
 
-  // Datenfehler steht bereits eindeutig in der Objektzeile.
-  // Keine zweite große Fehlerkarte erzeugen.
-  if(entry._error){
-    host.classList.remove('is-open');
-    host.innerHTML='';
+  if(!entry){
+    alert('Objektdetails konnten nicht geladen werden.');
     return;
   }
+
+  if(entry._error){
+    modal(`<div class="row space">
+      <h2>${esc(entry._object_name||entry.object_name||'Objekt')}</h2>
+      <button type="button" onclick="closeModal()">✕</button>
+    </div>
+    <div class="muted">${esc(entry._address||entry.address||'')}</div>
+    <div class="card bad" style="margin-top:14px">
+      Wetterdaten konnten nicht geladen werden: ${esc(entry._error)}
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button type="button" onclick="closeModal()">Schließen</button>
+    </div>`);
+    return;
+  }
+
+  const care=entry?.care_24h||{};
+  const status=dashboardSummerEntryStatus(entry);
+  const recs=Array.isArray(care.recommendations)?care.recommendations:[];
+  const alerts=Array.isArray(entry?.alerts)?entry.alerts:[];
+  const selected=dashboardSummerSelectedObjectIds.has(dashboardSummerSelectedObjectId);
 
   const sourceHint=entry?._shared_weather_fallback
     ?' · gemeinsamer Wetterresolver'
     :'';
 
-  host.innerHTML=`<div class="row space" style="gap:10px;align-items:flex-start"><div><strong>${esc(entry._object_name||entry.object_name||'Objekt')}</strong><div class="muted" style="margin-top:3px">${esc(entry._address||entry.address||'')}</div></div><span class="dashboard-summer-object-badge ${status}">${esc(dashboardSummerStatusLabel(status))}</span></div>
-    <div class="dashboard-summer-object-detail-grid" style="margin-top:10px"><div><span>Max. Temperatur</span><strong>${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))}</strong></div><div><span>Niederschlagswahr.</span><strong>${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}</strong></div><div><span>Niederschlag</span><strong>${esc(dashboardSummerFmtNumber(care.precipitation_total,1,' mm'))}</strong></div><div><span>Max. Wind</span><strong>${esc(dashboardSummerFmtNumber(care.max_wind_speed,0,' km/h'))}</strong></div></div>${recs.length?`<div style="margin-top:10px"><strong>Empfehlung:</strong> ${recs.map(esc).join(' · ')}</div>`:''}${alerts.length?`<div class="dashboard-summer-detail-warnings"><strong>DWD:</strong> ${alerts.slice(0,3).map(a=>esc(a.headline||a.event||'Wetterwarnung')).join(' · ')}</div>`:''}<div class="muted" style="font-size:11px;margin-top:9px">Stand ${esc(dashboardSummerFmtTime(entry?.fetched_at))}${entry?.cached?' · Cache':''}${esc(sourceHint)}</div>`;
-  host.classList.add('is-open');
-  host.scrollIntoView({behavior:'smooth',block:'nearest'});
+  modal(`
+    <div class="row space" style="gap:12px;align-items:flex-start">
+      <div>
+        <h2 style="margin:0">${esc(entry._object_name||entry.object_name||'Objekt')}</h2>
+        <div class="muted" style="margin-top:4px">${esc(entry._address||entry.address||'')}</div>
+      </div>
+      <button type="button" onclick="closeModal()">✕</button>
+    </div>
+
+    <div style="margin-top:12px">
+      <span class="dashboard-summer-object-badge ${status}">
+        ${esc(dashboardSummerStatusLabel(status))}
+      </span>
+    </div>
+
+    <div class="dashboard-summer-object-detail-grid" style="margin-top:14px">
+      <div><span>Max. Temperatur</span><strong>${esc(dashboardSummerFmtNumber(care.max_temperature,0,' °C'))}</strong></div>
+      <div><span>Niederschlagswahr.</span><strong>${esc(dashboardSummerFmtNumber(care.max_precipitation_probability,0,' %'))}</strong></div>
+      <div><span>Niederschlag</span><strong>${esc(dashboardSummerFmtNumber(care.precipitation_total,1,' mm'))}</strong></div>
+      <div><span>Max. Wind</span><strong>${esc(dashboardSummerFmtNumber(care.max_wind_speed,0,' km/h'))}</strong></div>
+    </div>
+
+    ${recs.length
+      ? `<div style="margin-top:14px"><strong>Empfehlung:</strong> ${recs.map(esc).join(' · ')}</div>`
+      : ''
+    }
+
+    ${alerts.length
+      ? `<div class="dashboard-summer-detail-warnings" style="margin-top:12px">
+          <strong>DWD:</strong>
+          ${alerts.slice(0,3).map(a=>esc(a.headline||a.event||'Wetterwarnung')).join(' · ')}
+        </div>`
+      : ''
+    }
+
+    <div class="muted" style="font-size:12px;margin-top:14px">
+      Stand ${esc(dashboardSummerFmtTime(entry?.fetched_at))}
+      ${entry?.cached?' · Cache':''}${esc(sourceHint)}
+    </div>
+
+    <div class="row" style="margin-top:16px;gap:10px">
+      <button type="button"
+        class="${selected?'':'primary'}"
+        onclick="dashboardSummerToggleObject('${esc(dashboardSummerSelectedObjectId)}',${selected?'false':'true'});closeModal();renderDashboardSummerObjectList();">
+        ${selected?'Aus Auswahl entfernen':'Für Planung auswählen'}
+      </button>
+      <button type="button" onclick="closeModal()">Schließen</button>
+    </div>
+  `);
 }
+
 function renderDashboardSummerOverview(){
   const rows=Array.isArray(dashboardSummerWeatherEntries)?dashboardSummerWeatherEntries:[];
   const counts={good:0,check:0,avoid:0,error:0};rows.forEach(e=>counts[dashboardSummerEntryStatus(e)]++);
@@ -24927,7 +25074,7 @@ if(!bootPublicResidentReport()){
 <script>
 /* ===== v2.18.49 Spracheingabe für alle Freitextfelder ===== */
 (function(){
-  const SpeechRecognition = null; // 2.26.6.40: Spracheingabe deaktiviert
+  const SpeechRecognition = null; // 2.26.6.41: Spracheingabe deaktiviert
   if(!SpeechRecognition) return;
 
   let activeRecognition = null;
@@ -28513,7 +28660,7 @@ async function opsLoadSharedAssignmentContext(){
 }
 
 function opsSelectableUsersForRun(run){
-  // 2.26.6.40:
+  // 2.26.6.41:
   // Eine konkrete Tourzuweisung erzeugt serverseitig eine temporäre
   // Einsatzberechtigung für alle Objekte dieser Tour. Deshalb dürfen hier
   // alle aktiven operativen Benutzer des Mandanten ausgewählt werden.
@@ -28565,7 +28712,7 @@ function opsWeekdayLabel(v){const m={0:'So',1:'Mo',2:'Di',3:'Mi',4:'Do',5:'Fr',6
 function opsIntervalLabel(v){return ({1:'wöchentlich',2:'alle 2 Wochen',4:'alle 4 Wochen'})[Number(v)]||`alle ${v} Wochen`;}
 function opsTimeWindowLabel(p){const a=String(p?.time_window_start||'').slice(0,5),b=String(p?.time_window_end||'').slice(0,5);return a&&b?`${a}–${b}`:a?`ab ${a}`:b?`bis ${b}`:'kein Zeitfenster';}
 
-/* RELEASE 2.26.6.40 | BASIS 2.26.6.13 | 30.09.2026
+/* RELEASE 2.26.6.41 | BASIS 2.26.6.13 | 30.09.2026
    EINMALIGER AUFTRAG: STAND-ALONE ODER TOURTERMIN
    - Begriff "Einzeltour" im Planungsdialog durch "Einmaliger Auftrag" ersetzt.
    - Kein Rhythmus / keine Wochentage für Ad-hoc-Aufträge.
@@ -30265,7 +30412,7 @@ async function opsSaveTour(){
         object_service_assignment_id:a.id,
         object_id:a.object_id,
         service_type_id:a.service_type_id,
-        // 2.26.6.40: Die Tour ist das führende Planungsobjekt.
+        // 2.26.6.41: Die Tour ist das führende Planungsobjekt.
         // Direkte Tourstopps benötigen keinen recurring_service_plan.
         recurring_plan_id:null,
         planned_duration_minutes:duration,
@@ -30293,7 +30440,7 @@ async function opsSaveTour(){
         body:JSON.stringify(templatePayload)
       });
 
-      // 2.26.6.40:
+      // 2.26.6.41:
       // Bestehende Tourstopps nicht pauschal deaktivieren und neu einfügen.
       // Sonst kollidieren historische/inaktive Datensätze mit UNIQUE-Constraints
       // wie (tour_template_id, recurring_plan_id).
@@ -31164,7 +31311,7 @@ async function openManagedDocumentStorageFile(d,{title='SOP / Arbeitsanweisung',
   const blob=fileBlob.type?fileBlob:new Blob([fileBlob],{type:mime});
   const url=URL.createObjectURL(blob);
 
-  // 2.26.6.40:
+  // 2.26.6.41:
   // Mobile Safari/iOS blockiert window.open(), wenn es erst NACH einem await
   // ausgeführt wird. Deshalb wird das Ziel-Fenster bereits synchron beim
   // Benutzer-Tap erzeugt und hier nur noch mit dem Blob befüllt.
