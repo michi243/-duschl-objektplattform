@@ -5093,9 +5093,9 @@ table td,table th{
       <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
-      <div class="pa-build-meta">Version <span data-app-version>2.46</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>06:32</span> Uhr</div>
+      <div class="pa-build-meta">Version <span data-app-version>2.47</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>06:44</span> Uhr</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.46</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.47</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -5242,7 +5242,7 @@ table td,table th{
     <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
-    <div class="dashboard-build-meta">Version <span data-app-version>2.46</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>06:32</span> Uhr</div>
+    <div class="dashboard-build-meta">Version <span data-app-version>2.47</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>06:44</span> Uhr</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
   </div>
 
@@ -9426,9 +9426,15 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Status zeigt Punktzahl und Abschlussbereitschaft.
    - Keine SQL-, RLS- oder Edge-Änderung.
 */
-const APP_VERSION='2.46';
+/* RELEASE 2.47 | BASIS 2.46 | 06.10.2026 06:44
+   - Winterdienst-Räumkarte: Storage-Pfad korrigiert.
+   - Erster Storage-Pfadbestandteil ist jetzt die Objekt-UUID statt "winter-clearance-maps".
+   - Damit passt der Upload zur bestehenden Storage-RLS, die den ersten Pfadbestandteil als UUID auswertet.
+   - Keine SQL-, RLS- oder Edge-Änderung.
+*/
+const APP_VERSION='2.47';
 const APP_RELEASE_DATE='06.10.2026';
-const APP_RELEASE_TIME='06:32'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='06:44'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -27041,7 +27047,11 @@ async function wsSaveClearanceMap(){
 
     if(wsClearanceMapEditor.imageFile){
       const file=wsClearanceMapEditor.imageFile;
-      const path=`winter-clearance-maps/${org}/${objectId}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.jpg`;
+      const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if(!uuidPattern.test(String(objectId||''))){
+        throw new Error('Objekt-ID ist keine gültige UUID. Räumkartenbild kann nicht gespeichert werden.');
+      }
+      const path=`${objectId}/winter-clearance-maps/${Date.now()}_${Math.random().toString(36).slice(2,8)}.jpg`;
       imageRef=await cloudMediaPut(path,file);
     }
 
