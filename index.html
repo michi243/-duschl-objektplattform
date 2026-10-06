@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.55</title>
+<title>Duschl Service – Objektplattform v2.56</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -2281,6 +2281,36 @@ body.public-report-mode>#photoViewer{display:none!important}
 @media(max-width:520px){
   #publicReportPage{padding:14px 10px 30px}.public-report-card{padding:16px;border-radius:15px}
   .public-report-photo-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+
+/* v2.56 – 4-Schritt-Meldung */
+.public-report-progress{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 18px}
+.public-report-progress-step{height:5px;border-radius:999px;background:#223746;overflow:hidden}
+.public-report-progress-step.is-active,.public-report-progress-step.is-done{background:#2f8fff}
+.public-report-step-label{font-size:12px;color:var(--muted);font-weight:800;letter-spacing:.02em;margin-bottom:5px}
+.public-report-step-title{font-size:24px;line-height:1.15;margin:0}
+.public-report-step-copy{margin-top:7px;color:var(--muted);line-height:1.45}
+.public-report-step{display:none}
+.public-report-step.active{display:block}
+.public-report-category-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:16px}
+.public-report-category-btn{min-height:64px;text-align:left;padding:12px 13px!important;border:1px solid #35536a!important;border-radius:13px!important;background:#0b1c28!important;color:var(--text)!important;font-weight:800!important}
+.public-report-category-btn.is-selected{border-color:#2f8fff!important;background:#102a40!important;box-shadow:0 0 0 1px #2f8fff inset}
+.public-report-object-chip{margin-top:14px;padding:12px 14px;border-radius:13px;background:#0a1722;border:1px solid var(--line)}
+.public-report-object-chip strong{display:block;font-size:17px}
+.public-report-actions{display:grid;grid-template-columns:1fr 1.5fr;gap:10px;margin-top:20px}
+.public-report-actions.one{grid-template-columns:1fr}
+.public-report-actions button{min-height:50px}
+.public-report-summary{display:grid;gap:9px;margin-top:16px;padding:14px;border:1px solid var(--line);border-radius:13px;background:#0a1722}
+.public-report-summary-row{display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px}
+.public-report-summary-row span:first-child{color:var(--muted)}
+.public-report-back{background:#0a1722!important}
+.public-report-required-note{margin-top:12px;font-size:13px;color:var(--muted);line-height:1.45}
+@media(max-width:520px){
+  .public-report-brand{padding-bottom:12px}
+  .public-report-card{padding:16px}
+  .public-report-category-grid{grid-template-columns:1fr 1fr}
+  .public-report-category-btn{min-height:58px;font-size:14px!important}
+  .public-report-summary-row{grid-template-columns:88px minmax(0,1fr)}
 }
 </style>
 <style>
@@ -4969,59 +4999,102 @@ table td,table th{
 </div>
 <div class="public-report-card">
 <div id="publicReportFormWrap">
-<h2>Anliegen melden</h2>
-<div class="muted">Bitte beschreiben Sie kurz, was Ihnen am Objekt aufgefallen ist.</div>
-<div id="prContext" class="public-report-note" style="display:none;margin-top:12px"></div>
-<label for="prName">Name *</label>
-<input autocomplete="name" id="prName" maxlength="120" placeholder="Vor- und Nachname" type="text"/>
-<label for="prEmail">E-Mail für Rückmeldung</label>
-<input autocomplete="email" id="prEmail" maxlength="180" placeholder="name@beispiel.de" type="email"/>
-<label for="prArea">Bereich *</label>
-<select id="prArea" required aria-required="true" onchange="this.removeAttribute('aria-invalid')">
-<option value="">Bitte auswählen</option>
-</select>
-<label for="prLocation">Genauer Ort / Zusatz</label>
-<input id="prLocation" maxlength="180" placeholder="z. B. 2. OG vor Wohnung 12 (optional)" type="text"/>
-<label for="prCategory">Kategorie *</label>
-<select id="prCategory" required aria-required="true" onchange="this.removeAttribute('aria-invalid')">
-<option value="">Bitte auswählen</option>
-<option>Schaden / Defekt</option>
-<option>Sauberkeit</option>
-<option>Außenanlage</option>
-<option>Beleuchtung</option>
-<option>Tür / Tor / Zugang</option>
-<option>Wasser / Feuchtigkeit</option>
-<option>Winterdienst</option>
-<option>Aufzug defekt</option>
-<option>Heizung / Wärme</option>
-<option>Schließanlage / Schlüssel</option>
-<option>Dach / Fassade</option>
-<option>Schädlingsbefall</option>
-<option>Sonstiges</option>
-</select>
-<label for="prDescription">Beschreibung *</label>
-<div class="public-report-note" style="margin-top:6px;margin-bottom:8px"><strong>Bitte erfassen Sie pro Meldung nur ein Anliegen.</strong><div style="margin-top:4px">Wenn Sie mehrere unterschiedliche Themen melden möchten, erstellen Sie bitte für jedes Anliegen eine eigene Meldung.</div></div>
-<textarea id="prDescription" maxlength="2000" placeholder="Bitte beschreiben Sie genau ein Anliegen: Was ist aufgefallen und wo befindet sich das Problem?"></textarea>
-<div class="public-report-photo-box">
-<label style="margin-top:0">Fotos</label>
-<div class="row" style="gap:8px;flex-wrap:wrap">
-  <label class="public-report-file-trigger" for="prCamera">Foto aufnehmen</label>
-  <label class="public-report-file-trigger" for="prPhotos">Foto auswählen</label>
+<div class="public-report-progress" aria-label="Fortschritt">
+  <div class="public-report-progress-step is-active" data-pr-progress="1"></div>
+  <div class="public-report-progress-step" data-pr-progress="2"></div>
+  <div class="public-report-progress-step" data-pr-progress="3"></div>
+  <div class="public-report-progress-step" data-pr-progress="4"></div>
 </div>
-<input accept="image/*" capture="environment" class="public-report-native-file" id="prCamera" type="file"/>
-<input accept="image/*" class="public-report-native-file" id="prPhotos" type="file"/>
-<div class="public-report-photo-help">Optional · maximal 3 Bilder · maximal 10 MB je Bild. Kamera und Fotomediathek werden getrennt verarbeitet.</div>
-<div class="public-report-photo-grid" id="prPhotoGrid"></div>
+
+<div class="public-report-step active" data-pr-step="1">
+  <div class="public-report-step-label">SCHRITT 1 VON 4</div>
+  <h2 class="public-report-step-title">Worum geht es?</h2>
+  <div class="public-report-step-copy">Wählen Sie das Thema, das Ihr Anliegen am besten beschreibt.</div>
+  <div id="prContext" class="public-report-object-chip" style="display:none"></div>
+  <input id="prCategory" type="hidden" value="">
+  <div class="public-report-category-grid" id="prCategoryGrid">
+    <button type="button" class="public-report-category-btn" data-category="Sauberkeit" onclick="selectPublicReportCategory(this)">Sauberkeit</button>
+    <button type="button" class="public-report-category-btn" data-category="Beleuchtung" onclick="selectPublicReportCategory(this)">Beleuchtung</button>
+    <button type="button" class="public-report-category-btn" data-category="Tür / Tor / Zugang" onclick="selectPublicReportCategory(this)">Tür / Tor</button>
+    <button type="button" class="public-report-category-btn" data-category="Aufzug defekt" onclick="selectPublicReportCategory(this)">Aufzug</button>
+    <button type="button" class="public-report-category-btn" data-category="Außenanlage" onclick="selectPublicReportCategory(this)">Außenanlage</button>
+    <button type="button" class="public-report-category-btn" data-category="Schaden / Defekt" onclick="selectPublicReportCategory(this)">Schaden / Defekt</button>
+    <button type="button" class="public-report-category-btn" data-category="Wasser / Feuchtigkeit" onclick="selectPublicReportCategory(this)">Wasser / Feuchtigkeit</button>
+    <button type="button" class="public-report-category-btn" data-category="Heizung / Wärme" onclick="selectPublicReportCategory(this)">Heizung / Wärme</button>
+    <button type="button" class="public-report-category-btn" data-category="Winterdienst" onclick="selectPublicReportCategory(this)">Winterdienst</button>
+    <button type="button" class="public-report-category-btn" data-category="Sonstiges" onclick="selectPublicReportCategory(this)">Sonstiges</button>
+  </div>
+  <div class="public-report-actions one">
+    <button class="primary" type="button" onclick="publicReportNextStep()">Weiter</button>
+  </div>
 </div>
-<div class="public-report-consent">
-<input id="prConsent" type="checkbox"/>
-<label for="prConsent">Ich habe die <a href="https://www.duschl-service.de/datenschutzerklarung" rel="noopener noreferrer" target="_blank">Datenschutzhinweise zur Bewohnermeldung</a> zur Kenntnis genommen. *</label>
+
+<div class="public-report-step" data-pr-step="2">
+  <div class="public-report-step-label">SCHRITT 2 VON 4</div>
+  <h2 class="public-report-step-title">Wo genau?</h2>
+  <div class="public-report-step-copy">Das Objekt ist bereits über den QR-Code festgelegt. Bitte wählen Sie nur den Bereich.</div>
+  <label for="prArea">Bereich *</label>
+  <select id="prArea" required aria-required="true" onchange="this.removeAttribute('aria-invalid');refreshPublicReportSummary()">
+    <option value="">Bitte auswählen</option>
+  </select>
+  <label for="prLocation">Genauer Ort</label>
+  <input id="prLocation" maxlength="180" placeholder="z. B. 2. OG vor Wohnung 12" type="text" oninput="refreshPublicReportSummary()"/>
+  <div class="public-report-actions">
+    <button class="public-report-back" type="button" onclick="publicReportPrevStep()">Zurück</button>
+    <button class="primary" type="button" onclick="publicReportNextStep()">Weiter</button>
+  </div>
 </div>
-<div class="public-report-note">
-          Ihre Meldung bleibt im bestehenden Meldeprozess erhalten. Wenn für die gewählte Kategorie am Objekt ein eindeutig verantwortlicher Dienstleister hinterlegt ist, wird der sachliche Vorgang zusätzlich automatisch an diesen Dienstleister geroutet. Name und E-Mail-Adresse werden weder dem Auftraggeber noch dem Dienstleister angezeigt. Sie erhalten dadurch keinen Zugang zur Objektplattform.
-        </div>
-<button class="primary public-report-submit" id="prSubmit" onclick="submitPublicResidentReport()" type="button">Meldung absenden</button>
+
+<div class="public-report-step" data-pr-step="3">
+  <div class="public-report-step-label">SCHRITT 3 VON 4</div>
+  <h2 class="public-report-step-title">Was ist passiert?</h2>
+  <div class="public-report-step-copy">Beschreiben Sie das Problem so kurz und konkret wie möglich.</div>
+  <div class="public-report-note" style="margin-top:14px"><strong>Bitte nur ein Anliegen pro Meldung.</strong><div style="margin-top:4px">Für ein weiteres Problem erstellen Sie anschließend eine neue Meldung.</div></div>
+  <label for="prDescription">Beschreibung *</label>
+  <textarea id="prDescription" maxlength="2000" placeholder="Was ist aufgefallen?" oninput="refreshPublicReportSummary()"></textarea>
+  <div class="public-report-photo-box">
+    <label style="margin-top:0">Foto hinzufügen <span class="muted">(optional)</span></label>
+    <div class="row" style="gap:8px;flex-wrap:wrap">
+      <label class="public-report-file-trigger" for="prCamera">Foto aufnehmen</label>
+      <label class="public-report-file-trigger" for="prPhotos">Foto auswählen</label>
+    </div>
+    <input accept="image/*" capture="environment" class="public-report-native-file" id="prCamera" type="file"/>
+    <input accept="image/*" class="public-report-native-file" id="prPhotos" type="file"/>
+    <div class="public-report-photo-help">Maximal 3 Bilder · maximal 10 MB je Bild.</div>
+    <div class="public-report-photo-grid" id="prPhotoGrid"></div>
+  </div>
+  <div class="public-report-actions">
+    <button class="public-report-back" type="button" onclick="publicReportPrevStep()">Zurück</button>
+    <button class="primary" type="button" onclick="publicReportNextStep()">Weiter</button>
+  </div>
+</div>
+
+<div class="public-report-step" data-pr-step="4">
+  <div class="public-report-step-label">SCHRITT 4 VON 4</div>
+  <h2 class="public-report-step-title">Prüfen und absenden</h2>
+  <div class="public-report-step-copy">Kontaktdaten dienen nur der Rückfrage zu Ihrer Meldung.</div>
+
+  <label for="prName">Name *</label>
+  <input autocomplete="name" id="prName" maxlength="120" placeholder="Vor- und Nachname" type="text"/>
+  <label for="prEmail">E-Mail <span class="muted">(optional)</span></label>
+  <input autocomplete="email" id="prEmail" maxlength="180" placeholder="name@beispiel.de" type="email"/>
+
+  <div class="public-report-summary" id="prSummary"></div>
+
+  <div class="public-report-consent">
+    <input id="prConsent" type="checkbox"/>
+    <label for="prConsent">Ich habe die <a href="https://www.duschl-service.de/datenschutzerklarung" rel="noopener noreferrer" target="_blank">Datenschutzhinweise</a> zur Kenntnis genommen. *</label>
+  </div>
+  <div class="public-report-required-note">Die interne Zuständigkeit, Weiterleitung und Bearbeitung wird automatisch durch die Objektplattform gesteuert.</div>
+
+  <div class="public-report-actions">
+    <button class="public-report-back" type="button" onclick="publicReportPrevStep()">Zurück</button>
+    <button class="primary" id="prSubmit" onclick="submitPublicResidentReport()" type="button">Meldung absenden</button>
+  </div>
+</div>
+
 <div class="public-report-message" id="prMessage"></div>
+</div>
 </div>
 </div>
 </div>
@@ -5116,9 +5189,9 @@ table td,table th{
       <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
-      <div class="pa-build-meta">Version <span data-app-version>2.55</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>15:21</span> Uhr</div>
+      <div class="pa-build-meta">Version <span data-app-version>2.56</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>17:30</span> Uhr</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.55</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.56</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -5265,7 +5338,7 @@ table td,table th{
     <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
-    <div class="dashboard-build-meta">Version <span data-app-version>2.55</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>15:21</span> Uhr</div>
+    <div class="dashboard-build-meta">Version <span data-app-version>2.56</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>17:30</span> Uhr</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
   </div>
 
@@ -9576,9 +9649,20 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Keine Änderung an Rollen-, Objekt-, Winterdienst-, Touren-, RLS- oder Edge-Logik.
    - Kein SQL erforderlich.
 */
-const APP_VERSION='2.55';
+/* RELEASE 2.56 | BASIS 2.55 | 06.10.2026 17:30
+   ÖFFENTLICHE MELDUNG: 4-SCHRITT-MOBILE-UX
+   - Öffentliche QR-Meldung auf vier klare Schritte reduziert:
+     1) Worum geht es? 2) Wo genau? 3) Problem & Foto 4) Kontakt & Absenden.
+   - Objekt bleibt aus dem QR-Code fest vorgegeben; interne Routing-/SLA-/Dienstleisterlogik
+     wird im Formular nicht mehr angezeigt.
+   - Bestehende RPC create_public_resident_report_with_area bleibt unverändert.
+   - Ein-Anliegen-Regel bleibt verpflichtender UX-Hinweis.
+   - Abschlussseite zeigt nur Eingang, Referenz und einfache Statuslogik.
+   - Keine SQL-, RLS-, RPC- oder Edge-Änderung.
+*/
+const APP_VERSION='2.56';
 const APP_RELEASE_DATE='06.10.2026';
-const APP_RELEASE_TIME='15:21'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='17:30'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -10266,7 +10350,9 @@ async function loadPublicResidentReportContext(){
     let rows=[]; try{rows=raw?JSON.parse(raw):[]}catch(_e){}
     const ctx=Array.isArray(rows)?rows[0]:rows;
     if(ctx&&box){
-      box.innerHTML=`<strong>${esc(ctx.object_name||'Objekt')}</strong>`;
+      const objectName=String(ctx.object_name||'Objekt').trim();
+      box.dataset.objectName=objectName;
+      box.innerHTML=`<span class="muted">Objekt</span><strong>${esc(objectName)}</strong>`;
       box.style.display='block';
     }
     const ar=await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_public_report_areas`,{
@@ -10289,6 +10375,97 @@ async function loadPublicResidentReportContext(){
   }
 }
 
+
+let publicReportStep=1;
+
+function publicReportCurrentObjectName(){
+  const box=document.getElementById('prContext');
+  return String(box?.dataset?.objectName||box?.textContent||'Objekt').trim();
+}
+
+function publicReportSetStep(step){
+  const next=Math.max(1,Math.min(4,Number(step)||1));
+  publicReportStep=next;
+  document.querySelectorAll('[data-pr-step]').forEach(el=>{
+    el.classList.toggle('active',Number(el.dataset.prStep)===next);
+  });
+  document.querySelectorAll('[data-pr-progress]').forEach(el=>{
+    const n=Number(el.dataset.prProgress);
+    el.classList.toggle('is-active',n===next);
+    el.classList.toggle('is-done',n<next);
+  });
+  publicReportMessage('');
+  if(next===4)refreshPublicReportSummary();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function selectPublicReportCategory(btn){
+  const value=String(btn?.dataset?.category||'').trim();
+  const input=document.getElementById('prCategory');
+  if(input)input.value=value;
+  document.querySelectorAll('.public-report-category-btn').forEach(b=>b.classList.toggle('is-selected',b===btn));
+  refreshPublicReportSummary();
+}
+
+function publicReportAreaName(){
+  const sel=document.getElementById('prArea');
+  if(!sel||!sel.value)return '';
+  return String(sel.options[sel.selectedIndex]?.textContent||'').trim();
+}
+
+function refreshPublicReportSummary(){
+  const box=document.getElementById('prSummary');
+  if(!box)return;
+  const category=String(document.getElementById('prCategory')?.value||'').trim();
+  const area=publicReportAreaName();
+  const location=String(document.getElementById('prLocation')?.value||'').trim();
+  const description=String(document.getElementById('prDescription')?.value||'').trim();
+  box.innerHTML=`
+    <div class="public-report-summary-row"><span>Objekt</span><strong>${esc(publicReportCurrentObjectName())}</strong></div>
+    <div class="public-report-summary-row"><span>Thema</span><strong>${esc(category||'—')}</strong></div>
+    <div class="public-report-summary-row"><span>Ort</span><strong>${esc([area,location].filter(Boolean).join(' · ')||'—')}</strong></div>
+    <div class="public-report-summary-row"><span>Problem</span><strong>${esc(description||'—')}</strong></div>
+    <div class="public-report-summary-row"><span>Fotos</span><strong>${publicReportFiles.length?`${publicReportFiles.length} hinzugefügt`:'Keine'}</strong></div>`;
+}
+
+function publicReportValidateStep(step){
+  if(step===1){
+    const category=String(document.getElementById('prCategory')?.value||'').trim();
+    if(!category){
+      publicReportMessage('Bitte wählen Sie aus, worum es geht.');
+      return false;
+    }
+  }
+  if(step===2){
+    const areaId=String(document.getElementById('prArea')?.value||'').trim();
+    if(!areaId){
+      const area=document.getElementById('prArea');
+      area?.setAttribute('aria-invalid','true');
+      area?.focus();
+      publicReportMessage('Bitte wählen Sie den Bereich aus.');
+      return false;
+    }
+  }
+  if(step===3){
+    const description=String(document.getElementById('prDescription')?.value||'').trim();
+    if(!description){
+      document.getElementById('prDescription')?.focus();
+      publicReportMessage('Bitte beschreiben Sie kurz, was passiert ist.');
+      return false;
+    }
+  }
+  return true;
+}
+
+function publicReportNextStep(){
+  if(!publicReportValidateStep(publicReportStep))return;
+  publicReportSetStep(publicReportStep+1);
+}
+
+function publicReportPrevStep(){
+  publicReportSetStep(publicReportStep-1);
+}
+
 function bootPublicResidentReport(){
   const hasParam=new URLSearchParams(location.search).has('meldung');
   if(!hasParam)return false;
@@ -10299,7 +10476,7 @@ function bootPublicResidentReport(){
   publicResidentAreaName='';
   document.body.classList.add('public-report-mode');
   document.getElementById('publicReportPage')?.classList.add('active');
-  setTimeout(bindPublicReportPhotoInputs,0);
+  setTimeout(()=>{bindPublicReportPhotoInputs();publicReportSetStep(1);},0);
   if(!publicResidentObjectId){
     const wrap=document.getElementById('publicReportFormWrap');
     if(wrap)wrap.innerHTML='<div class="public-report-success"><strong>QR-Code ungültig</strong><div class="muted">Dieser Meldelink kann nicht verwendet werden. Bitte scannen Sie den QR-Code am Objekt erneut.</div></div>';
@@ -10474,7 +10651,7 @@ async function submitPublicResidentReport(){
   const description=(document.getElementById('prDescription')?.value||'').trim();
   const consent=!!document.getElementById('prConsent')?.checked;
 
-  if(!name)return publicReportMessage('Bitte geben Sie Ihren Namen ein.');
+  if(!name){document.getElementById('prName')?.focus();return publicReportMessage('Bitte geben Sie Ihren Namen ein.');}
   if(!areaId){
     const areaEl=document.getElementById('prArea');
     if(areaEl){areaEl.focus();areaEl.setAttribute('aria-invalid','true');}
@@ -10537,28 +10714,20 @@ async function submitPublicResidentReport(){
 
     const wrap=document.getElementById('publicReportFormWrap');
     if(wrap){
-      const routingState=String(result?.routing_status||result?.route_status||'').toLowerCase();
-      const routed=Boolean(result?.routed_work_order_id||result?.auto_routed||['routed','assigned','forwarded'].includes(routingState));
-      const needsReview=Boolean(result?.needs_internal_review||['review','triage','unassigned','no_match'].includes(routingState));
-      const ownerName=String(result?.owner_organization_name||result?.property_management_name||result?.management_organization_name||result?.informed_organization_name||'').trim();
-      const providerName=String(result?.service_organization_name||result?.service_provider_name||result?.routed_organization_name||result?.executor_organization_name||'').trim();
-      const serviceScope=String(result?.service_scope_name||result?.service_scope_label||result?.routed_scope_name||'').trim();
-      const informedLabel=ownerName?esc(ownerName):'Hausverwaltung / zuständige Objektsteuerung';
-      let routingRows=`<div style="margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:12px;background:rgba(47,143,255,.05);text-align:left"><div><span class="muted">Informiert:</span><br><strong>${informedLabel}</strong></div>`;
-      if(routed){
-        routingRows+=`<div style="margin-top:12px"><span class="muted">Zur Bearbeitung weitergeleitet an:</span><br><strong>${providerName?esc(providerName):'Zuständiger Dienstleister'}</strong>${serviceScope?`<div class="muted" style="margin-top:3px">Leistungsbereich: ${esc(serviceScope)}</div>`:''}</div>`;
-      }else if(needsReview){
-        routingRows+=`<div style="margin-top:12px"><span class="muted">Bearbeitung:</span><br><strong>Die zuständige Stelle wird noch festgelegt.</strong></div>`;
-      }else{
-        routingRows+=`<div style="margin-top:12px"><span class="muted">Bearbeitung:</span><br><strong>Die weitere Bearbeitung wird durch die zuständige Stelle veranlasst.</strong></div>`;
-      }
-      routingRows+='</div>';
-      const nextStep=routed
-        ? 'Die Hausverwaltung / Objektsteuerung ist informiert. Der zuständige Dienstleister erhält den sachlichen Vorgang zur weiteren Bearbeitung.'
-        : needsReview
-          ? 'Die Hausverwaltung / Objektsteuerung ist informiert. Die Meldung wird geprüft und anschließend der zuständigen Stelle zugeordnet.'
-          : 'Die Hausverwaltung / Objektsteuerung ist informiert und veranlasst die weitere Bearbeitung.';
-      wrap.innerHTML=`<div class="public-report-success"><strong>Vielen Dank. Ihre Meldung wurde übermittelt.</strong><div class="muted" style="margin-top:12px">${hadPhotos?'Ihre Meldung und die Fotos wurden erfolgreich gespeichert.':'Ihre Meldung wurde erfolgreich gespeichert.'}</div>${routingRows}<div style="margin-top:18px;font-weight:800">Wie geht es weiter?</div><div class="muted" style="margin-top:6px">${nextStep}</div><div style="margin-top:18px;font-weight:800">Sie müssen nichts weiter tun.</div><button class="primary public-report-submit" type="button" style="margin-top:20px" onclick="startAnotherPublicResidentReport()">Weiteres Anliegen melden</button><div class="muted" style="margin-top:14px;font-size:.92em">Ihre Kontaktdaten werden nicht an den Dienstleister weitergegeben.</div></div>`;
+      const ref=String(result?.report_no||result?.report_reference||reportId||'').trim();
+      const shortRef=ref.length>12?ref.slice(0,8).toUpperCase():ref.toUpperCase();
+      wrap.innerHTML=`<div class="public-report-success">
+        <strong>Danke. Ihre Meldung wurde aufgenommen.</strong>
+        <div class="muted" style="margin-top:10px">${hadPhotos?'Meldung und Fotos wurden erfolgreich gespeichert.':'Die Meldung wurde erfolgreich gespeichert.'}</div>
+        <div class="public-report-summary" style="text-align:left;margin-top:18px">
+          <div class="public-report-summary-row"><span>Status</span><strong>Eingegangen</strong></div>
+          <div class="public-report-summary-row"><span>Referenz</span><strong>${esc(shortRef||'Erfasst')}</strong></div>
+        </div>
+        <div style="margin-top:18px;font-weight:800">Wie geht es weiter?</div>
+        <div class="muted" style="margin-top:6px">Die Meldung wird intern geprüft und automatisch an die zuständige Stelle weitergeleitet. Sobald die Bearbeitung erfolgt, bleibt der Vorgang in der Objektplattform dokumentiert.</div>
+        <div style="margin-top:18px;font-weight:800">Sie müssen nichts weiter tun.</div>
+        <button class="primary public-report-submit" type="button" style="margin-top:20px" onclick="startAnotherPublicResidentReport()">Weiteres Anliegen melden</button>
+      </div>`;
     }
   }catch(e){
     console.error('Öffentliche Meldung fehlgeschlagen',e);
@@ -11195,6 +11364,7 @@ function findingRouteMetaHtml(f){
       </div>`:''}
     </div>`;
   }).join('');
+  refreshPublicReportSummary();
 }
 
 function refreshFindingDecisionAccess(){
