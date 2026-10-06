@@ -1912,18 +1912,6 @@ body.platform-menu-mode #organizationList{
 .ticket-actions-more>summary{cursor:pointer;display:inline-block;padding:9px 13px;border:1px solid var(--line,#294454);border-radius:12px;font-weight:700;list-style:none}.ticket-actions-more>summary::-webkit-details-marker{display:none}
 .ticket-actions-more .row{margin-top:8px}
 @media(max-width:600px){.ticket-actions>button,.ticket-actions-more .row>button{min-height:44px}.ticket-process{padding:9px 11px}}
-
-.media-load-failed{
-  display:inline-flex;
-  min-width:132px;
-  min-height:96px;
-  padding:10px;
-  border:1px dashed var(--line);
-  border-radius:10px;
-  object-fit:contain;
-  background:rgba(255,255,255,.025);
-  color:var(--muted);
-}
 </style>
 <style>
 .object-file{border:1px solid #dfe5e8;border-radius:14px;background:#fff;margin-bottom:14px;overflow:hidden}
@@ -9493,20 +9481,9 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Objektbetreuer-/Tour-/Winterdienstlogik anderer Rollen bleibt unverändert.
    - SQL 2.52 erforderlich; keine Edge-Änderung.
 */
-/* RELEASE 2.53 | BASIS 2.52 | 06.10.2026 14:39
-   DOKUMENTATION / WINTERDIENST-DARSTELLUNG
-   - Technische service_action-Codes werden in der Dokumentation fachlich übersetzt.
-   - clear_and_grit -> Räumen und Streuen.
-   - Weitere Winterdienstaktionen erhalten ebenfalls lesbare Bezeichnungen.
-   - Dokumentationsfotos werden nach jedem Rendern der Finding-Liste explizit hydriert.
-   - Dadurch bleiben cloudmedia-Bilder nach Filtern/Navigation nicht als leere Alt-Text-Flächen stehen.
-   - Bei tatsächlichem Ladefehler wird ein sauberer Hinweis statt eines kaputten Bildes angezeigt.
-   - Rollen-/Mandanten-/Objektlogik aus 2.52 unverändert.
-   - Kein SQL, keine RLS-, RPC- oder Edge-Änderung.
-*/
-const APP_VERSION='2.53';
+const APP_VERSION='2.52';
 const APP_RELEASE_DATE='06.10.2026';
-const APP_RELEASE_TIME='14:39'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='14:31'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -16717,17 +16694,7 @@ async function hydrateMediaImages(root=document){
         img.src=url;img.dataset.mediaLoaded='1';
         img.addEventListener('load',()=>setTimeout(()=>URL.revokeObjectURL(url),5000),{once:true});
       }
-    }catch(e){
-      console.error('Cloud-Bild laden fehlgeschlagen',e);
-      img.removeAttribute('src');
-      img.removeAttribute('data-photo-viewer');
-      img.removeAttribute('onclick');
-      img.removeAttribute('role');
-      img.removeAttribute('tabindex');
-      img.classList.add('media-load-failed');
-      img.alt='Foto konnte nicht geladen werden';
-      img.dataset.mediaLoaded='error';
-    }
+    }catch(e){console.error('Cloud-Bild laden fehlgeschlagen',e)}
   }
 }
 
@@ -22810,17 +22777,6 @@ function renderSelects(){
     el.value=cur;
   });
 }
-function findingActivityLabel(value){
-  const key=String(value||'').trim().toLowerCase();
-  const labels={
-    control:'Kontrollfahrt / Kontrolle',
-    grit:'Streuen',
-    clear:'Räumen',
-    clear_and_grit:'Räumen und Streuen'
-  };
-  return labels[key]||String(value||'').trim();
-}
-
 function findingCard(f){
   const type=f.type||'Feststellung';
   const before=f.beforePhoto||f.photo||'', after=f.afterPhoto||'';
@@ -22863,7 +22819,7 @@ function findingCard(f){
     ${compactProcess}
     ${f.description?`<p>${esc(f.description)}</p>`:''}
     ${(before||after)?`<div class="row" style="margin-top:10px">${before?`<div><small class="muted">${residentReportIdForFinding(f)?'Dienstleister · Arbeitsbeginn':'Vorher'}</small><br>${mediaImg(before,'Ausgangszustand','thumb')}</div>`:''}${after?`<div><small class="muted">${residentReportIdForFinding(f)?'Dienstleister · nach Ausführung':'Nachher'}</small><br>${mediaImg(after,'Nachher','thumb')}</div>`:''}</div>`:''}
-    ${type==='Leistung'&&f.activity?`<p><b>Durchgeführt:</b> ${esc(findingActivityLabel(f.activity))}</p>`:''}
+    ${type==='Leistung'&&f.activity?`<p><b>Durchgeführt:</b> ${esc(f.activity)}</p>`:''}
     ${type==='Feststellung'&&f.action?`<p><b>Empfehlung:</b> ${esc(f.action)}</p>`:''}
     ${f.status==='Erledigt'&&f.completionType?`<p><b>Abschluss:</b> ${esc(f.completionType)}${f.completionNote?' – '+esc(f.completionNote):''}</p>`:''}
     <details class="ticket-details"><summary>Details & Chronik</summary><div class="ticket-details-body">${detailMeta}${ticketTimelineForFinding(f,(db.tasks||[]).find(t=>t.findingId===f.id)||null)}</div></details>
@@ -23055,11 +23011,7 @@ function renderFindings(){
       const tb=new Date(b.updated_at||b.accepted_at||b.created_at||0).getTime()||0;
       return tb-ta;
     });
-    if(el){
-      const cards=[...pendingOwner.map(pendingAtOwnerDocumentationCard),...external.map(externalMonitoringDocumentationCard)];
-      el.innerHTML=cards.length?cards.join(''):`<div class="empty">Keine Vorgänge bei Dritten im gewählten Filter.</div>`;
-      setTimeout(()=>hydrateMediaImages(el),0);
-    }
+    if(el){const cards=[...pendingOwner.map(pendingAtOwnerDocumentationCard),...external.map(externalMonitoringDocumentationCard)];el.innerHTML=cards.length?cards.join(''):`<div class="empty">Keine Vorgänge bei Dritten im gewählten Filter.</div>`;}
     return;
   }
 
@@ -23067,10 +23019,7 @@ function renderFindings(){
   if(of)arr=arr.filter(x=>x.objectId===of);if(sf==='active')arr=arr.filter(x=>x.status!=='Erledigt');else if(sf)arr=arr.filter(x=>x.status===sf);if(df)arr=arr.filter(x=>(x.decisionStatus||'pending')===df);if(pf==='critical')arr=arr.filter(x=>['P1','P2'].includes(x.priority));else if(pf)arr=arr.filter(x=>x.priority===pf);if(tf)arr=arr.filter(x=>(x.type||'Feststellung')===tf);
   if(rf==='own')arr=arr.filter(x=>x.status!=='Erledigt'&&!findingIsOperationallyOwnedByOtherTenant(x.id));
   else if(rf==='completed')arr=arr.filter(x=>x.status==='Erledigt'||String(externalResponsibilityOrderForFinding(x.id)?.review_status||'')==='verified');
-  if(el){
-    el.innerHTML=arr.length?arr.map(f=>findingCard(f)).join(''):`<div class="empty">Keine Dokumentationen im gewählten Filter.</div>`;
-    setTimeout(()=>hydrateMediaImages(el),0);
-  }
+  if(el)el.innerHTML=arr.length?arr.map(f=>findingCard(f)).join(''):`<div class="empty">Keine Dokumentationen im gewählten Filter.</div>`;
 }
 
 let reportCustomerMode=false;
@@ -23104,7 +23053,7 @@ function customerDocCard(f){
     <h3>${esc(f.title||type)}</h3>
     ${f.area?`<div class="muted">${esc(f.area)}${f.areaDetail?' · '+esc(f.areaDetail):''}</div>`:''}
     ${f.description?`<p>${esc(f.description)}</p>`:''}
-    ${type==='Leistung'&&f.activity?`<p><b>Durchgeführte Leistung:</b> ${esc(findingActivityLabel(f.activity))}</p>`:''}
+    ${type==='Leistung'&&f.activity?`<p><b>Durchgeführte Leistung:</b> ${esc(f.activity)}</p>`:''}
     ${type==='Feststellung'&&f.action?`<p><b><span data-process-field="recommended">Empfohlene Maßnahme / nächster Schritt</span>:</b> ${esc(f.action)}</p>`:''}
     ${type==='Feststellung'?`<p><b>Entscheidung:</b> ${esc(decisionLabel(decision))}</p>`:''}
     ${completed}
