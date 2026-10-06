@@ -5104,9 +5104,9 @@ table td,table th{
       <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
-      <div class="pa-build-meta">Version <span data-app-version>2.49</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>07:01</span> Uhr</div>
+      <div class="pa-build-meta">Version <span data-app-version>2.50</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>07:39</span> Uhr</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.49</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.50</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -5253,7 +5253,7 @@ table td,table th{
     <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
-    <div class="dashboard-build-meta">Version <span data-app-version>2.49</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>07:01</span> Uhr</div>
+    <div class="dashboard-build-meta">Version <span data-app-version>2.50</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>07:39</span> Uhr</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
   </div>
 
@@ -9458,9 +9458,18 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Bild und Overlay verwenden jetzt exakt dieselbe Zeichenfläche und dasselbe Seitenverhältnis.
    - Keine SQL-, RLS- oder Edge-Änderung.
 */
-const APP_VERSION='2.49';
+/* RELEASE 2.50 | BASIS 2.49 | 06.10.2026 07:39
+   - Winterdienst: Disposition und tatsächlicher Arbeitsbeginn fachlich getrennt.
+   - Neuer Admin-Button "Einsatz auslösen" auf der Winterdiensttour.
+   - Auslösen setzt dispatched_at/dispatched_by und erzeugt eine verpflichtende E-Mail an den zugewiesenen Mitarbeiter.
+   - Neue Mail: "Winterdiensteinsatz ausgelöst – bitte ausrücken".
+   - "Einsatz starten" bleibt operative Bestätigung durch den zugewiesenen Mitarbeiter.
+   - FIX: Einsatzstart überschreibt assigned_user_id nicht mehr mit dem aktuell angemeldeten Benutzer.
+   - SQL 2.50 und Edge Function process-notification-outbox 2.50 erforderlich.
+*/
+const APP_VERSION='2.50';
 const APP_RELEASE_DATE='06.10.2026';
-const APP_RELEASE_TIME='07:01'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='07:39'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -28604,6 +28613,68 @@ async function wsCreateRun(){
     alert('Tagestour konnte nicht erzeugt werden: '+(e.message||e));
   }
 }
+
+function wsWinterRunDeepLink(runId){
+  const u=new URL(location.href);
+  u.search='';
+  u.hash='';
+  u.searchParams.set('vorgang','winter_service_run');
+  u.searchParams.set('id',String(runId||''));
+  return u.toString();
+}
+
+function wsWinterDispatchLabel(run){
+  if(!run?.dispatched_at)return '';
+  try{
+    return new Date(run.dispatched_at).toLocaleString('de-DE',{
+      day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'
+    });
+  }catch(_e){
+    return String(run.dispatched_at||'');
+  }
+}
+
+async function wsDispatchWinterRun(runId){
+  const run=(wsState.runs||[]).find(r=>String(r.id||'')===String(runId||''));
+  if(!run)return alert('Winterdiensttour nicht gefunden.');
+  if(!wsCanManageWinterRunAssignment())return alert('Nur die Disposition/Administration darf einen Einsatz auslösen.');
+  if(['completed','cancelled'].includes(String(run.status||'').toLowerCase()))return alert('Abgeschlossene oder abgebrochene Touren können nicht ausgelöst werden.');
+  if(run.dispatched_at)return alert(`Der Einsatz wurde bereits am ${wsWinterDispatchLabel(run)} ausgelöst.`);
+
+  const assignee=wsWinterUserLabel(run.assigned_user_id)||'den zugewiesenen Mitarbeiter';
+  if(!confirm(`Winterdiensteinsatz jetzt auslösen?\n\nEmpfänger: ${assignee}\n\nDer Mitarbeiter erhält den verbindlichen Auftrag zum Ausrücken per E-Mail.`))return;
+
+  try{
+    const rows=await cloudRequest('rpc/dispatch_winter_service_run_v1',{
+      method:'POST',
+      body:JSON.stringify({
+        p_run_id:run.id,
+        p_deep_link:wsWinterRunDeepLink(run.id)
+      })
+    });
+    const result=Array.isArray(rows)?rows[0]:rows;
+
+    if(!result?.delivery_created){
+      throw new Error(result?.message||'Die Einsatzmail konnte nicht in die Versandqueue eingestellt werden.');
+    }
+
+    run.dispatched_at=result.dispatched_at||new Date().toISOString();
+    run.dispatched_by=currentUserId();
+
+    showTourEmailConfirmation({
+      recipient:result.recipient_email||'',
+      reason:'Winterdiensteinsatz ausgelöst',
+      message:`Ausrückauftrag für ${result.recipient_email||assignee} wurde in die Versandqueue eingestellt.`
+    });
+
+    await loadWinterService();
+    alert(`Winterdiensteinsatz ausgelöst.\nE-Mail an ${result.recipient_email||assignee} wurde in die Versandqueue eingestellt.`);
+  }catch(e){
+    console.error('Winterdiensteinsatz konnte nicht ausgelöst werden',e);
+    alert('Winterdiensteinsatz konnte nicht ausgelöst werden: '+(e.message||e));
+  }
+}
+
 function wsRenderRuns(){
   const el=document.getElementById('wsRunList');if(!el)return;
   el.innerHTML=wsState.runs.length?wsState.runs.slice(0,10).map(r=>{
@@ -28619,6 +28690,10 @@ function wsRenderRuns(){
           <div class="muted">${wsEsc(wsStatusLabel(r.status))} · ${ex.length} Objekte · Ausgeführt von: ${wsEsc(assigneeName)}</div>
           ${fallbackNames.length?`<div class="muted" style="margin-top:3px">Fallback: ${fallbackNames.map(wsEsc).join(' · ')}</div>`:''}
         </div>
+        ${r.dispatched_at?`<span class="badge">Ausgelöst · ${wsEsc(wsWinterDispatchLabel(r))}</span>`:''}
+        ${wsCanManageWinterRunAssignment()&&!['completed','cancelled'].includes(String(r.status||'').toLowerCase())&&!r.dispatched_at
+          ?`<button type="button" class="primary" onclick="wsDispatchWinterRun('${wsEsc(r.id)}')">Einsatz auslösen</button>`
+          :''}
         ${wsCanManageWinterRunAssignment()&&!['completed','cancelled'].includes(String(r.status||'').toLowerCase())
           ?`<button type="button" onclick="wsOpenReassignRunModal('${wsEsc(r.id)}')">Vertretung / neu zuweisen</button>`
           :''}
@@ -28966,6 +29041,10 @@ function wsRunCard(r){
       </div>
       <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
         <span class="badge">${wsEsc(wsRunStatusLabel(status))}</span>
+        ${r.dispatched_at?`<span class="badge">Ausgelöst · ${wsEsc(wsWinterDispatchLabel(r))}</span>`:''}
+        ${wsCanManageWinterRunAssignment()&&!['completed','cancelled'].includes(String(r.status||'').toLowerCase())&&!r.dispatched_at
+          ?`<button type="button" class="primary" onclick="wsDispatchWinterRun('${wsEsc(r.id)}')">Einsatz auslösen</button>`
+          :''}
         ${wsCanManageWinterRunAssignment()&&!['completed','cancelled'].includes(String(r.status||'').toLowerCase())
           ?`<button type="button" onclick="wsOpenReassignRunModal('${wsEsc(r.id)}')">Vertretung / neu zuweisen</button>`
           :''}
@@ -29358,6 +29437,7 @@ async function wsOpenExecution(id){
   try{
     const x=wsState.executions.find(e=>String(e.id)===String(id));
     if(!x)throw new Error('Einsatz nicht gefunden.');
+    const run=(wsState.runs||[]).find(r=>String(r.id||'')===String(x.run_id||''))||null;
 
     wsSelectedExecutionId=String(id||'');
     const priorOpen=wsPriorOpenExecution(x);
@@ -29385,7 +29465,11 @@ async function wsOpenExecution(id){
           <strong>${wsEsc(o?.name||'Objekt')}</strong>
           <div class="muted">Tourstatus: ${wsEsc(wsStatusLabel(x.status))}</div>
         </div>
-        ${x.status==='planned'?`<button class="primary" onclick="wsStartExecution('${id}')">Einsatz starten</button>`:''}
+        ${x.status==='planned'&&run?.dispatched_at&&String(run.assigned_user_id||'')===String(currentUserId()||'')
+          ?`<button class="primary" onclick="wsStartExecution('${id}')">Einsatz starten</button>`
+          :x.status==='planned'&&!run?.dispatched_at
+            ?`<span class="badge">Noch nicht ausgelöst</span>`
+            :''}
       </div>
 
       ${x.status!=='planned'?`
@@ -29465,11 +29549,17 @@ async function wsStartExecution(id){
     const x=wsState.executions.find(e=>String(e.id)===String(id));
     if(!x)throw new Error('Einsatz nicht gefunden.');
 
+    const run=(wsState.runs||[]).find(r=>String(r.id||'')===String(x.run_id||''));
+    if(!run)throw new Error('Zugehörige Winterdiensttour nicht gefunden.');
+    if(!run.dispatched_at)throw new Error('Der Einsatz wurde von der Disposition noch nicht ausgelöst.');
+    if(String(run.assigned_user_id||'')!==String(currentUserId()||'')){
+      throw new Error('Nur der für diese Winterdiensttour zugewiesene Mitarbeiter darf den Einsatz starten.');
+    }
+
     const startedAt=new Date().toISOString();
     const payload={
       status:'active',
       started_at:startedAt,
-      assigned_user_id:currentUserId(),
       weather_snapshot_error:null
     };
 
