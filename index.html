@@ -1286,9 +1286,9 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 .ws-clearance-legend-swatch{
   width:22px;height:12px;border-radius:3px;border:2px solid currentColor;
 }
-.ws-clearance-legend-clear{color:#64bfff}
-.ws-clearance-legend-grit{color:#ffd35a}
-.ws-clearance-legend-both{color:#76e5cd}
+.ws-clearance-legend-clear{color:#00A8FF}
+.ws-clearance-legend-grit{color:#FFD400}
+.ws-clearance-legend-both{color:#00F0D0}
 .ws-clearance-mark-list{
   display:grid;
   gap:8px;
@@ -5093,9 +5093,9 @@ table td,table th{
       <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
-      <div class="pa-build-meta">Version <span data-app-version>2.47</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>06:44</span> Uhr</div>
+      <div class="pa-build-meta">Version <span data-app-version>2.48</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>06:55</span> Uhr</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.47</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.48</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -5242,7 +5242,7 @@ table td,table th{
     <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
-    <div class="dashboard-build-meta">Version <span data-app-version>2.47</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>06:44</span> Uhr</div>
+    <div class="dashboard-build-meta">Version <span data-app-version>2.48</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>06:55</span> Uhr</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
   </div>
 
@@ -9432,9 +9432,18 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Damit passt der Upload zur bestehenden Storage-RLS, die den ersten Pfadbestandteil als UUID auswertet.
    - Keine SQL-, RLS- oder Edge-Änderung.
 */
-const APP_VERSION='2.47';
+/* RELEASE 2.48 | BASIS 2.47 | 06.10.2026 06:55
+   - Räumkarten-Markierungen deutlich kontrastreicher und intensiver.
+   - Räumen: kräftiges Blau.
+   - Streuen: kräftiges Gelb.
+   - Räumen + Streuen: kräftiges Türkis.
+   - Linienbreite und Flächenfüllung erhöht für bessere Lesbarkeit auf Luftbildern.
+   - Legendenfarben synchronisiert.
+   - Keine SQL-, RLS- oder Edge-Änderung.
+*/
+const APP_VERSION='2.48';
 const APP_RELEASE_DATE='06.10.2026';
-const APP_RELEASE_TIME='06:44'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='06:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -26582,10 +26591,18 @@ function wsClearanceGeometryLabel(v){
   return ({polygon:'Fläche',line:'Linie',point:'Punkt'})[String(v||'')]||'Fläche';
 }
 function wsClearanceStroke(v){
-  return String(v)==='grit'?'#ffd35a':String(v)==='both'?'#76e5cd':'#64bfff';
+  return String(v)==='grit'
+    ?'#FFD400'
+    :String(v)==='both'
+      ?'#00F0D0'
+      :'#00A8FF';
 }
 function wsClearanceFill(v){
-  return String(v)==='grit'?'rgba(255,211,90,.17)':String(v)==='both'?'rgba(118,229,205,.17)':'rgba(100,191,255,.18)';
+  return String(v)==='grit'
+    ?'rgba(255,212,0,.38)'
+    :String(v)==='both'
+      ?'rgba(0,240,208,.38)'
+      :'rgba(0,168,255,.40)';
 }
 function wsClearanceNormPoints(points){
   return (Array.isArray(points)?points:[])
@@ -26644,7 +26661,7 @@ function wsClearanceSvg(markings,width,height,{draft=[]}={}){
       const p=points[0];
       const x=p.x*w,y=p.y*h;
       return `<g>
-        <circle cx="${x}" cy="${y}" r="${Math.max(10,Math.min(w,h)*.022)}" fill="${stroke}" stroke="#07131d" stroke-width="${Math.max(2,w/450)}"></circle>
+        <circle cx="${x}" cy="${y}" r="${Math.max(12,Math.min(w,h)*.026)}" fill="${stroke}" stroke="#07131d" stroke-width="${Math.max(3,w/360)}"></circle>
         <text x="${x}" y="${y+5}" text-anchor="middle" font-size="${Math.max(14,w/42)}" font-weight="800" fill="#07131d">${idx+1}</text>
         <title>${label}</title>
       </g>`;
@@ -26652,14 +26669,14 @@ function wsClearanceSvg(markings,width,height,{draft=[]}={}){
 
     if(m.geometry==='line' && points.length>=2){
       return `<g>
-        <polyline points="${points.map(toXY).join(' ')}" fill="none" stroke="${stroke}" stroke-width="${Math.max(7,w/120)}" stroke-linecap="round" stroke-linejoin="round" opacity=".88"></polyline>
+        <polyline points="${points.map(toXY).join(' ')}" fill="none" stroke="${stroke}" stroke-width="${Math.max(10,w/95)}" stroke-linecap="round" stroke-linejoin="round" opacity=".88"></polyline>
         <title>${label}</title>
       </g>`;
     }
 
     if(points.length>=3){
       return `<g>
-        <polygon points="${points.map(toXY).join(' ')}" fill="${fill}" stroke="${stroke}" stroke-width="${Math.max(4,w/220)}" stroke-linejoin="round"></polygon>
+        <polygon points="${points.map(toXY).join(' ')}" fill="${fill}" stroke="${stroke}" stroke-width="${Math.max(6,w/165)}" stroke-linejoin="round"></polygon>
         <title>${label}</title>
       </g>`;
     }
