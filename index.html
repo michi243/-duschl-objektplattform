@@ -1167,6 +1167,21 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 }
 
 
+
+/* === BUILD-META · 2.45 === */
+.dashboard-build-meta{
+  margin-top:8px;
+  color:#7f95a8;
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.01em;
+}
+.pa-build-meta{
+  margin-top:7px;
+  color:#8fa4b7;
+  font-size:12px;
+  font-weight:700;
+}
 /* === WINTERDIENST RÄUMKARTE · 2.26.6.44 === */
 .ws-clearance-map-card{
   margin-top:14px;
@@ -5046,8 +5061,9 @@ table td,table th{
       <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
+      <div class="pa-build-meta">Version <span data-app-version>2.45</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>06:32</span> Uhr</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version v<span data-app-version>2.20.82</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.45</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -5194,6 +5210,7 @@ table td,table th{
     <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
+    <div class="dashboard-build-meta">Version <span data-app-version>2.45</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>06:32</span> Uhr</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
   </div>
 
@@ -9363,7 +9380,17 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    EDGE: kumulativ aus 2.26.6.11.
    BACKEND: keine SQL-Änderung.
 */
-const APP_VERSION='2.26.6.44'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+/* RELEASE 2.45 | BASIS 2.26.6.44 | 06.10.2026 06:32
+   - Neue Versionierung: nur noch Release.Version.
+   - Dashboard zeigt Version sowie Datum/Uhrzeit des letzten Updates.
+   - Winterdienst-Räumkarte: iPhone-/HEIC-Bilder werden beim Import browserseitig
+     in kompatibles JPEG normalisiert und bei großen Fotos verkleinert.
+   - Storage erhält dadurch tatsächlich JPEG-Daten statt HEIC-Datei mit .jpg-Endung.
+   - Keine SQL-, RLS- oder Edge-Änderung.
+*/
+const APP_VERSION='2.45';
+const APP_RELEASE_DATE='06.10.2026';
+const APP_RELEASE_TIME='06:32'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -22256,7 +22283,15 @@ function renderObjectManagerDashboardFocus(){
   if(quick)quick.innerHTML=chips.join('');
 }
 
+
+function syncAppReleaseMeta(){
+  document.querySelectorAll('[data-app-version]').forEach(el=>{el.textContent=APP_VERSION;});
+  document.querySelectorAll('[data-app-release-date]').forEach(el=>{el.textContent=APP_RELEASE_DATE;});
+  document.querySelectorAll('[data-app-release-time]').forEach(el=>{el.textContent=APP_RELEASE_TIME;});
+}
+
 function renderDashboard(){
+  syncAppReleaseMeta();
   const greetingName=document.getElementById('dashboardGreetingName');
   if(greetingName){
     const rawName=(currentUserProfile?.full_name||cloudSession?.user?.user_metadata?.full_name||cloudSession?.user?.email||'Benutzer').trim();
@@ -26682,28 +26717,115 @@ function wsClearanceDeleteMark(id){
   wsClearanceMapEditor.markings=wsClearanceMapEditor.markings.filter(x=>String(x.id)!==String(id));
   wsClearanceEditorRender();
 }
+
+async function wsNormalizeClearanceImageFile(file){
+  if(!file)throw new Error('Keine Bilddatei ausgewählt.');
+
+  const mime=String(file.type||'').toLowerCase();
+  const name=String(file.name||'').toLowerCase();
+  const isHeic=mime.includes('heic')||mime.includes('heif')||name.endsWith('.heic')||name.endsWith('.heif');
+
+  // Für Räumkarten wird jedes Bild in JPEG normalisiert.
+  // Das verhindert insbesondere iPhone-HEIC-Dateien, die zuvor als .jpg
+  // gespeichert wurden, obwohl der Dateiinhalt weiterhin HEIC war.
+  const sourceUrl=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((resolve,reject)=>{
+      const el=new Image();
+      el.onload=()=>resolve(el);
+      el.onerror=()=>reject(new Error(
+        isHeic
+          ? 'Das iPhone-Foto konnte im Browser nicht dekodiert werden. Bitte das Foto als JPEG/PNG auswählen oder in den iPhone-Kameraeinstellungen „Maximale Kompatibilität“ verwenden.'
+          : 'Das Bild konnte nicht dekodiert werden.'
+      ));
+      el.src=sourceUrl;
+    });
+
+    const srcW=Number(img.naturalWidth||img.width||0);
+    const srcH=Number(img.naturalHeight||img.height||0);
+    if(!srcW||!srcH)throw new Error('Bildabmessungen konnten nicht ermittelt werden.');
+
+    // Große iPhone-Fotos begrenzen: ausreichend für Lage-/Räumkarten,
+    // reduziert Speicher, Uploadzeit und mobile Renderlast deutlich.
+    const maxSide=2600;
+    const scale=Math.min(1,maxSide/Math.max(srcW,srcH));
+    const width=Math.max(1,Math.round(srcW*scale));
+    const height=Math.max(1,Math.round(srcH*scale));
+
+    const canvas=document.createElement('canvas');
+    canvas.width=width;
+    canvas.height=height;
+    const ctx=canvas.getContext('2d',{alpha:false});
+    if(!ctx)throw new Error('Bildkonvertierung wird auf diesem Gerät nicht unterstützt.');
+
+    // Weißer Hintergrund verhindert transparente PNG-Flächen im JPEG.
+    ctx.fillStyle='#ffffff';
+    ctx.fillRect(0,0,width,height);
+    ctx.drawImage(img,0,0,width,height);
+
+    const jpegBlob=await new Promise((resolve,reject)=>{
+      canvas.toBlob(
+        blob=>blob?resolve(blob):reject(new Error('JPEG-Konvertierung fehlgeschlagen.')),
+        'image/jpeg',
+        .90
+      );
+    });
+
+    return {
+      blob:jpegBlob,
+      width,
+      height,
+      originalMime:mime||'unbekannt',
+      convertedFromHeic:isHeic
+    };
+  }finally{
+    URL.revokeObjectURL(sourceUrl);
+  }
+}
+
 async function wsClearanceFileSelected(input){
   const file=input?.files?.[0]||null;
   if(!file)return;
-  if(!String(file.type||'').startsWith('image/'))return alert('Bitte eine Bilddatei auswählen.');
 
-  const url=URL.createObjectURL(file);
-  const img=new Image();
-  img.onload=()=>{
-    if(wsClearanceMapEditor.imageUrl?.startsWith('blob:'))URL.revokeObjectURL(wsClearanceMapEditor.imageUrl);
+  const mime=String(file.type||'').toLowerCase();
+  const name=String(file.name||'').toLowerCase();
+  const looksLikeImage=mime.startsWith('image/')
+    || /\.(jpe?g|png|webp|heic|heif)$/i.test(name);
+  if(!looksLikeImage)return alert('Bitte eine Bilddatei auswählen.');
+
+  try{
+    const normalized=await wsNormalizeClearanceImageFile(file);
+    const jpegFile=new File(
+      [normalized.blob],
+      `raeumkarte_${Date.now()}.jpg`,
+      {type:'image/jpeg',lastModified:Date.now()}
+    );
+
+    const url=URL.createObjectURL(jpegFile);
+    if(wsClearanceMapEditor.imageUrl?.startsWith('blob:')){
+      try{URL.revokeObjectURL(wsClearanceMapEditor.imageUrl)}catch(_e){}
+    }
+
     wsClearanceMapEditor.imageUrl=url;
-    wsClearanceMapEditor.imageFile=file;
-    wsClearanceMapEditor.width=img.naturalWidth||1200;
-    wsClearanceMapEditor.height=img.naturalHeight||800;
+    wsClearanceMapEditor.imageFile=jpegFile;
+    wsClearanceMapEditor.width=normalized.width;
+    wsClearanceMapEditor.height=normalized.height;
     wsClearanceMapEditor.draftPoints=[];
+
     const el=document.getElementById('wsClearanceBaseImage');
-    if(el)el.src=url;
+    if(el){
+      el.src=url;
+      el.style.display='block';
+    }
     const empty=document.getElementById('wsClearanceEmpty');
     if(empty)empty.style.display='none';
+
     wsClearanceEditorRender();
-  };
-  img.onerror=()=>alert('Bild konnte nicht gelesen werden.');
-  img.src=url;
+  }catch(e){
+    console.error('Räumkartenbild konnte nicht verarbeitet werden',e);
+    alert('Bild konnte nicht verarbeitet werden: '+(e.message||e));
+    if(input)input.value='';
+  }
 }
 async function wsOpenClearanceMapEditor(objectId){
   try{
@@ -26749,7 +26871,7 @@ async function wsOpenClearanceMapEditor(objectId){
         <button type="button" class="primary" onclick="document.getElementById('wsClearanceFile').click()">
           ${imageRef?'Basisbild ersetzen':'Basisbild hochladen'}
         </button>
-        <input id="wsClearanceFile" type="file" accept="image/*" style="display:none" onchange="wsClearanceFileSelected(this)">
+        <input id="wsClearanceFile" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" style="display:none" onchange="wsClearanceFileSelected(this)">
         <button type="button" onclick="wsClearanceUndoPoint()">Letzten Punkt zurück</button>
         <button type="button" onclick="wsClearanceCancelDraft()">Markierung abbrechen</button>
       </div>
@@ -26842,8 +26964,7 @@ async function wsSaveClearanceMap(){
 
     if(wsClearanceMapEditor.imageFile){
       const file=wsClearanceMapEditor.imageFile;
-      const ext=String(file.type||'').includes('png')?'png':String(file.type||'').includes('webp')?'webp':'jpg';
-      const path=`winter-clearance-maps/${org}/${objectId}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+      const path=`winter-clearance-maps/${org}/${objectId}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.jpg`;
       imageRef=await cloudMediaPut(path,file);
     }
 
