@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.57</title>
+<title>Duschl Service – Objektplattform v2.58</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5189,9 +5189,9 @@ table td,table th{
       <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
-      <div class="pa-build-meta">Version <span data-app-version>2.57</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>20:03</span> Uhr</div>
+      <div class="pa-build-meta">Version <span data-app-version>2.58</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>20:30</span> Uhr</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.57</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.58</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -5338,7 +5338,7 @@ table td,table th{
     <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
-    <div class="dashboard-build-meta">Version <span data-app-version>2.57</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>20:03</span> Uhr</div>
+    <div class="dashboard-build-meta">Version <span data-app-version>2.58</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>20:30</span> Uhr</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
   </div>
 
@@ -5579,6 +5579,8 @@ table td,table th{
 <select id="decisionStatusFilter" onchange="renderDecisions()">
 <option selected="" value="pending">Offener Arbeitsvorrat</option>
 <option value="">Alle Entscheidungen</option>
+<option value="quote_requested">Angebot erwünscht</option>
+<option value="quote_sent">Angebot versendet</option>
 <option value="approved">Beauftragt</option>
 <option value="rejected">Nicht beauftragt</option>
 <option value="deferred">Zurückgestellt</option>
@@ -9668,9 +9670,19 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Keine Aufweitung auf nicht zugewiesene oder nur extern kollaborierte Objekte.
    - Keine Edge-Änderung.
 */
-const APP_VERSION='2.57';
+/* RELEASE 2.58 | BASIS 2.57 | 06.10.2026 20:30
+   ENTSCHEIDUNGSZÄHLUNG HARMONISIERT
+   - Dashboard, Hamburger-Menü und Entscheidungsseite verwenden dieselbe Definition
+     eines offenen Entscheidungsprozesses.
+   - Offen: pending, quote_requested, quote_sent, deferred, question.
+   - "Angebot erwünscht" und "Angebot versendet" zählen damit weiterhin als offen.
+   - Final: approved, rejected, thirdparty, not_required sowie abgeschlossene Zustände.
+   - Filter "Offener Arbeitsvorrat" zeigt alle offenen Entscheidungszustände.
+   - Keine Änderung an Rollen-, Objekt-, RLS-, SQL-, Winterdienst- oder Edge-Logik.
+*/
+const APP_VERSION='2.58';
 const APP_RELEASE_DATE='06.10.2026';
-const APP_RELEASE_TIME='20:03'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='20:30'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -18791,6 +18803,22 @@ const DECISION_STATUS_LABELS={
 function decisionLabel(v){
   return DECISION_STATUS_LABELS[v]||DECISION_STATUS_LABELS.pending;
 }
+
+const OPEN_DECISION_STATUSES=new Set([
+  'pending',
+  'quote_requested',
+  'quote_sent',
+  'deferred',
+  'question'
+]);
+
+function decisionStatusKey(value){
+  return String(value||'pending').trim().toLowerCase()||'pending';
+}
+
+function decisionIsOpen(value){
+  return OPEN_DECISION_STATUSES.has(decisionStatusKey(value));
+}
 function decisionMetaHtml(f){
   if(!f||!f.decisionBy||['pending','not_required'].includes(f.decisionStatus||'pending'))return '';
   const when=f.decisionAt?fmt(f.decisionAt):(f.decisionDate||'');
@@ -18854,7 +18882,7 @@ function renderDecisions(){
   const findings=(db.findings||[])
     .filter(f=>findingVisibleInCurrentTenantUI(f))
     .filter(f=>!externalFindingIds.has(String(f.id||'')) && String(f.type||'Feststellung').trim()==='Feststellung' && f.decisionRequired!==false);
-  const pending=findings.filter(f=>String(f.decisionStatus||'pending').trim()==='pending');
+  const pending=findings.filter(f=>decisionIsOpen(f.decisionStatus||f.decision_status));
 
   const reviewScope=obj.value?reviews.filter(x=>String(x.source_object_id||'')===String(obj.value)):reviews;
   const incomingDecisionScope=obj.value?incomingOrderDecisions.filter(x=>String(x.source_object_id||'')===String(obj.value)):incomingOrderDecisions;
@@ -18867,11 +18895,21 @@ function renderDecisions(){
   if(immediateEl)immediateEl.textContent=findingScope.filter(f=>f.priority==='P1').length+reviewScope.filter(x=>x.priority==='P1').length+incomingDecisionScope.filter(x=>x.priority==='P1').length+returnedDecisionScope.filter(x=>x.priority==='P1').length;
   if(urgentEl)urgentEl.textContent=findingScope.filter(f=>f.priority==='P2').length+reviewScope.filter(x=>x.priority==='P2').length+incomingDecisionScope.filter(x=>x.priority==='P2').length+returnedDecisionScope.filter(x=>x.priority==='P2').length;
   const navCount=document.getElementById('decisionNavCount');
-  if(navCount)navCount.textContent=pending.length+reviews.length+incomingOrderDecisions.length+returnedOrderDecisions.length;
+  if(navCount){
+    const totalOpenDecisions=pending.length+reviews.length+incomingOrderDecisions.length+returnedOrderDecisions.length;
+    navCount.textContent=totalOpenDecisions;
+    navCount.classList.toggle('ds-count-active',totalOpenDecisions>0);
+  }
 
   let items=findings.slice();
   if(obj.value)items=items.filter(f=>f.objectId===obj.value);
-  if(selectedStatus)items=items.filter(f=>String(f.decisionStatus||'pending').trim()===selectedStatus);
+  if(selectedStatus){
+    items=items.filter(f=>
+      selectedStatus==='pending'
+        ? decisionIsOpen(f.decisionStatus||f.decision_status)
+        : decisionStatusKey(f.decisionStatus||f.decision_status)===selectedStatus
+    );
+  }
   if(selectedPriority)items=items.filter(f=>f.priority===selectedPriority);
 
   let reviewItems=reviews.slice();
@@ -18976,7 +19014,7 @@ function renderDecisions(){
       ${f.action?`<div style="margin-top:6px"><strong>Empfehlung:</strong> ${esc(f.action)}</div>`:''}
       ${decisionMetaHtml(f)}
       <div class="row" style="margin-top:12px">
-        <button class="primary" onclick="openDecisionModal('${f.id}')">${(f.decisionStatus||'pending')==='pending'?'Entscheidung treffen':'Entscheidung bearbeiten'}</button>
+        <button class="primary" onclick="openDecisionModal('${f.id}')">${decisionStatusKey(f.decisionStatus)==='pending'?'Entscheidung treffen':'Entscheidung bearbeiten'}</button>
         <button onclick="${isCustomerRole()?`openFindingReadOnly('${f.id}')`:`openFindingModal('${f.objectId||''}','${f.inspectionId||''}','${f.id}')`}">Vorgang öffnen</button>
       </div>
     </div>`;
@@ -22898,12 +22936,13 @@ function renderDashboard(){
     residentNavCount.classList.toggle('ds-count-active',residentReportCount>0);
   }
 
-  // Offene Entscheidungen: alle sichtbaren Feststellungen, bei denen noch keine finale Entscheidung vorliegt.
-  const openFindingDecisionCount=(db.findings||[]).filter(f=>findingVisibleInCurrentTenantUI(f)).filter(f=>{
-    if(String(f.type||'Feststellung')!=='Feststellung')return false;
-    const ds=String(f.decisionStatus||f.decision_status||'').toLowerCase();
-    return !['approved','rejected','not_required','completed','closed','done'].includes(ds);
-  }).length;
+  // Offene Entscheidungen: zentrale Statusdefinition wie auf der Entscheidungsseite.
+  const openFindingDecisionCount=(db.findings||[])
+    .filter(f=>findingVisibleInCurrentTenantUI(f))
+    .filter(f=>String(f.type||'Feststellung')==='Feststellung')
+    .filter(f=>f.decisionRequired!==false)
+    .filter(f=>decisionIsOpen(f.decisionStatus||f.decision_status))
+    .length;
   const openDecisionCount=openFindingDecisionCount+pendingExternalReviewOrders().length+pendingIncomingExternalOrderDecisions().length+returnedExternalOrderDecisions().length;
   const decisionKpi=document.getElementById('kpiDecisions');
   if(decisionKpi)decisionKpi.textContent=openDecisionCount;
