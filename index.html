@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.54</title>
+<title>Duschl Service – Objektplattform v2.55</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5116,9 +5116,9 @@ table td,table th{
       <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
-      <div class="pa-build-meta">Version <span data-app-version>2.52</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>14:31</span> Uhr</div>
+      <div class="pa-build-meta">Version <span data-app-version>2.55</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>15:21</span> Uhr</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.52</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.55</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -5265,7 +5265,7 @@ table td,table th{
     <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
-    <div class="dashboard-build-meta">Version <span data-app-version>2.52</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>14:31</span> Uhr</div>
+    <div class="dashboard-build-meta">Version <span data-app-version>2.55</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>15:21</span> Uhr</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
   </div>
 
@@ -5695,15 +5695,67 @@ table td,table th{
 </div>
 </section>
 <section class="section" id="platformUsers">
-<div class="card">
-  <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
+  <div class="pa-dashboard-head">
     <div>
-      <h2 style="margin:0">Benutzer</h2>
-      <div class="muted" style="margin-top:6px">Plattformweite Benutzerverwaltung.</div>
+      <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
+      <h2 class="pa-title">Benutzer</h2>
+      <div class="pa-subtitle">Mandantenübergreifende Übersicht aller Benutzer und ihrer Rollen.</div>
     </div>
-    <button onclick="showSection('dashboard')">Zurück zum Dashboard</button>
+    <button type="button" onclick="showSection('dashboard')">Zurück zum Dashboard</button>
   </div>
-</div>
+
+  <div class="pa-kpi-grid" style="margin-top:16px">
+    <div class="pa-kpi-card pa-kpi-blue">
+      <div class="pa-kpi-icon">♙</div>
+      <div class="pa-kpi-label">Aktiv</div>
+      <div class="pa-kpi-value" id="platformUsersActiveCount">0</div>
+      <div class="pa-kpi-sub">aktive Benutzer</div>
+    </div>
+    <div class="pa-kpi-card">
+      <div class="pa-kpi-icon">◎</div>
+      <div class="pa-kpi-label">Inaktiv</div>
+      <div class="pa-kpi-value" id="platformUsersInactiveCount">0</div>
+      <div class="pa-kpi-sub">inaktive Benutzer</div>
+    </div>
+    <div class="pa-kpi-card">
+      <div class="pa-kpi-icon">▦</div>
+      <div class="pa-kpi-label">Mandanten</div>
+      <div class="pa-kpi-value" id="platformUsersTenantCount">0</div>
+      <div class="pa-kpi-sub">mit Benutzerzuordnung</div>
+    </div>
+  </div>
+
+  <div class="pa-panel" style="margin-top:16px">
+    <div class="pa-panel-head">
+      <div>
+        <div class="pa-panel-title"><span class="pa-panel-icon">♙</span>Benutzerübersicht</div>
+        <div class="pa-panel-sub">Ein Benutzer kann mehreren Mandanten mit unterschiedlichen Rollen zugeordnet sein.</div>
+      </div>
+      <button class="pa-refresh-btn" type="button" onclick="loadPlatformUsersDashboard()">↻ Aktualisieren</button>
+    </div>
+
+    <div class="row" style="gap:10px;flex-wrap:wrap;margin-top:14px">
+      <label style="flex:1;min-width:220px">Suche
+        <input id="platformUsersSearch" type="search" placeholder="Name oder E-Mail" oninput="renderPlatformUsersDashboard()">
+      </label>
+      <label style="min-width:240px">Mandant
+        <select id="platformUsersTenantFilter" onchange="renderPlatformUsersDashboard()">
+          <option value="">Alle Mandanten</option>
+        </select>
+      </label>
+      <label style="min-width:180px">Status
+        <select id="platformUsersStatusFilter" onchange="renderPlatformUsersDashboard()">
+          <option value="">Alle</option>
+          <option value="active">Aktiv</option>
+          <option value="inactive">Inaktiv</option>
+        </select>
+      </label>
+    </div>
+
+    <div id="platformUsersList" style="margin-top:16px">
+      <div class="empty">Benutzer werden geladen …</div>
+    </div>
+  </div>
 </section>
 
 <section class="section" id="users">
@@ -9515,9 +9567,18 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Rollen-/Mandanten-/Objektlogik aus 2.52 sowie Foto-/Label-Fix 2.53 bleiben erhalten.
    - Kein SQL, keine RLS-, RPC- oder Edge-Änderung.
 */
-const APP_VERSION='2.54';
+/* RELEASE 2.55 | BASIS 2.54 | 06.10.2026 15:21
+   PLATTFORM-BENUTZER-DASHBOARD
+   - KPI "Benutzer" öffnet wieder eine vollständige plattformweite Benutzerübersicht.
+   - Benutzer werden mit Mandant, Mandantenrolle und Aktivstatus angezeigt.
+   - Suche und Mandantenfilter ergänzt.
+   - Direkter Sprung in die Benutzerverwaltung des jeweiligen Mandanten.
+   - Keine Änderung an Rollen-, Objekt-, Winterdienst-, Touren-, RLS- oder Edge-Logik.
+   - Kein SQL erforderlich.
+*/
+const APP_VERSION='2.55';
 const APP_RELEASE_DATE='06.10.2026';
-const APP_RELEASE_TIME='15:01'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='15:21'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -17028,13 +17089,135 @@ function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt
 function objectName(id){return db.objects.find(x=>x.id===id)?.name||'—'}
 function inspectionName(id){const i=db.inspections.find(x=>x.id===id);return i?`${objectName(i.objectId)} · ${fmt(i.startedAt)}`:'—'}
 
-function openPlatformUsers(){
+function platformUserDashboardRows(){
+  const profiles=(platformOrganizationProfiles||[]).filter(p=>!p.deleted_at);
+  const profileById=new Map(profiles.map(p=>[String(p.id),p]));
+  const orgById=new Map((cloudOrganizations||[]).map(o=>[String(o.id),o]));
+
+  return (platformOrganizationMemberships||[])
+    .map(m=>{
+      const p=profileById.get(String(m.user_id));
+      const org=orgById.get(String(m.organization_id));
+      if(!p||!org)return null;
+      return {
+        user_id:p.id,
+        full_name:p.full_name||'',
+        email:p.email||'',
+        active:p.active!==false,
+        organization_id:org.id,
+        organization_name:org.name||'Mandant',
+        organization_active:org.active!==false,
+        role:String(m.role||'')
+      };
+    })
+    .filter(Boolean);
+}
+
+function renderPlatformUsersDashboard(){
+  const list=document.getElementById('platformUsersList');
+  if(!list)return;
+
+  const allRows=platformUserDashboardRows();
+  const uniqueProfiles=new Map();
+  allRows.forEach(r=>{
+    const current=uniqueProfiles.get(String(r.user_id));
+    if(!current)uniqueProfiles.set(String(r.user_id),{active:r.active});
+  });
+  const activeCount=[...uniqueProfiles.values()].filter(x=>x.active).length;
+  const inactiveCount=[...uniqueProfiles.values()].filter(x=>!x.active).length;
+  const tenantCount=new Set(allRows.map(r=>String(r.organization_id))).size;
+
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=String(v);};
+  set('platformUsersActiveCount',activeCount);
+  set('platformUsersInactiveCount',inactiveCount);
+  set('platformUsersTenantCount',tenantCount);
+
+  const tenantFilter=document.getElementById('platformUsersTenantFilter');
+  if(tenantFilter){
+    const keep=tenantFilter.value;
+    const orgs=(cloudOrganizations||[])
+      .slice()
+      .sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'de'));
+    tenantFilter.innerHTML='<option value="">Alle Mandanten</option>'+
+      orgs.map(o=>`<option value="${esc(o.id)}">${esc(o.name||'Mandant')}${o.active===false?' · inaktiv':''}</option>`).join('');
+    if(keep&&orgs.some(o=>String(o.id)===String(keep)))tenantFilter.value=keep;
+  }
+
+  const q=String(document.getElementById('platformUsersSearch')?.value||'').trim().toLowerCase();
+  const orgId=String(document.getElementById('platformUsersTenantFilter')?.value||'');
+  const status=String(document.getElementById('platformUsersStatusFilter')?.value||'');
+
+  let rows=allRows.filter(r=>{
+    if(q&&!`${r.full_name} ${r.email}`.toLowerCase().includes(q))return false;
+    if(orgId&&String(r.organization_id)!==orgId)return false;
+    if(status==='active'&&!r.active)return false;
+    if(status==='inactive'&&r.active)return false;
+    return true;
+  });
+
+  rows.sort((a,b)=>
+    String(a.organization_name||'').localeCompare(String(b.organization_name||''),'de') ||
+    String(a.full_name||a.email||'').localeCompare(String(b.full_name||b.email||''),'de')
+  );
+
+  if(!rows.length){
+    list.innerHTML='<div class="empty">Keine Benutzer im gewählten Filter.</div>';
+    return;
+  }
+
+  list.innerHTML=rows.map(r=>`
+    <div class="card" style="margin-bottom:10px">
+      <div class="row space" style="gap:12px;align-items:flex-start;flex-wrap:wrap">
+        <div style="min-width:0;flex:1">
+          <div style="font-weight:800;font-size:17px">${esc(r.full_name||r.email||'Benutzer')}</div>
+          <div class="muted" style="margin-top:4px">${esc(r.email||'')}</div>
+          <div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap">
+            <span class="badge">${esc(r.organization_name)}</span>
+            <span class="badge">${esc(roleLabel(r.role))}</span>
+            <span class="badge">${r.active?'Aktiv':'Inaktiv'}</span>
+          </div>
+        </div>
+        <button type="button" onclick="openPlatformTenantUser('${esc(r.organization_id)}','${esc(r.user_id)}')">
+          Im Mandanten verwalten
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function loadPlatformUsersDashboard(){
+  if(!isAdminRole() || isPlatformTenantMode())return;
+  const list=document.getElementById('platformUsersList');
+  if(list)list.innerHTML='<div class="empty">Benutzer werden geladen …</div>';
+  try{
+    await cloudLoadOrganizations();
+    renderPlatformUsersDashboard();
+  }catch(e){
+    console.error('Plattform-Benutzerübersicht konnte nicht geladen werden',e);
+    if(list)list.innerHTML=`<div class="empty">Benutzer konnten nicht geladen werden: ${esc(e?.message||e)}</div>`;
+  }
+}
+
+async function openPlatformTenantUser(orgId,userId){
+  if(!isAdminRole())return requireAdminUI('Plattform-Benutzer');
+  await enterPlatformTenantMode(orgId);
+  showSection('users');
+  await loadUserAdminData();
+  const select=document.getElementById('userAdminSelect');
+  if(select && [...select.options].some(o=>String(o.value)===String(userId))){
+    select.value=String(userId);
+    loadUserAdminEditor();
+  }
+}
+
+async function openPlatformUsers(){
   if(!isAdminRole())return requireAdminUI('Plattform-Benutzer');
   if(isPlatformTenantMode()){
     alert('Diese Funktion ist nur in der globalen Plattformverwaltung verfügbar. Bitte zuerst den Mandantenmodus verlassen.');
     return;
   }
   showSection('platformUsers');
+  await loadPlatformUsersDashboard();
 }
 
 
@@ -18409,7 +18592,7 @@ function showSection(id){
   [...document.querySelectorAll('nav button')].find(b=>b.getAttribute('onclick')?.includes(`'${id}'`))?.classList.add('primary');
   document.querySelectorAll('#platformBottomNav [data-pa-nav]').forEach(b=>b.classList.toggle('active',b.getAttribute('data-pa-nav')===id));
   if(id==='objects'){renderObjectsDirect();try{renderObjects();}catch(e){console.error('Detail-Renderer Objektseite fehlgeschlagen',e);}}
-  if(id==='platformUsers' && isAdminRole() && !isPlatformTenantMode()){refreshPlatformOrphanUserCard();}
+  if(id==='platformUsers' && isAdminRole() && !isPlatformTenantMode()){renderPlatformUsersDashboard();}
   if(id==='dashboard'&&isAdminRole()){loadPlatformSystemStatus();}if(id==='processStandards'){psLoad();}if(id==='operatingResources'){loadOperatingResources();}if(id==='resourcePlanning'){loadResourcePlanning();}if(id==='partnerDirectory'){loadPartnerDirectory();}if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='externalOrders')cloudLoadExternalOrders();if(id==='users')loadUserAdminData();if(id==='winterService'){wsApplyWinterServiceViewMode();loadWinterService();}
   dsUpdateBackButton();
 }
