@@ -1322,11 +1322,22 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
   margin-top:14px;
 }
 .ws-clearance-map-execution .ws-clearance-map-stage{
-  max-height:68vh;
+  width:100%;
+  max-height:none;
 }
 .ws-clearance-map-execution .ws-clearance-map-stage img{
-  max-height:68vh;
-  object-fit:contain;
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  max-height:none;
+  object-fit:fill;
+}
+.ws-clearance-map-execution .ws-clearance-map-stage svg{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
 }
 .ws-clearance-map-open-btn{
   margin-top:10px;
@@ -5093,9 +5104,9 @@ table td,table th{
       <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
-      <div class="pa-build-meta">Version <span data-app-version>2.48</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>06:55</span> Uhr</div>
+      <div class="pa-build-meta">Version <span data-app-version>2.49</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>07:01</span> Uhr</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.48</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.49</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -5242,7 +5253,7 @@ table td,table th{
     <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
-    <div class="dashboard-build-meta">Version <span data-app-version>2.48</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>06:55</span> Uhr</div>
+    <div class="dashboard-build-meta">Version <span data-app-version>2.49</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>07:01</span> Uhr</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
   </div>
 
@@ -9441,9 +9452,15 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Legendenfarben synchronisiert.
    - Keine SQL-, RLS- oder Edge-Änderung.
 */
-const APP_VERSION='2.48';
+/* RELEASE 2.49 | BASIS 2.48 | 06.10.2026 07:01
+   - Räumkarte: Positionsversatz der Markierungen in der Einsatzansicht behoben.
+   - Ursache war eine unterschiedliche Skalierung von Basisbild und SVG-Overlay durch max-height/object-fit.
+   - Bild und Overlay verwenden jetzt exakt dieselbe Zeichenfläche und dasselbe Seitenverhältnis.
+   - Keine SQL-, RLS- oder Edge-Änderung.
+*/
+const APP_VERSION='2.49';
 const APP_RELEASE_DATE='06.10.2026';
-const APP_RELEASE_TIME='06:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='07:01'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -26702,6 +26719,7 @@ function wsClearanceEditorRender(){
   const h=Math.max(1,wsClearanceMapEditor.height||700);
   stage.style.aspectRatio=`${w}/${h}`;
   svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
+  svg.setAttribute('preserveAspectRatio','xMidYMid meet');
   svg.innerHTML=wsClearanceSvg(wsClearanceMapEditor.markings,w,h,{draft:wsClearanceMapEditor.draftPoints});
 
   const geometry=document.getElementById('wsClearanceGeometry')?.value||'polygon';
@@ -27155,7 +27173,7 @@ function wsClearanceReadonlyHtml(row,imageUrl){
 
     <div class="ws-clearance-map-stage is-readonly" style="aspect-ratio:${w}/${h};margin-top:12px">
       <img src="${esc(imageUrl)}" alt="Räumkarte">
-      <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${wsClearanceSvg(marks,w,h)}</svg>
+      <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet">${wsClearanceSvg(marks,w,h)}</svg>
     </div>
 
     <div class="ws-clearance-map-legend">
