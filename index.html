@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.87</title>
+<title>Duschl Service – Objektplattform v2.88</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1323,8 +1323,8 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
   width:22px;height:12px;border-radius:3px;border:2px solid currentColor;
 }
 .ws-clearance-legend-clear{color:#00A8FF}
-.ws-clearance-legend-grit{color:#FFD400}
-.ws-clearance-legend-both{color:#00F0D0}
+.ws-clearance-legend-grit{color:#00F0D0}
+.ws-clearance-legend-both{color:#FFD400}
 .ws-clearance-mark-list{
   display:grid;
   gap:8px;
@@ -5267,6 +5267,7 @@ table td,table th{
 </style>
 
 
+<!-- RELEASE 2.88 · Räumkarte Farblogik: Streuen = Türkis, Räumen + Streuen = Gelb. Rein visuelle Änderung; Datenmodell, Rollen, RLS und Backend unverändert. -->
 <!-- RELEASE 2.87 · Winterdashboard Statusfarben Fix: CSS aus Export-Template in echten Dokument-Head verschoben -->
 <style id="release-2-85-winter-dashboard">
 /* ===== RELEASE 2.85 · WINTERDIENST DASHBOARD ENTSCHEIDUNGSORIENTIERT ===== */
@@ -10107,7 +10108,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='2.87';
+const APP_VERSION='2.88';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -27855,16 +27856,16 @@ function wsClearanceGeometryLabel(v){
 }
 function wsClearanceStroke(v){
   return String(v)==='grit'
-    ?'#FFD400'
+    ?'#00F0D0'
     :String(v)==='both'
-      ?'#00F0D0'
+      ?'#FFD400'
       :'#00A8FF';
 }
 function wsClearanceFill(v){
   return String(v)==='grit'
-    ?'rgba(255,212,0,.38)'
+    ?'rgba(0,240,208,.38)'
     :String(v)==='both'
-      ?'rgba(0,240,208,.38)'
+      ?'rgba(255,212,0,.38)'
       :'rgba(0,168,255,.40)';
 }
 function wsClearanceNormPoints(points){
