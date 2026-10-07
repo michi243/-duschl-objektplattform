@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.69</title>
+<title>Duschl Service – Objektplattform v2.70</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5354,9 +5354,9 @@ table td,table th{
       <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
-      <div class="pa-build-meta">Version <span data-app-version>2.69</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>11:29</span> Uhr</div>
+      <div class="pa-build-meta">Version <span data-app-version>2.70</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>11:38</span> Uhr</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.69</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.70</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -5503,7 +5503,7 @@ table td,table th{
     <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
-    <div class="dashboard-build-meta">Version <span data-app-version>2.69</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>11:29</span> Uhr</div>
+    <div class="dashboard-build-meta">Version <span data-app-version>2.70</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>11:38</span> Uhr</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
   </div>
 
@@ -6891,6 +6891,14 @@ WINTERDIENST RÄUMKARTE
       </details>
       <div class="row" style="margin-top:10px"><button class="primary" type="button" onclick="wsCreateRun()">Tagestour vorbereiten</button></div>
       <div class="muted" style="margin-top:6px">Danach wird der Einsatz separat ausgelöst. Erst dann erhält der Mitarbeiter den verbindlichen Ausrückauftrag.</div>
+      <div class="card" style="padding:10px;margin-top:10px">
+        <strong>Automatische Wetterkommunikation</strong>
+        <div class="muted" style="margin-top:4px">
+          Bei aktiver Bereitschaft erhält der Stamm-Mitarbeiter ereignisgesteuerte Wetterupdates:
+          Verschärfung, Entspannung und bei anhaltender gelber/roter Lage ein Statusupdate.
+          Nach „Einsatz auslösen“ endet die Vorwarnphase und der verbindliche Ausrückauftrag übernimmt.
+        </div>
+      </div>
       <div id="wsRunList" style="margin-top:12px"></div>
     </div>
   </div>
@@ -9863,9 +9871,9 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Filter "Offener Arbeitsvorrat" zeigt alle offenen Entscheidungszustände.
    - Keine Änderung an Rollen-, Objekt-, RLS-, SQL-, Winterdienst- oder Edge-Logik.
 */
-const APP_VERSION='2.69';
+const APP_VERSION='2.70';
 const APP_RELEASE_DATE='07.10.2026';
-const APP_RELEASE_TIME='11:29'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='11:38'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
