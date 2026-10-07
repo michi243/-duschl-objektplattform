@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.62</title>
+<title>Duschl Service – Objektplattform v2.63</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5354,9 +5354,9 @@ body.property-manager-ui #kpiExternalMonitoringCard.is-disabled{
       <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
-      <div class="pa-build-meta">Version <span data-app-version>2.62</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>08:32</span> Uhr</div>
+      <div class="pa-build-meta">Version <span data-app-version>2.63</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>08:37</span> Uhr</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.62</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.63</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -5503,7 +5503,7 @@ body.property-manager-ui #kpiExternalMonitoringCard.is-disabled{
     <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
-    <div class="dashboard-build-meta">Version <span data-app-version>2.62</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>08:32</span> Uhr</div>
+    <div class="dashboard-build-meta">Version <span data-app-version>2.63</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>08:37</span> Uhr</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
   </div>
 
@@ -9877,18 +9877,19 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Bewohner-Statusmails 2.60, Dashboard 2.59 und Entscheidungslogik 2.58 unverändert.
    - Kein SQL, keine Edge-Änderung.
 */
-/* RELEASE 2.62 | BASIS 2.61 | 07.10.2026 08:32
-   LOGIN-FEHLER URSÄCHLICH GETRENNT
-   - Erfolgreich geladenes Profil darf bei nachgelagertem Datenladefehler NICHT mehr verworfen werden.
-   - Authentifizierung/Profilinitialisierung und Plattform-/Mandantendaten laden sind getrennte Fehlerdomänen.
-   - platform_admin wird nach erfolgreichem Profil-Laden sofort als Plattform-Admin angezeigt.
-   - Fehler in cloudReloadObjects()/Storage/Organisationen führen nur zu Datenlade-Warnung, nicht zu leerer Navigation.
-   - Session wird nur bei echtem Auth-/Profilfehler zurückgesetzt.
-   - 2.60 Bewohner-Statusmails bleiben unverändert; kein SQL/Edge erforderlich.
+/* RELEASE 2.63 | BASIS 2.61 | 07.10.2026 08:37
+   LOGIN-STABILISIERUNG OHNE BLOCKIERENDES LOGIN-GATE
+   - Auth-Gate wird nach erfolgreicher Supabase-Authentifizierung sofort geschlossen.
+   - Profil-Laden erhält ein hartes Timeout; "Anmeldung läuft …" kann nicht endlos stehen bleiben.
+   - Erfolgreich geladenes Profil/Rolle bleibt auch bei nachgelagerten Datenfehlern erhalten.
+   - Platform Admin startet weiterhin global ohne Membership (Fix 2.61 bleibt erhalten).
+   - Fehler beim Datenladen führen nur zu Warnstatus, nicht zu Rollenverlust.
+   - Bewohner-Statusmails 2.60 bleiben unverändert.
+   - Kein SQL, keine Edge-Änderung.
 */
-const APP_VERSION='2.62';
+const APP_VERSION='2.63';
 const APP_RELEASE_DATE='07.10.2026';
-const APP_RELEASE_TIME='08:32'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='08:37'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -12330,6 +12331,16 @@ function cloudSetStatus(text,state='wait'){
   if(t)t.textContent=text;
   if(d){d.className='cloud-dot '+state}
 }
+function withTimeout(promise,ms,label='Vorgang'){
+  let timer=null;
+  return Promise.race([
+    promise,
+    new Promise((_,reject)=>{
+      timer=setTimeout(()=>reject(new Error(`${label} dauert zu lange. Bitte erneut versuchen.`)),ms);
+    })
+  ]).finally(()=>{if(timer)clearTimeout(timer);});
+}
+
 function cloudAuthMessage(text,isError=false){
   const e=document.getElementById('authMessage');if(!e)return;
   e.textContent=text||'';e.style.color=isError?'#ff8b91':'';
@@ -12392,31 +12403,65 @@ async function cloudEnsureFreshSession(bufferSeconds=30){
 async function cloudLogin(){
   const email=document.getElementById('authEmail')?.value.trim();
   const password=document.getElementById('authPassword')?.value||'';
-  if(!email||!password)return cloudAuthMessage('E-Mail und Passwort eingeben.',true);
+
+  if(!email||!password){
+    return cloudAuthMessage('E-Mail und Passwort eingeben.',true);
+  }
 
   cloudAuthMessage('Anmeldung läuft …');
 
   try{
-    const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`,{
-      method:'POST',
-      headers:cloudPublicHeaders(),
-      body:JSON.stringify({email,password})
-    });
+    const authResponse=await withTimeout(
+      fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`,{
+        method:'POST',
+        headers:cloudPublicHeaders(),
+        body:JSON.stringify({email,password})
+      }),
+      15000,
+      'Anmeldung'
+    );
 
-    if(!r.ok)throw new Error('Anmeldung fehlgeschlagen.');
+    if(!authResponse.ok){
+      throw new Error('Anmeldung fehlgeschlagen.');
+    }
 
-    const s=await r.json();
-    cloudStoreSession(s);
+    const session=await authResponse.json();
+    cloudStoreSession(session);
 
     /*
-     * 2.62:
-     * Erst Profil/Rolle authoritative laden.
-     * Nur ein Fehler HIER macht den Login unvollständig.
+     * Gate nach erfolgreicher Authentifizierung sofort schließen.
+     * Die UI darf nicht durch nachgelagerte Profil-/Datenaufrufe blockieren.
      */
-    await cloudLoadCurrentProfile();
-
     cloudShowGate(false);
     cloudAuthMessage('');
+
+    try{
+      await withTimeout(
+        cloudLoadCurrentProfile(),
+        15000,
+        'Profil laden'
+      );
+    }catch(profileError){
+      console.error('Profilinitialisierung fehlgeschlagen',profileError);
+
+      currentUserProfile=null;
+      currentUserRole='';
+      currentUserMemberships=[];
+      currentOrganizationMembership=null;
+      currentOrganization=null;
+      platformTenantModeOrgId='';
+      platformTenantModeOrganization=null;
+      platformTenantModeEnteredAt=null;
+
+      applyRoleUI();
+      cloudSetStatus('Profil konnte nicht geladen werden','bad');
+      cloudShowGate(true);
+      cloudAuthMessage(
+        'Profil konnte nicht geladen werden: '+(profileError?.message||profileError),
+        true
+      );
+      return;
+    }
 
     if(mustChangePassword()){
       showPasswordChangeGate();
@@ -12424,28 +12469,23 @@ async function cloudLogin(){
     }
 
     /*
-     * Platform Admin ist ab jetzt bereits vollständig angemeldet.
-     * Datenmodule dürfen diesen Zustand nicht mehr zurücksetzen.
+     * Ab hier ist die Anmeldung fachlich erfolgreich.
+     * Datenladefehler dürfen Rolle/Navigation nicht zurücksetzen.
      */
     applyRoleUI();
-    if(isPlatformOperatorRole()&&!isPlatformTenantMode()){
-      showSection('dashboard');
-    }
 
     try{
       await cloudReloadObjects();
     }catch(dataError){
       console.error('Nachgelagerte Dateninitialisierung fehlgeschlagen',dataError);
       cloudSetStatus('Angemeldet · Daten konnten nicht vollständig geladen werden','bad');
-      if(isPlatformOperatorRole()&&!isPlatformTenantMode()){
-        applyRoleUI();
-        showSection('dashboard');
-      }
+      applyRoleUI();
     }
 
-  }catch(e){
-    console.error('Anmeldung / Profilinitialisierung fehlgeschlagen',e);
+  }catch(authError){
+    console.error('Authentifizierung fehlgeschlagen',authError);
 
+    cloudStoreSession(null);
     currentUserProfile=null;
     currentUserRole='';
     currentUserMemberships=[];
@@ -12456,12 +12496,9 @@ async function cloudLogin(){
     platformTenantModeEnteredAt=null;
 
     applyRoleUI();
-    cloudSetStatus('Anmeldung unvollständig','bad');
+    cloudSetStatus('Nicht angemeldet','bad');
     cloudShowGate(true);
-    cloudAuthMessage(
-      'Profil konnte nicht geladen werden: '+(e?.message||'Anmeldung fehlgeschlagen.'),
-      true
-    );
+    cloudAuthMessage(authError?.message||'Anmeldung fehlgeschlagen.',true);
   }
 }
 async function cloudLogout(){
@@ -17067,19 +17104,34 @@ async function bootCloud(){
   }
 
   /*
-   * 2.62:
-   * Profilinitialisierung separat behandeln.
-   * Ein nachgelagerter Datenfehler darf Rolle/Navigation nicht mehr löschen.
+   * Eine gespeicherte gültige Session darf das Login-Gate nicht blockierend
+   * über der Anwendung stehen lassen.
    */
+  cloudShowGate(false);
+
   try{
-    await cloudLoadCurrentProfile();
+    await withTimeout(
+      cloudLoadCurrentProfile(),
+      15000,
+      'Profil laden'
+    );
   }catch(firstProfileError){
     console.warn('Profilinitialisierung mit gespeicherter Sitzung fehlgeschlagen',firstProfileError);
 
     try{
-      const ok=await cloudRefreshSession();
+      const ok=await withTimeout(
+        cloudRefreshSession(),
+        15000,
+        'Sitzung erneuern'
+      );
+
       if(!ok)throw firstProfileError;
-      await cloudLoadCurrentProfile();
+
+      await withTimeout(
+        cloudLoadCurrentProfile(),
+        15000,
+        'Profil laden'
+      );
     }catch(profileError){
       console.error('Profilinitialisierung nach Session-Refresh fehlgeschlagen',profileError);
 
@@ -17095,12 +17147,13 @@ async function bootCloud(){
       applyRoleUI();
       cloudSetStatus('Profil konnte nicht geladen werden','bad');
       cloudShowGate(true);
-      cloudAuthMessage('Profil konnte nicht geladen werden: '+(profileError?.message||profileError),true);
+      cloudAuthMessage(
+        'Profil konnte nicht geladen werden: '+(profileError?.message||profileError),
+        true
+      );
       return;
     }
   }
-
-  cloudShowGate(false);
 
   if(mustChangePassword()){
     showPasswordChangeGate();
@@ -17109,24 +17162,12 @@ async function bootCloud(){
 
   applyRoleUI();
 
-  if(isPlatformOperatorRole()&&!isPlatformTenantMode()){
-    showSection('dashboard');
-  }
-
   try{
     await cloudReloadObjects();
   }catch(dataError){
     console.error('Dateninitialisierung nach erfolgreichem Login fehlgeschlagen',dataError);
     cloudSetStatus('Angemeldet · Daten konnten nicht vollständig geladen werden','bad');
-
-    /*
-     * Profil/Rolle bleiben authoritative erhalten.
-     */
     applyRoleUI();
-
-    if(isPlatformOperatorRole()&&!isPlatformTenantMode()){
-      showSection('dashboard');
-    }
   }
 }
 
