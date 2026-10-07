@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.74</title>
+<title>Duschl Service – Objektplattform v2.75</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5354,9 +5354,9 @@ table td,table th{
       <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
-      <div class="pa-build-meta">Version <span data-app-version>2.74</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>14:03</span> Uhr</div>
+      <div class="pa-build-meta">Version <span data-app-version>2.75</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>14:20</span> Uhr</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.74</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.75</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -5503,7 +5503,7 @@ table td,table th{
     <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
-    <div class="dashboard-build-meta">Version <span data-app-version>2.74</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>14:03</span> Uhr</div>
+    <div class="dashboard-build-meta">Version <span data-app-version>2.75</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>14:20</span> Uhr</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
   </div>
 
@@ -9871,9 +9871,9 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Filter "Offener Arbeitsvorrat" zeigt alle offenen Entscheidungszustände.
    - Keine Änderung an Rollen-, Objekt-, RLS-, SQL-, Winterdienst- oder Edge-Logik.
 */
-const APP_VERSION='2.74';
+const APP_VERSION='2.75';
 const APP_RELEASE_DATE='07.10.2026';
-const APP_RELEASE_TIME='14:03'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='14:20'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -11607,10 +11607,24 @@ function userIsAssignedToObject(objectId){
   return ids.has(String(objectId||''));
 }
 
+function currentUserObjectRole(objectId){
+  const row=(db.objectAssignments||[]).find(a=>
+    a.active!==false &&
+    String(a.userId||a.user_id||'')===String(currentUserId()||'') &&
+    String(a.objectId||a.object_id||'')===String(objectId||'')
+  );
+  return String(row?.object_role||'');
+}
+
 function canViewObjectStandardsUI(objectId){
-  // 2.74: Objektrollen erhalten objektbezogene Standards ausschließlich lesend.
-  // Mandantenweite Prozesse-&-Standards-Administration bleibt unverändert geschützt.
-  return slTenantAdmin() || userIsAssignedToObject(objectId);
+  // 2.75:
+  // - Administration behält Vollzugriff.
+  // - Rolle "Verwaltung" erhält objektbezogenen Nur-Lese-Zugriff ausschließlich
+  //   bei persönlicher Objektverantwortung (object_responsible).
+  return slTenantAdmin() || (
+    isPropertyManagerRole() &&
+    currentUserObjectRole(objectId)==='object_responsible'
+  );
 }
 
 function canEditObjectServicesUI(objectId){
@@ -23369,7 +23383,7 @@ function renderObjects(){
             ${!o.externalManaged&&!isCustomerRole()?`<button onclick="openObjectQrCode('${esc(o.id)}')">QR-Code</button>`:''}
             ${!o.externalManaged&&canManageObjectsUI()?`<button onclick="openObjectAreasModal('${esc(o.id)}')">Einheiten &amp; Bereiche</button><button onclick="openObjectServicesModal('${esc(o.id)}')">Leistungen &amp; Standards</button><button onclick="openObjectModal('${esc(o.id)}')">Objekt bearbeiten</button>`:''}
             ${o.externalManaged&&slTenantAdmin()?`<button onclick="openObjectServicesModal('${esc(o.id)}')">Leistungen &amp; Standards</button>`:''}
-            ${!slTenantAdmin()&&userIsAssignedToObject(o.id)?`<button onclick="openObjectServicesModal('${esc(o.id)}')">SOPs &amp; Standards</button>`:''}
+            ${!slTenantAdmin()&&canViewObjectStandardsUI(o.id)?`<button onclick="openObjectServicesModal('${esc(o.id)}')">SOPs &amp; Standards</button>`:''}
             <button onclick="showObjectReport('${esc(o.id)}')">Bericht</button>
             ${o.externalManaged?`<button onclick="showSection('externalOrders')">Externe Aufträge</button>`:''}
           </div>
@@ -27251,6 +27265,72 @@ async function osaLoad(){
   const serviceIds=[...new Set((osaState.assignments||[]).map(x=>String(x.service_type_id||'')).filter(Boolean))];
   await Promise.all(serviceIds.map(id=>osaLoadInheritedStandards(id)));
 }
+async function osaLoadObjectReadOnlyForPropertyManager(objectId){
+  const oid=String(objectId||'');
+  const org=currentOrganizationId();
+  if(!oid||!org)return;
+
+  const rows=await cloudRequest('rpc/property_manager_get_object_services_v1',{
+    method:'POST',
+    body:JSON.stringify({
+      p_organization_id:org,
+      p_object_id:oid
+    })
+  })||[];
+
+  osaState.assignments=(Array.isArray(rows)?rows:[]).map(r=>({
+    id:r.assignment_id,
+    organization_id:r.organization_id,
+    object_id:r.object_id,
+    service_type_id:r.service_type_id,
+    process_type:r.process_type,
+    valid_from:r.valid_from,
+    valid_until:r.valid_until,
+    note:r.note,
+    active:r.active!==false
+  }));
+
+  osaState.services=(Array.isArray(rows)?rows:[]).map(r=>({
+    id:r.service_type_id,
+    organization_id:r.organization_id,
+    name:r.service_name,
+    active:true
+  }));
+
+  osaState.requirements=[];
+  osaState.standardsByService={};
+}
+
+async function osaLoadInheritedStandardsForObjectReadOnly(objectId,serviceTypeId,{force=false}={}){
+  const oid=String(objectId||'');
+  const sid=String(serviceTypeId||'');
+  if(!oid||!sid)return [];
+
+  if(!force&&Object.prototype.hasOwnProperty.call(osaState.standardsByService,sid)){
+    return osaState.standardsByService[sid]||[];
+  }
+
+  try{
+    const rows=await cloudRequest('rpc/property_manager_get_object_process_standards_v1',{
+      method:'POST',
+      body:JSON.stringify({
+        p_organization_id:currentOrganizationId(),
+        p_object_id:oid,
+        p_service_type_id:sid
+      })
+    });
+    const normalized=typeof psRuntimeNormalizeRows==='function'
+      ? psRuntimeNormalizeRows(rows)
+      : [];
+    osaState.standardsByService[sid]=normalized;
+  }catch(e){
+    console.warn('Objektbezogene Standards konnten für Verwaltung nicht geladen werden',sid,e);
+    osaState.standardsByService[sid]=[];
+  }
+
+  return osaState.standardsByService[sid];
+}
+
 async function osaLoadInheritedStandards(serviceTypeId,{force=false}={}){
   const sid=String(serviceTypeId||'');if(!sid)return [];
   if(!force&&Object.prototype.hasOwnProperty.call(osaState.standardsByService,sid))return osaState.standardsByService[sid]||[];
@@ -27284,9 +27364,12 @@ function osaInheritedBadges(serviceTypeId){
     <span class="badge">${c.resources} Betriebsmittelbedarf${c.resources===1?'':'e'}</span>
   </div>`;
 }
-async function osaOpenInheritedStandards(serviceTypeId,title='Prozesse & Standards'){
+async function osaOpenInheritedStandards(serviceTypeId,title='Prozesse & Standards',objectId=''){
   const sid=String(serviceTypeId||'');if(!sid)return;
-  const rows=await osaLoadInheritedStandards(sid,{force:true});
+  const oid=String(objectId||'');
+  const rows=(oid && isPropertyManagerRole())
+    ? await osaLoadInheritedStandardsForObjectReadOnly(oid,sid,{force:true})
+    : await osaLoadInheritedStandards(sid,{force:true});
   if(!rows.length)return alert('Für diese Leistungsart sind noch keine freigegebenen strukturierten Standards hinterlegt.');
   if(typeof psRuntimeState!=='undefined'&&typeof psRuntimeServiceKey==='function'){
     const key=psRuntimeServiceKey(currentOrganizationId(),sid);
@@ -28053,11 +28136,15 @@ async function openObjectServicesModal(objectId){
     const canView=canViewObjectStandardsUI(objectId);
     const canEdit=canEditObjectServicesUI(objectId);
     if(!canView)return alert('Keine Berechtigung für die Standards dieses Objekts.');
-    await Promise.all([
-      osaLoad(),
-      cloudLoadObjectCollaborationScopes(),
-      cloudLoadServiceScopeCatalog()
-    ]);
+    if(canEdit){
+      await Promise.all([
+        osaLoad(),
+        cloudLoadObjectCollaborationScopes(),
+        cloudLoadServiceScopeCatalog()
+      ]);
+    }else{
+      await osaLoadObjectReadOnlyForPropertyManager(objectId);
+    }
     const obj=(db.objects||[]).find(o=>String(o.id)===String(objectId));
     if(!obj)throw new Error('Objekt nicht gefunden.');
     let modal=document.getElementById('objectServicesModal');
@@ -28068,7 +28155,11 @@ async function openObjectServicesModal(objectId){
     }
     const rows=osaState.assignments.filter(x=>String(x.object_id)===String(objectId));
     const allowedServices=osaExternalAllowedServices(obj);
-    await Promise.all(rows.map(a=>osaLoadInheritedStandards(a.service_type_id)));
+    await Promise.all(rows.map(a=>
+      canEdit
+        ? osaLoadInheritedStandards(a.service_type_id)
+        : osaLoadInheritedStandardsForObjectReadOnly(objectId,a.service_type_id)
+    ));
     const rowHtml=rows.map(a=>{
       const st=osaState.services.find(x=>String(x.id)===String(a.service_type_id));
       const process=a.process_type==='winter_service'?'Winterdienst-Fachprozess':'Touren & Einsätze';
@@ -28081,7 +28172,7 @@ async function openObjectServicesModal(objectId){
             <strong>${esc(st?.name||'Leistung')} · aktiv</strong>
             <div class="muted" style="margin-top:3px">${esc(process)} · Source of Truth: Leistungsart</div>
           </div>
-          ${hasStandards?`<button type="button" onclick="osaOpenInheritedStandards('${esc(a.service_type_id)}','${esc(st?.name||'Leistung')} · Prozesse & Standards')">Standards anzeigen</button>`:''}
+          ${hasStandards?`<button type="button" onclick="osaOpenInheritedStandards('${esc(a.service_type_id)}','${esc(st?.name||'Leistung')} · Prozesse & Standards','${canEdit?'':esc(objectId)}')">Standards anzeigen</button>`:''}
         </div>
         <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:9px">
           <span class="badge">${c.sop} SOP</span>
