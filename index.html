@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.72</title>
+<title>Duschl Service – Objektplattform v2.74</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5354,9 +5354,9 @@ table td,table th{
       <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
-      <div class="pa-build-meta">Version <span data-app-version>2.72</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>12:26</span> Uhr</div>
+      <div class="pa-build-meta">Version <span data-app-version>2.74</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>14:03</span> Uhr</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.72</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.74</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -5503,7 +5503,7 @@ table td,table th{
     <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
-    <div class="dashboard-build-meta">Version <span data-app-version>2.72</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>12:26</span> Uhr</div>
+    <div class="dashboard-build-meta">Version <span data-app-version>2.74</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>14:03</span> Uhr</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
   </div>
 
@@ -6017,8 +6017,8 @@ table td,table th{
       <select id="newUserRole">
 <option value="tenant_admin">Mandanten-Admin</option>
 <option value="admin_delegate">Admin-Vertretung</option>
-<option value="property_manager">Verwalter</option>
-<option value="object_manager">Objektbetreuer</option>
+<option value="property_manager">Verwaltung</option>
+<option value="object_manager">Objektbetreuung</option>
 <option value="customer">Auftraggeber</option>
 <option value="external_contractor">Externer Auftragnehmer</option>
 </select>
@@ -9871,9 +9871,9 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Filter "Offener Arbeitsvorrat" zeigt alle offenen Entscheidungszustände.
    - Keine Änderung an Rollen-, Objekt-, RLS-, SQL-, Winterdienst- oder Edge-Logik.
 */
-const APP_VERSION='2.72';
+const APP_VERSION='2.74';
 const APP_RELEASE_DATE='07.10.2026';
-const APP_RELEASE_TIME='12:26'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='14:03'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -11411,14 +11411,14 @@ function orgReadEnabledModules(){
 const ROLE_LABELS={
   platform_admin:'Plattform-Admin',
   platform_admin_delegate:'Plattform-Admin-Vertretung',
-  staff:'Objektbetreuer (Legacy)',
-  object_manager:'Objektbetreuer',
+  staff:'Objektbetreuung (Legacy)',
+  object_manager:'Objektbetreuung',
   employee:'Mitarbeiter (Alt)',
   customer:'Auftraggeber',
   test_user:'Testbenutzer (Legacy)',
   external_contractor:'Externer Auftragnehmer',
   tenant_admin:'Mandanten-Admin',
-  property_manager:'Verwalter',
+  property_manager:'Verwaltung',
   admin_delegate:'Admin-Vertretung'
 };
 function roleLabel(role){
@@ -11606,6 +11606,16 @@ function userIsAssignedToObject(objectId){
   const ids=assignedObjectIdsForCurrentUser();
   return ids.has(String(objectId||''));
 }
+
+function canViewObjectStandardsUI(objectId){
+  // 2.74: Objektrollen erhalten objektbezogene Standards ausschließlich lesend.
+  // Mandantenweite Prozesse-&-Standards-Administration bleibt unverändert geschützt.
+  return slTenantAdmin() || userIsAssignedToObject(objectId);
+}
+
+function canEditObjectServicesUI(objectId){
+  return slTenantAdmin();
+}
 function profileDisplayName(uid){
   if(!uid)return '';
   const pools=[
@@ -11632,7 +11642,7 @@ function objectResponsibilityForWorkOrder(order){
   );
   if(internal){
     const uid=internal.userId||internal.user_id;
-    return {id:uid,name:profileDisplayName(uid)||'Objektbetreuer',source:'object'};
+    return {id:uid,name:profileDisplayName(uid)||'Objektbetreuung',source:'object'};
   }
 
   const collab=(cloudObjectCollaborations||[]).find(c=>
@@ -11650,7 +11660,7 @@ function objectResponsibilityForWorkOrder(order){
       const uid=shared.user_id||shared.id;
       return {
         id:uid,
-        name:shared.display_name||shared.full_name||shared.email||profileDisplayName(uid)||'Objektbetreuer',
+        name:shared.display_name||shared.full_name||shared.email||profileDisplayName(uid)||'Objektbetreuung',
         source:'object'
       };
     }
@@ -11659,7 +11669,7 @@ function objectResponsibilityForWorkOrder(order){
   if(order.assigned_user_id){
     return {
       id:order.assigned_user_id,
-      name:profileDisplayName(order.assigned_user_id)||'Objektbetreuer',
+      name:profileDisplayName(order.assigned_user_id)||'Objektbetreuung',
       source:'legacy_order'
     };
   }
@@ -13570,7 +13580,7 @@ function renderObjectCollaborations(){
       const partnerCode=incoming?(c.owner_public_code||''):(c.service_public_code||'');
       const assignee=c.assigned_user_name||'';const status=c.status||'active';
       const requested=c.requested_at?new Date(c.requested_at).toLocaleString('de-DE'):'—';
-      const actions=hasOperationalAdminAccess()?(incoming?(status==='pending'?`<div class="row" style="margin-top:10px"><button class="primary" onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',true)">Annehmen</button><button onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',false)">Ablehnen</button></div>`:(status==='active'?`<div class="row" style="margin-top:10px"><button onclick="openSharedObjectAssignmentModal('${esc(c.collaboration_id)}')">${assignee?'Zuweisung ändern':'Objektbetreuer zuweisen'}</button></div>`:'')):(status==='pending'?`<div class="row" style="margin-top:10px"><button class="danger" onclick="cancelObjectCollaboration('${esc(c.collaboration_id)}','pending')">Anfrage zurückziehen</button></div>`:(status==='active'?`<div class="row" style="margin-top:10px"><button class="danger" onclick="cancelObjectCollaboration('${esc(c.collaboration_id)}','active')">Zugriff beenden</button></div>`:''))):'';
+      const actions=hasOperationalAdminAccess()?(incoming?(status==='pending'?`<div class="row" style="margin-top:10px"><button class="primary" onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',true)">Annehmen</button><button onclick="respondObjectCollaboration('${esc(c.collaboration_id)}',false)">Ablehnen</button></div>`:(status==='active'?`<div class="row" style="margin-top:10px"><button onclick="openSharedObjectAssignmentModal('${esc(c.collaboration_id)}')">${assignee?'Zuweisung ändern':'Objektbetreuung zuweisen'}</button></div>`:'')):(status==='pending'?`<div class="row" style="margin-top:10px"><button class="danger" onclick="cancelObjectCollaboration('${esc(c.collaboration_id)}','pending')">Anfrage zurückziehen</button></div>`:(status==='active'?`<div class="row" style="margin-top:10px"><button class="danger" onclick="cancelObjectCollaboration('${esc(c.collaboration_id)}','active')">Zugriff beenden</button></div>`:''))):'';
       return `<div class="card" style="margin:8px 0"><div class="row space"><div><span class="badge">${incoming?'Wir betreuen':'Betreuung vergeben an'}</span> <strong>${esc(c.object_name||'Objekt')}</strong></div><span class="badge">${esc(statusLabel(status))}</span></div><div class="muted" style="margin-top:7px">${esc(partner)}${partnerCode?` · Mandanten-ID <strong>${esc(partnerCode)}</strong>`:''}${c.object_address?' · '+esc(c.object_address):''}</div><div class="muted" style="margin-top:5px">Angefragt: ${esc(requested)}</div><div style="margin-top:7px"><strong>Leistungsumfänge:</strong><div style="margin-top:5px">${collaborationScopesHtml(c)}</div></div>${assignee?`<div class="muted" style="margin-top:6px">Verantwortlich: <strong>${esc(assignee)}</strong></div>`:''}${actions}</div>`;
     }).join('');
   }
@@ -13755,8 +13765,8 @@ async function openSharedObjectAssignmentModal(collaborationId){
   const c=cloudObjectCollaborations.find(x=>x.collaboration_id===collaborationId);if(!c)return;
   const assignableUsers=await loadAssignableUsersForCurrentTenant();
   cloudSharedObjectAssignees=assignableUsers;
-  const options=assignableUsers.map(a=>`<option value="${esc(a.user_id)}" ${a.user_id===c.assigned_user_id?'selected':''}>${esc(a.display_name||a.email||'Objektbetreuer')}</option>`).join('');
-  document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Betreutes Objekt zuweisen</h2><p class="muted">Nur der zugewiesene Objektbetreuer erhält das extern betreute Objekt in seinem Objektbestand.</p><label>Objektbetreuer</label><select id="socAssignee"><option value="">Nicht zugewiesen</option>${options}</select><div class="modal-actions"><button class="primary" onclick="saveSharedObjectAssignment('${esc(collaborationId)}')">Speichern</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
+  const options=assignableUsers.map(a=>`<option value="${esc(a.user_id)}" ${a.user_id===c.assigned_user_id?'selected':''}>${esc(a.display_name||a.email||'Objektbetreuung')}</option>`).join('');
+  document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Betreutes Objekt zuweisen</h2><p class="muted">Nur die zugewiesene Objektbetreuung erhält das extern betreute Objekt im persönlichen Objektbestand.</p><label>Objektbetreuung</label><select id="socAssignee"><option value="">Nicht zugewiesen</option>${options}</select><div class="modal-actions"><button class="primary" onclick="saveSharedObjectAssignment('${esc(collaborationId)}')">Speichern</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
 }
 
 async function openInternalObjectAssignmentModal(objectId){
@@ -13782,9 +13792,9 @@ async function openInternalObjectAssignmentModal(objectId){
       </span>
       <select class="internal-object-role" data-user-id="${esc(u.user_id)}" style="min-width:220px">
         <option value="" ${!role?'selected':''}>Keine Objektrolle</option>
-        <option value="object_operator" ${role==='object_operator'?'selected':''}>Objektbetreuer · operativ</option>
+        <option value="object_operator" ${role==='object_operator'?'selected':''}>Objektbetreuung · operativ</option>
         <option value="object_deputy" ${role==='object_deputy'?'selected':''}>Objektvertretung</option>
-        <option value="object_responsible" ${role==='object_responsible'?'selected':''}>Objektverantwortlich · administrativ</option>
+        <option value="object_responsible" ${role==='object_responsible'?'selected':''}>Objektverantwortung · administrativ</option>
       </select>
     </div>`;
   }).join('');
@@ -13792,7 +13802,7 @@ async function openInternalObjectAssignmentModal(objectId){
   const root=document.getElementById('modalRoot');
   root.innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark">
     <h2>Objektrollen vergeben</h2>
-    <p class="muted">Die Objektrolle ist unabhängig von der Mandantenrolle. Ein Mandanten-Admin kann deshalb zusätzlich als Objektverantwortlicher geführt werden.</p>
+    <p class="muted">Die Objektrolle ist unabhängig von der Mandantenrolle. Ein Mandanten-Admin kann deshalb zusätzlich die Objektverantwortung für konkrete Objekte übernehmen.</p>
     <div class="user-message-recipient-box">${options||'<div class="muted">Keine aktiven zuweisbaren Benutzer vorhanden.</div>'}</div>
     <div class="modal-actions">
       <button class="primary" onclick="saveInternalObjectAssignments('${esc(objectId)}')">Speichern</button>
@@ -13867,7 +13877,7 @@ function workQueueVisibilityForObject(objectId,order=null){
     seen.add(key);
     rows.push({
       id,
-      name:display||'Objektbetreuer',
+      name:display||'Objektbetreuung',
       role:String(role||'object_operator'),
       source:String(source||'object')
     });
@@ -13957,8 +13967,8 @@ function workQueueVisibilityForObject(objectId,order=null){
 
 function workQueueResponsibilityRoleLabel(role){
   return ({
-    object_operator:'Objektbetreuer · operativ',
-    object_responsible:'Objektverantwortlich',
+    object_operator:'Objektbetreuung · operativ',
+    object_responsible:'Objektverantwortung',
     object_deputy:'Objektvertretung'
   })[String(role||'')]||'Objektzuordnung';
 }
@@ -13980,7 +13990,7 @@ function workQueueVisibilityHtml(users, options={}){
     <span>Sichtbar im Arbeitsvorrat für</span>
     <div class="ds-queue-viewers">
       ${list.map(u=>`<div class="ds-queue-viewer">
-        <strong>${esc(u.name||'Objektbetreuer')}</strong>
+        <strong>${esc(u.name||'Objektbetreuung')}</strong>
         <small>${esc(workQueueResponsibilityRoleLabel(u.role))}${orgName?` · ${esc(orgName)}`:''}</small>
       </div>`).join('')}
     </div>
@@ -14707,7 +14717,7 @@ function renderExternalOrders(){
     const residentOrigin=externalOrderIsResidentOrigin(x);
     const residentAuto=externalOrderIsAutoResidentRoute(x);
     const residentTriage=residentAuto&&x.status==='requested';
-    const adminActions=isIn&&hasOperationalAdminAccess()?`<div class="row" style="margin-top:10px;gap:8px">${residentTriage?`<button class="primary" onclick="triageResidentReportOrder('${esc(x.id)}','within_scope')">Im Leistungsumfang</button><button onclick="triageResidentReportOrder('${esc(x.id)}','outside_scope')">Nicht im Leistungsumfang</button>`:x.status==='requested'?`<button class="primary" onclick="updateExternalOrderStatus('${esc(x.id)}','accepted')">Annehmen</button><button onclick="updateExternalOrderStatus('${esc(x.id)}','rejected')">Ablehnen</button>`:''}${['accepted','in_progress'].includes(x.status)?`<button class="primary" onclick="openExternalOrderDocumentation('${esc(x.id)}')">Bearbeiten / Dokumentieren</button>`:''}${['accepted','in_progress'].includes(x.status)&&x.subcontracting_allowed!==false?`<button onclick="openSubcontractOrderModal('${esc(x.id)}')">Weitervergeben</button>`:''}<button onclick="openExternalOrderAssignmentModal('${esc(x.id)}')">${x.assigned_user_id?'Zuweisung ändern':'Objektbetreuer zuweisen'}</button></div>`:'';
+    const adminActions=isIn&&hasOperationalAdminAccess()?`<div class="row" style="margin-top:10px;gap:8px">${residentTriage?`<button class="primary" onclick="triageResidentReportOrder('${esc(x.id)}','within_scope')">Im Leistungsumfang</button><button onclick="triageResidentReportOrder('${esc(x.id)}','outside_scope')">Nicht im Leistungsumfang</button>`:x.status==='requested'?`<button class="primary" onclick="updateExternalOrderStatus('${esc(x.id)}','accepted')">Annehmen</button><button onclick="updateExternalOrderStatus('${esc(x.id)}','rejected')">Ablehnen</button>`:''}${['accepted','in_progress'].includes(x.status)?`<button class="primary" onclick="openExternalOrderDocumentation('${esc(x.id)}')">Bearbeiten / Dokumentieren</button>`:''}${['accepted','in_progress'].includes(x.status)&&x.subcontracting_allowed!==false?`<button onclick="openSubcontractOrderModal('${esc(x.id)}')">Weitervergeben</button>`:''}<button onclick="openExternalOrderAssignmentModal('${esc(x.id)}')">${x.assigned_user_id?'Zuweisung ändern':'Objektbetreuung zuweisen'}</button></div>`:'';
     const operationalActions=isIn&&!hasOperationalAdminAccess()&&canOperateExternalOrder(x)&&['accepted','in_progress'].includes(String(x.status||''))?`<div class="row" style="margin-top:10px;gap:8px"><button class="primary" onclick="openExternalOrderDocumentation('${esc(x.id)}')">Bearbeiten / Dokumentieren</button></div>`:'';
     const reviewActions=canReviewExternalOrder(x)?`<div class="row" style="margin-top:10px;gap:8px"><button class="primary" onclick="reviewExternalOrder('${esc(x.id)}','verified')">Abschluss bestätigen</button><button onclick="reviewExternalOrder('${esc(x.id)}','rework_required')">Nacharbeit erforderlich</button></div>`:'';
     const actions=adminActions||operationalActions||reviewActions;
@@ -14890,8 +14900,8 @@ async function openExternalOrderAssignmentModal(id){
   const order=cloudExternalOrders.find(x=>x.id===id);if(!order)return;
   const assignableUsers=await loadAssignableUsersForCurrentTenant();
   cloudExternalOrderAssignees=assignableUsers;
-  const options=assignableUsers.map(a=>`<option value="${esc(a.user_id)}" ${a.user_id===order.assigned_user_id?'selected':''}>${esc(a.display_name||a.email||'Objektbetreuer')}</option>`).join('');
-  const root=document.getElementById('modalRoot');root.innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Objektbetreuer zuweisen</h2><p class="muted">Der Mitarbeiter sieht den externen Auftrag erst nach dieser Zuweisung.</p><label>Verantwortlich</label><select id="ewoAssignee"><option value="">Nicht zugewiesen</option>${options}</select><div class="modal-actions"><button class="primary" onclick="saveExternalOrderAssignment('${esc(id)}')">Speichern</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
+  const options=assignableUsers.map(a=>`<option value="${esc(a.user_id)}" ${a.user_id===order.assigned_user_id?'selected':''}>${esc(a.display_name||a.email||'Objektbetreuung')}</option>`).join('');
+  const root=document.getElementById('modalRoot');root.innerHTML=`<div class="modal-backdrop"><div class="modal-dialog-dark"><h2>Objektbetreuung zuweisen</h2><p class="muted">Der Mitarbeiter sieht den externen Auftrag erst nach dieser Zuweisung.</p><label>Verantwortlich</label><select id="ewoAssignee"><option value="">Nicht zugewiesen</option>${options}</select><div class="modal-actions"><button class="primary" onclick="saveExternalOrderAssignment('${esc(id)}')">Speichern</button><button onclick="closeModal()">Abbrechen</button></div></div></div>`;
 }
 async function saveExternalOrderAssignment(id){
   const userId=document.getElementById('ewoAssignee')?.value||null;
@@ -20293,7 +20303,7 @@ function loadUserAdminEditor(){
       .filter(a=>String(a.user_id)===String(uid))
       .map(a=>[String(a.object_id),a])
   );
-  const roles=[['tenant_admin','Mandanten-Admin'],['admin_delegate','Admin-Vertretung'],['property_manager','Verwalter'],['object_manager','Objektbetreuer'],['external_contractor','Externer Auftragnehmer'],['customer','Auftraggeber']];
+  const roles=[['tenant_admin','Mandanten-Admin'],['admin_delegate','Admin-Vertretung'],['property_manager','Verwaltung'],['object_manager','Objektbetreuung'],['external_contractor','Externer Auftragnehmer'],['customer','Auftraggeber']];
   const allowedRoles=isAdminDelegate()?roles.filter(([v])=>!['tenant_admin','admin_delegate'].includes(v)):roles;
   const roleOptions=allowedRoles.map(([v,l])=>`<option value="${v}" ${membership?.role===v?'selected':''}>${l}</option>`).join('');
   const ownObjects=(db.objects||[]).filter(o=>!o.externalManaged&&(!orgId||o.organizationId===orgId));
@@ -20389,7 +20399,7 @@ function loadUserAdminEditor(){
             <option value="" ${!currentRole?'selected':''}>Keine Objektrolle</option>
             <option value="object_operator" ${currentRole==='object_operator'?'selected':''}>Objektbetreuer · operativ</option>
             <option value="object_deputy" ${currentRole==='object_deputy'?'selected':''}>Objektvertretung</option>
-            <option value="object_responsible" ${currentRole==='object_responsible'?'selected':''}>Objektverantwortlich · administrativ</option>
+            <option value="object_responsible" ${currentRole==='object_responsible'?'selected':''}>Objektverantwortung · administrativ</option>
           </select>
         </label>
       </div>
@@ -20420,7 +20430,7 @@ function loadUserAdminEditor(){
   <p class="muted">Qualifikationen steuern, für welche operativen Leistungen dieser Benutzer eingesetzt werden kann. Sie verändern keine Systemrolle und keine Objektberechtigung.</p>
   <div>${qualificationRows}</div>
   <h3 style="margin-top:18px">Objektrollen & Objektzugriffe</h3>
-  <p class="muted">Mandantenrolle und Objektrolle sind unabhängig. Auch ein Mandanten-Admin kann zusätzlich für konkrete Objekte als „Objektverantwortlich“ geführt werden.</p>
+  <p class="muted">Mandantenrolle und Objektrolle sind unabhängig. Auch ein Mandanten-Admin kann zusätzlich für konkrete Objekte mit „Objektverantwortung“ geführt werden.</p>
   <div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px">
   <button onclick="saveUserAdminPermissions()">Speichern</button>
   ${canResetUserPasswordUI()?'<button onclick="resetSelectedUserInitialPassword()">Initialpasswort erzeugen</button>':''}
@@ -23117,8 +23127,7 @@ function renderDashboard(){
   const greetingName=document.getElementById('dashboardGreetingName');
   if(greetingName){
     const rawName=(currentUserProfile?.full_name||cloudSession?.user?.user_metadata?.full_name||cloudSession?.user?.email||'Benutzer').trim();
-    const firstName=rawName.includes('@')?rawName:rawName.split(/\s+/)[0];
-    greetingName.textContent=firstName||'Benutzer';
+    greetingName.textContent=rawName||'Benutzer';
   }
   renderGlobalPlatformMessages();
   renderDashboardMessages();
@@ -23360,6 +23369,7 @@ function renderObjects(){
             ${!o.externalManaged&&!isCustomerRole()?`<button onclick="openObjectQrCode('${esc(o.id)}')">QR-Code</button>`:''}
             ${!o.externalManaged&&canManageObjectsUI()?`<button onclick="openObjectAreasModal('${esc(o.id)}')">Einheiten &amp; Bereiche</button><button onclick="openObjectServicesModal('${esc(o.id)}')">Leistungen &amp; Standards</button><button onclick="openObjectModal('${esc(o.id)}')">Objekt bearbeiten</button>`:''}
             ${o.externalManaged&&slTenantAdmin()?`<button onclick="openObjectServicesModal('${esc(o.id)}')">Leistungen &amp; Standards</button>`:''}
+            ${!slTenantAdmin()&&userIsAssignedToObject(o.id)?`<button onclick="openObjectServicesModal('${esc(o.id)}')">SOPs &amp; Standards</button>`:''}
             <button onclick="showObjectReport('${esc(o.id)}')">Bericht</button>
             ${o.externalManaged?`<button onclick="showSection('externalOrders')">Externe Aufträge</button>`:''}
           </div>
@@ -28040,7 +28050,9 @@ async function wsLoadClearanceMapForExecution(objectId){
 
 async function openObjectServicesModal(objectId){
   try{
-    if(!slTenantAdmin())return alert('Keine Administrationsberechtigung.');
+    const canView=canViewObjectStandardsUI(objectId);
+    const canEdit=canEditObjectServicesUI(objectId);
+    if(!canView)return alert('Keine Berechtigung für die Standards dieses Objekts.');
     await Promise.all([
       osaLoad(),
       cloudLoadObjectCollaborationScopes(),
@@ -28079,10 +28091,10 @@ async function openObjectServicesModal(objectId){
         </div>
         ${a.note?`<div style="margin-top:9px"><strong>Objektspezifische Ausnahme / Hinweis</strong><div class="muted" style="margin-top:3px">${esc(a.note)}</div></div>`:''}
         <div class="muted" style="margin-top:8px">Standards werden zentral gepflegt und nicht am Objekt kopiert.</div>
-        <div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">
-          ${a.process_type==='winter_service'?`<button type="button" class="primary" onclick="wsOpenClearanceMapEditor('${esc(objectId)}')">Räumkarte</button>`:''}
+        ${canEdit?`<div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">
+          ${a.process_type==='winter_service'?`<button type="button" class="primary" onclick="wsOpenClearanceMapEditor('${esc(objectId)}')">Räumkarte bearbeiten</button>`:''}
           <button class="danger" onclick="osaDeactivate('${esc(a.id)}','${esc(objectId)}')">Leistung beenden</button>
-        </div>
+        </div>`:''}
       </div>`;
     }).join('')||'<div class="empty">Noch keine Leistung zugeordnet.</div>';
     modal.innerHTML=`<div class="modal-content osa-modal-content">
@@ -28090,7 +28102,7 @@ async function openObjectServicesModal(objectId){
         <div class="row space" style="gap:12px;align-items:flex-start">
           <div style="min-width:0">
             <h2 style="margin:0">Leistungen &amp; Standards</h2>
-            <div class="muted">${esc(obj.name||'Objekt')} · zentrale Objekt-Leistungssteuerung</div>
+            <div class="muted">${esc(obj.name||'Objekt')} · ${canEdit?'zentrale Objekt-Leistungssteuerung':'freigegebene Standards · nur lesen'}</div>
           </div>
           <button type="button" onclick="document.getElementById('objectServicesModal').style.display='none'">Schließen</button>
         </div>
@@ -28100,8 +28112,9 @@ async function openObjectServicesModal(objectId){
           <strong>Vererbungslogik</strong>
           <div class="muted" style="margin-top:5px">Objekt → Leistungsart → SOP → Arbeitsanweisungen → Checklisten → Betriebsmittelbedarf. Am Objekt werden ausschließlich beauftragte Leistungen und objektspezifische Abweichungen gepflegt.</div>
         </div>
+        ${!canEdit?`<div class="card" style="padding:10px;margin-bottom:12px"><strong>Nur-Lese-Zugriff</strong><div class="muted" style="margin-top:4px">Sie sehen ausschließlich die für dieses Objekt aktiven und freigegebenen Standards. Änderungen und Freigaben erfolgen zentral.</div></div>`:''}
         <div>${rowHtml}</div>
-        <div class="card" style="margin-top:14px">
+        ${canEdit?`<div class="card" style="margin-top:14px">
           <h3>Leistung zuordnen</h3>
           <div class="grid2">
             <label>Leistungsart<select id="osaService" onchange="osaServiceChanged()"><option value="">Vorhandene Leistungsart wählen …</option>${allowedServices.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select></label>
@@ -28113,7 +28126,7 @@ async function openObjectServicesModal(objectId){
           ${osaUsesExternalScopeFilter(obj)?`<div class="muted" style="margin-top:6px"><strong>Externe Betreuung:</strong> Es sind ausschließlich Leistungen auswählbar, die vom Auftraggeber für diesen Mandanten freigegeben wurden. Freigegeben: ${esc(osaExternalScopeLabel(obj)||'—')}</div>`:''}
           <div class="muted" style="margin-top:6px">Winterdienst wird automatisch dem spezialisierten Winterdienst-Prozess zugeordnet. Andere Leistungen laufen über Touren &amp; Einsätze.</div>
           <div class="row" style="margin-top:10px"><button class="primary" onclick="osaSave('${esc(objectId)}')">Leistung zuordnen</button></div>
-        </div>
+        </div>`:''}
       </div>
     </div>`;
     modal.style.display='flex';
@@ -34158,6 +34171,50 @@ async function psToggleActive(){const id=document.getElementById('psId')?.value;
   }
 
   window.addEventListener('pageshow',dsSyncPropertyManagerDashboardV266);
+})();
+</script>
+
+
+<script id="neutral-role-label-sync-v274">
+(function(){
+  function desiredNeutralHeaderRoleV274(){
+    try{
+      const role=typeof effectiveUserRole==='function'
+        ? String(effectiveUserRole()||'')
+        : '';
+      if(typeof isPropertyManagerRole==='function' && isPropertyManagerRole())return 'Verwaltung';
+      if(role==='object_manager' || role==='staff')return 'Objektbetreuung';
+      return '';
+    }catch(_e){
+      return '';
+    }
+  }
+
+  function syncNeutralHeaderRoleV274(){
+    const desired=desiredNeutralHeaderRoleV274();
+    if(!desired)return;
+    const host=document.getElementById('roleBadge');
+    const name=host?.querySelector?.('.topbar-user-name');
+    if(name && name.textContent!==desired)name.textContent=desired;
+  }
+
+  function bootNeutralRoleLabelSyncV274(){
+    syncNeutralHeaderRoleV274();
+    const host=document.getElementById('roleBadge');
+    if(!host)return;
+    const observer=new MutationObserver(function(){
+      syncNeutralHeaderRoleV274();
+    });
+    observer.observe(host,{childList:true,subtree:true});
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',bootNeutralRoleLabelSyncV274,{once:true});
+  }else{
+    bootNeutralRoleLabelSyncV274();
+  }
+
+  window.addEventListener('pageshow',syncNeutralHeaderRoleV274);
 })();
 </script>
 
