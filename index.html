@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.81</title>
+<title>Duschl Service – Objektplattform v2.82</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1169,7 +1169,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 
 
 
-/* === RELEASE 2.81 · VERWALTUNG READ-ONLY REGRESSION FIX ===
+/* === RELEASE 2.82 · VERWALTUNG READ-ONLY KONSOLIDIERUNG ===
    - Objektbezogene Verwaltung nutzt autoritative v2-RPCs für Leistungen und Standards.
    - Räumkarte für object_responsible wird über eigenen Read-RPC geladen.
    - Schreibrechte, Auth-Core, Mandantenwechsel und Admin-Pfade bleiben unverändert.
@@ -9915,9 +9915,9 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='2.81';
+const APP_VERSION='2.82';
 const APP_RELEASE_DATE='07.10.2026';
-const APP_RELEASE_TIME='18:35'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='19:20'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -27313,22 +27313,13 @@ async function osaLoadObjectReadOnlyForPropertyManager(objectId){
   const oid=String(objectId||'');
   if(!oid)return;
 
-  let rows=[];
-  try{
-    // 2.81: Objekt ist die autoritative Klammer. Mandant und Leistungsart
-    // werden serverseitig aus dem persönlich verantworteten Objekt aufgelöst.
-    rows=await cloudRequest('rpc/property_manager_get_object_services_v2',{
-      method:'POST',
-      body:JSON.stringify({p_object_id:oid})
-    })||[];
-  }catch(v2Error){
-    console.info('Objektbezogene Verwaltungs-RPC v2 nicht verfügbar; Fallback v1.',v2Error);
-    const org=currentOrganizationId();
-    rows=await cloudRequest('rpc/property_manager_get_object_services_v1',{
-      method:'POST',
-      body:JSON.stringify({p_organization_id:org,p_object_id:oid})
-    })||[];
-  }
+  // 2.82: Eindeutiger Read-only-Pfad. Kein Legacy-v1-Fallback mehr.
+  // Das Objekt ist die autoritative Klammer; Berechtigung und Mandant
+  // werden vollständig serverseitig über den v2-RPC geprüft.
+  const rows=await cloudRequest('rpc/property_manager_get_object_services_v2',{
+    method:'POST',
+    body:JSON.stringify({p_object_id:oid})
+  })||[];
 
   osaState.assignments=(Array.isArray(rows)?rows:[]).map(r=>({
     id:r.assignment_id,
@@ -27362,46 +27353,13 @@ async function osaLoadInheritedStandardsForObjectReadOnly(objectId,serviceTypeId
     return osaState.standardsByService[sid]||[];
   }
 
-  let rows=[];
-  try{
-    // 2.81: v2 löst den Mandanten aus dem Objekt auf und prüft die konkrete
-    // aktive Leistungszuordnung serverseitig. Damit hängt die Anzeige nicht
-    // vom aktuell gesetzten UI-Mandantenkontext ab.
-    rows=await cloudRequest('rpc/property_manager_get_object_process_standards_v2',{
-      method:'POST',
-      body:JSON.stringify({p_object_id:oid,p_service_type_id:sid})
-    });
-  }catch(v2Error){
-    console.info('Objektbezogene Standards-RPC v2 nicht verfügbar; Fallback v1.',sid,v2Error);
-    try{
-      rows=await cloudRequest('rpc/property_manager_get_object_process_standards_v1',{
-        method:'POST',
-        body:JSON.stringify({
-          p_organization_id:currentOrganizationId(),
-          p_object_id:oid,
-          p_service_type_id:sid
-        })
-      });
-    }catch(v1Error){
-      console.info('Standards-RPC v1 nicht verfügbar; Fallback kanonisch.',sid,v1Error);
-      rows=await cloudRequest('rpc/get_process_standards_for_service_v1',{
-        method:'POST',
-        body:JSON.stringify({p_organization_id:currentOrganizationId(),p_service_type_id:sid})
-      });
-    }
-  }
-
-  // Falls eine ältere v1-Installation zwar antwortet, aber leer liefert,
-  // darf die kanonische bestehende Lesefunktion noch geprüft werden.
-  if(!(Array.isArray(rows)&&rows.length)){
-    try{
-      const canonical=await cloudRequest('rpc/get_process_standards_for_service_v1',{
-        method:'POST',
-        body:JSON.stringify({p_organization_id:currentOrganizationId(),p_service_type_id:sid})
-      });
-      if(Array.isArray(canonical)&&canonical.length)rows=canonical;
-    }catch(_canonicalError){}
-  }
+  // 2.82: Ausschließlich der objektbezogene v2-RPC ist zulässig.
+  // Fehler werden bewusst nicht durch alte Mandanten-/Service-Fallbacks
+  // maskiert, damit Berechtigungs- oder Datenfehler sichtbar bleiben.
+  const rows=await cloudRequest('rpc/property_manager_get_object_process_standards_v2',{
+    method:'POST',
+    body:JSON.stringify({p_object_id:oid,p_service_type_id:sid})
+  });
 
   const normalized=typeof psRuntimeNormalizeRows==='function'
     ? psRuntimeNormalizeRows(rows)
@@ -27409,6 +27367,7 @@ async function osaLoadInheritedStandardsForObjectReadOnly(objectId,serviceTypeId
   osaState.standardsByService[sid]=normalized;
   return normalized;
 }
+
 async function osaLoadInheritedStandards(serviceTypeId,{force=false}={}){
   const sid=String(serviceTypeId||'');if(!sid)return [];
   if(!force&&Object.prototype.hasOwnProperty.call(osaState.standardsByService,sid))return osaState.standardsByService[sid]||[];
