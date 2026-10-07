@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.86</title>
+<title>Duschl Service – Objektplattform v2.87</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5266,6 +5266,92 @@ table td,table th{
 }
 </style>
 
+
+<!-- RELEASE 2.87 · Winterdashboard Statusfarben Fix: CSS aus Export-Template in echten Dokument-Head verschoben -->
+<style id="release-2-85-winter-dashboard">
+/* ===== RELEASE 2.85 · WINTERDIENST DASHBOARD ENTSCHEIDUNGSORIENTIERT ===== */
+.dashboard-winter-decision{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:14px;padding:11px 13px;border:1px solid rgba(255,255,255,.12);border-radius:13px;background:rgba(255,255,255,.035)}
+.dashboard-winter-decision-main{display:flex;align-items:flex-start;gap:10px;min-width:0}
+.dashboard-winter-decision-dot{width:11px;height:11px;flex:0 0 11px;margin-top:4px;border-radius:50%;background:#8fa1b2;box-shadow:0 0 0 4px rgba(143,161,178,.10)}
+.dashboard-winter-decision[data-level="green"] .dashboard-winter-decision-dot{background:#53b67a;box-shadow:0 0 0 4px rgba(83,182,122,.12)}
+.dashboard-winter-decision[data-level="yellow"] .dashboard-winter-decision-dot{background:#e6b84a;box-shadow:0 0 0 4px rgba(230,184,74,.12)}
+.dashboard-winter-decision[data-level="red"] .dashboard-winter-decision-dot{background:#e96d73;box-shadow:0 0 0 4px rgba(233,109,115,.12)}
+.dashboard-winter-decision-copy{margin-top:3px;color:var(--muted);font-size:12px;line-height:1.35}
+.dashboard-winter-data-state{flex:0 0 auto;color:var(--muted);font-size:11px;font-weight:800;white-space:nowrap}
+.dashboard-winter-grid-v285{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+.dashboard-winter-grid-v285 .dashboard-winter-kpi{min-height:86px;padding:10px 12px!important}
+.dashboard-winter-grid-v285 .dashboard-winter-kpi .value{font-size:23px!important}
+.dashboard-winter-next-risk{font-size:18px!important;line-height:1.1!important}
+.dashboard-winter-action{margin-top:10px;padding:10px 12px;border:1px solid rgba(230,184,74,.35);border-radius:12px;background:rgba(230,184,74,.07);color:#f0d78b;font-size:12px;line-height:1.4;font-weight:750}
+.dashboard-winter-action.is-critical{border-color:rgba(233,109,115,.42);background:rgba(233,109,115,.08);color:#f3afb3}
+@media(max-width:900px){.dashboard-winter-grid-v285{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:680px){.dashboard-winter-decision{align-items:flex-start;flex-direction:column}.dashboard-winter-data-state{white-space:normal}.dashboard-winter-grid-v285{grid-template-columns:repeat(2,minmax(0,1fr))!important}.dashboard-winter-grid-v285 .dashboard-winter-kpi{min-height:80px}.dashboard-winter-grid-v285 .dashboard-winter-kpi .value{font-size:21px!important}}
+</style>
+
+<style id="release-2-87-winter-status-colors">
+/* ===== RELEASE 2.87 · WINTERDIENST STATUSFARBEN FIX =====
+   Rein visuelle Zustandskommunikation. Keine Daten-/Rollen-/RPC-Änderung. */
+#dashboardWinterPanel{
+  --winter-state-color:#53b67a;
+  --winter-state-bg:rgba(83,182,122,.06);
+  --winter-state-border:rgba(83,182,122,.55);
+  border-color:var(--winter-state-border)!important;
+  box-shadow:inset 4px 0 0 var(--winter-state-color),0 14px 30px rgba(0,0,0,.18)!important;
+}
+#dashboardWinterPanel[data-state="yellow"]{
+  --winter-state-color:#e6b84a;
+  --winter-state-bg:rgba(230,184,74,.065);
+  --winter-state-border:rgba(230,184,74,.62);
+}
+#dashboardWinterPanel[data-state="red"]{
+  --winter-state-color:#e96d73;
+  --winter-state-bg:rgba(233,109,115,.075);
+  --winter-state-border:rgba(233,109,115,.70);
+}
+#dashboardWinterPanel[data-state="green"]{background:linear-gradient(145deg,rgba(83,182,122,.075),#0b1f2e 44%,#0b1f2e)!important;}
+#dashboardWinterPanel[data-state="yellow"]{background:linear-gradient(145deg,rgba(230,184,74,.085),#0b1f2e 44%,#0b1f2e)!important;}
+#dashboardWinterPanel[data-state="red"]{background:linear-gradient(145deg,rgba(233,109,115,.10),#0b1f2e 44%,#0b1f2e)!important;}
+#dashboardWinterPanel:before{background:var(--winter-state-color)!important}
+#dashboardWinterPanel .dashboard-winter-decision{
+  border-color:var(--winter-state-border)!important;
+  background:var(--winter-state-bg)!important;
+}
+#dashboardWinterPanel .dashboard-winter-decision strong{color:var(--winter-state-color)!important}
+.dashboard-winter-grid-v285 .dashboard-winter-kpi{
+  position:relative;overflow:hidden;
+  border-width:1px!important;border-style:solid!important;
+  transition:border-color .16s ease,background .16s ease,box-shadow .16s ease;
+}
+.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-green{
+  border-color:rgba(83,182,122,.46)!important;
+  background:linear-gradient(145deg,rgba(83,182,122,.075),rgba(12,32,48,.96))!important;
+}
+.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-yellow{
+  border-color:rgba(230,184,74,.65)!important;
+  background:linear-gradient(145deg,rgba(230,184,74,.10),rgba(12,32,48,.96))!important;
+  box-shadow:inset 3px 0 0 #e6b84a!important;
+}
+.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-red{
+  border-color:rgba(233,109,115,.76)!important;
+  background:linear-gradient(145deg,rgba(233,109,115,.12),rgba(12,32,48,.96))!important;
+  box-shadow:inset 3px 0 0 #e96d73!important;
+}
+.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-neutral{
+  border-color:rgba(255,255,255,.16)!important;
+}
+.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-green .value{color:#86d5a6!important}
+.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-yellow .value{color:#f0cc73!important}
+.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-red .value{color:#f29ba0!important}
+.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-green:after,
+.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-yellow:after,
+.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-red:after{
+  content:"";position:absolute;right:10px;top:10px;width:8px;height:8px;border-radius:50%;
+}
+.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-green:after{background:#53b67a;box-shadow:0 0 0 4px rgba(83,182,122,.11)}
+.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-yellow:after{background:#e6b84a;box-shadow:0 0 0 4px rgba(230,184,74,.11)}
+.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-red:after{background:#e96d73;box-shadow:0 0 0 4px rgba(233,109,115,.11)}
+@media(max-width:680px){#dashboardWinterPanel{box-shadow:inset 3px 0 0 var(--winter-state-color),0 10px 24px rgba(0,0,0,.16)!important}}
+</style>
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -10021,7 +10107,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='2.86';
+const APP_VERSION='2.87';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -24763,7 +24849,7 @@ function printObjectQrCode(objectId,areaId=''){
 .area-manage-actions{display:flex;gap:7px}.area-icon-btn{width:42px;height:42px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:11px;font-size:20px}.area-danger{color:#ff625c;border-color:rgba(255,98,92,.35)}
 @media(max-width:520px){.area-manage-row{grid-template-columns:44px minmax(0,1fr) auto;gap:8px;padding:7px}.area-manage-icon{width:40px;height:40px}.area-icon-btn{width:39px;height:39px}.area-manage-main strong{font-size:15px}}
 </style>
-</head><body><main class="sheet"><h1>Bewohnermeldung</h1><img src="${img}" alt="QR-Code Bewohnermeldung"><div class="object">${title}</div>${areaHtml}${addressHtml}<div class="hint"><strong>Anliegen oder Schaden melden</strong><br>QR-Code mit dem Smartphone scannen und Meldung direkt über die Objektplattform senden.</div></main><!-- RELEASE 2.86 · Winterdashboard Statusfarben -->
+</head><body><main class="sheet"><h1>Bewohnermeldung</h1><img src="${img}" alt="QR-Code Bewohnermeldung"><div class="object">${title}</div>${areaHtml}${addressHtml}<div class="hint"><strong>Anliegen oder Schaden melden</strong><br>QR-Code mit dem Smartphone scannen und Meldung direkt über die Objektplattform senden.</div></main><!-- RELEASE 2.87 · Winterdashboard Statusfarben Fix -->
 </body></html>`;
 
   // Verlässlicher als window.open(): vermeidet Pop-up-Blocker in iOS/Safari.
@@ -34441,87 +34527,7 @@ function psRuntimeSafeFileName(v){return String(v||'Standard').replace(/[\/:*?"<
 function psRuntimeBuildDownloadHtml(x){
   const items=(x.items||[]).map((item,i)=>`<li>${esc(item.item_text||'')}</li>`).join('');
   return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(x.code||'')} · ${esc(x.title||'')}</title><style>body{font-family:Arial,sans-serif;max-width:860px;margin:40px auto;padding:0 24px;color:#17222b;line-height:1.5}h1{margin-bottom:4px}.meta{color:#65727d;margin-bottom:24px}.box{border:1px solid #ccd5db;border-radius:12px;padding:16px;margin:14px 0}li{margin:8px 0}@media print{body{margin:0;max-width:none}}</style>
-<style id="release-2-85-winter-dashboard">
-/* ===== RELEASE 2.85 · WINTERDIENST DASHBOARD ENTSCHEIDUNGSORIENTIERT ===== */
-.dashboard-winter-decision{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:14px;padding:11px 13px;border:1px solid rgba(255,255,255,.12);border-radius:13px;background:rgba(255,255,255,.035)}
-.dashboard-winter-decision-main{display:flex;align-items:flex-start;gap:10px;min-width:0}
-.dashboard-winter-decision-dot{width:11px;height:11px;flex:0 0 11px;margin-top:4px;border-radius:50%;background:#8fa1b2;box-shadow:0 0 0 4px rgba(143,161,178,.10)}
-.dashboard-winter-decision[data-level="green"] .dashboard-winter-decision-dot{background:#53b67a;box-shadow:0 0 0 4px rgba(83,182,122,.12)}
-.dashboard-winter-decision[data-level="yellow"] .dashboard-winter-decision-dot{background:#e6b84a;box-shadow:0 0 0 4px rgba(230,184,74,.12)}
-.dashboard-winter-decision[data-level="red"] .dashboard-winter-decision-dot{background:#e96d73;box-shadow:0 0 0 4px rgba(233,109,115,.12)}
-.dashboard-winter-decision-copy{margin-top:3px;color:var(--muted);font-size:12px;line-height:1.35}
-.dashboard-winter-data-state{flex:0 0 auto;color:var(--muted);font-size:11px;font-weight:800;white-space:nowrap}
-.dashboard-winter-grid-v285{grid-template-columns:repeat(4,minmax(0,1fr))!important}
-.dashboard-winter-grid-v285 .dashboard-winter-kpi{min-height:86px;padding:10px 12px!important}
-.dashboard-winter-grid-v285 .dashboard-winter-kpi .value{font-size:23px!important}
-.dashboard-winter-next-risk{font-size:18px!important;line-height:1.1!important}
-.dashboard-winter-action{margin-top:10px;padding:10px 12px;border:1px solid rgba(230,184,74,.35);border-radius:12px;background:rgba(230,184,74,.07);color:#f0d78b;font-size:12px;line-height:1.4;font-weight:750}
-.dashboard-winter-action.is-critical{border-color:rgba(233,109,115,.42);background:rgba(233,109,115,.08);color:#f3afb3}
-@media(max-width:900px){.dashboard-winter-grid-v285{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
-@media(max-width:680px){.dashboard-winter-decision{align-items:flex-start;flex-direction:column}.dashboard-winter-data-state{white-space:normal}.dashboard-winter-grid-v285{grid-template-columns:repeat(2,minmax(0,1fr))!important}.dashboard-winter-grid-v285 .dashboard-winter-kpi{min-height:80px}.dashboard-winter-grid-v285 .dashboard-winter-kpi .value{font-size:21px!important}}
-</style>
 
-<style id="release-2-86-winter-status-colors">
-/* ===== RELEASE 2.86 · WINTERDIENST STATUSFARBEN =====
-   Rein visuelle Zustandskommunikation. Keine Daten-/Rollen-/RPC-Änderung. */
-#dashboardWinterPanel{
-  --winter-state-color:#53b67a;
-  --winter-state-bg:rgba(83,182,122,.06);
-  --winter-state-border:rgba(83,182,122,.55);
-  border-color:var(--winter-state-border)!important;
-  box-shadow:inset 4px 0 0 var(--winter-state-color),0 14px 30px rgba(0,0,0,.18)!important;
-}
-#dashboardWinterPanel[data-state="yellow"]{
-  --winter-state-color:#e6b84a;
-  --winter-state-bg:rgba(230,184,74,.065);
-  --winter-state-border:rgba(230,184,74,.62);
-}
-#dashboardWinterPanel[data-state="red"]{
-  --winter-state-color:#e96d73;
-  --winter-state-bg:rgba(233,109,115,.075);
-  --winter-state-border:rgba(233,109,115,.70);
-}
-#dashboardWinterPanel:before{background:var(--winter-state-color)!important}
-#dashboardWinterPanel .dashboard-winter-decision{
-  border-color:var(--winter-state-border)!important;
-  background:var(--winter-state-bg)!important;
-}
-#dashboardWinterPanel .dashboard-winter-decision strong{color:var(--winter-state-color)!important}
-.dashboard-winter-grid-v285 .dashboard-winter-kpi{
-  position:relative;overflow:hidden;
-  border-width:1px!important;border-style:solid!important;
-  transition:border-color .16s ease,background .16s ease,box-shadow .16s ease;
-}
-.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-green{
-  border-color:rgba(83,182,122,.46)!important;
-  background:linear-gradient(145deg,rgba(83,182,122,.075),rgba(12,32,48,.96))!important;
-}
-.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-yellow{
-  border-color:rgba(230,184,74,.65)!important;
-  background:linear-gradient(145deg,rgba(230,184,74,.10),rgba(12,32,48,.96))!important;
-  box-shadow:inset 3px 0 0 #e6b84a!important;
-}
-.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-red{
-  border-color:rgba(233,109,115,.76)!important;
-  background:linear-gradient(145deg,rgba(233,109,115,.12),rgba(12,32,48,.96))!important;
-  box-shadow:inset 3px 0 0 #e96d73!important;
-}
-.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-neutral{
-  border-color:rgba(255,255,255,.16)!important;
-}
-.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-green .value{color:#86d5a6!important}
-.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-yellow .value{color:#f0cc73!important}
-.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-red .value{color:#f29ba0!important}
-.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-green:after,
-.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-yellow:after,
-.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-red:after{
-  content:"";position:absolute;right:10px;top:10px;width:8px;height:8px;border-radius:50%;
-}
-.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-green:after{background:#53b67a;box-shadow:0 0 0 4px rgba(83,182,122,.11)}
-.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-yellow:after{background:#e6b84a;box-shadow:0 0 0 4px rgba(230,184,74,.11)}
-.dashboard-winter-grid-v285 .dashboard-winter-kpi.state-red:after{background:#e96d73;box-shadow:0 0 0 4px rgba(233,109,115,.11)}
-@media(max-width:680px){#dashboardWinterPanel{box-shadow:inset 3px 0 0 var(--winter-state-color),0 10px 24px rgba(0,0,0,.16)!important}}
-</style>
 
 <style id="release-2-84-object-list-compact">
 /* ===== RELEASE 2.84 · OBJEKTLISTE KOMPAKT =====
