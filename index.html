@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.80</title>
+<title>Duschl Service – Objektplattform v2.81</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1169,7 +1169,7 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 
 
 
-/* === RELEASE 2.80 · VERWALTUNG READ-ONLY REGRESSION FIX ===
+/* === RELEASE 2.81 · VERWALTUNG READ-ONLY REGRESSION FIX ===
    - Objektbezogene Verwaltung nutzt autoritative v2-RPCs für Leistungen und Standards.
    - Räumkarte für object_responsible wird über eigenen Read-RPC geladen.
    - Schreibrechte, Auth-Core, Mandantenwechsel und Admin-Pfade bleiben unverändert.
@@ -9915,7 +9915,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='2.80';
+const APP_VERSION='2.81';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='18:35'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -27315,7 +27315,7 @@ async function osaLoadObjectReadOnlyForPropertyManager(objectId){
 
   let rows=[];
   try{
-    // 2.80: Objekt ist die autoritative Klammer. Mandant und Leistungsart
+    // 2.81: Objekt ist die autoritative Klammer. Mandant und Leistungsart
     // werden serverseitig aus dem persönlich verantworteten Objekt aufgelöst.
     rows=await cloudRequest('rpc/property_manager_get_object_services_v2',{
       method:'POST',
@@ -27364,7 +27364,7 @@ async function osaLoadInheritedStandardsForObjectReadOnly(objectId,serviceTypeId
 
   let rows=[];
   try{
-    // 2.80: v2 löst den Mandanten aus dem Objekt auf und prüft die konkrete
+    // 2.81: v2 löst den Mandanten aus dem Objekt auf und prüft die konkrete
     // aktive Leistungszuordnung serverseitig. Damit hängt die Anzeige nicht
     // vom aktuell gesetzten UI-Mandantenkontext ab.
     rows=await cloudRequest('rpc/property_manager_get_object_process_standards_v2',{
