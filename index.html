@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.77</title>
+<title>Duschl Service – Objektplattform v2.78</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1236,12 +1236,21 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 .ws-clearance-map-stage{
   position:relative;
   width:100%;
-  overflow:hidden;
+  overflow:auto;
   border:1px solid var(--line);
   border-radius:14px;
   background:#07131d;
-  touch-action:pinch-zoom;
+  touch-action:pan-x pan-y pinch-zoom;
   user-select:none;
+  -webkit-overflow-scrolling:touch;
+}
+.ws-clearance-map-viewport{
+  position:relative;
+  width:100%;
+  height:100%;
+  min-width:100%;
+  min-height:100%;
+  transform-origin:top left;
 }
 .ws-clearance-map-stage img{
   display:block;
@@ -1258,7 +1267,26 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
   z-index:2;
   cursor:crosshair;
   pointer-events:all!important;
-  touch-action:pinch-zoom;
+  touch-action:manipulation;
+}
+.ws-clearance-zoom-controls{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:6px;
+  margin:0 0 8px;
+}
+.ws-clearance-zoom-controls button{
+  min-width:42px;
+  min-height:40px;
+  padding:7px 10px!important;
+}
+.ws-clearance-zoom-label{
+  min-width:58px;
+  text-align:center;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:800;
 }
 .ws-clearance-map-stage.is-readonly svg{
   cursor:default;
@@ -5298,7 +5326,7 @@ table td,table th{
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.77</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.78</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -5356,9 +5384,9 @@ table td,table th{
       <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
-      <div class="pa-build-meta">Version <span data-app-version>2.77</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>18:20</span> Uhr</div>
+      <div class="pa-build-meta">Version <span data-app-version>2.78</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>18:20</span> Uhr</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.77</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.78</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -5505,7 +5533,7 @@ table td,table th{
     <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
-    <div class="dashboard-build-meta">Version <span data-app-version>2.77</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>18:20</span> Uhr</div>
+    <div class="dashboard-build-meta">Version <span data-app-version>2.78</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>18:20</span> Uhr</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
   </div>
 
@@ -9873,17 +9901,17 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Filter "Offener Arbeitsvorrat" zeigt alle offenen Entscheidungszustände.
    - Keine Änderung an Rollen-, Objekt-, RLS-, SQL-, Winterdienst- oder Edge-Logik.
 */
-/* RELEASE 2.77 | BASIS 2.76 | 07.10.2026 18:20
-   HOTFIX: Räumkarte erlaubt wieder Pinch-Zoom; SVG bleibt für Punktsetzung klickbar.
-   - Winterdienst-Räumkarte: Klick-/Touch-Hitbox des transparenten SVG-Overlays korrigiert.
-   - SVG empfängt Pointer-Ereignisse nun über die gesamte Kartenfläche; Punkte können wieder gesetzt werden.
-   - Read-only-Einsatzansicht bleibt weiterhin nicht editierbar.
-   - Versionierung geprüft und auf Release.Version 2.77 konsolidiert.
+/* RELEASE 2.78 | BASIS 2.77 | 07.10.2026 18:35
+   UX-FIX: Räumkarte erhält explizite Zoom-Steuerung.
+   - Zoom + / - / 100 % direkt über der Karte.
+   - Karteninhalt wird vergrößert; der Kartenbereich wird scrollbar und kann verschoben werden.
+   - Punktsetzung nutzt weiterhin die transformierte SVG-Fläche und bleibt koordinatentreu.
+   - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='2.77';
+const APP_VERSION='2.78';
 const APP_RELEASE_DATE='07.10.2026';
-const APP_RELEASE_TIME='18:20'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='18:35'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -27534,7 +27562,8 @@ let wsClearanceMapEditor={
   height:0,
   markings:[],
   draftPoints:[],
-  drawing:false
+  drawing:false,
+  zoom:1
 };
 const wsClearanceMapCache={};
 
@@ -27645,6 +27674,38 @@ function wsClearanceSvg(markings,width,height,{draft=[]}={}){
 
   return body+draftSvg;
 }
+function wsClearanceApplyZoom(){
+  const stage=document.getElementById('wsClearanceEditorStage');
+  const viewport=document.getElementById('wsClearanceViewport');
+  const label=document.getElementById('wsClearanceZoomLabel');
+  if(!stage||!viewport)return;
+  const zoom=Math.max(1,Math.min(4,Number(wsClearanceMapEditor.zoom)||1));
+  wsClearanceMapEditor.zoom=zoom;
+  viewport.style.width=`${zoom*100}%`;
+  viewport.style.height=`${zoom*100}%`;
+  if(label)label.textContent=`${Math.round(zoom*100)} %`;
+}
+function wsClearanceZoom(delta){
+  const stage=document.getElementById('wsClearanceEditorStage');
+  if(!stage)return;
+  const oldZoom=Math.max(1,Number(wsClearanceMapEditor.zoom)||1);
+  const next=Math.max(1,Math.min(4,Math.round((oldZoom+Number(delta||0))*4)/4));
+  if(next===oldZoom)return;
+  const relX=(stage.scrollLeft+stage.clientWidth/2)/Math.max(1,stage.scrollWidth);
+  const relY=(stage.scrollTop+stage.clientHeight/2)/Math.max(1,stage.scrollHeight);
+  wsClearanceMapEditor.zoom=next;
+  wsClearanceApplyZoom();
+  requestAnimationFrame(()=>{
+    stage.scrollLeft=Math.max(0,relX*stage.scrollWidth-stage.clientWidth/2);
+    stage.scrollTop=Math.max(0,relY*stage.scrollHeight-stage.clientHeight/2);
+  });
+}
+function wsClearanceZoomReset(){
+  const stage=document.getElementById('wsClearanceEditorStage');
+  wsClearanceMapEditor.zoom=1;
+  wsClearanceApplyZoom();
+  if(stage){stage.scrollLeft=0;stage.scrollTop=0;}
+}
 function wsClearanceEditorRender(){
   const stage=document.getElementById('wsClearanceEditorStage');
   const svg=document.getElementById('wsClearanceEditorSvg');
@@ -27655,6 +27716,7 @@ function wsClearanceEditorRender(){
   const w=Math.max(1,wsClearanceMapEditor.width||1000);
   const h=Math.max(1,wsClearanceMapEditor.height||700);
   stage.style.aspectRatio=`${w}/${h}`;
+  wsClearanceApplyZoom();
   svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
   svg.setAttribute('preserveAspectRatio','xMidYMid meet');
   svg.innerHTML=wsClearanceSvg(wsClearanceMapEditor.markings,w,h,{draft:wsClearanceMapEditor.draftPoints});
@@ -27865,6 +27927,7 @@ async function wsClearanceFileSelected(input){
     wsClearanceMapEditor.width=normalized.width;
     wsClearanceMapEditor.height=normalized.height;
     wsClearanceMapEditor.draftPoints=[];
+    wsClearanceMapEditor.zoom=1;
 
     const el=document.getElementById('wsClearanceBaseImage');
     if(el){
@@ -27902,7 +27965,8 @@ async function wsOpenClearanceMapEditor(objectId){
       height:Number(row?.image_height||0)||800,
       markings:(Array.isArray(row?.markings)?row.markings:[]).map(wsClearanceSanitizeMarking),
       draftPoints:[],
-      drawing:false
+      drawing:false,
+      zoom:1
     };
 
     modal(`
@@ -27931,12 +27995,20 @@ async function wsOpenClearanceMapEditor(objectId){
       </div>
 
       <div class="ws-clearance-map-card">
+        <div class="ws-clearance-zoom-controls" aria-label="Zoomsteuerung Räumkarte">
+          <button type="button" onclick="wsClearanceZoom(-0.25)" title="Verkleinern">−</button>
+          <span id="wsClearanceZoomLabel" class="ws-clearance-zoom-label">100 %</span>
+          <button type="button" onclick="wsClearanceZoom(0.25)" title="Vergrößern">+</button>
+          <button type="button" onclick="wsClearanceZoomReset()" title="Zoom zurücksetzen">100 %</button>
+        </div>
         <div id="wsClearanceEditorStage" class="ws-clearance-map-stage">
-          <div id="wsClearanceEmpty" class="ws-clearance-map-empty" style="${imageUrl?'display:none':''}">
-            <div><strong>Noch kein Basisbild</strong><br><span>Foto, Luftbild oder Lageplan hochladen.</span></div>
+          <div id="wsClearanceViewport" class="ws-clearance-map-viewport">
+            <div id="wsClearanceEmpty" class="ws-clearance-map-empty" style="${imageUrl?'display:none':''}">
+              <div><strong>Noch kein Basisbild</strong><br><span>Foto, Luftbild oder Lageplan hochladen.</span></div>
+            </div>
+            <img id="wsClearanceBaseImage" src="${imageUrl?esc(imageUrl):''}" alt="Basisbild der Räumkarte" style="${imageUrl?'':'display:none'}">
+            <svg id="wsClearanceEditorSvg" onclick="wsClearanceEditorClick(event)"></svg>
           </div>
-          <img id="wsClearanceBaseImage" src="${imageUrl?esc(imageUrl):''}" alt="Basisbild der Räumkarte" style="${imageUrl?'':'display:none'}">
-          <svg id="wsClearanceEditorSvg" onclick="wsClearanceEditorClick(event)"></svg>
         </div>
 
         <div class="ws-clearance-map-legend">
