@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.77</title>
+<title>Duschl Service – Objektplattform v2.78</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5354,9 +5354,9 @@ table td,table th{
       <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
-      <div class="pa-build-meta">Version <span data-app-version>2.77</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>15:02</span> Uhr</div>
+      <div class="pa-build-meta">Version <span data-app-version>2.78</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>15:26</span> Uhr</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.77</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.78</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -5503,7 +5503,7 @@ table td,table th{
     <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
-    <div class="dashboard-build-meta">Version <span data-app-version>2.77</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>15:02</span> Uhr</div>
+    <div class="dashboard-build-meta">Version <span data-app-version>2.78</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>15:26</span> Uhr</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
   </div>
 
@@ -9871,9 +9871,9 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Filter "Offener Arbeitsvorrat" zeigt alle offenen Entscheidungszustände.
    - Keine Änderung an Rollen-, Objekt-, RLS-, SQL-, Winterdienst- oder Edge-Logik.
 */
-const APP_VERSION='2.77';
+const APP_VERSION='2.78';
 const APP_RELEASE_DATE='07.10.2026';
-const APP_RELEASE_TIME='15:02'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='15:26'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -27265,64 +27265,126 @@ async function osaLoad(){
   const serviceIds=[...new Set((osaState.assignments||[]).map(x=>String(x.service_type_id||'')).filter(Boolean))];
   await Promise.all(serviceIds.map(id=>osaLoadInheritedStandards(id)));
 }
+const osaPropertyManagerBundleCache={};
+
+async function osaLoadPropertyManagerObjectBundle(objectId,{force=false}={}){
+  const oid=String(objectId||'');
+  if(!oid)return null;
+
+  if(!force && Object.prototype.hasOwnProperty.call(osaPropertyManagerBundleCache,oid)){
+    return osaPropertyManagerBundleCache[oid];
+  }
+
+  const result=await cloudRequest('rpc/property_manager_get_object_service_bundle_v1',{
+    method:'POST',
+    body:JSON.stringify({
+      p_organization_id:currentOrganizationId(),
+      p_object_id:oid
+    })
+  });
+
+  const bundle=Array.isArray(result)
+    ? (result[0]||null)
+    : (result||null);
+
+  osaPropertyManagerBundleCache[oid]=bundle;
+  return bundle;
+}
+
 async function osaLoadObjectReadOnlyForPropertyManager(objectId){
   const oid=String(objectId||'');
   const org=currentOrganizationId();
   if(!oid||!org)return;
 
-  const rows=await cloudRequest('rpc/property_manager_get_object_services_v1',{
-    method:'POST',
-    body:JSON.stringify({
-      p_organization_id:org,
-      p_object_id:oid
-    })
-  })||[];
+  const bundle=await osaLoadPropertyManagerObjectBundle(oid,{force:true});
+  const services=Array.isArray(bundle?.services)?bundle.services:[];
 
-  osaState.assignments=(Array.isArray(rows)?rows:[]).map(r=>({
+  osaState.assignments=services.map(r=>({
     id:r.assignment_id,
-    organization_id:r.organization_id,
-    object_id:r.object_id,
+    organization_id:org,
+    object_id:oid,
     service_type_id:r.service_type_id,
     process_type:r.process_type,
-    valid_from:r.valid_from,
-    valid_until:r.valid_until,
-    note:r.note,
+    valid_from:r.valid_from||null,
+    valid_until:r.valid_until||null,
+    note:r.note||null,
     active:r.active!==false
   }));
 
-  osaState.services=(Array.isArray(rows)?rows:[]).map(r=>({
+  osaState.services=services.map(r=>({
     id:r.service_type_id,
-    organization_id:r.organization_id,
+    organization_id:org,
     name:r.service_name,
     active:true
   }));
 
   osaState.requirements=[];
   osaState.standardsByService={};
+
+  services.forEach(s=>{
+    const sid=String(s.service_type_id||'');
+    if(!sid)return;
+    osaState.standardsByService[sid]=Array.isArray(s.standards)
+      ? s.standards.map(st=>({
+          id:String(st.id||st.standard_id||''),
+          standard_type:st.standard_type||'',
+          code:st.code||'',
+          title:st.title||'',
+          version:st.version||'1.0',
+          purpose:st.purpose||'',
+          scope:st.scope||'',
+          responsibility:st.responsibility||'',
+          notes:st.notes||'',
+          parent_standard_id:st.parent_standard_id||null,
+          items:Array.isArray(st.items)
+            ? st.items.map(i=>({
+                sort_order:Number(i.sort_order||0),
+                item_type:i.item_type||'step',
+                item_text:i.item_text||'',
+                required:!!i.required
+              })).sort((a,b)=>a.sort_order-b.sort_order)
+            : []
+        }))
+      : [];
+  });
 }
+
 
 async function osaLoadInheritedStandardsForObjectReadOnly(objectId,serviceTypeId,{force=false}={}){
   const oid=String(objectId||'');
   const sid=String(serviceTypeId||'');
   if(!oid||!sid)return [];
 
-  if(!force&&Object.prototype.hasOwnProperty.call(osaState.standardsByService,sid)){
+  if(!force && Object.prototype.hasOwnProperty.call(osaState.standardsByService,sid)){
     return osaState.standardsByService[sid]||[];
   }
 
   try{
-    const rows=await cloudRequest('rpc/property_manager_get_object_process_standards_v3',{
-      method:'POST',
-      body:JSON.stringify({
-        p_organization_id:currentOrganizationId(),
-        p_object_id:oid,
-        p_service_type_id:sid
-      })
-    });
-    const normalized=typeof psRuntimeNormalizeRows==='function'
-      ? psRuntimeNormalizeRows(rows)
-      : [];
-    osaState.standardsByService[sid]=normalized;
+    const bundle=await osaLoadPropertyManagerObjectBundle(oid,{force});
+    const service=(Array.isArray(bundle?.services)?bundle.services:[])
+      .find(x=>String(x.service_type_id||'')===sid);
+
+    const rows=Array.isArray(service?.standards)?service.standards:[];
+    osaState.standardsByService[sid]=rows.map(st=>({
+      id:String(st.id||st.standard_id||''),
+      standard_type:st.standard_type||'',
+      code:st.code||'',
+      title:st.title||'',
+      version:st.version||'1.0',
+      purpose:st.purpose||'',
+      scope:st.scope||'',
+      responsibility:st.responsibility||'',
+      notes:st.notes||'',
+      parent_standard_id:st.parent_standard_id||null,
+      items:Array.isArray(st.items)
+        ? st.items.map(i=>({
+            sort_order:Number(i.sort_order||0),
+            item_type:i.item_type||'step',
+            item_text:i.item_text||'',
+            required:!!i.required
+          })).sort((a,b)=>a.sort_order-b.sort_order)
+        : []
+    }));
   }catch(e){
     console.warn('Objektbezogene Standards konnten für Verwaltung nicht geladen werden',sid,e);
     osaState.standardsByService[sid]=[];
@@ -27335,14 +27397,8 @@ async function osaLoadObjectClearanceMapReadOnly(objectId){
   const oid=String(objectId||'');
   if(!oid)return null;
   try{
-    const rows=await cloudRequest('rpc/property_manager_get_object_clearance_map_v2',{
-      method:'POST',
-      body:JSON.stringify({
-        p_organization_id:currentOrganizationId(),
-        p_object_id:oid
-      })
-    });
-    return Array.isArray(rows)?(rows[0]||null):(rows||null);
+    const bundle=await osaLoadPropertyManagerObjectBundle(oid,{force:false});
+    return bundle?.clearance_map||null;
   }catch(e){
     console.warn('Räumkarte konnte für Verwaltung nicht geladen werden',e);
     return null;
