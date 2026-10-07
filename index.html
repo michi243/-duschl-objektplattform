@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.68</title>
+<title>Duschl Service – Objektplattform v2.69</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5354,9 +5354,9 @@ table td,table th{
       <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
-      <div class="pa-build-meta">Version <span data-app-version>2.68</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>10:11</span> Uhr</div>
+      <div class="pa-build-meta">Version <span data-app-version>2.69</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>11:29</span> Uhr</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.68</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.69</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -5503,7 +5503,7 @@ table td,table th{
     <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
-    <div class="dashboard-build-meta">Version <span data-app-version>2.68</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>10:11</span> Uhr</div>
+    <div class="dashboard-build-meta">Version <span data-app-version>2.69</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>11:29</span> Uhr</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
   </div>
 
@@ -6814,11 +6814,31 @@ WINTERDIENST RÄUMKARTE
 
   <div class="grid g2" style="margin-top:14px">
     <div class="card ws-admin-only">
-      <h3>Tourvorlagen</h3>
-      <div class="grid2">
-        <label>Name<input id="wsTourName" placeholder="z. B. Tour Nord"/></label>
+      <h3>Saisonplanung · Winterdiensttour</h3>
+      <div class="muted" style="margin-top:4px">Einmal pro Saison planen. Mitarbeiter, Standardauftrag, Zeitraum und Route werden bei jeder Tagestour automatisch übernommen.</div>
+      <div class="grid2" style="margin-top:10px">
+        <label>Name<input id="wsTourName" placeholder="z. B. Tour Nord 2026/27"/></label>
         <label>Startzeit<input id="wsTourStart" type="time" value="05:00"/></label>
       </div>
+      <div class="grid2" style="margin-top:10px">
+        <label>Saison von<input id="wsTourValidFrom" type="date"/></label>
+        <label>Saison bis<input id="wsTourValidUntil" type="date"/></label>
+      </div>
+      <label style="margin-top:10px">Stamm-Mitarbeiter
+        <select id="wsTourAssignee" onchange="wsRefreshTourFallbackSelects()"><option value="">Mitarbeiter wählen …</option></select>
+      </label>
+      <div class="grid2" style="margin-top:10px">
+        <label>Fallback 1<select id="wsTourFallback1" onchange="wsRefreshTourFallbackSelects()"><option value="">Keine Vertretung …</option></select></label>
+        <label>Fallback 2<select id="wsTourFallback2" onchange="wsRefreshTourFallbackSelects()"><option value="">Keine weitere Vertretung …</option></select></label>
+      </div>
+      <label style="margin-top:10px">Standard-Einsatzauftrag
+        <select id="wsTourServiceAction">
+          <option value="control">Kontrollfahrt</option>
+          <option value="grit">Streuen</option>
+          <option value="clear">Räumen</option>
+          <option value="clear_and_grit" selected>Räumen + Streuen</option>
+        </select>
+      </label>
       <div style="margin-top:10px">
         <label>Objekt hinzufügen</label>
         <div class="row" style="gap:8px;align-items:end;flex-wrap:wrap">
@@ -6844,35 +6864,33 @@ WINTERDIENST RÄUMKARTE
     </div>
 
     <div class="card ws-admin-only" id="wsPlanningCard">
-      <h3>Winterdiensteinsatz</h3>
-      <div class="grid2">
-        <label>Tourvorlage<select id="wsRunTemplate"></select></label>
-        <label>Datum<input id="wsRunDate" type="date"/></label>
-      </div>
-      <label style="margin-top:10px">Ausgeführt von
-        <select id="wsRunAssignee" onchange="wsRefreshFallbackSelects()"><option value="">Mitarbeiter wählen …</option></select>
-      </label>
+      <h3>Tageseinsatz</h3>
+      <div class="muted" style="margin-top:4px">Die Tagestour übernimmt die saisonale Planung. Nur bei einer Tagesabweichung muss Personal oder Einsatzart geändert werden.</div>
       <div class="grid2" style="margin-top:10px">
-        <label>Fallback 1
-          <select id="wsRunFallback1" onchange="wsRefreshFallbackSelects()"><option value="">Keine Vertretung …</option></select>
-        </label>
-        <label>Fallback 2
-          <select id="wsRunFallback2" onchange="wsRefreshFallbackSelects()"><option value="">Keine weitere Vertretung …</option></select>
-        </label>
+        <label>Saisonplan<select id="wsRunTemplate" onchange="wsApplySeasonPlanToRunForm()"></select></label>
+        <label>Einsatztag<input id="wsRunDate" type="date"/></label>
       </div>
-      <div class="muted" style="margin-top:5px">
-        Fallbacks übernehmen die Tour nicht automatisch. Sie werden als vorbereitete Vertretung hinterlegt und können bei Ausfall mit einem Schritt aktiviert werden.
-      </div>
-      <label style="margin-top:10px">Einsatzauftrag
-        <select id="wsRunServiceAction">
-          <option value="control">Kontrollfahrt</option>
-          <option value="grit">Streuen</option>
-          <option value="clear">Räumen</option>
-          <option value="clear_and_grit" selected>Räumen + Streuen</option>
-        </select>
-      </label>
-      <div class="muted" style="margin-top:5px">Die Einsatzart gilt zunächst für alle Stopps der Tagestour. Der zugewiesene Winterdienstmitarbeiter erhält einen persönlichen Auftrag; die E-Mail wird über die zentrale Versandqueue verarbeitet.</div>
-      <div class="row" style="margin-top:10px"><button class="primary" type="button" onclick="wsCreateRun()">Tagestour erzeugen</button></div>
+      <div id="wsRunInheritedPlan" class="card" style="padding:10px;margin-top:10px"><span class="muted">Saisonplan wählen.</span></div>
+      <details style="margin-top:10px">
+        <summary style="cursor:pointer;font-weight:800">Tagesabweichung / Vertretung</summary>
+        <label style="margin-top:10px">Ausgeführt von
+          <select id="wsRunAssignee" onchange="wsRefreshFallbackSelects()"><option value="">Mitarbeiter wählen …</option></select>
+        </label>
+        <div class="grid2" style="margin-top:10px">
+          <label>Fallback 1<select id="wsRunFallback1" onchange="wsRefreshFallbackSelects()"><option value="">Keine Vertretung …</option></select></label>
+          <label>Fallback 2<select id="wsRunFallback2" onchange="wsRefreshFallbackSelects()"><option value="">Keine weitere Vertretung …</option></select></label>
+        </div>
+        <label style="margin-top:10px">Einsatzauftrag
+          <select id="wsRunServiceAction">
+            <option value="control">Kontrollfahrt</option>
+            <option value="grit">Streuen</option>
+            <option value="clear">Räumen</option>
+            <option value="clear_and_grit" selected>Räumen + Streuen</option>
+          </select>
+        </label>
+      </details>
+      <div class="row" style="margin-top:10px"><button class="primary" type="button" onclick="wsCreateRun()">Tagestour vorbereiten</button></div>
+      <div class="muted" style="margin-top:6px">Danach wird der Einsatz separat ausgelöst. Erst dann erhält der Mitarbeiter den verbindlichen Ausrückauftrag.</div>
       <div id="wsRunList" style="margin-top:12px"></div>
     </div>
   </div>
@@ -9845,9 +9863,9 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Filter "Offener Arbeitsvorrat" zeigt alle offenen Entscheidungszustände.
    - Keine Änderung an Rollen-, Objekt-, RLS-, SQL-, Winterdienst- oder Edge-Logik.
 */
-const APP_VERSION='2.68';
+const APP_VERSION='2.69';
 const APP_RELEASE_DATE='07.10.2026';
-const APP_RELEASE_TIME='10:11'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='11:29'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -23292,7 +23310,7 @@ function renderObjects(){
         <div class="ds-object-actions">
           <button class="primary ds-object-primary-action" onclick="openFindingModal('${esc(o.id)}','')">+ Dokumentation erfassen</button>
           <div class="ds-object-secondary-actions">
-            <button onclick="openObjectQrCode('${esc(o.id)}')">QR-Code</button>
+            ${!o.externalManaged&&!isCustomerRole()?`<button onclick="openObjectQrCode('${esc(o.id)}')">QR-Code</button>`:''}
             ${!o.externalManaged&&canManageObjectsUI()?`<button onclick="openObjectAreasModal('${esc(o.id)}')">Einheiten &amp; Bereiche</button><button onclick="openObjectServicesModal('${esc(o.id)}')">Leistungen &amp; Standards</button><button onclick="openObjectModal('${esc(o.id)}')">Objekt bearbeiten</button>`:''}
             ${o.externalManaged&&slTenantAdmin()?`<button onclick="openObjectServicesModal('${esc(o.id)}')">Leistungen &amp; Standards</button>`:''}
             <button onclick="showObjectReport('${esc(o.id)}')">Bericht</button>
@@ -24356,9 +24374,10 @@ function objectPublicReportUrl(objectId){
 }
 
 async function openObjectQrCode(objectId,areaId=''){
-  // 2.68: Wer das Objekt aufgrund der bestehenden Objekt-/Mandantenrechte
-  // in db.objects sehen darf, darf auch dessen öffentlichen Bewohner-QR anzeigen.
-  // Dadurch wird KEIN zusätzlicher Objektzugriff geschaffen.
+  if(isCustomerRole()){
+    alert('QR-Codes für Bewohnermeldungen sind für diese Rolle nicht freigegeben.');
+    return;
+  }
   const o=(db.objects||[]).find(x=>x.id===objectId);
   if(!o)return alert('Objekt wurde nicht gefunden.');
   const area=null; // v2.20.54: ausschließlich ein Objekt-QR
@@ -25213,6 +25232,39 @@ async function deleteObject(id){
     else {
       db.objects=(db.objects||[]).filter(o=>o.id!==objectId);
       renderAll();
+    }
+
+    // 2.68: Objektbezogenen Winterdienst-State unmittelbar bereinigen.
+    // cloudReloadAll lädt den allgemeinen Objektbestand neu, aber nicht zwingend
+    // den bereits im Speicher befindlichen Winterdienst-Cockpit-State.
+    if(typeof wsState==='object' && wsState){
+      if(Array.isArray(wsState.objectAssignments)){
+        wsState.objectAssignments=wsState.objectAssignments.filter(
+          a=>String(a?.object_id||'')!==String(objectId)
+        );
+      }
+      if(Array.isArray(wsState.scopes)){
+        wsState.scopes=wsState.scopes.filter(
+          s=>String(s?.object_id||'')!==String(objectId)
+        );
+      }
+      if(Array.isArray(wsState.stops)){
+        wsState.stops=wsState.stops.filter(
+          s=>String(s?.object_id||'')!==String(objectId)
+        );
+      }
+      if(Array.isArray(wsState.executions)){
+        wsState.executions=wsState.executions.filter(
+          e=>String(e?.object_id||'')!==String(objectId)
+        );
+      }
+      if(wsState.weatherByObject && typeof wsState.weatherByObject==='object'){
+        delete wsState.weatherByObject[objectId];
+      }
+    }
+
+    if(typeof wsRenderWeatherCockpit==='function'){
+      wsRenderWeatherCockpit();
     }
 
     alert(storageErrors.length
@@ -28055,10 +28107,19 @@ function wsWeatherNumber(v,digits=1,suffix=''){
   return Number.isFinite(n)?`${n.toFixed(digits)}${suffix}`:'—';
 }
 function wsWinterObjectIds(){
+  // 2.68: Nur noch Winterdienst-Zuweisungen rendern, deren Objekt
+  // im aktuell geladenen Objektbestand tatsächlich noch existiert.
+  // Verhindert verwaiste Wetterkarten nach einer Objektlöschung.
+  const liveObjectIds=new Set(
+    wsObjects()
+      .map(o=>String(o?.id||''))
+      .filter(Boolean)
+  );
+
   return [...new Set((wsState.objectAssignments||[])
     .filter(a=>a.active!==false && String(a.process_type||'')==='winter_service')
     .map(a=>String(a.object_id||''))
-    .filter(Boolean))];
+    .filter(id=>id && liveObjectIds.has(id)))];
 }
 async function wsWeatherRequest(objectId,mode='forecast',force=false){
   if(!cloudSession?.access_token)throw new Error('Keine aktive Anmeldung.');
@@ -28360,10 +28421,12 @@ async function loadWinterService(){
     wsPopulateObjectSelects();
     wsRenderTourDraft();
     wsPopulateRunAssignees();
+    wsPopulateTourAssignees();
     /* SOP-Verwaltung erfolgt zentral im Dokumentenmanagement / Objekt. */
     wsRenderTours();
     wsRenderRuns();
     wsRenderGroupedRuns();
+    wsApplySeasonPlanToRunForm();
     wsRenderWeatherCockpit();
     wsLoadWeatherCockpit(false).catch(e=>console.warn('Winterdienst-Wetter konnte nicht geladen werden',e));
     const d=document.getElementById('wsRunDate'); if(d&&!d.value)d.value=wsToday();
@@ -28379,7 +28442,13 @@ function wsTourEligibleObjectIds(){
 function wsPopulateObjectSelects(){
   wsPopulateTourObjectPicker();
   const rt=document.getElementById('wsRunTemplate');
-  if(rt)rt.innerHTML='<option value="">Tour wählen …</option>'+wsState.templates.filter(t=>t.active!==false).map(t=>`<option value="${wsEsc(t.id)}">${wsEsc(t.name)}</option>`).join('');
+  if(rt){
+    const keep=String(rt.value||'');
+    const activeTemplates=wsState.templates.filter(t=>t.active!==false);
+    rt.innerHTML='<option value="">Saisonplan wählen …</option>'+activeTemplates.map(t=>`<option value="${wsEsc(t.id)}">${wsEsc(t.name)}</option>`).join('');
+    if(activeTemplates.some(t=>String(t.id)===keep))rt.value=keep;
+    else if(activeTemplates.length===1)rt.value=String(activeTemplates[0].id);
+  }
 }
 function wsPopulateTourObjectPicker(){
   const el=document.getElementById('wsTourObjectPicker');
@@ -28465,6 +28534,77 @@ function wsPopulateRunAssignees(){
   if(users.some(u=>String(u.user_id)===String(keep)))el.value=keep;
   wsRefreshFallbackSelects();
 }
+function wsPopulateTourAssignees(){
+  const el=document.getElementById('wsTourAssignee');
+  if(!el)return;
+  const keep=String(el.value||'');
+  const users=wsQualifiedWinterUsers();
+  el.innerHTML='<option value="">Mitarbeiter wählen …</option>'+users.map(u=>{
+    const label=String(u.full_name||u.email||'Mitarbeiter');
+    return `<option value="${wsEsc(u.user_id)}">${wsEsc(label)}${u.email&&u.full_name?` · ${wsEsc(u.email)}`:''}</option>`;
+  }).join('');
+  if(users.some(u=>String(u.user_id)===keep))el.value=keep;
+  wsRefreshTourFallbackSelects();
+}
+function wsRefreshTourFallbackSelects(){
+  const primary=String(document.getElementById('wsTourAssignee')?.value||'');
+  const f1=document.getElementById('wsTourFallback1');
+  const f2=document.getElementById('wsTourFallback2');
+  if(!f1||!f2)return;
+  const keep1=String(f1.value||''), keep2=String(f2.value||'');
+  const users=wsQualifiedWinterUsers();
+  const options=(exclude,placeholder)=>'<option value="">'+placeholder+'</option>'+users
+    .filter(u=>!exclude.has(String(u.user_id||'')))
+    .map(u=>`<option value="${wsEsc(u.user_id)}">${wsEsc(String(u.full_name||u.email||'Mitarbeiter'))}</option>`).join('');
+  f1.innerHTML=options(new Set([primary,keep2].filter(Boolean)),'Keine Vertretung …');
+  if(keep1 && users.some(u=>String(u.user_id)===keep1) && keep1!==primary && keep1!==keep2)f1.value=keep1;
+  const actual1=String(f1.value||'');
+  f2.innerHTML=options(new Set([primary,actual1].filter(Boolean)),'Keine weitere Vertretung …');
+  if(keep2 && users.some(u=>String(u.user_id)===keep2) && keep2!==primary && keep2!==actual1)f2.value=keep2;
+}
+function wsTemplateFallbackIds(template){
+  const raw=template?.default_fallback_user_ids;
+  if(Array.isArray(raw))return raw.map(String).filter(Boolean);
+  if(typeof raw==='string')return raw.replace(/[{}]/g,'').split(',').map(x=>x.trim()).filter(Boolean);
+  return [];
+}
+function wsSeasonLabel(template){
+  const from=String(template?.valid_from||''), until=String(template?.valid_until||'');
+  return from||until ? `${from||'…'} bis ${until||'…'}` : 'ohne Saisonzeitraum';
+}
+function wsApplySeasonPlanToRunForm(){
+  const tid=String(document.getElementById('wsRunTemplate')?.value||'');
+  const t=wsState.templates.find(x=>String(x.id)===tid);
+  const host=document.getElementById('wsRunInheritedPlan');
+  if(!t){
+    if(host)host.innerHTML='<span class="muted">Saisonplan wählen.</span>';
+    return;
+  }
+  const assignee=String(t.default_assigned_user_id||'');
+  const fallbackIds=wsTemplateFallbackIds(t);
+  const action=String(t.default_service_action||'clear_and_grit');
+  const a=document.getElementById('wsRunAssignee');
+  const f1=document.getElementById('wsRunFallback1');
+  const f2=document.getElementById('wsRunFallback2');
+  const sa=document.getElementById('wsRunServiceAction');
+  if(a)a.value=assignee;
+  wsRefreshFallbackSelects();
+  if(f1 && fallbackIds[0])f1.value=fallbackIds[0];
+  wsRefreshFallbackSelects();
+  if(f2 && fallbackIds[1])f2.value=fallbackIds[1];
+  if(sa)sa.value=['control','grit','clear','clear_and_grit'].includes(action)?action:'clear_and_grit';
+  const stops=wsState.stops
+    .filter(s=>String(s.tour_template_id)===tid && s.active!==false)
+    .sort((x,y)=>Number(x.sort_order||0)-Number(y.sort_order||0));
+  const names=stops.map((s,i)=>`${i+1}. ${wsObjects().find(o=>String(o.id)===String(s.object_id))?.name||'Objekt'}`);
+  if(host)host.innerHTML=`
+    <strong>${wsEsc(t.name||'Saisonplan')}</strong>
+    <div class="muted" style="margin-top:4px">${wsEsc(wsSeasonLabel(t))} · Start ${wsEsc((t.default_start_time||'—').slice(0,5))}</div>
+    <div style="margin-top:6px">Stamm-Mitarbeiter: <strong>${wsEsc(assignee?wsWinterUserLabel(assignee):'nicht hinterlegt')}</strong></div>
+    <div class="muted" style="margin-top:3px">Standardauftrag: ${wsEsc(wsServiceActionLabel(action))}${fallbackIds.length?` · Fallback: ${fallbackIds.map(wsWinterUserLabel).map(wsEsc).join(' · ')}`:''}</div>
+    <div class="muted" style="margin-top:5px">${wsEsc(names.join(' → ')||'Keine Stopps')}</div>`;
+}
+
 function wsRefreshFallbackSelects(){
   const primary=String(document.getElementById('wsRunAssignee')?.value||'');
   const f1=document.getElementById('wsRunFallback1');
@@ -28765,11 +28905,20 @@ function wsResetTourForm(){
   wsTourDraftObjectIds=[];
   const name=document.getElementById('wsTourName');
   const start=document.getElementById('wsTourStart');
+  const validFrom=document.getElementById('wsTourValidFrom');
+  const validUntil=document.getElementById('wsTourValidUntil');
+  const assignee=document.getElementById('wsTourAssignee');
+  const action=document.getElementById('wsTourServiceAction');
   const save=document.getElementById('wsTourSaveBtn');
   const cancel=document.getElementById('wsTourCancelBtn');
   if(name)name.value='';
   if(start)start.value='05:00';
-  if(save)save.textContent='Tourvorlage speichern';
+  if(validFrom)validFrom.value='';
+  if(validUntil)validUntil.value='';
+  if(assignee)assignee.value='';
+  wsRefreshTourFallbackSelects();
+  if(action)action.value='clear_and_grit';
+  if(save)save.textContent='Saisonplan speichern';
   if(cancel)cancel.classList.add('hidden');
   wsRenderTourDraft();
 }
@@ -28780,10 +28929,25 @@ function wsEditTourTemplate(id){
   wsEditingTourTemplateId=id;
   const name=document.getElementById('wsTourName');
   const start=document.getElementById('wsTourStart');
+  const validFrom=document.getElementById('wsTourValidFrom');
+  const validUntil=document.getElementById('wsTourValidUntil');
+  const assignee=document.getElementById('wsTourAssignee');
+  const f1=document.getElementById('wsTourFallback1');
+  const f2=document.getElementById('wsTourFallback2');
+  const action=document.getElementById('wsTourServiceAction');
   const save=document.getElementById('wsTourSaveBtn');
   const cancel=document.getElementById('wsTourCancelBtn');
   if(name)name.value=t.name||'';
   if(start)start.value=(t.default_start_time||'05:00').slice(0,5);
+  if(validFrom)validFrom.value=t.valid_from||'';
+  if(validUntil)validUntil.value=t.valid_until||'';
+  if(assignee)assignee.value=t.default_assigned_user_id||'';
+  wsRefreshTourFallbackSelects();
+  const fallbackIds=wsTemplateFallbackIds(t);
+  if(f1 && fallbackIds[0])f1.value=fallbackIds[0];
+  wsRefreshTourFallbackSelects();
+  if(f2 && fallbackIds[1])f2.value=fallbackIds[1];
+  if(action)action.value=t.default_service_action||'clear_and_grit';
   wsTourDraftObjectIds=wsState.stops
     .filter(s=>s.tour_template_id===id && s.active!==false)
     .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0))
@@ -28902,9 +29066,26 @@ async function wsSyncReorderedFutureRunsAndNotify(templateId,selectedObjectIds){
 
 async function wsSaveTourTemplate(){
   try{
-    const org=wsOrg(), name=document.getElementById('wsTourName').value.trim(), start=document.getElementById('wsTourStart').value||null;
+    const org=wsOrg();
+    const name=document.getElementById('wsTourName').value.trim();
+    const start=document.getElementById('wsTourStart').value||null;
+    const validFrom=document.getElementById('wsTourValidFrom')?.value||null;
+    const validUntil=document.getElementById('wsTourValidUntil')?.value||null;
+    const defaultAssignee=String(document.getElementById('wsTourAssignee')?.value||'')||null;
+    const defaultFallbacks=[
+      document.getElementById('wsTourFallback1')?.value||'',
+      document.getElementById('wsTourFallback2')?.value||''
+    ].map(String).filter(Boolean);
+    const defaultServiceAction=document.getElementById('wsTourServiceAction')?.value||'clear_and_grit';
     const selected=[...wsTourDraftObjectIds];
+
     if(!name||!selected.length)throw new Error('Name und mindestens ein Objekt sind Pflicht.');
+    if(!validFrom||!validUntil)throw new Error('Saisonbeginn und Saisonende sind Pflicht.');
+    if(validFrom>validUntil)throw new Error('Saisonende muss nach dem Saisonbeginn liegen.');
+    if(!defaultAssignee)throw new Error('Ein Stamm-Mitarbeiter ist für die Saisonplanung erforderlich.');
+    if(defaultFallbacks.some(id=>id===defaultAssignee))throw new Error('Stamm-Mitarbeiter darf nicht zugleich Fallback sein.');
+    if(new Set(defaultFallbacks).size!==defaultFallbacks.length)throw new Error('Fallback-Mitarbeiter dürfen nicht doppelt hinterlegt sein.');
+    if(!['control','grit','clear','clear_and_grit'].includes(defaultServiceAction))throw new Error('Ungültiger Standard-Einsatzauftrag.');
     const eligible=wsTourEligibleObjectIds();
     const invalid=selected.filter(id=>!eligible.has(String(id)));
     if(invalid.length)throw new Error('Mindestens ein Tourstopp besitzt keine aktive Winterdienst-Leistungszuordnung. Bitte diesen Stopp entfernen.');
@@ -28913,7 +29094,15 @@ async function wsSaveTourTemplate(){
       const id=wsEditingTourTemplateId;
       await cloudRequest(`winter_service_tour_templates?id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(org)}`,{
         method:'PATCH',headers:{Prefer:'return=minimal'},
-        body:JSON.stringify({name,default_start_time:start})
+        body:JSON.stringify({
+          name,
+          default_start_time:start,
+          valid_from:validFrom,
+          valid_until:validUntil,
+          default_assigned_user_id:defaultAssignee,
+          default_fallback_user_ids:defaultFallbacks,
+          default_service_action:defaultServiceAction
+        })
       });
       // Stopps nicht hart löschen: Historie bleibt nachvollziehbar; für die Vorlage werden sie deaktiviert
       // und anschließend mit der neuen Auswahl/Reihenfolge neu angelegt.
@@ -28959,7 +29148,14 @@ async function wsSaveTourTemplate(){
     }
 
     const id=wsUuid();
-    await cloudRequest('winter_service_tour_templates',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({id,organization_id:org,name,default_start_time:start,active:true,created_by:currentUserId()})});
+    await cloudRequest('winter_service_tour_templates',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({
+      id,organization_id:org,name,default_start_time:start,
+      valid_from:validFrom,valid_until:validUntil,
+      default_assigned_user_id:defaultAssignee,
+      default_fallback_user_ids:defaultFallbacks,
+      default_service_action:defaultServiceAction,
+      active:true,created_by:currentUserId()
+    })});
     await cloudRequest('winter_service_tour_stops',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(selected.map((object_id,i)=>({id:wsUuid(),organization_id:org,tour_template_id:id,object_id,sort_order:i+1,active:true})))});
     wsResetTourForm(); await loadWinterService(); alert('Tourvorlage gespeichert.');
   }catch(e){alert('Tourvorlage konnte nicht gespeichert werden: '+(e.message||e))}
@@ -28996,7 +29192,12 @@ function wsRenderTours(){
     const names=stops.map((s,i)=>`${i+1}. ${wsObjects().find(o=>o.id===s.object_id)?.name||'Objekt'}`).join(' → ');
     return `<div class="card" style="padding:10px;margin:8px 0">
       <div class="row" style="justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
-        <div><strong>${wsEsc(t.name)}</strong><div class="muted">${wsEsc((t.default_start_time||'—').slice(0,5))} · ${wsEsc(names||'keine Stopps')}</div></div>
+        <div>
+          <strong>${wsEsc(t.name)}</strong>
+          <div class="muted">${wsEsc(wsSeasonLabel(t))} · Start ${wsEsc((t.default_start_time||'—').slice(0,5))}</div>
+          <div class="muted" style="margin-top:3px">Stamm-Mitarbeiter: ${wsEsc(t.default_assigned_user_id?wsWinterUserLabel(t.default_assigned_user_id):'nicht hinterlegt')} · ${wsEsc(wsServiceActionLabel(t.default_service_action||'clear_and_grit'))}</div>
+          <div class="muted" style="margin-top:3px">${wsEsc(names||'keine Stopps')}</div>
+        </div>
         <div class="row" style="gap:6px;flex-wrap:wrap">
           <button type="button" onclick="wsEditTourTemplate('${wsEsc(t.id)}')">Bearbeiten</button>
           <button type="button" onclick="wsDeleteTourTemplate('${wsEsc(t.id)}')">Löschen</button>
@@ -29217,15 +29418,16 @@ async function wsCreateRun(){
   try{
     const tid=document.getElementById('wsRunTemplate').value;
     const date=document.getElementById('wsRunDate').value||wsToday();
-    const assignee=document.getElementById('wsRunAssignee').value;
+    const template=wsState.templates.find(t=>t.id===tid);
+    if(!template)throw new Error('Saisonplan wählen.');
+    if(template.valid_from && date<template.valid_from)throw new Error(`Der Einsatztag liegt vor dem Saisonbeginn (${template.valid_from}).`);
+    if(template.valid_until && date>template.valid_until)throw new Error(`Der Einsatztag liegt nach dem Saisonende (${template.valid_until}).`);
+    const assignee=document.getElementById('wsRunAssignee').value || template.default_assigned_user_id || '';
     const fallbackIds=[
       document.getElementById('wsRunFallback1')?.value||'',
       document.getElementById('wsRunFallback2')?.value||''
     ].map(String).filter(Boolean);
-    const serviceAction=document.getElementById('wsRunServiceAction')?.value||'clear_and_grit';
-    const template=wsState.templates.find(t=>t.id===tid);
-
-    if(!template)throw new Error('Tourvorlage wählen.');
+    const serviceAction=document.getElementById('wsRunServiceAction')?.value||template.default_service_action||'clear_and_grit';
     if(!assignee)throw new Error('Verantwortlichen Mitarbeiter auswählen.');
     if(fallbackIds.some(id=>id===String(assignee)))throw new Error('Der verantwortliche Mitarbeiter darf nicht zugleich als Fallback hinterlegt sein.');
     if(new Set(fallbackIds).size!==fallbackIds.length)throw new Error('Fallback-Mitarbeiter dürfen nicht doppelt hinterlegt sein.');
