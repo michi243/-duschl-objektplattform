@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.60</title>
+<title>Duschl Service – Objektplattform v2.61</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5354,9 +5354,9 @@ body.property-manager-ui #kpiExternalMonitoringCard.is-disabled{
       <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
-      <div class="pa-build-meta">Version <span data-app-version>2.60</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>08:02</span> Uhr</div>
+      <div class="pa-build-meta">Version <span data-app-version>2.61</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>08:13</span> Uhr</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.60</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.61</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -5503,7 +5503,7 @@ body.property-manager-ui #kpiExternalMonitoringCard.is-disabled{
     <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
-    <div class="dashboard-build-meta">Version <span data-app-version>2.60</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>08:02</span> Uhr</div>
+    <div class="dashboard-build-meta">Version <span data-app-version>2.61</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>08:13</span> Uhr</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
   </div>
 
@@ -9868,9 +9868,18 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - SQL 2.60 ergänzt idempotente Queue + Trigger; Edge 2.60 versendet externe Empfänger.
    - Kein Einfluss auf Rollen-, Objekt-, Tour-, Winterdienst- oder Entscheidungslogik.
 */
-const APP_VERSION='2.60';
+/* RELEASE 2.61 | BASIS 2.60 | 07.10.2026 08:13
+   PLATFORM-ADMIN LOGIN / GLOBALER KONTEXT GEHÄRTET
+   - platform_admin/platform_admin_delegate startet nach Login immer im globalen Plattformkontext.
+   - Veralteter Mandantenkontext und synthetische Tenant-Membership werden beim Profilaufbau verworfen.
+   - Platform Admin benötigt keine organization_membership.
+   - Mandantenmodus bleibt weiterhin nur über "Mandant administrieren" erreichbar.
+   - Bewohner-Statusmails 2.60, Dashboard 2.59 und Entscheidungslogik 2.58 unverändert.
+   - Kein SQL, keine Edge-Änderung.
+*/
+const APP_VERSION='2.61';
 const APP_RELEASE_DATE='07.10.2026';
-const APP_RELEASE_TIME='08:02'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='08:13'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -11779,6 +11788,19 @@ async function cloudLoadCurrentProfile(){
   currentUserProfile=p;
   currentUserRole=String(p.role||cloudSession?.user?.user_metadata?.app_role||'').trim().toLowerCase();
 
+  // 2.61: Globale Plattformrollen starten IMMER im globalen Plattformkontext.
+  // Eine organization_membership ist für platform_admin/platform_admin_delegate
+  // weder erforderlich noch zulässig, um den initialen UI-Kontext festzulegen.
+  if(['platform_admin','platform_admin_delegate'].includes(currentUserRole)){
+    platformTenantModeOrgId='';
+    platformTenantModeOrganization=null;
+    platformTenantModeEnteredAt=null;
+    currentUserMemberships=[];
+    currentOrganizationMembership=null;
+    currentOrganization=null;
+    dsSetActiveOrganizationId('');
+  }
+
   // v2.18.82: Die globale Profilrolle muss sofort wirksam werden.
   // Ein Fehler beim Laden der Mandanten-Mitgliedschaft darf insbesondere
   // einen platform_admin weder Navigation noch globalen Zugriff verlieren lassen.
@@ -11787,6 +11809,13 @@ async function cloudLoadCurrentProfile(){
   applyRoleUI();
 
   try{
+    // 2.61: Platform Admin arbeitet global und benötigt keine Tenant-Membership.
+    // Mandantenkontext wird ausschließlich bewusst über enterPlatformTenantMode() geöffnet.
+    if(globalPlatformRole()){
+      currentUserMemberships=[];
+      currentOrganizationMembership=null;
+      currentOrganization=null;
+    }else{
     // v2.20.79: Identität zuerst, danach ALLE Memberships. Kein Rollen-Prioritätsmodell mehr.
     // Der aktive Mandant bestimmt die operative Rolle.
     let memberships=[];
@@ -11820,6 +11849,7 @@ async function cloudLoadCurrentProfile(){
           console.error('Mandantenaktivität beim Profilaufbau fehlgeschlagen',activityError);
         }
       }
+    }
     }
   }catch(e){
     console.warn('Mandantenkontext konnte nicht geladen werden',e);
@@ -12398,6 +12428,9 @@ async function cloudLogout(){
   currentUserMemberships=[];
   currentOrganizationMembership=null;
   currentOrganization=null;
+  platformTenantModeOrgId='';
+  platformTenantModeOrganization=null;
+  platformTenantModeEnteredAt=null;
   applyRoleUI();
   cloudSetStatus('Nicht angemeldet','bad');
   cloudShowGate(true);
