@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.75</title>
+<title>Duschl Service – Objektplattform v2.80</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1169,6 +1169,12 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 
 
 
+/* === RELEASE 2.80 · VERWALTUNG READ-ONLY REGRESSION FIX ===
+   - Objektbezogene Verwaltung nutzt autoritative v2-RPCs für Leistungen und Standards.
+   - Räumkarte für object_responsible wird über eigenen Read-RPC geladen.
+   - Schreibrechte, Auth-Core, Mandantenwechsel und Admin-Pfade bleiben unverändert.
+*/
+
 /* === RÄUMKARTE MARKIERUNG ABSCHLIESSEN · 2.46 === */
 .ws-clearance-draw-actions{
   position:sticky;
@@ -1236,12 +1242,21 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 .ws-clearance-map-stage{
   position:relative;
   width:100%;
-  overflow:hidden;
+  overflow:auto;
   border:1px solid var(--line);
   border-radius:14px;
   background:#07131d;
-  touch-action:none;
+  touch-action:pan-x pan-y pinch-zoom;
   user-select:none;
+  -webkit-overflow-scrolling:touch;
+}
+.ws-clearance-map-viewport{
+  position:relative;
+  width:100%;
+  height:100%;
+  min-width:100%;
+  min-height:100%;
+  transform-origin:top left;
 }
 .ws-clearance-map-stage img{
   display:block;
@@ -1257,6 +1272,27 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
   height:100%;
   z-index:2;
   cursor:crosshair;
+  pointer-events:all!important;
+  touch-action:manipulation;
+}
+.ws-clearance-zoom-controls{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:6px;
+  margin:0 0 8px;
+}
+.ws-clearance-zoom-controls button{
+  min-width:42px;
+  min-height:40px;
+  padding:7px 10px!important;
+}
+.ws-clearance-zoom-label{
+  min-width:58px;
+  text-align:center;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:800;
 }
 .ws-clearance-map-stage.is-readonly svg{
   cursor:default;
@@ -5296,7 +5332,7 @@ table td,table th{
 <div>
 <strong>Menü</strong>
 <div class="muted" style="font-size:12px;margin-top:3px">Duschl Service OS</div>
-<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.20.82</span></div>
+<div class="muted" style="font-size:11px;margin-top:4px">Version v<span data-app-version>2.78</span></div>
 </div>
 <button aria-label="Menü schließen" class="menu-close" onclick="closeAppMenu()" type="button">×</button>
 </div>
@@ -5354,9 +5390,9 @@ table td,table th{
       <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
-      <div class="pa-build-meta">Version <span data-app-version>2.75</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>14:20</span> Uhr</div>
+      <div class="pa-build-meta">Version <span data-app-version>2.78</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>18:20</span> Uhr</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.75</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.78</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -5503,7 +5539,7 @@ table td,table th{
     <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
-    <div class="dashboard-build-meta">Version <span data-app-version>2.75</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>14:20</span> Uhr</div>
+    <div class="dashboard-build-meta">Version <span data-app-version>2.78</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>18:20</span> Uhr</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
   </div>
 
@@ -9871,9 +9907,17 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Filter "Offener Arbeitsvorrat" zeigt alle offenen Entscheidungszustände.
    - Keine Änderung an Rollen-, Objekt-, RLS-, SQL-, Winterdienst- oder Edge-Logik.
 */
-const APP_VERSION='2.75';
+/* RELEASE 2.78 | BASIS 2.77 | 07.10.2026 18:35
+   UX-FIX: Räumkarte erhält explizite Zoom-Steuerung.
+   - Zoom + / - / 100 % direkt über der Karte.
+   - Karteninhalt wird vergrößert; der Kartenbereich wird scrollbar und kann verschoben werden.
+   - Punktsetzung nutzt weiterhin die transformierte SVG-Fläche und bleibt koordinatentreu.
+   - Read-only-Einsatzansicht bleibt unverändert.
+   - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
+*/
+const APP_VERSION='2.80';
 const APP_RELEASE_DATE='07.10.2026';
-const APP_RELEASE_TIME='14:20'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='18:35'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -27267,16 +27311,24 @@ async function osaLoad(){
 }
 async function osaLoadObjectReadOnlyForPropertyManager(objectId){
   const oid=String(objectId||'');
-  const org=currentOrganizationId();
-  if(!oid||!org)return;
+  if(!oid)return;
 
-  const rows=await cloudRequest('rpc/property_manager_get_object_services_v1',{
-    method:'POST',
-    body:JSON.stringify({
-      p_organization_id:org,
-      p_object_id:oid
-    })
-  })||[];
+  let rows=[];
+  try{
+    // 2.80: Objekt ist die autoritative Klammer. Mandant und Leistungsart
+    // werden serverseitig aus dem persönlich verantworteten Objekt aufgelöst.
+    rows=await cloudRequest('rpc/property_manager_get_object_services_v2',{
+      method:'POST',
+      body:JSON.stringify({p_object_id:oid})
+    })||[];
+  }catch(v2Error){
+    console.info('Objektbezogene Verwaltungs-RPC v2 nicht verfügbar; Fallback v1.',v2Error);
+    const org=currentOrganizationId();
+    rows=await cloudRequest('rpc/property_manager_get_object_services_v1',{
+      method:'POST',
+      body:JSON.stringify({p_organization_id:org,p_object_id:oid})
+    })||[];
+  }
 
   osaState.assignments=(Array.isArray(rows)?rows:[]).map(r=>({
     id:r.assignment_id,
@@ -27310,27 +27362,53 @@ async function osaLoadInheritedStandardsForObjectReadOnly(objectId,serviceTypeId
     return osaState.standardsByService[sid]||[];
   }
 
+  let rows=[];
   try{
-    const rows=await cloudRequest('rpc/property_manager_get_object_process_standards_v1',{
+    // 2.80: v2 löst den Mandanten aus dem Objekt auf und prüft die konkrete
+    // aktive Leistungszuordnung serverseitig. Damit hängt die Anzeige nicht
+    // vom aktuell gesetzten UI-Mandantenkontext ab.
+    rows=await cloudRequest('rpc/property_manager_get_object_process_standards_v2',{
       method:'POST',
-      body:JSON.stringify({
-        p_organization_id:currentOrganizationId(),
-        p_object_id:oid,
-        p_service_type_id:sid
-      })
+      body:JSON.stringify({p_object_id:oid,p_service_type_id:sid})
     });
-    const normalized=typeof psRuntimeNormalizeRows==='function'
-      ? psRuntimeNormalizeRows(rows)
-      : [];
-    osaState.standardsByService[sid]=normalized;
-  }catch(e){
-    console.warn('Objektbezogene Standards konnten für Verwaltung nicht geladen werden',sid,e);
-    osaState.standardsByService[sid]=[];
+  }catch(v2Error){
+    console.info('Objektbezogene Standards-RPC v2 nicht verfügbar; Fallback v1.',sid,v2Error);
+    try{
+      rows=await cloudRequest('rpc/property_manager_get_object_process_standards_v1',{
+        method:'POST',
+        body:JSON.stringify({
+          p_organization_id:currentOrganizationId(),
+          p_object_id:oid,
+          p_service_type_id:sid
+        })
+      });
+    }catch(v1Error){
+      console.info('Standards-RPC v1 nicht verfügbar; Fallback kanonisch.',sid,v1Error);
+      rows=await cloudRequest('rpc/get_process_standards_for_service_v1',{
+        method:'POST',
+        body:JSON.stringify({p_organization_id:currentOrganizationId(),p_service_type_id:sid})
+      });
+    }
   }
 
-  return osaState.standardsByService[sid];
-}
+  // Falls eine ältere v1-Installation zwar antwortet, aber leer liefert,
+  // darf die kanonische bestehende Lesefunktion noch geprüft werden.
+  if(!(Array.isArray(rows)&&rows.length)){
+    try{
+      const canonical=await cloudRequest('rpc/get_process_standards_for_service_v1',{
+        method:'POST',
+        body:JSON.stringify({p_organization_id:currentOrganizationId(),p_service_type_id:sid})
+      });
+      if(Array.isArray(canonical)&&canonical.length)rows=canonical;
+    }catch(_canonicalError){}
+  }
 
+  const normalized=typeof psRuntimeNormalizeRows==='function'
+    ? psRuntimeNormalizeRows(rows)
+    : [];
+  osaState.standardsByService[sid]=normalized;
+  return normalized;
+}
 async function osaLoadInheritedStandards(serviceTypeId,{force=false}={}){
   const sid=String(serviceTypeId||'');if(!sid)return [];
   if(!force&&Object.prototype.hasOwnProperty.call(osaState.standardsByService,sid))return osaState.standardsByService[sid]||[];
@@ -27524,7 +27602,8 @@ let wsClearanceMapEditor={
   height:0,
   markings:[],
   draftPoints:[],
-  drawing:false
+  drawing:false,
+  zoom:1
 };
 const wsClearanceMapCache={};
 
@@ -27573,10 +27652,25 @@ async function wsClearanceLoadRow(objectId,{force=false}={}){
   if(!key)return null;
   if(!force && Object.prototype.hasOwnProperty.call(wsClearanceMapCache,key))return wsClearanceMapCache[key];
 
-  const rows=await cloudRequest(
-    `winter_service_clearance_maps?select=*&organization_id=eq.${encodeURIComponent(currentOrganizationId())}&object_id=eq.${encodeURIComponent(key)}&active=eq.true&limit=1`
-  );
-  const row=rows?.[0]||null;
+  let row=null;
+  if(isPropertyManagerRole() && currentUserObjectRole(key)==='object_responsible'){
+    try{
+      const rpcRows=await cloudRequest('rpc/property_manager_get_object_clearance_map_v1',{
+        method:'POST',
+        body:JSON.stringify({p_object_id:key})
+      });
+      row=Array.isArray(rpcRows)?(rpcRows[0]||null):rpcRows||null;
+    }catch(rpcError){
+      console.info('Räumkarten-RPC für Verwaltung nicht verfügbar; direkter Lesefallback.',rpcError);
+    }
+  }
+
+  if(!row){
+    const rows=await cloudRequest(
+      `winter_service_clearance_maps?select=*&organization_id=eq.${encodeURIComponent(currentOrganizationId())}&object_id=eq.${encodeURIComponent(key)}&active=eq.true&limit=1`
+    );
+    row=rows?.[0]||null;
+  }
   wsClearanceMapCache[key]=row;
   return row;
 }
@@ -27635,6 +27729,38 @@ function wsClearanceSvg(markings,width,height,{draft=[]}={}){
 
   return body+draftSvg;
 }
+function wsClearanceApplyZoom(){
+  const stage=document.getElementById('wsClearanceEditorStage');
+  const viewport=document.getElementById('wsClearanceViewport');
+  const label=document.getElementById('wsClearanceZoomLabel');
+  if(!stage||!viewport)return;
+  const zoom=Math.max(1,Math.min(4,Number(wsClearanceMapEditor.zoom)||1));
+  wsClearanceMapEditor.zoom=zoom;
+  viewport.style.width=`${zoom*100}%`;
+  viewport.style.height=`${zoom*100}%`;
+  if(label)label.textContent=`${Math.round(zoom*100)} %`;
+}
+function wsClearanceZoom(delta){
+  const stage=document.getElementById('wsClearanceEditorStage');
+  if(!stage)return;
+  const oldZoom=Math.max(1,Number(wsClearanceMapEditor.zoom)||1);
+  const next=Math.max(1,Math.min(4,Math.round((oldZoom+Number(delta||0))*4)/4));
+  if(next===oldZoom)return;
+  const relX=(stage.scrollLeft+stage.clientWidth/2)/Math.max(1,stage.scrollWidth);
+  const relY=(stage.scrollTop+stage.clientHeight/2)/Math.max(1,stage.scrollHeight);
+  wsClearanceMapEditor.zoom=next;
+  wsClearanceApplyZoom();
+  requestAnimationFrame(()=>{
+    stage.scrollLeft=Math.max(0,relX*stage.scrollWidth-stage.clientWidth/2);
+    stage.scrollTop=Math.max(0,relY*stage.scrollHeight-stage.clientHeight/2);
+  });
+}
+function wsClearanceZoomReset(){
+  const stage=document.getElementById('wsClearanceEditorStage');
+  wsClearanceMapEditor.zoom=1;
+  wsClearanceApplyZoom();
+  if(stage){stage.scrollLeft=0;stage.scrollTop=0;}
+}
 function wsClearanceEditorRender(){
   const stage=document.getElementById('wsClearanceEditorStage');
   const svg=document.getElementById('wsClearanceEditorSvg');
@@ -27645,6 +27771,7 @@ function wsClearanceEditorRender(){
   const w=Math.max(1,wsClearanceMapEditor.width||1000);
   const h=Math.max(1,wsClearanceMapEditor.height||700);
   stage.style.aspectRatio=`${w}/${h}`;
+  wsClearanceApplyZoom();
   svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
   svg.setAttribute('preserveAspectRatio','xMidYMid meet');
   svg.innerHTML=wsClearanceSvg(wsClearanceMapEditor.markings,w,h,{draft:wsClearanceMapEditor.draftPoints});
@@ -27855,6 +27982,7 @@ async function wsClearanceFileSelected(input){
     wsClearanceMapEditor.width=normalized.width;
     wsClearanceMapEditor.height=normalized.height;
     wsClearanceMapEditor.draftPoints=[];
+    wsClearanceMapEditor.zoom=1;
 
     const el=document.getElementById('wsClearanceBaseImage');
     if(el){
@@ -27892,7 +28020,8 @@ async function wsOpenClearanceMapEditor(objectId){
       height:Number(row?.image_height||0)||800,
       markings:(Array.isArray(row?.markings)?row.markings:[]).map(wsClearanceSanitizeMarking),
       draftPoints:[],
-      drawing:false
+      drawing:false,
+      zoom:1
     };
 
     modal(`
@@ -27921,12 +28050,20 @@ async function wsOpenClearanceMapEditor(objectId){
       </div>
 
       <div class="ws-clearance-map-card">
+        <div class="ws-clearance-zoom-controls" aria-label="Zoomsteuerung Räumkarte">
+          <button type="button" onclick="wsClearanceZoom(-0.25)" title="Verkleinern">−</button>
+          <span id="wsClearanceZoomLabel" class="ws-clearance-zoom-label">100 %</span>
+          <button type="button" onclick="wsClearanceZoom(0.25)" title="Vergrößern">+</button>
+          <button type="button" onclick="wsClearanceZoomReset()" title="Zoom zurücksetzen">100 %</button>
+        </div>
         <div id="wsClearanceEditorStage" class="ws-clearance-map-stage">
-          <div id="wsClearanceEmpty" class="ws-clearance-map-empty" style="${imageUrl?'display:none':''}">
-            <div><strong>Noch kein Basisbild</strong><br><span>Foto, Luftbild oder Lageplan hochladen.</span></div>
+          <div id="wsClearanceViewport" class="ws-clearance-map-viewport">
+            <div id="wsClearanceEmpty" class="ws-clearance-map-empty" style="${imageUrl?'display:none':''}">
+              <div><strong>Noch kein Basisbild</strong><br><span>Foto, Luftbild oder Lageplan hochladen.</span></div>
+            </div>
+            <img id="wsClearanceBaseImage" src="${imageUrl?esc(imageUrl):''}" alt="Basisbild der Räumkarte" style="${imageUrl?'':'display:none'}">
+            <svg id="wsClearanceEditorSvg" onclick="wsClearanceEditorClick(event)"></svg>
           </div>
-          <img id="wsClearanceBaseImage" src="${imageUrl?esc(imageUrl):''}" alt="Basisbild der Räumkarte" style="${imageUrl?'':'display:none'}">
-          <svg id="wsClearanceEditorSvg" onclick="wsClearanceEditorClick(event)"></svg>
         </div>
 
         <div class="ws-clearance-map-legend">
@@ -28121,6 +28258,67 @@ function wsClearanceReadonlyHtml(row,imageUrl){
     </div>
   </div>`;
 }
+let wsClearanceReadonlyZoom=1;
+function wsSetClearanceReadonlyZoom(next){
+  wsClearanceReadonlyZoom=Math.max(1,Math.min(4,Number(next)||1));
+  const viewport=document.getElementById('wsClearanceReadonlyViewport');
+  const label=document.getElementById('wsClearanceReadonlyZoomLabel');
+  if(viewport){
+    viewport.style.width=`${wsClearanceReadonlyZoom*100}%`;
+    viewport.style.height=`${wsClearanceReadonlyZoom*100}%`;
+  }
+  if(label)label.textContent=`${Math.round(wsClearanceReadonlyZoom*100)} %`;
+}
+async function wsOpenClearanceMapReadonly(objectId){
+  try{
+    if(!canViewObjectStandardsUI(objectId))return alert('Keine Leseberechtigung für die Räumkarte dieses Objekts.');
+    const obj=(db.objects||[]).find(o=>String(o.id||'')===String(objectId||''));
+    if(!obj)throw new Error('Objekt nicht gefunden.');
+
+    const row=await wsClearanceLoadRow(objectId,{force:true});
+    if(!row)return alert('Für dieses Objekt ist noch keine Räumkarte hinterlegt.');
+    const imageUrl=await wsClearanceImageUrl(row.image_path);
+    if(!imageUrl)return alert('Das Basisbild der Räumkarte konnte nicht geladen werden.');
+
+    const w=Math.max(1,Number(row.image_width)||1200);
+    const h=Math.max(1,Number(row.image_height)||800);
+    const marks=(Array.isArray(row.markings)?row.markings:[]).map(wsClearanceSanitizeMarking);
+    wsClearanceReadonlyZoom=1;
+
+    modal(`
+      <div class="row space" style="gap:12px;align-items:flex-start">
+        <div>
+          <h2 style="margin:0">Winterdienst · Räumkarte</h2>
+          <div class="muted" style="margin-top:4px">${esc(obj.name||'Objekt')} · nur lesen</div>
+        </div>
+        <button type="button" onclick="closeModal()">✕</button>
+      </div>
+      <div class="ws-clearance-map-card ws-clearance-map-execution">
+        <div class="ws-clearance-zoom-controls" aria-label="Zoomsteuerung Räumkarte">
+          <button type="button" onclick="wsSetClearanceReadonlyZoom(wsClearanceReadonlyZoom-0.25)">−</button>
+          <span id="wsClearanceReadonlyZoomLabel" class="ws-clearance-zoom-label">100 %</span>
+          <button type="button" onclick="wsSetClearanceReadonlyZoom(wsClearanceReadonlyZoom+0.25)">+</button>
+          <button type="button" onclick="wsSetClearanceReadonlyZoom(1)">100 %</button>
+        </div>
+        <div class="ws-clearance-map-stage is-readonly" style="aspect-ratio:${w}/${h};margin-top:12px;overflow:auto">
+          <div id="wsClearanceReadonlyViewport" class="ws-clearance-map-viewport" style="width:100%;height:100%;min-width:100%;min-height:100%">
+            <img src="${esc(imageUrl)}" alt="Räumkarte">
+            <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet">${wsClearanceSvg(marks,w,h)}</svg>
+          </div>
+        </div>
+        <div class="ws-clearance-map-legend">
+          <span class="ws-clearance-legend-item ws-clearance-legend-clear"><span class="ws-clearance-legend-swatch"></span>Räumen</span>
+          <span class="ws-clearance-legend-item ws-clearance-legend-grit"><span class="ws-clearance-legend-swatch"></span>Streuen</span>
+          <span class="ws-clearance-legend-item ws-clearance-legend-both"><span class="ws-clearance-legend-swatch"></span>Räumen + Streuen</span>
+        </div>
+      </div>
+    `);
+  }catch(e){
+    console.error('Räumkarte konnte für Verwaltung nicht geöffnet werden',e);
+    alert('Räumkarte konnte nicht geöffnet werden: '+(e.message||e));
+  }
+}
+
 async function wsLoadClearanceMapForExecution(objectId){
   const row=await wsClearanceLoadRow(objectId,{force:true}).catch(e=>{
     console.warn('Räumkarte für Einsatz konnte nicht geladen werden',e);
@@ -28185,7 +28383,7 @@ async function openObjectServicesModal(objectId){
         ${canEdit?`<div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">
           ${a.process_type==='winter_service'?`<button type="button" class="primary" onclick="wsOpenClearanceMapEditor('${esc(objectId)}')">Räumkarte bearbeiten</button>`:''}
           <button class="danger" onclick="osaDeactivate('${esc(a.id)}','${esc(objectId)}')">Leistung beenden</button>
-        </div>`:''}
+        </div>`:(a.process_type==='winter_service'?`<div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap"><button type="button" onclick="wsOpenClearanceMapReadonly('${esc(objectId)}')">Räumkarte anzeigen</button></div>`:'')}
       </div>`;
     }).join('')||'<div class="empty">Noch keine Leistung zugeordnet.</div>';
     modal.innerHTML=`<div class="modal-content osa-modal-content">
