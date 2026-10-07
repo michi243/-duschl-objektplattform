@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.82</title>
+<title>Duschl Service – Objektplattform v2.83</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5187,6 +5187,85 @@ table td,table th{
 }
 </style>
 
+
+<style id="object-services-ui-v283">
+/* ===== RELEASE 2.83 · UI-POLISH LEISTUNGEN & STANDARDS =====
+   Rein visuelle Überarbeitung. Keine Berechtigungs-, RPC-, Auth- oder Datenlogik geändert. */
+#objectServicesModal .osa-modal-content{
+  width:min(820px,100%)!important;
+  border:1px solid rgba(255,255,255,.16)!important;
+  background:linear-gradient(180deg,#102638 0%,#091925 100%)!important;
+  box-shadow:0 28px 80px rgba(0,0,0,.52)!important;
+}
+#objectServicesModal .osa-modal-header{
+  padding:18px 20px 16px!important;
+  background:linear-gradient(180deg,#132d41 0%,#0d2231 100%)!important;
+}
+.osa-v283-head-main{display:flex;align-items:flex-start;gap:12px;min-width:0}
+.osa-v283-head-icon{
+  flex:0 0 44px;width:44px;height:44px;border-radius:13px;display:grid;place-items:center;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font-size:21px
+}
+.osa-v283-head-copy{min-width:0}
+.osa-v283-head-copy h2{font-size:24px!important;letter-spacing:-.02em;margin:0!important}
+.osa-v283-head-sub{margin-top:4px;font-size:13px;line-height:1.35;color:#aebdca}
+.osa-v283-readonly-pill{
+  display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:5px 9px;border-radius:999px;
+  border:1px solid rgba(147,197,253,.34);background:rgba(59,130,246,.10);color:#cfe5ff;
+  font-size:11px;font-weight:850;letter-spacing:.02em
+}
+.osa-v283-intro{
+  display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;align-items:start;
+  padding:13px 14px!important;margin-bottom:12px!important;
+  background:rgba(83,182,122,.045)!important;border-color:rgba(83,182,122,.22)!important
+}
+.osa-v283-intro-icon{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:rgba(83,182,122,.12);font-size:18px}
+.osa-v283-intro strong{font-size:14px}.osa-v283-intro .muted{font-size:12px;line-height:1.45;margin-top:4px!important}
+.osa-v283-service-card{
+  margin:10px 0!important;padding:0!important;overflow:hidden;border-radius:16px!important;
+  border:1px solid rgba(255,255,255,.13)!important;background:linear-gradient(145deg,#10283a,#0b1d2b)!important
+}
+.osa-v283-service-top{padding:15px 16px 13px;display:flex;gap:12px;justify-content:space-between;align-items:flex-start}
+.osa-v283-service-title{display:flex;gap:10px;align-items:flex-start;min-width:0}
+.osa-v283-service-icon{
+  width:38px;height:38px;flex:0 0 38px;border-radius:11px;display:grid;place-items:center;
+  background:rgba(255,255,255,.075);border:1px solid rgba(255,255,255,.10);font-size:18px
+}
+.osa-v283-service-name{font-size:17px;font-weight:900;line-height:1.2;color:#fff}
+.osa-v283-service-meta{font-size:12px;color:#9fb0bf;margin-top:4px}
+.osa-v283-status{
+  display:inline-flex;align-items:center;gap:6px;margin-left:7px;padding:3px 7px;border-radius:999px;
+  background:rgba(83,182,122,.10);border:1px solid rgba(83,182,122,.28);color:#a8e3bd;font-size:10px;font-weight:900;vertical-align:2px
+}
+.osa-v283-status:before{content:"";width:6px;height:6px;border-radius:50%;background:#69d391}
+.osa-v283-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08)}
+.osa-v283-stat{padding:11px 12px;min-width:0;border-right:1px solid rgba(255,255,255,.07)}
+.osa-v283-stat:last-child{border-right:0}
+.osa-v283-stat strong{display:block;font-size:18px;line-height:1;color:#fff!important}
+.osa-v283-stat span{display:block;margin-top:4px;font-size:10px;line-height:1.25;color:#93a6b5}
+.osa-v283-note{margin:12px 16px 0;padding:10px 11px;border-radius:11px;background:rgba(230,184,74,.07);border:1px solid rgba(230,184,74,.18)}
+.osa-v283-note strong{font-size:12px}.osa-v283-note .muted{font-size:12px;line-height:1.4}
+.osa-v283-footer{padding:12px 16px 15px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.osa-v283-hint{font-size:11px;color:#8fa2b1;line-height:1.35;max-width:440px}
+.osa-v283-actions{display:flex;gap:8px;flex-wrap:wrap}
+.osa-v283-actions button{min-height:40px;padding:8px 11px!important}
+.osa-v283-actions .primary{font-weight:900!important}
+.osa-v283-empty{padding:28px 18px!important;background:rgba(255,255,255,.02)!important}
+.osa-v283-readonly-info{display:none!important}
+@media(max-width:680px){
+  #objectServicesModal .osa-modal-header{padding:14px 15px 12px!important}
+  .osa-v283-head-icon{width:40px;height:40px;flex-basis:40px}
+  .osa-v283-head-copy h2{font-size:21px!important}
+  .osa-v283-service-top{padding:13px 13px 11px;display:block}
+  .osa-v283-service-top>button{width:100%;margin-top:11px}
+  .osa-v283-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .osa-v283-stat:nth-child(2){border-right:0}.osa-v283-stat:nth-child(-n+2){border-bottom:1px solid rgba(255,255,255,.07)}
+  .osa-v283-note{margin:11px 13px 0}
+  .osa-v283-footer{padding:11px 13px 14px;display:block}
+  .osa-v283-actions{margin-top:10px}.osa-v283-actions button{flex:1}
+}
+</style>
+
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -9915,9 +9994,9 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='2.82';
+const APP_VERSION='2.83';
 const APP_RELEASE_DATE='07.10.2026';
-const APP_RELEASE_TIME='19:20'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='19:38'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -28323,45 +28402,53 @@ async function openObjectServicesModal(objectId){
       const c=osaInheritedSummary(a.service_type_id);
       const standards=(osaState.standardsByService[String(a.service_type_id)]||[]);
       const hasStandards=standards.length>0;
-      return `<div class="card" style="padding:12px;margin:8px 0">
-        <div class="row space" style="gap:10px;align-items:flex-start">
-          <div style="min-width:0">
-            <strong>${esc(st?.name||'Leistung')} · aktiv</strong>
-            <div class="muted" style="margin-top:3px">${esc(process)} · Source of Truth: Leistungsart</div>
+      return `<div class="card osa-v283-service-card">
+        <div class="osa-v283-service-top">
+          <div class="osa-v283-service-title">
+            <div class="osa-v283-service-icon">${a.process_type==='winter_service'?'❄':'🛠'}</div>
+            <div style="min-width:0">
+              <div class="osa-v283-service-name">${esc(st?.name||'Leistung')}<span class="osa-v283-status">aktiv</span></div>
+              <div class="osa-v283-service-meta">${esc(process)} · zentral vererbter Standard</div>
+            </div>
           </div>
           ${hasStandards?`<button type="button" onclick="osaOpenInheritedStandards('${esc(a.service_type_id)}','${esc(st?.name||'Leistung')} · Prozesse & Standards','${canEdit?'':esc(objectId)}')">Standards anzeigen</button>`:''}
         </div>
-        <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:9px">
-          <span class="badge">${c.sop} SOP</span>
-          <span class="badge">${c.work_instruction} Arbeitsanweisung${c.work_instruction===1?'':'en'}</span>
-          <span class="badge">${c.checklist} Checkliste${c.checklist===1?'':'n'}</span>
-          <span class="badge">${c.resources} Betriebsmittelbedarf${c.resources===1?'':'e'}</span>
+        <div class="osa-v283-stats">
+          <div class="osa-v283-stat"><strong>${c.sop}</strong><span>SOP</span></div>
+          <div class="osa-v283-stat"><strong>${c.work_instruction}</strong><span>Arbeitsanweisung${c.work_instruction===1?'':'en'}</span></div>
+          <div class="osa-v283-stat"><strong>${c.checklist}</strong><span>Checkliste${c.checklist===1?'':'n'}</span></div>
+          <div class="osa-v283-stat"><strong>${c.resources}</strong><span>Betriebsmittelbedarf${c.resources===1?'':'e'}</span></div>
         </div>
-        ${a.note?`<div style="margin-top:9px"><strong>Objektspezifische Ausnahme / Hinweis</strong><div class="muted" style="margin-top:3px">${esc(a.note)}</div></div>`:''}
-        <div class="muted" style="margin-top:8px">Standards werden zentral gepflegt und nicht am Objekt kopiert.</div>
-        ${canEdit?`<div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">
-          ${a.process_type==='winter_service'?`<button type="button" class="primary" onclick="wsOpenClearanceMapEditor('${esc(objectId)}')">Räumkarte bearbeiten</button>`:''}
-          <button class="danger" onclick="osaDeactivate('${esc(a.id)}','${esc(objectId)}')">Leistung beenden</button>
-        </div>`:(a.process_type==='winter_service'?`<div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap"><button type="button" onclick="wsOpenClearanceMapReadonly('${esc(objectId)}')">Räumkarte anzeigen</button></div>`:'')}
+        ${a.note?`<div class="osa-v283-note"><strong>Objektspezifische Abweichung</strong><div class="muted" style="margin-top:3px">${esc(a.note)}</div></div>`:''}
+        <div class="osa-v283-footer">
+          <div class="osa-v283-hint">Standards werden zentral gepflegt. Am Objekt bleibt nur die beauftragte Leistung mit objektspezifischen Abweichungen.</div>
+          <div class="osa-v283-actions">
+            ${canEdit?`${a.process_type==='winter_service'?`<button type="button" class="primary" onclick="wsOpenClearanceMapEditor('${esc(objectId)}')">Räumkarte bearbeiten</button>`:''}<button class="danger" onclick="osaDeactivate('${esc(a.id)}','${esc(objectId)}')">Leistung beenden</button>`:(a.process_type==='winter_service'?`<button type="button" class="primary" onclick="wsOpenClearanceMapReadonly('${esc(objectId)}')">Räumkarte anzeigen</button>`:'')}
+          </div>
+        </div>
       </div>`;
     }).join('')||'<div class="empty">Noch keine Leistung zugeordnet.</div>';
     modal.innerHTML=`<div class="modal-content osa-modal-content">
       <div class="osa-modal-header">
         <div class="row space" style="gap:12px;align-items:flex-start">
-          <div style="min-width:0">
-            <h2 style="margin:0">Leistungen &amp; Standards</h2>
-            <div class="muted">${esc(obj.name||'Objekt')} · ${canEdit?'zentrale Objekt-Leistungssteuerung':'freigegebene Standards · nur lesen'}</div>
+          <div class="osa-v283-head-main">
+            <div class="osa-v283-head-icon">▦</div>
+            <div class="osa-v283-head-copy">
+              <h2>Leistungen &amp; Standards</h2>
+              <div class="osa-v283-head-sub">${esc(obj.name||'Objekt')}</div>
+              ${!canEdit?`<span class="osa-v283-readonly-pill">◉ Nur lesen · freigegebene Standards</span>`:`<span class="osa-v283-readonly-pill">Objekt-Leistungssteuerung</span>`}
+            </div>
           </div>
           <button type="button" onclick="document.getElementById('objectServicesModal').style.display='none'">Schließen</button>
         </div>
       </div>
       <div class="osa-modal-body">
-        <div class="card" style="padding:11px;margin-bottom:12px;background:rgba(83,182,122,.05)!important;border-color:rgba(83,182,122,.24)!important">
-          <strong>Vererbungslogik</strong>
-          <div class="muted" style="margin-top:5px">Objekt → Leistungsart → SOP → Arbeitsanweisungen → Checklisten → Betriebsmittelbedarf. Am Objekt werden ausschließlich beauftragte Leistungen und objektspezifische Abweichungen gepflegt.</div>
+        <div class="card osa-v283-intro">
+          <div class="osa-v283-intro-icon">↳</div>
+          <div><strong>Vererbungslogik</strong><div class="muted">Objekt → Leistungsart → SOP → Arbeitsanweisungen → Checklisten → Betriebsmittelbedarf. Änderungen am zentralen Standard wirken automatisch auf die zugeordneten Objekte.</div></div>
         </div>
-        ${!canEdit?`<div class="card" style="padding:10px;margin-bottom:12px"><strong>Nur-Lese-Zugriff</strong><div class="muted" style="margin-top:4px">Sie sehen ausschließlich die für dieses Objekt aktiven und freigegebenen Standards. Änderungen und Freigaben erfolgen zentral.</div></div>`:''}
-        <div>${rowHtml}</div>
+        ${!canEdit?`<div class="osa-v283-readonly-info">Nur-Lese-Zugriff</div>`:''}
+        <div>${rowHtml.replace('<div class="empty">','<div class="empty osa-v283-empty">')}</div>
         ${canEdit?`<div class="card" style="margin-top:14px">
           <h3>Leistung zuordnen</h3>
           <div class="grid2">
