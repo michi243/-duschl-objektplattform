@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.84</title>
+<title>Duschl Service – Objektplattform v2.85</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5658,10 +5658,28 @@ table td,table th{
       </div>
       <button class="tenant-action-btn" type="button" onclick="openWinterPlanning()">Einsatz planen ›</button>
     </div>
-    <div class="dashboard-winter-grid">
+    <div class="dashboard-winter-decision" id="dashboardWinterDecision">
+      <div class="dashboard-winter-decision-main">
+        <span class="dashboard-winter-decision-dot" id="dashboardWinterDecisionDot"></span>
+        <div>
+          <strong id="dashboardWinterDecisionLabel">Lage wird bewertet …</strong>
+          <div class="dashboard-winter-decision-copy" id="dashboardWinterDecisionCopy">Wetter- und Einsatzdaten werden zusammengeführt.</div>
+        </div>
+      </div>
+      <div class="dashboard-winter-data-state" id="dashboardWinterDataState">—</div>
+    </div>
+    <div class="dashboard-winter-grid dashboard-winter-grid-v285">
       <div class="dashboard-winter-kpi">
         <div class="value" id="dashboardWinterCritical">—</div>
-        <div class="label">kritische Wetterlagen</div>
+        <div class="label">kritische Objekte</div>
+      </div>
+      <div class="dashboard-winter-kpi">
+        <div class="value" id="dashboardWinterWatch">—</div>
+        <div class="label">beobachten</div>
+      </div>
+      <div class="dashboard-winter-kpi">
+        <div class="value" id="dashboardWinterMinTemp">—</div>
+        <div class="label">Tiefstwert 24 h</div>
       </div>
       <div class="dashboard-winter-kpi">
         <div class="value" id="dashboardWinterWarnings">—</div>
@@ -5669,13 +5687,22 @@ table td,table th{
       </div>
       <div class="dashboard-winter-kpi">
         <div class="value" id="dashboardWinterTours">—</div>
-        <div class="label">heutige offene Touren</div>
+        <div class="label">offene Touren heute</div>
+      </div>
+      <div class="dashboard-winter-kpi">
+        <div class="value" id="dashboardWinterStaff">—</div>
+        <div class="label">eingeteilte Personen</div>
       </div>
       <div class="dashboard-winter-kpi">
         <div class="value" id="dashboardWinterObjects">—</div>
-        <div class="label">aktive Winterdienstobjekte</div>
+        <div class="label">aktive Objekte</div>
+      </div>
+      <div class="dashboard-winter-kpi">
+        <div class="value dashboard-winter-next-risk" id="dashboardWinterNextRisk">—</div>
+        <div class="label">nächste Wetterlage</div>
       </div>
     </div>
+    <div id="dashboardWinterAction" class="dashboard-winter-action" style="display:none"></div>
   </div>
 
   <div id="dashboardSummerPanel" class="dashboard-summer-panel" style="display:none">
@@ -9994,9 +10021,9 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='2.84';
+const APP_VERSION='2.85';
 const APP_RELEASE_DATE='07.10.2026';
-const APP_RELEASE_TIME='19:18'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -22193,19 +22220,68 @@ async function loadDashboardWinterSummary(){
     const openRuns=todayRuns.filter(r=>!['completed','cancelled'].includes(String(r.status||'').toLowerCase()));
 
     const critical=document.getElementById('dashboardWinterCritical');
+    const watch=document.getElementById('dashboardWinterWatch');
+    const minTemp=document.getElementById('dashboardWinterMinTemp');
     const warnings=document.getElementById('dashboardWinterWarnings');
     const tours=document.getElementById('dashboardWinterTours');
+    const staff=document.getElementById('dashboardWinterStaff');
     const objects=document.getElementById('dashboardWinterObjects');
+    const nextRisk=document.getElementById('dashboardWinterNextRisk');
+    const decision=document.getElementById('dashboardWinterDecision');
+    const decisionLabel=document.getElementById('dashboardWinterDecisionLabel');
+    const decisionCopy=document.getElementById('dashboardWinterDecisionCopy');
+    const dataState=document.getElementById('dashboardWinterDataState');
+    const action=document.getElementById('dashboardWinterAction');
+
+    const weatherEntries=objectIds.map(id=>wsState.weatherByObject?.[id]).filter(e=>e&&!e.error);
+    const minTemps=weatherEntries.map(e=>Number(e?.forecast_24h?.min_temperature)).filter(Number.isFinite);
+    const earliestRisk=weatherEntries.map(e=>e?.forecast_24h?.first_risk_at||e?.forecast_48h?.first_risk_at).filter(Boolean).sort()[0]||null;
+    const assignedUsers=[...new Set(openRuns.map(r=>String(r.assigned_user_id||'')).filter(Boolean))];
+    const dataErrors=summary.errors||0;
+    const level=summary.red>0?'red':summary.yellow>0?'yellow':'green';
 
     if(critical){
       critical.textContent=summary.red;
-      critical.className='value '+(summary.red?'dashboard-winter-risk-red':summary.yellow?'dashboard-winter-risk-yellow':'dashboard-winter-risk-green');
+      critical.className='value '+(summary.red?'dashboard-winter-risk-red':'dashboard-winter-risk-green');
     }
+    if(watch){watch.textContent=summary.yellow;watch.className='value '+(summary.yellow?'dashboard-winter-risk-yellow':'dashboard-winter-risk-green');}
+    if(minTemp)minTemp.textContent=minTemps.length?`${Math.min(...minTemps).toFixed(1)} °C`:'—';
     if(warnings)warnings.textContent=summary.warnings;
     if(tours)tours.textContent=openRuns.length;
+    if(staff)staff.textContent=assignedUsers.length;
     if(objects)objects.textContent=objectIds.length;
+    if(nextRisk){
+      if(!earliestRisk)nextRisk.textContent='keine';
+      else{
+        const d=new Date(earliestRisk);
+        nextRisk.textContent=Number.isNaN(d.getTime())?'vorhanden':d.toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      }
+    }
 
-    const dataErrors=summary.errors||0;
+    if(decision)decision.dataset.level=level;
+    if(decisionLabel)decisionLabel.textContent=level==='red'?'ROT – Einsatzentscheidung erforderlich':level==='yellow'?'GELB – Bereitschaft / Lage beobachten':'GRÜN – aktuell kein Einsatzbedarf';
+    if(decisionCopy){
+      decisionCopy.textContent=level==='red'
+        ?`${summary.red} Objekt${summary.red===1?'':'e'} mit kritischer Wetterlage. Touren, Personal und Einsatzfreigabe prüfen.`
+        :level==='yellow'
+          ?`${summary.yellow} Objekt${summary.yellow===1?'':'e'} beobachten. Wetterentwicklung und Bereitschaft prüfen.`
+          :'Für die erfassten Winterdienstobjekte besteht aktuell kein wetterbedingter Handlungsbedarf.';
+    }
+    if(dataState){
+      const now=new Date();
+      dataState.textContent=`Datenstand ${now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})}${dataErrors?` · ${dataErrors} Fehler`:''}`;
+    }
+    if(action){
+      const parts=[];
+      if(level==='red')parts.push('Einsatzlage prüfen und Entscheidung dokumentieren');
+      else if(level==='yellow')parts.push('Bereitschaft und Forecast beobachten');
+      if(openRuns.length)parts.push(`${openRuns.length} offene Tour${openRuns.length===1?'':'en'} heute`);
+      if(openRuns.length&&!assignedUsers.length)parts.push('Personal noch nicht eingeteilt');
+      action.textContent=parts.length?`Handlungsbedarf: ${parts.join(' · ')}`:'';
+      action.style.display=parts.length?'':'none';
+      action.classList.toggle('is-critical',level==='red');
+    }
+
     if(status){
       if(isObjectManagerDashboardRole()){
         status.textContent=openRuns.length
@@ -22213,7 +22289,7 @@ async function loadDashboardWinterSummary(){
           :'Heute keine offene Winterdienst-Tour zugewiesen.';
       }else{
         status.textContent=objectIds.length
-          ?`${objectIds.length} Winterdienstobjekt${objectIds.length===1?'':'e'} · ${summary.red} kritisch · ${summary.yellow} beobachten${dataErrors?` · ${dataErrors} Wetterdatenfehler`:''}`
+          ?`${objectIds.length} Winterdienstobjekt${objectIds.length===1?'':'e'} · ${summary.red} kritisch · ${summary.yellow} beobachten · ${summary.green} unkritisch${dataErrors?` · ${dataErrors} Wetterdatenfehler`:''}`
           :'Keine aktiven Winterdienstobjekte im Mandanten.';
       }
     }
@@ -34325,6 +34401,26 @@ function psRuntimeSafeFileName(v){return String(v||'Standard').replace(/[\/:*?"<
 function psRuntimeBuildDownloadHtml(x){
   const items=(x.items||[]).map((item,i)=>`<li>${esc(item.item_text||'')}</li>`).join('');
   return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(x.code||'')} · ${esc(x.title||'')}</title><style>body{font-family:Arial,sans-serif;max-width:860px;margin:40px auto;padding:0 24px;color:#17222b;line-height:1.5}h1{margin-bottom:4px}.meta{color:#65727d;margin-bottom:24px}.box{border:1px solid #ccd5db;border-radius:12px;padding:16px;margin:14px 0}li{margin:8px 0}@media print{body{margin:0;max-width:none}}</style>
+<style id="release-2-85-winter-dashboard">
+/* ===== RELEASE 2.85 · WINTERDIENST DASHBOARD ENTSCHEIDUNGSORIENTIERT ===== */
+.dashboard-winter-decision{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:14px;padding:11px 13px;border:1px solid rgba(255,255,255,.12);border-radius:13px;background:rgba(255,255,255,.035)}
+.dashboard-winter-decision-main{display:flex;align-items:flex-start;gap:10px;min-width:0}
+.dashboard-winter-decision-dot{width:11px;height:11px;flex:0 0 11px;margin-top:4px;border-radius:50%;background:#8fa1b2;box-shadow:0 0 0 4px rgba(143,161,178,.10)}
+.dashboard-winter-decision[data-level="green"] .dashboard-winter-decision-dot{background:#53b67a;box-shadow:0 0 0 4px rgba(83,182,122,.12)}
+.dashboard-winter-decision[data-level="yellow"] .dashboard-winter-decision-dot{background:#e6b84a;box-shadow:0 0 0 4px rgba(230,184,74,.12)}
+.dashboard-winter-decision[data-level="red"] .dashboard-winter-decision-dot{background:#e96d73;box-shadow:0 0 0 4px rgba(233,109,115,.12)}
+.dashboard-winter-decision-copy{margin-top:3px;color:var(--muted);font-size:12px;line-height:1.35}
+.dashboard-winter-data-state{flex:0 0 auto;color:var(--muted);font-size:11px;font-weight:800;white-space:nowrap}
+.dashboard-winter-grid-v285{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+.dashboard-winter-grid-v285 .dashboard-winter-kpi{min-height:86px;padding:10px 12px!important}
+.dashboard-winter-grid-v285 .dashboard-winter-kpi .value{font-size:23px!important}
+.dashboard-winter-next-risk{font-size:18px!important;line-height:1.1!important}
+.dashboard-winter-action{margin-top:10px;padding:10px 12px;border:1px solid rgba(230,184,74,.35);border-radius:12px;background:rgba(230,184,74,.07);color:#f0d78b;font-size:12px;line-height:1.4;font-weight:750}
+.dashboard-winter-action.is-critical{border-color:rgba(233,109,115,.42);background:rgba(233,109,115,.08);color:#f3afb3}
+@media(max-width:900px){.dashboard-winter-grid-v285{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:680px){.dashboard-winter-decision{align-items:flex-start;flex-direction:column}.dashboard-winter-data-state{white-space:normal}.dashboard-winter-grid-v285{grid-template-columns:repeat(2,minmax(0,1fr))!important}.dashboard-winter-grid-v285 .dashboard-winter-kpi{min-height:80px}.dashboard-winter-grid-v285 .dashboard-winter-kpi .value{font-size:21px!important}}
+</style>
+
 <style id="release-2-84-object-list-compact">
 /* ===== RELEASE 2.84 · OBJEKTLISTE KOMPAKT =====
    Rein visuelle Verdichtung der Objektübersicht.
