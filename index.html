@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.79</title>
+<title>Duschl Service – Objektplattform v2.80</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -1249,6 +1249,47 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
   height:100%;
   object-fit:contain;
   pointer-events:none;
+}
+.ws-clearance-map-viewport{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  transform-origin:0 0;
+  will-change:transform;
+}
+.ws-clearance-zoombar{
+  display:flex;
+  gap:7px;
+  align-items:center;
+  flex-wrap:wrap;
+  margin-bottom:9px;
+}
+.ws-clearance-zoombar button{
+  min-width:44px;
+  min-height:42px;
+  padding:8px 12px;
+}
+.ws-clearance-zoom-value{
+  min-width:58px;
+  text-align:center;
+  font-weight:800;
+  font-variant-numeric:tabular-nums;
+}
+.ws-clearance-pan-active{
+  border-color:rgba(84,177,255,.72)!important;
+  background:rgba(84,177,255,.12)!important;
+}
+.ws-clearance-mobile-help{
+  margin-left:auto;
+  color:var(--muted);
+  font-size:12px;
+}
+@media(max-width:680px){
+  .ws-clearance-mobile-help{
+    width:100%;
+    margin-left:0;
+  }
 }
 .ws-clearance-map-stage svg{
   position:absolute;
@@ -5354,9 +5395,9 @@ table td,table th{
       <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
-      <div class="pa-build-meta">Version <span data-app-version>2.79</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>15:40</span> Uhr</div>
+      <div class="pa-build-meta">Version <span data-app-version>2.80</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>16:56</span> Uhr</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.79</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.80</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -5503,7 +5544,7 @@ table td,table th{
     <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
-    <div class="dashboard-build-meta">Version <span data-app-version>2.79</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>15:40</span> Uhr</div>
+    <div class="dashboard-build-meta">Version <span data-app-version>2.80</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>16:56</span> Uhr</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
   </div>
 
@@ -9871,9 +9912,9 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Filter "Offener Arbeitsvorrat" zeigt alle offenen Entscheidungszustände.
    - Keine Änderung an Rollen-, Objekt-, RLS-, SQL-, Winterdienst- oder Edge-Logik.
 */
-const APP_VERSION='2.79';
+const APP_VERSION='2.80';
 const APP_RELEASE_DATE='07.10.2026';
-const APP_RELEASE_TIME='15:40'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='16:56'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -27784,6 +27825,176 @@ function wsClearanceSvg(markings,width,height,{draft=[]}={}){
 
   return body+draftSvg;
 }
+
+function wsClearanceClampViewport(){
+  const stage=document.getElementById('wsClearanceEditorStage');
+  if(!stage)return;
+  const z=Math.max(1,Math.min(6,Number(wsClearanceMapEditor.zoom)||1));
+  const w=stage.clientWidth||1;
+  const h=stage.clientHeight||1;
+  const minX=w-(w*z);
+  const minY=h-(h*z);
+  wsClearanceMapEditor.zoom=z;
+  wsClearanceMapEditor.panX=Math.min(0,Math.max(minX,Number(wsClearanceMapEditor.panX)||0));
+  wsClearanceMapEditor.panY=Math.min(0,Math.max(minY,Number(wsClearanceMapEditor.panY)||0));
+}
+
+function wsClearanceApplyViewport(){
+  const viewport=document.getElementById('wsClearanceViewport');
+  const stage=document.getElementById('wsClearanceEditorStage');
+  if(!viewport||!stage)return;
+  wsClearanceClampViewport();
+  const z=wsClearanceMapEditor.zoom||1;
+  const x=wsClearanceMapEditor.panX||0;
+  const y=wsClearanceMapEditor.panY||0;
+  viewport.style.transform=`translate(${x}px, ${y}px) scale(${z})`;
+  const value=document.getElementById('wsClearanceZoomValue');
+  if(value)value.textContent=`${Math.round(z*100)} %`;
+  const panBtn=document.getElementById('wsClearancePanBtn');
+  if(panBtn){
+    const active=wsClearanceMapEditor.interactionMode==='pan';
+    panBtn.classList.toggle('ws-clearance-pan-active',active);
+    panBtn.textContent=active?'Markieren':'Verschieben';
+  }
+  const svg=document.getElementById('wsClearanceEditorSvg');
+  if(svg)svg.style.cursor=wsClearanceMapEditor.interactionMode==='pan'?'grab':'crosshair';
+}
+
+function wsClearanceZoomAt(nextZoom,clientX=null,clientY=null){
+  const stage=document.getElementById('wsClearanceEditorStage');
+  if(!stage)return;
+  const rect=stage.getBoundingClientRect();
+  const oldZoom=Math.max(1,Math.min(6,Number(wsClearanceMapEditor.zoom)||1));
+  const newZoom=Math.max(1,Math.min(6,Number(nextZoom)||1));
+  const cx=clientX==null?rect.width/2:Number(clientX)-rect.left;
+  const cy=clientY==null?rect.height/2:Number(clientY)-rect.top;
+  const contentX=(cx-(Number(wsClearanceMapEditor.panX)||0))/oldZoom;
+  const contentY=(cy-(Number(wsClearanceMapEditor.panY)||0))/oldZoom;
+  wsClearanceMapEditor.zoom=newZoom;
+  wsClearanceMapEditor.panX=cx-(contentX*newZoom);
+  wsClearanceMapEditor.panY=cy-(contentY*newZoom);
+  wsClearanceApplyViewport();
+}
+
+function wsClearanceZoomBy(factor){
+  wsClearanceZoomAt((Number(wsClearanceMapEditor.zoom)||1)*(Number(factor)||1));
+}
+
+function wsClearanceResetViewport(){
+  wsClearanceMapEditor.zoom=1;
+  wsClearanceMapEditor.panX=0;
+  wsClearanceMapEditor.panY=0;
+  wsClearanceMapEditor.interactionMode='draw';
+  wsClearanceApplyViewport();
+}
+
+function wsClearanceTogglePanMode(){
+  wsClearanceMapEditor.interactionMode=
+    wsClearanceMapEditor.interactionMode==='pan'?'draw':'pan';
+  wsClearanceApplyViewport();
+}
+
+function wsClearanceSetupGestures(){
+  const stage=document.getElementById('wsClearanceEditorStage');
+  if(!stage || stage.dataset.gesturesReady==='1')return;
+  stage.dataset.gesturesReady='1';
+
+  const pointers=wsClearanceMapEditor.pointers instanceof Map
+    ? wsClearanceMapEditor.pointers
+    : (wsClearanceMapEditor.pointers=new Map());
+
+  const snapshot=()=>{
+    const vals=[...pointers.values()];
+    if(vals.length<2)return null;
+    const a=vals[0],b=vals[1];
+    return {
+      distance:Math.hypot(b.x-a.x,b.y-a.y)||1,
+      centerX:(a.x+b.x)/2,
+      centerY:(a.y+b.y)/2,
+      zoom:Number(wsClearanceMapEditor.zoom)||1,
+      panX:Number(wsClearanceMapEditor.panX)||0,
+      panY:Number(wsClearanceMapEditor.panY)||0
+    };
+  };
+
+  stage.addEventListener('pointerdown',ev=>{
+    if(ev.pointerType==='mouse' && ev.button!==0)return;
+    pointers.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});
+    try{stage.setPointerCapture(ev.pointerId)}catch(_e){}
+
+    if(pointers.size>=2){
+      wsClearanceMapEditor.pinchStart=snapshot();
+      wsClearanceMapEditor.suppressClickUntil=Date.now()+500;
+      ev.preventDefault();
+      return;
+    }
+
+    if(wsClearanceMapEditor.interactionMode==='pan'){
+      wsClearanceMapEditor.panStart={
+        x:ev.clientX,
+        y:ev.clientY,
+        panX:Number(wsClearanceMapEditor.panX)||0,
+        panY:Number(wsClearanceMapEditor.panY)||0
+      };
+      wsClearanceMapEditor.suppressClickUntil=Date.now()+250;
+      ev.preventDefault();
+    }
+  },{passive:false});
+
+  stage.addEventListener('pointermove',ev=>{
+    if(!pointers.has(ev.pointerId))return;
+    pointers.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});
+
+    if(pointers.size>=2){
+      const start=wsClearanceMapEditor.pinchStart||snapshot();
+      const vals=[...pointers.values()];
+      const a=vals[0],b=vals[1];
+      const distance=Math.hypot(b.x-a.x,b.y-a.y)||1;
+      const centerX=(a.x+b.x)/2;
+      const centerY=(a.y+b.y)/2;
+      const stageRect=stage.getBoundingClientRect();
+      const oldZoom=start.zoom||1;
+      const newZoom=Math.max(1,Math.min(6,oldZoom*(distance/start.distance)));
+      const oldCx=start.centerX-stageRect.left;
+      const oldCy=start.centerY-stageRect.top;
+      const contentX=(oldCx-start.panX)/oldZoom;
+      const contentY=(oldCy-start.panY)/oldZoom;
+      const newCx=centerX-stageRect.left;
+      const newCy=centerY-stageRect.top;
+      wsClearanceMapEditor.zoom=newZoom;
+      wsClearanceMapEditor.panX=newCx-(contentX*newZoom);
+      wsClearanceMapEditor.panY=newCy-(contentY*newZoom);
+      wsClearanceMapEditor.suppressClickUntil=Date.now()+500;
+      wsClearanceApplyViewport();
+      ev.preventDefault();
+      return;
+    }
+
+    if(wsClearanceMapEditor.interactionMode==='pan' && wsClearanceMapEditor.panStart){
+      const s=wsClearanceMapEditor.panStart;
+      wsClearanceMapEditor.panX=s.panX+(ev.clientX-s.x);
+      wsClearanceMapEditor.panY=s.panY+(ev.clientY-s.y);
+      wsClearanceMapEditor.suppressClickUntil=Date.now()+300;
+      wsClearanceApplyViewport();
+      ev.preventDefault();
+    }
+  },{passive:false});
+
+  const endPointer=ev=>{
+    pointers.delete(ev.pointerId);
+    if(pointers.size<2)wsClearanceMapEditor.pinchStart=null;
+    if(pointers.size===0)wsClearanceMapEditor.panStart=null;
+    wsClearanceMapEditor.suppressClickUntil=Math.max(
+      Number(wsClearanceMapEditor.suppressClickUntil)||0,
+      Date.now()+180
+    );
+  };
+
+  stage.addEventListener('pointerup',endPointer);
+  stage.addEventListener('pointercancel',endPointer);
+  stage.addEventListener('lostpointercapture',endPointer);
+}
+
 function wsClearanceEditorRender(){
   const stage=document.getElementById('wsClearanceEditorStage');
   const svg=document.getElementById('wsClearanceEditorSvg');
@@ -27797,6 +28008,8 @@ function wsClearanceEditorRender(){
   svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
   svg.setAttribute('preserveAspectRatio','xMidYMid meet');
   svg.innerHTML=wsClearanceSvg(wsClearanceMapEditor.markings,w,h,{draft:wsClearanceMapEditor.draftPoints});
+  wsClearanceSetupGestures();
+  requestAnimationFrame(wsClearanceApplyViewport);
 
   const geometry=document.getElementById('wsClearanceGeometry')?.value||'polygon';
   const pointCount=wsClearanceMapEditor.draftPoints.length;
@@ -27840,13 +28053,20 @@ function wsClearanceEditorRender(){
 }
 function wsClearanceEditorClick(ev){
   if(!wsClearanceMapEditor.imageUrl)return;
-  const svg=document.getElementById('wsClearanceEditorSvg');
-  if(!svg)return;
+  if(wsClearanceMapEditor.interactionMode==='pan')return;
+  if(Date.now() < (Number(wsClearanceMapEditor.suppressClickUntil)||0))return;
 
-  const rect=svg.getBoundingClientRect();
+  const stage=document.getElementById('wsClearanceEditorStage');
+  if(!stage)return;
+
+  const rect=stage.getBoundingClientRect();
+  const zoom=Math.max(1,Number(wsClearanceMapEditor.zoom)||1);
+  const panX=Number(wsClearanceMapEditor.panX)||0;
+  const panY=Number(wsClearanceMapEditor.panY)||0;
+
   const p={
-    x:(ev.clientX-rect.left)/Math.max(1,rect.width),
-    y:(ev.clientY-rect.top)/Math.max(1,rect.height)
+    x:(ev.clientX-rect.left-panX)/Math.max(1,rect.width*zoom),
+    y:(ev.clientY-rect.top-panY)/Math.max(1,rect.height*zoom)
   };
   p.x=Math.max(0,Math.min(1,p.x));
   p.y=Math.max(0,Math.min(1,p.y));
@@ -28004,6 +28224,10 @@ async function wsClearanceFileSelected(input){
     wsClearanceMapEditor.width=normalized.width;
     wsClearanceMapEditor.height=normalized.height;
     wsClearanceMapEditor.draftPoints=[];
+    wsClearanceMapEditor.zoom=1;
+    wsClearanceMapEditor.panX=0;
+    wsClearanceMapEditor.panY=0;
+    wsClearanceMapEditor.interactionMode='draw';
 
     const el=document.getElementById('wsClearanceBaseImage');
     if(el){
@@ -28041,7 +28265,14 @@ async function wsOpenClearanceMapEditor(objectId){
       height:Number(row?.image_height||0)||800,
       markings:(Array.isArray(row?.markings)?row.markings:[]).map(wsClearanceSanitizeMarking),
       draftPoints:[],
-      drawing:false
+      drawing:false,
+      zoom:1,
+      panX:0,
+      panY:0,
+      interactionMode:'draw',
+      pointers:new Map(),
+      pinchStart:null,
+      suppressClickUntil:0
     };
 
     modal(`
@@ -28056,7 +28287,7 @@ async function wsOpenClearanceMapEditor(objectId){
       <div class="ws-clearance-editor-hint">
         <strong>Pflege am Objekt</strong>
         <div class="muted" style="margin-top:4px">
-          Basisbild hochladen und Räum-/Streuflächen markieren. Im Winterdiensteinsatz wird die gespeicherte Karte nur lesend angezeigt.
+          Basisbild hochladen und Räum-/Streuflächen markieren. Auf dem Handy können Sie mit zwei Fingern zoomen und verschieben. Für Ein-Finger-Verschieben „Verschieben“ aktivieren.
         </div>
       </div>
 
@@ -28070,12 +28301,22 @@ async function wsOpenClearanceMapEditor(objectId){
       </div>
 
       <div class="ws-clearance-map-card">
+        <div class="ws-clearance-zoombar">
+          <button type="button" onclick="wsClearanceZoomBy(0.8)" aria-label="Herauszoomen">−</button>
+          <span id="wsClearanceZoomValue" class="ws-clearance-zoom-value">100 %</span>
+          <button type="button" onclick="wsClearanceZoomBy(1.25)" aria-label="Hineinzoomen">+</button>
+          <button type="button" onclick="wsClearanceResetViewport()">100 %</button>
+          <button id="wsClearancePanBtn" type="button" onclick="wsClearanceTogglePanMode()">Verschieben</button>
+          <span class="ws-clearance-mobile-help">2 Finger: Zoomen/Verschieben · 1 Finger: Punkte setzen</span>
+        </div>
         <div id="wsClearanceEditorStage" class="ws-clearance-map-stage">
           <div id="wsClearanceEmpty" class="ws-clearance-map-empty" style="${imageUrl?'display:none':''}">
             <div><strong>Noch kein Basisbild</strong><br><span>Foto, Luftbild oder Lageplan hochladen.</span></div>
           </div>
-          <img id="wsClearanceBaseImage" src="${imageUrl?esc(imageUrl):''}" alt="Basisbild der Räumkarte" style="${imageUrl?'':'display:none'}">
-          <svg id="wsClearanceEditorSvg" onclick="wsClearanceEditorClick(event)"></svg>
+          <div id="wsClearanceViewport" class="ws-clearance-map-viewport">
+            <img id="wsClearanceBaseImage" src="${imageUrl?esc(imageUrl):''}" alt="Basisbild der Räumkarte" style="${imageUrl?'':'display:none'}">
+            <svg id="wsClearanceEditorSvg" onclick="wsClearanceEditorClick(event)"></svg>
+          </div>
         </div>
 
         <div class="ws-clearance-map-legend">
