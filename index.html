@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.63</title>
+<title>Duschl Service – Objektplattform v2.59</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5240,9 +5240,6 @@ body.property-manager-ui #kpiExternalMonitoringCard.is-disabled{
   <input autocomplete="name" id="prName" maxlength="120" placeholder="Vor- und Nachname" type="text"/>
   <label for="prEmail">E-Mail <span class="muted">(optional)</span></label>
   <input autocomplete="email" id="prEmail" maxlength="180" placeholder="name@beispiel.de" type="email"/>
-  <div class="public-report-required-note" style="margin-top:7px">
-    Wenn Sie eine gültige E-Mail-Adresse angeben, erhalten Sie eine Eingangsbestätigung und eine Nachricht, sobald Ihre Meldung abgeschlossen wurde.
-  </div>
 
   <div class="public-report-summary" id="prSummary"></div>
 
@@ -5354,9 +5351,9 @@ body.property-manager-ui #kpiExternalMonitoringCard.is-disabled{
       <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
-      <div class="pa-build-meta">Version <span data-app-version>2.63</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>08:37</span> Uhr</div>
+      <div class="pa-build-meta">Version <span data-app-version>2.59</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>20:50</span> Uhr</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.63</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.59</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -5503,7 +5500,7 @@ body.property-manager-ui #kpiExternalMonitoringCard.is-disabled{
     <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
-    <div class="dashboard-build-meta">Version <span data-app-version>2.63</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>08:37</span> Uhr</div>
+    <div class="dashboard-build-meta">Version <span data-app-version>2.59</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>20:50</span> Uhr</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
   </div>
 
@@ -9857,39 +9854,9 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Rollen-, Objekt-, Entscheidungs-, Meldungs-, Winterdienst- und RLS-Logik unverändert.
    - Kein SQL, keine Edge-Änderung.
 */
-/* RELEASE 2.60 | BASIS 2.59 | 07.10.2026 08:02
-   BEWOHNER-STATUSMAILS
-   - Bei freiwillig hinterlegter gültiger E-Mail-Adresse erhält der Bewohner:
-     1) Eingangsbestätigung,
-     2) Abschlussmail "Erledigt",
-     3) Abschlussmail "Geschlossen ohne Erledigung".
-   - Interne Routing-, Dienstleister-, SLA- und Systeminformationen bleiben verborgen.
-   - Abschlussgrund bei "ohne Erledigung" wird als externe Bewohnerinformation behandelt.
-   - SQL 2.60 ergänzt idempotente Queue + Trigger; Edge 2.60 versendet externe Empfänger.
-   - Kein Einfluss auf Rollen-, Objekt-, Tour-, Winterdienst- oder Entscheidungslogik.
-*/
-/* RELEASE 2.61 | BASIS 2.60 | 07.10.2026 08:13
-   PLATFORM-ADMIN LOGIN / GLOBALER KONTEXT GEHÄRTET
-   - platform_admin/platform_admin_delegate startet nach Login immer im globalen Plattformkontext.
-   - Veralteter Mandantenkontext und synthetische Tenant-Membership werden beim Profilaufbau verworfen.
-   - Platform Admin benötigt keine organization_membership.
-   - Mandantenmodus bleibt weiterhin nur über "Mandant administrieren" erreichbar.
-   - Bewohner-Statusmails 2.60, Dashboard 2.59 und Entscheidungslogik 2.58 unverändert.
-   - Kein SQL, keine Edge-Änderung.
-*/
-/* RELEASE 2.63 | BASIS 2.61 | 07.10.2026 08:37
-   LOGIN-STABILISIERUNG OHNE BLOCKIERENDES LOGIN-GATE
-   - Auth-Gate wird nach erfolgreicher Supabase-Authentifizierung sofort geschlossen.
-   - Profil-Laden erhält ein hartes Timeout; "Anmeldung läuft …" kann nicht endlos stehen bleiben.
-   - Erfolgreich geladenes Profil/Rolle bleibt auch bei nachgelagerten Datenfehlern erhalten.
-   - Platform Admin startet weiterhin global ohne Membership (Fix 2.61 bleibt erhalten).
-   - Fehler beim Datenladen führen nur zu Warnstatus, nicht zu Rollenverlust.
-   - Bewohner-Statusmails 2.60 bleiben unverändert.
-   - Kein SQL, keine Edge-Änderung.
-*/
-const APP_VERSION='2.63';
-const APP_RELEASE_DATE='07.10.2026';
-const APP_RELEASE_TIME='08:37'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.59';
+const APP_RELEASE_DATE='06.10.2026';
+const APP_RELEASE_TIME='20:50'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -10946,7 +10913,6 @@ async function submitPublicResidentReport(){
       wrap.innerHTML=`<div class="public-report-success">
         <strong>Danke. Ihre Meldung wurde aufgenommen.</strong>
         <div class="muted" style="margin-top:10px">${hadPhotos?'Meldung und Fotos wurden erfolgreich gespeichert.':'Die Meldung wurde erfolgreich gespeichert.'}</div>
-        ${email?`<div class="public-report-note" style="margin-top:14px;text-align:left"><strong>E-Mail-Bestätigung</strong><div style="margin-top:4px">Eine Eingangsbestätigung wird an ${esc(email)} versendet. Beim Abschluss Ihrer Meldung erhalten Sie eine weitere Nachricht.</div></div>`:''}
         <div class="public-report-summary" style="text-align:left;margin-top:18px">
           <div class="public-report-summary-row"><span>Status</span><strong>Eingegangen</strong></div>
           <div class="public-report-summary-row"><span>Referenz</span><strong>${esc(shortRef||'Erfasst')}</strong></div>
@@ -11798,19 +11764,6 @@ async function cloudLoadCurrentProfile(){
   currentUserProfile=p;
   currentUserRole=String(p.role||cloudSession?.user?.user_metadata?.app_role||'').trim().toLowerCase();
 
-  // 2.61: Globale Plattformrollen starten IMMER im globalen Plattformkontext.
-  // Eine organization_membership ist für platform_admin/platform_admin_delegate
-  // weder erforderlich noch zulässig, um den initialen UI-Kontext festzulegen.
-  if(['platform_admin','platform_admin_delegate'].includes(currentUserRole)){
-    platformTenantModeOrgId='';
-    platformTenantModeOrganization=null;
-    platformTenantModeEnteredAt=null;
-    currentUserMemberships=[];
-    currentOrganizationMembership=null;
-    currentOrganization=null;
-    dsSetActiveOrganizationId('');
-  }
-
   // v2.18.82: Die globale Profilrolle muss sofort wirksam werden.
   // Ein Fehler beim Laden der Mandanten-Mitgliedschaft darf insbesondere
   // einen platform_admin weder Navigation noch globalen Zugriff verlieren lassen.
@@ -11819,13 +11772,6 @@ async function cloudLoadCurrentProfile(){
   applyRoleUI();
 
   try{
-    // 2.61: Platform Admin arbeitet global und benötigt keine Tenant-Membership.
-    // Mandantenkontext wird ausschließlich bewusst über enterPlatformTenantMode() geöffnet.
-    if(globalPlatformRole()){
-      currentUserMemberships=[];
-      currentOrganizationMembership=null;
-      currentOrganization=null;
-    }else{
     // v2.20.79: Identität zuerst, danach ALLE Memberships. Kein Rollen-Prioritätsmodell mehr.
     // Der aktive Mandant bestimmt die operative Rolle.
     let memberships=[];
@@ -11859,7 +11805,6 @@ async function cloudLoadCurrentProfile(){
           console.error('Mandantenaktivität beim Profilaufbau fehlgeschlagen',activityError);
         }
       }
-    }
     }
   }catch(e){
     console.warn('Mandantenkontext konnte nicht geladen werden',e);
@@ -12331,16 +12276,6 @@ function cloudSetStatus(text,state='wait'){
   if(t)t.textContent=text;
   if(d){d.className='cloud-dot '+state}
 }
-function withTimeout(promise,ms,label='Vorgang'){
-  let timer=null;
-  return Promise.race([
-    promise,
-    new Promise((_,reject)=>{
-      timer=setTimeout(()=>reject(new Error(`${label} dauert zu lange. Bitte erneut versuchen.`)),ms);
-    })
-  ]).finally(()=>{if(timer)clearTimeout(timer);});
-}
-
 function cloudAuthMessage(text,isError=false){
   const e=document.getElementById('authMessage');if(!e)return;
   e.textContent=text||'';e.style.color=isError?'#ff8b91':'';
@@ -12403,102 +12338,37 @@ async function cloudEnsureFreshSession(bufferSeconds=30){
 async function cloudLogin(){
   const email=document.getElementById('authEmail')?.value.trim();
   const password=document.getElementById('authPassword')?.value||'';
-
-  if(!email||!password){
-    return cloudAuthMessage('E-Mail und Passwort eingeben.',true);
-  }
-
+  if(!email||!password)return cloudAuthMessage('E-Mail und Passwort eingeben.',true);
   cloudAuthMessage('Anmeldung läuft …');
-
   try{
-    const authResponse=await withTimeout(
-      fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`,{
-        method:'POST',
-        headers:cloudPublicHeaders(),
-        body:JSON.stringify({email,password})
-      }),
-      15000,
-      'Anmeldung'
-    );
-
-    if(!authResponse.ok){
-      throw new Error('Anmeldung fehlgeschlagen.');
-    }
-
-    const session=await authResponse.json();
-    cloudStoreSession(session);
-
-    /*
-     * Gate nach erfolgreicher Authentifizierung sofort schließen.
-     * Die UI darf nicht durch nachgelagerte Profil-/Datenaufrufe blockieren.
-     */
+    const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`,{
+      method:'POST',
+      headers:cloudPublicHeaders(),
+      body:JSON.stringify({email,password})
+    });
+    if(!r.ok)throw new Error('Anmeldung fehlgeschlagen.');
+    const s=await r.json();
+    cloudStoreSession(s);
     cloudShowGate(false);
     cloudAuthMessage('');
-
-    try{
-      await withTimeout(
-        cloudLoadCurrentProfile(),
-        15000,
-        'Profil laden'
-      );
-    }catch(profileError){
-      console.error('Profilinitialisierung fehlgeschlagen',profileError);
-
-      currentUserProfile=null;
-      currentUserRole='';
-      currentUserMemberships=[];
-      currentOrganizationMembership=null;
-      currentOrganization=null;
-      platformTenantModeOrgId='';
-      platformTenantModeOrganization=null;
-      platformTenantModeEnteredAt=null;
-
-      applyRoleUI();
-      cloudSetStatus('Profil konnte nicht geladen werden','bad');
-      cloudShowGate(true);
-      cloudAuthMessage(
-        'Profil konnte nicht geladen werden: '+(profileError?.message||profileError),
-        true
-      );
-      return;
-    }
-
+    await cloudLoadCurrentProfile();
     if(mustChangePassword()){
       showPasswordChangeGate();
       return;
     }
-
-    /*
-     * Ab hier ist die Anmeldung fachlich erfolgreich.
-     * Datenladefehler dürfen Rolle/Navigation nicht zurücksetzen.
-     */
-    applyRoleUI();
-
-    try{
-      await cloudReloadObjects();
-    }catch(dataError){
-      console.error('Nachgelagerte Dateninitialisierung fehlgeschlagen',dataError);
-      cloudSetStatus('Angemeldet · Daten konnten nicht vollständig geladen werden','bad');
-      applyRoleUI();
-    }
-
-  }catch(authError){
-    console.error('Authentifizierung fehlgeschlagen',authError);
-
-    cloudStoreSession(null);
+    await cloudReloadObjects();
+  }catch(e){
+    console.error('Anmeldung / Profilinitialisierung fehlgeschlagen',e);
+    // v2.18.82: Die App darf bei fehlgeschlagener Profilinitialisierung
+    // nicht mit leerer Navigation hinter einem ausgeblendeten Login-Gate stehen.
     currentUserProfile=null;
     currentUserRole='';
-    currentUserMemberships=[];
     currentOrganizationMembership=null;
     currentOrganization=null;
-    platformTenantModeOrgId='';
-    platformTenantModeOrganization=null;
-    platformTenantModeEnteredAt=null;
-
     applyRoleUI();
-    cloudSetStatus('Nicht angemeldet','bad');
+    cloudSetStatus('Anmeldung unvollständig','bad');
     cloudShowGate(true);
-    cloudAuthMessage(authError?.message||'Anmeldung fehlgeschlagen.',true);
+    cloudAuthMessage('Profil konnte nicht geladen werden: '+(e?.message||'Anmeldung fehlgeschlagen.'),true);
   }
 }
 async function cloudLogout(){
@@ -12513,9 +12383,6 @@ async function cloudLogout(){
   currentUserMemberships=[];
   currentOrganizationMembership=null;
   currentOrganization=null;
-  platformTenantModeOrgId='';
-  platformTenantModeOrganization=null;
-  platformTenantModeEnteredAt=null;
   applyRoleUI();
   cloudSetStatus('Nicht angemeldet','bad');
   cloudShowGate(true);
@@ -17089,85 +16956,47 @@ async function openNotificationDeepLink(){
 async function bootCloud(){
   const recoverySession=cloudRecoverySessionFromUrl();
   cloudSession=recoverySession||cloudLoadStoredSession();
-
   if(recoverySession){
     cloudStoreSession(recoverySession);
     cloudShowGate(false);
     showGeneralPasswordChangeGate(true);
     return;
   }
-
   if(!cloudSession){
     cloudSetStatus('Nicht angemeldet','bad');
     cloudShowGate(true);
     return;
   }
-
-  /*
-   * Eine gespeicherte gültige Session darf das Login-Gate nicht blockierend
-   * über der Anwendung stehen lassen.
-   */
   cloudShowGate(false);
-
   try{
-    await withTimeout(
-      cloudLoadCurrentProfile(),
-      15000,
-      'Profil laden'
-    );
-  }catch(firstProfileError){
-    console.warn('Profilinitialisierung mit gespeicherter Sitzung fehlgeschlagen',firstProfileError);
-
+    await cloudLoadCurrentProfile();
+    if(mustChangePassword()){
+      showPasswordChangeGate();
+      return;
+    }
+    await cloudReloadObjects();
+  }catch(firstError){
+    console.warn('Initialisierung mit gespeicherter Sitzung fehlgeschlagen',firstError);
     try{
-      const ok=await withTimeout(
-        cloudRefreshSession(),
-        15000,
-        'Sitzung erneuern'
-      );
-
-      if(!ok)throw firstProfileError;
-
-      await withTimeout(
-        cloudLoadCurrentProfile(),
-        15000,
-        'Profil laden'
-      );
-    }catch(profileError){
-      console.error('Profilinitialisierung nach Session-Refresh fehlgeschlagen',profileError);
-
+      const ok=await cloudRefreshSession();
+      if(!ok)throw firstError;
+      await cloudLoadCurrentProfile();
+      if(mustChangePassword()){
+        showPasswordChangeGate();
+        return;
+      }
+      await cloudReloadObjects();
+    }catch(e){
+      console.error('Profilinitialisierung nach Session-Refresh fehlgeschlagen',e);
       currentUserProfile=null;
       currentUserRole='';
-      currentUserMemberships=[];
       currentOrganizationMembership=null;
       currentOrganization=null;
-      platformTenantModeOrgId='';
-      platformTenantModeOrganization=null;
-      platformTenantModeEnteredAt=null;
-
       applyRoleUI();
       cloudSetStatus('Profil konnte nicht geladen werden','bad');
       cloudShowGate(true);
-      cloudAuthMessage(
-        'Profil konnte nicht geladen werden: '+(profileError?.message||profileError),
-        true
-      );
-      return;
+      cloudAuthMessage('Profil konnte nicht geladen werden: '+(e?.message||e),true);
     }
-  }
-
-  if(mustChangePassword()){
-    showPasswordChangeGate();
-    return;
-  }
-
-  applyRoleUI();
-
-  try{
-    await cloudReloadObjects();
-  }catch(dataError){
-    console.error('Dateninitialisierung nach erfolgreichem Login fehlgeschlagen',dataError);
-    cloudSetStatus('Angemeldet · Daten konnten nicht vollständig geladen werden','bad');
-    applyRoleUI();
   }
 }
 
@@ -24178,10 +24007,9 @@ function openResidentReportCloseModal(id,targetStatus){
   const title='Meldung schließen';
   const examples='z. B. kein Handlungsbedarf, bereits erledigt, Duplikat oder nicht relevant';
   modal(`<div class="row space"><h2>${title}</h2><button onclick="closeModal()">✕</button></div>
-    <div class="muted">Die ursprüngliche Meldung bleibt erhalten. Bei hinterlegter Bewohner-E-Mail wird der Abschlussgrund in der Abschlussmail verwendet.</div>
-    <label>Abschlussgrund *</label>
+    <div class="muted">Die ursprüngliche Meldung bleibt erhalten. Die Begründung wird intern dokumentiert.</div>
+    <label>Begründung *</label>
     <textarea id="rrCloseReason" maxlength="1500" placeholder="${examples}"></textarea>
-    <div class="muted" style="margin-top:6px">Bitte so formulieren, dass der Text auch für den Bewohner verständlich ist. Keine internen Kürzel oder Bearbeitungshinweise verwenden.</div>
     <div class="row" style="margin-top:14px">
       <button class="primary" onclick="saveResidentReportClosure('${id}','closed')">Schließen</button>
       <button onclick="closeModal()">Abbrechen</button>
