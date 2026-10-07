@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.70</title>
+<title>Duschl Service – Objektplattform v2.71</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5354,9 +5354,9 @@ table td,table th{
       <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
-      <div class="pa-build-meta">Version <span data-app-version>2.70</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>11:38</span> Uhr</div>
+      <div class="pa-build-meta">Version <span data-app-version>2.71</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>11:53</span> Uhr</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.70</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.71</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -5503,7 +5503,7 @@ table td,table th{
     <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
-    <div class="dashboard-build-meta">Version <span data-app-version>2.70</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>11:38</span> Uhr</div>
+    <div class="dashboard-build-meta">Version <span data-app-version>2.71</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>11:53</span> Uhr</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
   </div>
 
@@ -9871,9 +9871,9 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Filter "Offener Arbeitsvorrat" zeigt alle offenen Entscheidungszustände.
    - Keine Änderung an Rollen-, Objekt-, RLS-, SQL-, Winterdienst- oder Edge-Logik.
 */
-const APP_VERSION='2.70';
+const APP_VERSION='2.71';
 const APP_RELEASE_DATE='07.10.2026';
-const APP_RELEASE_TIME='11:38'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='11:53'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -16816,8 +16816,9 @@ function notificationDeepLinkFromUrl(){
   const p=new URLSearchParams(location.search);
   const type=String(p.get('vorgang')||'').trim().toLowerCase();
   const id=String(p.get('id')||'').trim();
+  const email=String(p.get('email')||'').trim().toLowerCase();
   if(!type||!id)return null;
-  return {type,id};
+  return {type,id,email};
 }
 function clearNotificationDeepLink(){
   const u=new URL(location.href);
@@ -16844,8 +16845,24 @@ async function notificationDeepLinkTarget(link){
     const t=rows?.[0];
     objectId=String(t?.object_id||'');
   }else if(link.type==='winter_service_run'){
-    const rows=await cloudRequest(`winter_service_runs?id=eq.${encodeURIComponent(link.id)}&select=id,organization_id`);
-    organizationId=String(rows?.[0]?.organization_id||'');
+    const rows=await cloudRequest(`winter_service_runs?id=eq.${encodeURIComponent(link.id)}&select=id,organization_id,assigned_user_id`);
+    const run=rows?.[0];
+    organizationId=String(run?.organization_id||'');
+
+    // Zusätzlicher Schutz für ältere Links ohne email-Parameter:
+    // Wenn der Datensatz für den aktuellen Benutzer sichtbar ist, aber einem
+    // anderen Mitarbeiter zugeordnet wurde, nicht öffnen.
+    const assignedUserId=String(run?.assigned_user_id||'');
+    const signedInUserId=String(currentUserId()||'');
+    if(
+      assignedUserId &&
+      signedInUserId &&
+      assignedUserId!==signedInUserId &&
+      !isPlatformOperatorRole() &&
+      !hasOperationalAdminAccess()
+    ){
+      throw new Error('Diese Winterdiensttour ist einem anderen Benutzer zugeordnet. Bitte mit dem vorgesehenen Mitarbeiterkonto anmelden.');
+    }
   }else if(link.type==='operation_run'){
     const rows=await cloudRequest(`operation_runs?id=eq.${encodeURIComponent(link.id)}&select=id,organization_id`);
     organizationId=String(rows?.[0]?.organization_id||'');
@@ -16879,6 +16896,28 @@ async function openNotificationDeepLink(){
   if(notificationDeepLinkHandled)return;
   const link=notificationDeepLinkFromUrl();
   if(!link)return;
+
+  // 2.71: E-Mail-Deep-Links dürfen nicht unter einer noch offenen,
+  // falschen Benutzersitzung geöffnet werden.
+  const expectedEmail=String(link.email||'').trim().toLowerCase();
+  const sessionEmail=String(cloudSession?.user?.email||'').trim().toLowerCase();
+
+  if(expectedEmail && sessionEmail && expectedEmail!==sessionEmail){
+    notificationDeepLinkHandled=false;
+
+    // URL bewusst NICHT bereinigen: Vorgang + Zielkonto bleiben für den
+    // anschließenden Login erhalten.
+    await cloudLogout();
+
+    prefillLoginEmailFromUrl();
+
+    cloudAuthMessage(
+      `Dieser Auftrag ist für ${expectedEmail} bestimmt. Das zuvor angemeldete Konto wurde abgemeldet. Bitte melden Sie sich mit diesem Benutzer an.`,
+      false
+    );
+    return;
+  }
+
   notificationDeepLinkHandled=true;
   try{
     const target=await notificationDeepLinkTarget(link);
@@ -29521,12 +29560,19 @@ async function wsCreateRun(){
   }
 }
 
-function wsWinterRunDeepLink(runId){
+function wsWinterUserEmail(userId){
+  const u=wsQualifiedWinterUsers().find(x=>String(x.user_id||'')===String(userId||''));
+  return String(u?.email||'').trim().toLowerCase();
+}
+
+function wsWinterRunDeepLink(runId,recipientEmail=''){
   const u=new URL(location.href);
   u.search='';
   u.hash='';
   u.searchParams.set('vorgang','winter_service_run');
   u.searchParams.set('id',String(runId||''));
+  const email=String(recipientEmail||'').trim().toLowerCase();
+  if(email)u.searchParams.set('email',email);
   return u.toString();
 }
 
@@ -29556,7 +29602,10 @@ async function wsDispatchWinterRun(runId){
       method:'POST',
       body:JSON.stringify({
         p_run_id:run.id,
-        p_deep_link:wsWinterRunDeepLink(run.id)
+        p_deep_link:wsWinterRunDeepLink(
+          run.id,
+          wsWinterUserEmail(run.assigned_user_id)
+        )
       })
     });
     const result=Array.isArray(rows)?rows[0]:rows;
