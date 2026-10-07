@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.64</title>
+<title>Duschl Service – Objektplattform v2.58</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -4989,162 +4989,6 @@ table td,table th{
   .ops-oneoff-stop-actions{grid-column:2/3}
 }
 </style>
-
-<style id="property-manager-dashboard-v264">
-/* 2.64 – Verwalter: Handlungsbedarf zuerst, Bestand kompakt.
-   Bewusst NICHT an applyRoleUI() gekoppelt. */
-#operationalDashboard.property-manager-dashboard-compact .tenant-dashboard-head{
-  margin-bottom:12px!important;
-}
-#operationalDashboard.property-manager-dashboard-compact .tenant-dashboard-title{
-  margin-bottom:5px!important;
-}
-#operationalDashboard.property-manager-dashboard-compact .dashboard-build-meta{
-  margin-top:10px!important;
-}
-#operationalDashboard.property-manager-dashboard-compact .tenant-kpi-grid-v260{
-  display:grid!important;
-  grid-template-columns:repeat(3,minmax(0,1fr))!important;
-  gap:8px!important;
-  margin-bottom:14px!important;
-}
-#operationalDashboard.property-manager-dashboard-compact .tenant-kpi-group-tasks{
-  order:0!important;
-  grid-column:1/-1!important;
-}
-#operationalDashboard.property-manager-dashboard-compact #kpiResidentReportsCard{order:1!important}
-#operationalDashboard.property-manager-dashboard-compact #kpiDecisionsCard{order:2!important}
-#operationalDashboard.property-manager-dashboard-compact #kpiWorkQueueCard{order:3!important}
-#operationalDashboard.property-manager-dashboard-compact .tenant-kpi-group-info{
-  order:10!important;
-  grid-column:1/-1!important;
-  margin-top:10px!important;
-}
-#operationalDashboard.property-manager-dashboard-compact #kpiObjectsCard{order:11!important}
-#operationalDashboard.property-manager-dashboard-compact #kpiDocumentationCard{order:12!important}
-#operationalDashboard.property-manager-dashboard-compact #kpiExternalMonitoringCard{order:13!important}
-
-#operationalDashboard.property-manager-dashboard-compact #kpiResidentReportsCard,
-#operationalDashboard.property-manager-dashboard-compact #kpiDecisionsCard,
-#operationalDashboard.property-manager-dashboard-compact #kpiWorkQueueCard{
-  grid-column:1/-1!important;
-  min-height:64px!important;
-  padding:9px 12px!important;
-  border-radius:14px!important;
-  grid-template-columns:40px minmax(0,1fr) auto 16px!important;
-  column-gap:10px!important;
-}
-#operationalDashboard.property-manager-dashboard-compact #kpiResidentReportsCard .tenant-kpi-icon,
-#operationalDashboard.property-manager-dashboard-compact #kpiDecisionsCard .tenant-kpi-icon,
-#operationalDashboard.property-manager-dashboard-compact #kpiWorkQueueCard .tenant-kpi-icon{
-  width:38px!important;
-  height:38px!important;
-  border-radius:11px!important;
-  font-size:18px!important;
-}
-#operationalDashboard.property-manager-dashboard-compact #kpiResidentReportsCard .tenant-kpi-label,
-#operationalDashboard.property-manager-dashboard-compact #kpiDecisionsCard .tenant-kpi-label,
-#operationalDashboard.property-manager-dashboard-compact #kpiWorkQueueCard .tenant-kpi-label{
-  font-size:15px!important;
-}
-#operationalDashboard.property-manager-dashboard-compact #kpiResidentReportsCard .tenant-kpi-value,
-#operationalDashboard.property-manager-dashboard-compact #kpiDecisionsCard .tenant-kpi-value,
-#operationalDashboard.property-manager-dashboard-compact #kpiWorkQueueCard .tenant-kpi-value{
-  font-size:26px!important;
-  min-width:28px!important;
-}
-#operationalDashboard.property-manager-dashboard-compact #kpiResidentReportsCard .tenant-kpi-sub,
-#operationalDashboard.property-manager-dashboard-compact #kpiDecisionsCard .tenant-kpi-sub,
-#operationalDashboard.property-manager-dashboard-compact #kpiWorkQueueCard .tenant-kpi-sub{
-  font-size:11px!important;
-}
-#operationalDashboard.property-manager-dashboard-compact #kpiResidentReportsCard .tenant-kpi-arrow,
-#operationalDashboard.property-manager-dashboard-compact #kpiDecisionsCard .tenant-kpi-arrow,
-#operationalDashboard.property-manager-dashboard-compact #kpiWorkQueueCard .tenant-kpi-arrow{
-  font-size:23px!important;
-}
-#operationalDashboard.property-manager-dashboard-compact #kpiResidentReportsCard.is-disabled,
-#operationalDashboard.property-manager-dashboard-compact #kpiWorkQueueCard.is-disabled{
-  opacity:.56!important;
-}
-
-#operationalDashboard.property-manager-dashboard-compact #kpiObjectsCard,
-#operationalDashboard.property-manager-dashboard-compact #kpiDocumentationCard,
-#operationalDashboard.property-manager-dashboard-compact #kpiExternalMonitoringCard{
-  min-height:96px!important;
-  padding:10px 8px!important;
-  border-radius:13px!important;
-  display:grid!important;
-  grid-template-columns:1fr auto!important;
-  grid-template-rows:auto auto auto!important;
-  grid-template-areas:
-    "icon value"
-    "label value"
-    "sub sub"!important;
-  column-gap:5px!important;
-  row-gap:4px!important;
-  align-items:center!important;
-  box-shadow:0 6px 16px rgba(0,0,0,.11)!important;
-}
-#operationalDashboard.property-manager-dashboard-compact #kpiObjectsCard .tenant-kpi-icon,
-#operationalDashboard.property-manager-dashboard-compact #kpiDocumentationCard .tenant-kpi-icon,
-#operationalDashboard.property-manager-dashboard-compact #kpiExternalMonitoringCard .tenant-kpi-icon{
-  width:31px!important;
-  height:31px!important;
-  border-radius:9px!important;
-  font-size:15px!important;
-}
-#operationalDashboard.property-manager-dashboard-compact #kpiObjectsCard .tenant-kpi-label,
-#operationalDashboard.property-manager-dashboard-compact #kpiDocumentationCard .tenant-kpi-label,
-#operationalDashboard.property-manager-dashboard-compact #kpiExternalMonitoringCard .tenant-kpi-label{
-  font-size:12px!important;
-  line-height:1.15!important;
-}
-#operationalDashboard.property-manager-dashboard-compact #kpiObjectsCard .tenant-kpi-value,
-#operationalDashboard.property-manager-dashboard-compact #kpiDocumentationCard .tenant-kpi-value,
-#operationalDashboard.property-manager-dashboard-compact #kpiExternalMonitoringCard .tenant-kpi-value{
-  font-size:24px!important;
-  min-width:auto!important;
-}
-#operationalDashboard.property-manager-dashboard-compact #kpiObjectsCard .tenant-kpi-sub,
-#operationalDashboard.property-manager-dashboard-compact #kpiDocumentationCard .tenant-kpi-sub,
-#operationalDashboard.property-manager-dashboard-compact #kpiExternalMonitoringCard .tenant-kpi-sub{
-  font-size:9.5px!important;
-  line-height:1.15!important;
-  min-height:22px!important;
-}
-#operationalDashboard.property-manager-dashboard-compact #kpiObjectsCard .tenant-kpi-arrow,
-#operationalDashboard.property-manager-dashboard-compact #kpiDocumentationCard .tenant-kpi-arrow,
-#operationalDashboard.property-manager-dashboard-compact #kpiExternalMonitoringCard .tenant-kpi-arrow{
-  display:none!important;
-}
-#operationalDashboard.property-manager-dashboard-compact #kpiExternalMonitoringCard.is-disabled{
-  opacity:.48!important;
-}
-@media(max-width:430px){
-  #operationalDashboard.property-manager-dashboard-compact .tenant-kpi-grid-v260{
-    grid-template-columns:repeat(3,minmax(0,1fr))!important;
-    gap:7px!important;
-  }
-  #operationalDashboard.property-manager-dashboard-compact #kpiObjectsCard,
-  #operationalDashboard.property-manager-dashboard-compact #kpiDocumentationCard,
-  #operationalDashboard.property-manager-dashboard-compact #kpiExternalMonitoringCard{
-    min-height:92px!important;
-    padding:9px 7px!important;
-  }
-  #operationalDashboard.property-manager-dashboard-compact #kpiObjectsCard .tenant-kpi-label,
-  #operationalDashboard.property-manager-dashboard-compact #kpiDocumentationCard .tenant-kpi-label,
-  #operationalDashboard.property-manager-dashboard-compact #kpiExternalMonitoringCard .tenant-kpi-label{
-    font-size:11px!important;
-  }
-  #operationalDashboard.property-manager-dashboard-compact #kpiObjectsCard .tenant-kpi-value,
-  #operationalDashboard.property-manager-dashboard-compact #kpiDocumentationCard .tenant-kpi-value,
-  #operationalDashboard.property-manager-dashboard-compact #kpiExternalMonitoringCard .tenant-kpi-value{
-    font-size:22px!important;
-  }
-}
-</style>
-
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -5234,9 +5078,6 @@ table td,table th{
   <input autocomplete="name" id="prName" maxlength="120" placeholder="Vor- und Nachname" type="text"/>
   <label for="prEmail">E-Mail <span class="muted">(optional)</span></label>
   <input autocomplete="email" id="prEmail" maxlength="180" placeholder="name@beispiel.de" type="email"/>
-  <div class="public-report-required-note" style="margin-top:7px">
-    Wenn Sie eine gültige E-Mail-Adresse angeben, erhalten Sie eine Eingangsbestätigung und eine Nachricht, sobald Ihre Meldung abgeschlossen wurde.
-  </div>
 
   <div class="public-report-summary" id="prSummary"></div>
 
@@ -5348,9 +5189,9 @@ table td,table th{
       <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
-      <div class="pa-build-meta">Version <span data-app-version>2.64</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>09:14</span> Uhr</div>
+      <div class="pa-build-meta">Version <span data-app-version>2.58</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>20:30</span> Uhr</div>
     </div>
-    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.64</span></span></div>
+    <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.58</span></span></div>
   </div>
 
   <div class="pa-kpi-grid">
@@ -5497,7 +5338,7 @@ table td,table th{
     <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
-    <div class="dashboard-build-meta">Version <span data-app-version>2.64</span> · Letztes Update: <span data-app-release-date>07.10.2026</span> · <span data-app-release-time>09:14</span> Uhr</div>
+    <div class="dashboard-build-meta">Version <span data-app-version>2.58</span> · Letztes Update: <span data-app-release-date>06.10.2026</span> · <span data-app-release-time>20:30</span> Uhr</div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
   </div>
 
@@ -9839,17 +9680,9 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Filter "Offener Arbeitsvorrat" zeigt alle offenen Entscheidungszustände.
    - Keine Änderung an Rollen-, Objekt-, RLS-, SQL-, Winterdienst- oder Edge-Logik.
 */
-/* RELEASE 2.64 | CLEAN REBUILD AUF STABILER 2.58 | 07.10.2026 09:14
-   - Auth/Login/Rollen/Mandantenlogik bleibt BYTE-IDENTISCH zur funktionierenden 2.58.
-   - Verwalter-Dashboard kompakt neu umgesetzt, aber NICHT mehr in applyRoleUI().
-   - Dashboard-Klasse wird ausschließlich beim renderDashboard() gesetzt.
-   - Bewohner-Statusmail-Hinweise aus 2.60 wieder aufgenommen.
-   - Entscheidungslogik 2.58 unverändert.
-   - Kein SQL- oder Edge-Change gegenüber bereits installiertem 2.60-Backend.
-*/
-const APP_VERSION='2.64';
-const APP_RELEASE_DATE='07.10.2026';
-const APP_RELEASE_TIME='09:14'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_VERSION='2.58';
+const APP_RELEASE_DATE='06.10.2026';
+const APP_RELEASE_TIME='20:30'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -10906,7 +10739,6 @@ async function submitPublicResidentReport(){
       wrap.innerHTML=`<div class="public-report-success">
         <strong>Danke. Ihre Meldung wurde aufgenommen.</strong>
         <div class="muted" style="margin-top:10px">${hadPhotos?'Meldung und Fotos wurden erfolgreich gespeichert.':'Die Meldung wurde erfolgreich gespeichert.'}</div>
-        ${email?`<div class="public-report-note" style="margin-top:14px;text-align:left"><strong>E-Mail-Bestätigung</strong><div style="margin-top:4px">Eine Eingangsbestätigung wird an ${esc(email)} versendet. Beim Abschluss Ihrer Meldung erhalten Sie eine weitere Nachricht.</div></div>`:''}
         <div class="public-report-summary" style="text-align:left;margin-top:18px">
           <div class="public-report-summary-row"><span>Status</span><strong>Eingegangen</strong></div>
           <div class="public-report-summary-row"><span>Referenz</span><strong>${esc(shortRef||'Erfasst')}</strong></div>
@@ -23051,16 +22883,6 @@ function syncAppReleaseMeta(){
 
 function renderDashboard(){
   syncAppReleaseMeta();
-
-  // 2.64: reine Darstellungssteuerung nach erfolgreichem Rollenaufbau.
-  // Kein Eingriff in applyRoleUI(), Login-, Session- oder Membership-Logik.
-  const operationalDashboard=document.getElementById('operationalDashboard');
-  if(operationalDashboard){
-    operationalDashboard.classList.toggle(
-      'property-manager-dashboard-compact',
-      isPropertyManagerRole() && !isPlatformTenantMode()
-    );
-  }
   const greetingName=document.getElementById('dashboardGreetingName');
   if(greetingName){
     const rawName=(currentUserProfile?.full_name||cloudSession?.user?.user_metadata?.full_name||cloudSession?.user?.email||'Benutzer').trim();
@@ -23087,12 +22909,6 @@ function renderDashboard(){
   const openDocsEl=document.getElementById('kpiOpenDocs'); if(openDocsEl)openDocsEl.textContent=visibleDocumentation.length;
   const criticalCount=open.filter(f=>['P1','P2'].includes(f.priority)).length;
   document.getElementById('kpiCritical').textContent=criticalCount;
-  const documentationSub=document.querySelector('#kpiDocumentationCard .tenant-kpi-sub');
-  if(documentationSub){
-    documentationSub.textContent=criticalCount>0
-      ? `${visibleDocumentation.length} Vorgänge · ${criticalCount} dringend`
-      : `${visibleDocumentation.length} ${visibleDocumentation.length===1?'Vorgang':'Vorgänge'}`;
-  }
   const documentationCard=document.getElementById('kpiDocumentationCard');
   if(documentationCard){
     documentationCard.classList.toggle('ds-critical',criticalCount>0);
@@ -24007,10 +23823,9 @@ function openResidentReportCloseModal(id,targetStatus){
   const title='Meldung schließen';
   const examples='z. B. kein Handlungsbedarf, bereits erledigt, Duplikat oder nicht relevant';
   modal(`<div class="row space"><h2>${title}</h2><button onclick="closeModal()">✕</button></div>
-    <div class="muted">Die ursprüngliche Meldung bleibt erhalten. Bei hinterlegter Bewohner-E-Mail wird der Abschlussgrund in der Abschlussmail verwendet.</div>
-    <label>Abschlussgrund *</label>
+    <div class="muted">Die ursprüngliche Meldung bleibt erhalten. Die Begründung wird intern dokumentiert.</div>
+    <label>Begründung *</label>
     <textarea id="rrCloseReason" maxlength="1500" placeholder="${examples}"></textarea>
-    <div class="muted" style="margin-top:6px">Bitte so formulieren, dass der Text auch für den Bewohner verständlich ist. Keine internen Kürzel oder Bearbeitungshinweise verwenden.</div>
     <div class="row" style="margin-top:14px">
       <button class="primary" onclick="saveResidentReportClosure('${id}','closed')">Schließen</button>
       <button onclick="closeModal()">Abbrechen</button>
