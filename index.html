@@ -2,6 +2,12 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 2.93 · Windy-Einzeltest je Objekt
+     UI: Modellvergleich erhält „Vergleich neu prüfen“ je Objekt.
+     FUNKTION: Force-Refresh ruft winter-weather nur für das gewählte Objekt auf.
+     DIAGNOSE: zeigt Modell, Anzahl Vergleichspunkte und Backend-Status.
+     WIRTSCHAFTLICHKEIT: vermeidet unnötige API-Aufrufe für alle Winterdienstobjekte.
+     BACKEND/RLS: unverändert. -->
 <!-- RELEASE 2.92 · Windy-Diagnose
      UI: Vergleichsquelle zeigt technischen Verbindungsstatus.
      UI: Backend-Fehler aus comparison_error/model_comparison.error nur im Detailbereich sichtbar.
@@ -28,7 +34,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.92</title>
+<title>Duschl Service – Objektplattform v2.93</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -678,6 +684,44 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 .ws-weather-compare-diagnostic.is-ok{
   border-color:rgba(157,217,173,.38);
   color:#bce7ce;
+}
+.ws-weather-compare-meta{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:7px;
+  margin-top:8px;
+}
+.ws-weather-compare-meta>div{
+  padding:7px 8px;
+  border:1px solid var(--line-soft);
+  border-radius:9px;
+  background:#08131c;
+  min-width:0;
+}
+.ws-weather-compare-meta span{
+  display:block;
+  color:var(--muted);
+  font-size:10px;
+}
+.ws-weather-compare-meta strong{
+  display:block;
+  margin-top:2px;
+  font-size:12px;
+  overflow-wrap:anywhere;
+}
+.ws-weather-compare-actions{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:9px;
+}
+.ws-weather-compare-actions button{
+  min-height:36px;
+  padding:7px 10px!important;
+  font-size:12px!important;
+}
+@media(max-width:520px){
+  .ws-weather-compare-meta{grid-template-columns:1fr 1fr}
+  .ws-weather-compare-actions button{width:100%}
 }
 @media(max-width:520px){
   .ws-weather-compare-grid{grid-template-columns:1fr 1fr}
@@ -10244,7 +10288,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='2.92';
+const APP_VERSION='2.93';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -29146,6 +29190,24 @@ function wsWeatherComparisonStatus(entry){
   if(error)return {state:'error',label:'Vergleich nicht verfügbar'};
   return {state:'idle',label:'Einzelquelle'};
 }
+function wsWeatherComparisonMeta(entry){
+  const payload=wsWeatherComparisonPayload(entry);
+  const points=Array.isArray(payload.secondary)?payload.secondary.length:0;
+  const model=String(
+    entry?.comparison_model||
+    entry?.model_comparison?.model||
+    ''
+  ).trim()||'—';
+  const backendStatus=String(
+    entry?.model_comparison?.status||
+    (points>0?'available':'unavailable')
+  ).trim();
+  const statusLabel=
+    backendStatus==='available'?'verfügbar':
+    backendStatus==='unavailable'?'nicht verfügbar':
+    backendStatus||'—';
+  return {points,model,statusLabel};
+}
 function wsWeatherComparisonDetailsHtml(confidence){
   const d=confidence?.details;
   if(!confidence?.available||!d)return '';
@@ -29230,6 +29292,7 @@ function wsWeatherCard(objectId){
   const comparisonSource=wsWeatherComparisonSource(entry);
   const comparisonError=wsWeatherComparisonError(entry);
   const comparisonStatus=wsWeatherComparisonStatus(entry);
+  const comparisonMeta=wsWeatherComparisonMeta(entry);
 
   return `<div class="ws-weather-card" data-risk="${primaryRisk}">
     <div class="ws-weather-head">
@@ -29301,6 +29364,20 @@ function wsWeatherCard(objectId){
         :confidence.available
           ?`<div class="ws-weather-compare-diagnostic is-ok">Vergleichsdaten wurden erfolgreich geladen.</div>`
           :`<div class="ws-weather-compare-diagnostic">Keine zweite Wetterquelle aktiv. Für Windy muss der serverseitige API-Key gesetzt und die Edge Function aktualisiert sein.</div>`}
+
+      <div class="ws-weather-compare-meta">
+        <div><span>Vergleichsmodell</span><strong>${wsEsc(comparisonMeta.model)}</strong></div>
+        <div><span>Vergleichspunkte</span><strong>${comparisonMeta.points}</strong></div>
+        <div><span>Backend-Status</span><strong>${wsEsc(comparisonMeta.statusLabel)}</strong></div>
+      </div>
+
+      <div class="ws-weather-compare-actions">
+        <button
+          type="button"
+          data-ws-compare-refresh="${wsEsc(String(objectId))}"
+          onclick="wsRefreshWeatherComparisonForObject('${wsEsc(String(objectId))}')"
+        >Vergleich neu prüfen</button>
+      </div>
     </details>
 
     <details class="ws-weather-details">
@@ -29344,6 +29421,43 @@ function wsRenderWeatherCockpit(){
   wsRenderWeatherSummary(ids);
   host.innerHTML=sorted.map(wsWeatherCard).join('');
 }
+async function wsRefreshWeatherComparisonForObject(objectId){
+  const id=String(objectId||'').trim();
+  if(!id)return;
+  const status=document.getElementById('wsWeatherStatus');
+  const btn=document.querySelector(`[data-ws-compare-refresh="${id}"]`);
+  const oldText=btn?.textContent||'Vergleich neu prüfen';
+  if(btn){
+    btn.disabled=true;
+    btn.textContent='Prüfe …';
+  }
+  if(status)status.textContent='Wetter- und Modellvergleich wird für das gewählte Objekt neu geladen …';
+  try{
+    const data=await wsWeatherRequest(id,'forecast',true);
+    wsState.weatherByObject[id]=data;
+    wsRenderWeatherCockpit();
+
+    const confidence=wsWeatherConfidenceData(data);
+    const err=wsWeatherComparisonError(data);
+    if(status){
+      status.textContent=confidence.available
+        ?`Modellvergleich aktualisiert · Prognosesicherheit ${confidence.text}.`
+        :err
+          ?`DWD aktualisiert · Vergleichsquelle nicht verfügbar: ${err}`
+          :'DWD aktualisiert · keine zweite Wetterquelle aktiv.';
+    }
+  }catch(e){
+    const msg=e?.message||String(e||'Wetterdaten nicht verfügbar.');
+    if(status)status.textContent='Aktualisierung fehlgeschlagen: '+msg;
+  }finally{
+    const currentBtn=document.querySelector(`[data-ws-compare-refresh="${id}"]`);
+    if(currentBtn){
+      currentBtn.disabled=false;
+      currentBtn.textContent=oldText;
+    }
+  }
+}
+
 async function wsLoadWeatherCockpit(force=false){
   if(wsIsWinterOperative())return;
   const ids=wsWinterObjectIds();
