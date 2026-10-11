@@ -2,6 +2,12 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 2.95 · DWD-only Cleanup
+     PRODUKTIV: Wettercockpit nutzt ausschließlich DWD via Bright Sky.
+     UI: Windy-/Modellvergleich, Prognosesicherheit und Diagnoseelemente entfernt.
+     UI: Datenquelle DWD via Bright Sky transparent ausgewiesen.
+     ARCHITEKTUR: Multi-Source-Helfer bleiben intern vorbereitet, aber ohne produktive Windy-Nutzung.
+     BACKEND/RLS: unverändert. -->
 <!-- RELEASE 2.94 · Windy-Diagnose Klartext
      UI: bekannte Konfigurationsnamen wie WINDY_POINT_FORECAST_API_KEY werden nicht mehr fälschlich redigiert.
      SECURITY: echte tokenartige Werte bleiben redigiert.
@@ -38,7 +44,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.94</title>
+<title>Duschl Service – Objektplattform v2.95</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -10292,7 +10298,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='2.94';
+const APP_VERSION='2.95';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -29307,12 +29313,7 @@ function wsWeatherCard(objectId){
   const warnings=Array.isArray(entry.winter_alerts)?entry.winter_alerts:[];
   const reasons=Array.isArray(f24.reasons)?f24.reasons:[];
   const primaryRisk=wsWeatherPriority(entry)>=3?'red':wsWeatherPriority(entry)===2?'yellow':'green';
-  const confidence=wsWeatherConfidenceData(entry);
   const primarySource=wsWeatherPrimarySource(entry);
-  const comparisonSource=wsWeatherComparisonSource(entry);
-  const comparisonError=wsWeatherComparisonError(entry);
-  const comparisonStatus=wsWeatherComparisonStatus(entry);
-  const comparisonMeta=wsWeatherComparisonMeta(entry);
 
   return `<div class="ws-weather-card" data-risk="${primaryRisk}">
     <div class="ws-weather-head">
@@ -29350,55 +29351,15 @@ function wsWeatherCard(objectId){
         <span class="muted">Winterrisiko ab</span>
         <strong>${wsEsc(wsWeatherFirstRiskLabel(entry))}</strong>
       </div>
-      <div class="ws-weather-metric ws-weather-confidence">
-        <span class="muted">Prognosesicherheit</span>
-        <strong>${wsEsc(confidence.text)}</strong>
-        <span class="ws-weather-model-status ${confidence.available?`is-${confidence.level}`:''}">
-          ${wsEsc(comparisonStatus.label)}
-        </span>
+      <div class="ws-weather-metric">
+        <span class="muted">Datenquelle</span>
+        <strong>${wsEsc(primarySource)}</strong>
       </div>
-    </div>
-
-    <div class="ws-weather-source-row">
-      <div class="ws-weather-source-main">
-        <div class="ws-weather-source-label">Wetterquellen</div>
-        <div class="ws-weather-source-value">${wsEsc(primarySource)}</div>
-      </div>
-      <div class="ws-weather-source-compare">${wsEsc(comparisonSource||'Windy nicht verbunden')}</div>
     </div>
 
     ${reasons.length?`<div class="ws-weather-reasons"><strong>Treiber:</strong> ${reasons.slice(0,3).map(wsEsc).join(' · ')}</div>`:''}
 
     ${warnings.length?`<details class="ws-weather-details"><summary>Amtliche Winterwarnungen (${warnings.length})</summary>${warnings.map(w=>`<div class="ws-weather-warning"><strong>${wsEsc(w.headline||w.event||'DWD-Warnung')}</strong>${w.severity?`<div class="muted">${wsEsc(w.severity)}</div>`:''}</div>`).join('')}</details>`:''}
-
-    <details class="ws-weather-details">
-      <summary>Modellvergleich</summary>
-      <div class="muted" style="padding:4px 0 8px;line-height:1.45">
-        ${confidence.available
-          ?`${wsEsc(primarySource)} ↔ ${wsEsc(comparisonSource)} · Prognosesicherheit ${wsEsc(confidence.text)}.`
-          :`Aktuell liegt nur ${wsEsc(primarySource)} als nutzbare Prognosequelle vor. ${wsEsc(comparisonSource)}. Deshalb wird keine Prognosesicherheit berechnet.`}
-      </div>
-      ${wsWeatherComparisonDetailsHtml(confidence)}
-      ${comparisonError
-        ?`<div class="ws-weather-compare-diagnostic is-error"><strong>Technische Diagnose:</strong> ${wsEsc(comparisonError)}</div>`
-        :confidence.available
-          ?`<div class="ws-weather-compare-diagnostic is-ok">Vergleichsdaten wurden erfolgreich geladen.</div>`
-          :`<div class="ws-weather-compare-diagnostic">Keine zweite Wetterquelle aktiv. Für Windy muss der serverseitige API-Key gesetzt und die Edge Function aktualisiert sein.</div>`}
-
-      <div class="ws-weather-compare-meta">
-        <div><span>Vergleichsmodell</span><strong>${wsEsc(comparisonMeta.model)}</strong></div>
-        <div><span>Vergleichspunkte</span><strong>${comparisonMeta.points}</strong></div>
-        <div><span>Backend-Status</span><strong>${wsEsc(comparisonMeta.statusLabel)}</strong></div>
-      </div>
-
-      <div class="ws-weather-compare-actions">
-        <button
-          type="button"
-          data-ws-compare-refresh="${wsEsc(String(objectId))}"
-          onclick="wsRefreshWeatherComparisonForObject('${wsEsc(String(objectId))}')"
-        >Vergleich neu prüfen</button>
-      </div>
-    </details>
 
     <details class="ws-weather-details">
       <summary>Stundenverlauf · nächste 24 h</summary>
@@ -29416,6 +29377,7 @@ function wsWeatherCard(objectId){
     <div class="muted" style="margin-top:8px;font-size:12px">Stand ${wsEsc(wsWeatherFormatTime(entry.fetched_at))}${entry.cached?' · Cache':''}${entry.station_name?` · ${wsEsc(entry.station_name)}`:''}</div>
   </div>`;
 }
+
 function wsRenderWeatherCockpit(){
   const host=document.getElementById('wsWeatherCockpit');
   const status=document.getElementById('wsWeatherStatus');
