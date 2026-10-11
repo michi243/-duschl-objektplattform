@@ -2,6 +2,12 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 2.90 · Wetter-Modellvergleich Engine
+     ARCHITEKTUR: Normalisierung für primäre/sekundäre Forecast-Quelle ergänzt.
+     LOGIK: regelbasierter Confidence-Score aus Temperatur-, Niederschlags-, Risikozeit- und Niederschlagsart-Abweichung.
+     GOVERNANCE: Score wird nur berechnet, wenn echte Vergleichsdaten geliefert werden; keine simulierten Daten.
+     UI: Modellvergleich zeigt nachvollziehbare Einzelkriterien und Gesamtbewertung.
+     BACKEND/RLS: unverändert; vorbereitet für spätere Windy-Edge-Function. -->
 <!-- RELEASE 2.89 · Wettercockpit Multi-Source-Vorbereitung
      UI: „Erstes Winterrisiko“ -> „Winterrisiko ab“; bei fehlendem Risiko „Kein Risiko in 48 h“.
      UI: Prognosesicherheit und Wetterquellen ergänzt.
@@ -11,7 +17,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.89</title>
+<title>Duschl Service – Objektplattform v2.90</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -604,6 +610,41 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
 .ws-weather-model-status.is-high{color:#9dd9ad;border-color:rgba(157,217,173,.48)}
 .ws-weather-model-status.is-medium{color:#f2d27b;border-color:rgba(242,210,123,.58)}
 .ws-weather-model-status.is-low{color:#ff9a9a;border-color:rgba(255,154,154,.72)}
+.ws-weather-compare-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;
+  margin-top:9px;
+}
+.ws-weather-compare-item{
+  border:1px solid var(--line-soft);
+  border-radius:9px;
+  padding:8px 9px;
+  background:#0a1620;
+}
+.ws-weather-compare-item span{
+  display:block;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.25;
+}
+.ws-weather-compare-item strong{
+  display:block;
+  margin-top:3px;
+  font-size:13px;
+}
+.ws-weather-compare-summary{
+  margin-top:9px;
+  padding:9px 10px;
+  border-radius:10px;
+  border:1px solid var(--line-soft);
+  background:#0a1620;
+  font-size:12px;
+  line-height:1.4;
+}
+@media(max-width:520px){
+  .ws-weather-compare-grid{grid-template-columns:1fr 1fr}
+}
 .ws-weather-warning{
   margin-top:7px;
   padding:8px;
@@ -10166,7 +10207,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='2.89';
+const APP_VERSION='2.90';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -28866,7 +28907,160 @@ function wsWeatherPrimarySource(entry){
   ).trim();
   return raw||'DWD / Bright Sky';
 }
+function wsWeatherNormalizeHour(h){
+  if(!h||typeof h!=='object')return null;
+  const ts=h.timestamp||h.time||h.datetime||null;
+  if(!ts)return null;
+  const temperature=Number(h.temperature??h.temp);
+  const precipitation=Number(h.precipitation??h.precipitation_amount??h.rain??0);
+  const probability=Number(h.precipitation_probability??h.precip_probability??h.pop);
+  const condition=String(h.condition||h.precipitation_type||h.weather_code||'').trim().toLowerCase();
+  const risk=String(h.risk_level||h.winter_risk||'').trim().toLowerCase();
+  return {
+    timestamp:String(ts),
+    temperature:Number.isFinite(temperature)?temperature:null,
+    precipitation:Number.isFinite(precipitation)?precipitation:null,
+    precipitation_probability:Number.isFinite(probability)?probability:null,
+    condition,
+    risk_level:risk
+  };
+}
+function wsWeatherComparisonPayload(entry){
+  const primary=(entry?.hourly||entry?.primary_hourly||[]).map(wsWeatherNormalizeHour).filter(Boolean);
+  const secondaryRaw=
+    entry?.comparison_hourly||
+    entry?.secondary_hourly||
+    entry?.model_comparison?.hourly||
+    entry?.model_comparison?.secondary_hourly||
+    [];
+  const secondary=(Array.isArray(secondaryRaw)?secondaryRaw:[]).map(wsWeatherNormalizeHour).filter(Boolean);
+  const secondarySource=String(
+    entry?.comparison_source||
+    entry?.secondary_source||
+    entry?.model_comparison?.source||
+    ''
+  ).trim();
+  return {primary,secondary,secondarySource};
+}
+function wsWeatherHourKey(ts){
+  const d=new Date(ts);
+  if(Number.isNaN(d.getTime()))return '';
+  d.setMinutes(0,0,0);
+  return d.toISOString();
+}
+function wsWeatherFirstRiskTimestamp(hours){
+  const rank={red:3,yellow:2,green:1};
+  const risky=(hours||[]).filter(h=>(rank[String(h.risk_level||'').toLowerCase()]||0)>=2);
+  if(!risky.length)return null;
+  return risky.map(h=>new Date(h.timestamp)).filter(d=>!Number.isNaN(d.getTime())).sort((a,b)=>a-b)[0]||null;
+}
+function wsWeatherConditionFamily(v){
+  const s=String(v||'').toLowerCase();
+  if(/snow|schnee|sleet|ice|freez|graupel|hail/.test(s))return 'winter';
+  if(/rain|regen|drizzle|shower/.test(s))return 'rain';
+  if(/clear|sun|cloud|fog|mist|bewölkt|wolke|nebel/.test(s))return 'dry';
+  return s||'unknown';
+}
+function wsWeatherCalculateModelComparison(entry){
+  const {primary,secondary,secondarySource}=wsWeatherComparisonPayload(entry);
+  if(!secondary.length){
+    return {
+      available:false,
+      score:null,
+      level:'',
+      label:'Einzelquelle',
+      text:'Einzelquelle',
+      source:secondarySource||'Windy nicht verbunden',
+      details:null
+    };
+  }
+
+  const secondaryByHour=new Map(secondary.map(h=>[wsWeatherHourKey(h.timestamp),h]));
+  const pairs=primary
+    .map(a=>[a,secondaryByHour.get(wsWeatherHourKey(a.timestamp))])
+    .filter(([,b])=>!!b)
+    .slice(0,24);
+
+  if(!pairs.length){
+    return {
+      available:false,
+      score:null,
+      level:'',
+      label:'Einzelquelle',
+      text:'Einzelquelle',
+      source:secondarySource||'Vergleichsquelle vorhanden, Zeitreihen nicht deckungsgleich',
+      details:null
+    };
+  }
+
+  const tempDiffs=pairs
+    .filter(([a,b])=>a.temperature!==null&&b.temperature!==null)
+    .map(([a,b])=>Math.abs(a.temperature-b.temperature));
+  const avgTempDiff=tempDiffs.length?tempDiffs.reduce((s,v)=>s+v,0)/tempDiffs.length:null;
+
+  const probDiffs=pairs
+    .filter(([a,b])=>a.precipitation_probability!==null&&b.precipitation_probability!==null)
+    .map(([a,b])=>Math.abs(a.precipitation_probability-b.precipitation_probability));
+  const avgProbDiff=probDiffs.length?probDiffs.reduce((s,v)=>s+v,0)/probDiffs.length:null;
+
+  const conditionPairs=pairs.filter(([a,b])=>a.condition&&b.condition);
+  const conditionMatch=conditionPairs.length
+    ? conditionPairs.filter(([a,b])=>wsWeatherConditionFamily(a.condition)===wsWeatherConditionFamily(b.condition)).length/conditionPairs.length
+    : null;
+
+  const pRisk=wsWeatherFirstRiskTimestamp(primary);
+  const sRisk=wsWeatherFirstRiskTimestamp(secondary);
+  let riskTimeDiffHours=null;
+  if(pRisk&&sRisk)riskTimeDiffHours=Math.abs(pRisk-sRisk)/3600000;
+  else if(!pRisk&&!sRisk)riskTimeDiffHours=0;
+
+  let score=0,weight=0;
+  if(avgTempDiff!==null){
+    weight+=40;
+    score+=avgTempDiff<=1?40:avgTempDiff<=2?28:avgTempDiff<=3?16:0;
+  }
+  if(riskTimeDiffHours!==null){
+    weight+=30;
+    score+=riskTimeDiffHours<=3?30:riskTimeDiffHours<=6?20:riskTimeDiffHours<=12?10:0;
+  }
+  if(conditionMatch!==null){
+    weight+=20;
+    score+=conditionMatch>=.8?20:conditionMatch>=.6?14:conditionMatch>=.4?7:0;
+  }
+  if(avgProbDiff!==null){
+    weight+=10;
+    score+=avgProbDiff<=15?10:avgProbDiff<=25?7:avgProbDiff<=40?3:0;
+  }
+  const normalized=weight?Math.round((score/weight)*100):null;
+  if(normalized===null){
+    return {
+      available:false,score:null,level:'',label:'Einzelquelle',text:'Einzelquelle',
+      source:secondarySource||'Vergleichsquelle',details:null
+    };
+  }
+  const level=normalized>=80?'high':normalized>=60?'medium':'low';
+  const label=level==='high'?'hoch':level==='medium'?'mittel':'niedrig';
+
+  return {
+    available:true,
+    score:normalized,
+    level,
+    label,
+    text:`${normalized} % · ${label}`,
+    source:secondarySource||'Vergleichsquelle',
+    details:{
+      pairCount:pairs.length,
+      avgTempDiff,
+      avgProbDiff,
+      conditionMatch,
+      riskTimeDiffHours
+    }
+  };
+}
 function wsWeatherConfidenceData(entry){
+  const calculated=wsWeatherCalculateModelComparison(entry);
+  if(calculated.available)return calculated;
+
   const rawScore=
     entry?.confidence_score ??
     entry?.forecast_confidence_score ??
@@ -28877,7 +29071,7 @@ function wsWeatherConfidenceData(entry){
     const bounded=Math.max(0,Math.min(100,Math.round(score)));
     const level=bounded>=80?'high':bounded>=60?'medium':'low';
     const label=level==='high'?'hoch':level==='medium'?'mittel':'niedrig';
-    return {available:true,score:bounded,level,label,text:`${bounded} % · ${label}`};
+    return {available:true,score:bounded,level,label,text:`${bounded} % · ${label}`,source:calculated.source,details:null};
   }
   const rawLevel=String(
     entry?.confidence_level||
@@ -28885,19 +29079,34 @@ function wsWeatherConfidenceData(entry){
     entry?.model_comparison?.confidence_level||
     ''
   ).trim().toLowerCase();
-  if(['high','hoch'].includes(rawLevel))return {available:true,score:null,level:'high',label:'hoch',text:'hoch'};
-  if(['medium','mittel'].includes(rawLevel))return {available:true,score:null,level:'medium',label:'mittel',text:'mittel'};
-  if(['low','niedrig'].includes(rawLevel))return {available:true,score:null,level:'low',label:'niedrig',text:'niedrig'};
-  return {available:false,score:null,level:'',label:'Einzelquelle',text:'Einzelquelle'};
+  if(['high','hoch'].includes(rawLevel))return {available:true,score:null,level:'high',label:'hoch',text:'hoch',source:calculated.source,details:null};
+  if(['medium','mittel'].includes(rawLevel))return {available:true,score:null,level:'medium',label:'mittel',text:'mittel',source:calculated.source,details:null};
+  if(['low','niedrig'].includes(rawLevel))return {available:true,score:null,level:'low',label:'niedrig',text:'niedrig',source:calculated.source,details:null};
+  return calculated;
 }
 function wsWeatherComparisonSource(entry){
-  const raw=String(
-    entry?.comparison_source||
-    entry?.secondary_source||
-    entry?.model_comparison?.source||
-    ''
-  ).trim();
-  return raw||'Windy nicht verbunden';
+  return wsWeatherConfidenceData(entry).source||'Windy nicht verbunden';
+}
+function wsWeatherComparisonDetailsHtml(confidence){
+  const d=confidence?.details;
+  if(!confidence?.available||!d)return '';
+  const temp=d.avgTempDiff===null?'—':`${d.avgTempDiff.toFixed(1)} °C`;
+  const prob=d.avgProbDiff===null?'—':`${Math.round(d.avgProbDiff)} %-Pkt.`;
+  const cond=d.conditionMatch===null?'—':`${Math.round(d.conditionMatch*100)} %`;
+  const risk=d.riskTimeDiffHours===null?'—':`${Math.round(d.riskTimeDiffHours)} h`;
+  return `<div class="ws-weather-compare-grid">
+    <div class="ws-weather-compare-item"><span>Ø Temperaturabweichung</span><strong>${wsEsc(temp)}</strong></div>
+    <div class="ws-weather-compare-item"><span>Ø Niederschlagswahrscheinlichkeit</span><strong>${wsEsc(prob)}</strong></div>
+    <div class="ws-weather-compare-item"><span>Niederschlagsart ähnlich</span><strong>${wsEsc(cond)}</strong></div>
+    <div class="ws-weather-compare-item"><span>Winterrisiko-Zeitabweichung</span><strong>${wsEsc(risk)}</strong></div>
+  </div>
+  <div class="ws-weather-compare-summary">
+    ${confidence.level==='high'
+      ?'Modelle bestätigen sich weitgehend.'
+      :confidence.level==='medium'
+        ?'Abweichungen vorhanden · Wetterentwicklung beobachten.'
+        :'Modelle weichen deutlich ab · manuelle Prüfung erforderlich.'}
+  </div>`;
 }
 function wsWeatherSummaryData(ids){
   const result={total:ids.length,red:0,yellow:0,green:0,warnings:0,errors:0};
@@ -29022,9 +29231,10 @@ function wsWeatherCard(objectId){
       <summary>Modellvergleich</summary>
       <div class="muted" style="padding:4px 0 8px;line-height:1.45">
         ${confidence.available
-          ?`Vergleichsdaten verfügbar · Prognosesicherheit ${wsEsc(confidence.text)}.`
-          :`Aktuell wird die operative Prognose aus ${wsEsc(primarySource)} verwendet. Windy ist noch nicht verbunden; es werden keine Vergleichswerte simuliert.`}
+          ?`${wsEsc(primarySource)} ↔ ${wsEsc(comparisonSource)} · Prognosesicherheit ${wsEsc(confidence.text)}.`
+          :`Aktuell wird die operative Prognose aus ${wsEsc(primarySource)} verwendet. ${wsEsc(comparisonSource)}; es werden keine Vergleichswerte simuliert.`}
       </div>
+      ${wsWeatherComparisonDetailsHtml(confidence)}
     </details>
 
     <details class="ws-weather-details">
