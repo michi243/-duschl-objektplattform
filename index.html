@@ -2,6 +2,12 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 2.91 · Wetter-UI Semantikfix
+     UI: Ohne echte zweite Wetterquelle keine 0-%-Prognosesicherheit mehr.
+     UI: Stattdessen „Nicht verfügbar“ + Status „Einzelquelle“.
+     UI: „Kein Risiko in 48 h“ kompakter als „Kein Risiko ≤ 48 h“.
+     GOVERNANCE: Fehlende Vergleichsdaten werden nicht als schlechte Prognosequalität interpretiert.
+     BACKEND/RLS: unverändert. -->
 <!-- RELEASE 2.90 · Wetter-Modellvergleich Engine
      ARCHITEKTUR: Normalisierung für primäre/sekundäre Forecast-Quelle ergänzt.
      LOGIK: regelbasierter Confidence-Score aus Temperatur-, Niederschlags-, Risikozeit- und Niederschlagsart-Abweichung.
@@ -17,7 +23,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.90</title>
+<title>Duschl Service – Objektplattform v2.91</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -564,6 +570,13 @@ select#fDecisionStatus option[value="thirdparty"]{color:#36c5d7!important;}
   justify-content:space-between;
 }
 .ws-weather-confidence strong{
+  line-height:1.2;
+}
+.ws-weather-metric strong{
+  overflow-wrap:anywhere;
+}
+.ws-weather-metric .ws-weather-risk-empty{
+  font-size:14px;
   line-height:1.2;
 }
 .ws-weather-source-row{
@@ -10207,7 +10220,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='2.90';
+const APP_VERSION='2.91';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -28896,7 +28909,7 @@ function wsWeatherFirstRiskLabel(entry){
   const f24=entry?.forecast_24h||{};
   const f48=entry?.forecast_48h||{};
   const ts=f24.first_risk_at||f48.first_risk_at||null;
-  return ts?wsWeatherFormatTime(ts):'Kein Risiko in 48 h';
+  return ts?wsWeatherFormatTime(ts):'Kein Risiko ≤ 48 h';
 }
 function wsWeatherPrimarySource(entry){
   const raw=String(
@@ -28969,7 +28982,7 @@ function wsWeatherCalculateModelComparison(entry){
       score:null,
       level:'',
       label:'Einzelquelle',
-      text:'Einzelquelle',
+      text:'Nicht verfügbar',
       source:secondarySource||'Windy nicht verbunden',
       details:null
     };
@@ -28987,7 +29000,7 @@ function wsWeatherCalculateModelComparison(entry){
       score:null,
       level:'',
       label:'Einzelquelle',
-      text:'Einzelquelle',
+      text:'Nicht verfügbar',
       source:secondarySource||'Vergleichsquelle vorhanden, Zeitreihen nicht deckungsgleich',
       details:null
     };
@@ -29034,7 +29047,7 @@ function wsWeatherCalculateModelComparison(entry){
   const normalized=weight?Math.round((score/weight)*100):null;
   if(normalized===null){
     return {
-      available:false,score:null,level:'',label:'Einzelquelle',text:'Einzelquelle',
+      available:false,score:null,level:'',label:'Einzelquelle',text:'Nicht verfügbar',
       source:secondarySource||'Vergleichsquelle',details:null
     };
   }
@@ -29066,8 +29079,11 @@ function wsWeatherConfidenceData(entry){
     entry?.forecast_confidence_score ??
     entry?.model_comparison?.confidence_score ??
     null;
+
+  // 0 darf ohne echte zweite Quelle nicht als "0 % · niedrig" interpretiert werden.
+  // Nur positive/echte Vergleichswerte werden übernommen.
   const score=Number(rawScore);
-  if(Number.isFinite(score)){
+  if(Number.isFinite(score) && score>0){
     const bounded=Math.max(0,Math.min(100,Math.round(score)));
     const level=bounded>=80?'high':bounded>=60?'medium':'low';
     const label=level==='high'?'hoch':level==='medium'?'mittel':'niedrig';
@@ -29210,7 +29226,7 @@ function wsWeatherCard(objectId){
         <span class="muted">Prognosesicherheit</span>
         <strong>${wsEsc(confidence.text)}</strong>
         <span class="ws-weather-model-status ${confidence.available?`is-${confidence.level}`:''}">
-          ${confidence.available?'Modellvergleich':'Zweite Quelle fehlt'}
+          ${confidence.available?'Modellvergleich':'Einzelquelle'}
         </span>
       </div>
     </div>
@@ -29220,7 +29236,7 @@ function wsWeatherCard(objectId){
         <div class="ws-weather-source-label">Wetterquellen</div>
         <div class="ws-weather-source-value">${wsEsc(primarySource)}</div>
       </div>
-      <div class="ws-weather-source-compare">${wsEsc(comparisonSource)}</div>
+      <div class="ws-weather-source-compare">${wsEsc(comparisonSource||'Windy nicht verbunden')}</div>
     </div>
 
     ${reasons.length?`<div class="ws-weather-reasons"><strong>Treiber:</strong> ${reasons.slice(0,3).map(wsEsc).join(' · ')}</div>`:''}
@@ -29232,7 +29248,7 @@ function wsWeatherCard(objectId){
       <div class="muted" style="padding:4px 0 8px;line-height:1.45">
         ${confidence.available
           ?`${wsEsc(primarySource)} ↔ ${wsEsc(comparisonSource)} · Prognosesicherheit ${wsEsc(confidence.text)}.`
-          :`Aktuell wird die operative Prognose aus ${wsEsc(primarySource)} verwendet. ${wsEsc(comparisonSource)}; es werden keine Vergleichswerte simuliert.`}
+          :`Aktuell liegt nur ${wsEsc(primarySource)} als nutzbare Prognosequelle vor. ${wsEsc(comparisonSource)}. Deshalb wird keine Prognosesicherheit berechnet.`}
       </div>
       ${wsWeatherComparisonDetailsHtml(confidence)}
     </details>
