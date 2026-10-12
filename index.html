@@ -2,6 +2,12 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.01 · Invite-User Session-Härtung
+     FIX: invite-user wird nur mit frischer Session aufgerufen.
+     FIX: bei HTTP 401 erfolgt genau ein Token-Refresh und ein automatischer Retry.
+     GOVERNANCE: Rollen-/Mandantenlogik unverändert.
+     BACKEND: keine Änderung an invite-user erforderlich.
+     DIAGNOSE: Auth-Fehler werden als Sitzungsproblem klarer ausgegeben. -->
 <!-- RELEASE 3.00 · Objektrollen für Maßnahmen-/Baudokumentation
      GOVERNANCE: Schreibrecht der Maßnahmen-Doku ist jetzt explizit an Objektrollen gekoppelt.
      SCHREIBEN: object_responsible, object_deputy, object_operator sowie Mandanten-Administration.
@@ -75,7 +81,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.00</title>
+<title>Duschl Service – Objektplattform v3.01</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -10364,7 +10370,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.00';
+const APP_VERSION='3.01';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -16537,14 +16543,50 @@ async function createPlatformDelegate(){
   if(!fullName)return alert('Bitte einen Anzeigenamen eingeben.');
   if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return alert('Bitte eine gültige E-Mail-Adresse eingeben.');
   try{
-    const res=await fetch(`${SUPABASE_URL}/functions/v1/invite-user`,{
+
+async function callInviteUser(payload){
+  if(!await cloudEnsureFreshSession(120)){
+    throw new Error('Sitzung abgelaufen. Bitte erneut anmelden.');
+  }
+
+  const doCall=async()=>{
+    return await fetch(`${SUPABASE_URL}/functions/v1/invite-user`,{
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${cloudSession?.access_token||''}`,'apikey':SUPABASE_PUBLISHABLE_KEY},
-      body:JSON.stringify({fullName,email,role:'object_manager',objectIds:[]})
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':`Bearer ${cloudSession?.access_token||''}`,
+        'apikey':SUPABASE_PUBLISHABLE_KEY
+      },
+      body:JSON.stringify(payload)
     });
-    const responseText=await res.text();
-    let data={};try{data=responseText?JSON.parse(responseText):{};}catch{}
-    if(!res.ok||data?.ok===false)throw new Error(data?.error||responseText||`HTTP ${res.status}`);
+  };
+
+  let res=await doCall();
+
+  if(res.status===401){
+    const refreshed=await cloudRefreshSession();
+    if(!refreshed){
+      throw new Error('Sitzung abgelaufen. Bitte erneut anmelden.');
+    }
+    res=await doCall();
+  }
+
+  const responseText=await res.text();
+  let data={};
+  try{data=responseText?JSON.parse(responseText):{};}catch{}
+
+  if(!res.ok || data?.ok===false || data?.success===false){
+    const msg=data?.error||data?.message||responseText||`HTTP ${res.status}`;
+    if(res.status===401 || /nicht authentifiziert|unauthor/i.test(String(msg))){
+      throw new Error('Benutzer konnte nicht authentifiziert werden. Bitte neu anmelden und den Vorgang erneut ausführen.');
+    }
+    throw new Error(msg);
+  }
+
+  return {res,data,responseText};
+}
+
+    const {data}=await callInviteUser({fullName,email,role:'object_manager',objectIds:[]});
 
     const profiles=await cloudRequest(`profiles?select=id,email,role&email=ilike.${encodeURIComponent(email)}&limit=1`);
     const profile=profiles?.[0];
@@ -16918,15 +16960,7 @@ async function createTenantAdminForOrganization(organizationId,providedName='',p
   const email=(providedEmail||document.getElementById('orgAdminEmail')?.value||'').trim().toLowerCase();
   if(!fullName)throw new Error('Bitte einen Anzeigenamen für den Mandanten-Admin eingeben.');
   if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new Error('Bitte eine gültige E-Mail-Adresse für den Mandanten-Admin eingeben.');
-  const res=await fetch(`${SUPABASE_URL}/functions/v1/invite-user`,{
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':`Bearer ${cloudSession?.access_token||''}`,'apikey':SUPABASE_PUBLISHABLE_KEY},
-    body:JSON.stringify({fullName,email,role:'object_manager',objectIds:[]})
-  });
-  const responseText=await res.text();
-  let data={};
-  try{data=responseText?JSON.parse(responseText):{};}catch{}
-  if(!res.ok || data?.ok===false)throw new Error(data?.error||responseText||`HTTP ${res.status}`);
+  const {data}=await callInviteUser({fullName,email,role:'object_manager',objectIds:[]});
   if(!data?.initialPassword)throw new Error('Initialpasswort wurde von der Benutzerfunktion nicht zurückgegeben.');
   const profiles=await cloudRequest(`profiles?select=id,email,role&email=ilike.${encodeURIComponent(email)}&limit=1`);
   const profile=profiles?.[0];
@@ -21053,20 +21087,12 @@ async function createUserAndInvite(){
     }
 
     if(btn)btn.textContent='Benutzer wird angelegt…';
-    const res=await fetch(`${SUPABASE_URL}/functions/v1/invite-user`,{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization':`Bearer ${cloudSession?.access_token||''}`,
-        'apikey':SUPABASE_PUBLISHABLE_KEY
-      },
-      body:JSON.stringify({fullName,email,role:(role==='property_manager'?'customer':(['tenant_admin','admin_delegate','external_contractor'].includes(role)?'object_manager':role)),objectIds})
+    const {data}=await callInviteUser({
+      fullName,
+      email,
+      role:(role==='property_manager'?'customer':(['tenant_admin','admin_delegate','external_contractor'].includes(role)?'object_manager':role)),
+      objectIds
     });
-
-    const responseText=await res.text();
-    let data={};
-    try{data=responseText?JSON.parse(responseText):{};}catch{}
-    if(!res.ok || data?.ok===false)throw new Error(data?.error||responseText||`HTTP ${res.status}`);
     if(!data?.initialPassword)throw new Error('Initialpasswort wurde von der Benutzerfunktion nicht zurückgegeben.');
 
     const profiles=await cloudRequest(`profiles?select=id,email,role&email=ilike.${encodeURIComponent(email)}&limit=1`);
