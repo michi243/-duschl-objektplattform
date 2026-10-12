@@ -2,6 +2,11 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.02 · Invite-User Scope-Fix
+     FIX: callInviteUser() lag in v3.01 versehentlich innerhalb von createPlatformDelegate().
+     FIX: Helper jetzt global verfügbar für alle Benutzeranlage-Pfade.
+     SESSION-HÄRTUNG: Fresh-Session + 401-Refresh/Retry bleibt erhalten.
+     BACKEND/RLS/ROLLEN: unverändert. -->
 <!-- RELEASE 3.01 · Invite-User Session-Härtung
      FIX: invite-user wird nur mit frischer Session aufgerufen.
      FIX: bei HTTP 401 erfolgt genau ein Token-Refresh und ein automatischer Retry.
@@ -81,7 +86,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.01</title>
+<title>Duschl Service – Objektplattform v3.02</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -10370,7 +10375,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.01';
+const APP_VERSION='3.02';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -16527,23 +16532,6 @@ function renderPlatformAccessProfiles(){
   }).join('');
 }
 
-function openPlatformDelegateModal(){
-  if(!isAdminRole())return alert('Nur der primäre Platform Admin darf eine Platform Admin-Vertretung anlegen.');
-  modal(`<div class="row space"><h2>Platform Admin-Vertretung</h2><button onclick="closeModal()">✕</button></div>
-    <p class="muted">Die Vertretung darf Mandanten einsehen, administrieren und technische Diagnosen durchführen. Sie darf keine Platform-Admins verwalten und keine kritischen Plattform-/Löschfunktionen ausführen.</p>
-    <label>Anzeigename *</label><input id="platformDelegateName" placeholder="z. B. Max Mustermann">
-    <label>E-Mail / Benutzername *</label><input id="platformDelegateEmail" type="email" autocomplete="off" placeholder="admin2@duschlservice.de">
-    <div class="row" style="margin-top:14px"><button class="primary" onclick="createPlatformDelegate()">Vertretung anlegen</button></div>`);
-}
-
-async function createPlatformDelegate(){
-  if(!isAdminRole())return alert('Nur der primäre Platform Admin darf eine Platform Admin-Vertretung anlegen.');
-  const fullName=document.getElementById('platformDelegateName')?.value.trim()||'';
-  const email=document.getElementById('platformDelegateEmail')?.value.trim().toLowerCase()||'';
-  if(!fullName)return alert('Bitte einen Anzeigenamen eingeben.');
-  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return alert('Bitte eine gültige E-Mail-Adresse eingeben.');
-  try{
-
 async function callInviteUser(payload){
   if(!await cloudEnsureFreshSession(120)){
     throw new Error('Sitzung abgelaufen. Bitte erneut anmelden.');
@@ -16585,6 +16573,25 @@ async function callInviteUser(payload){
 
   return {res,data,responseText};
 }
+
+
+function openPlatformDelegateModal(){
+  if(!isAdminRole())return alert('Nur der primäre Platform Admin darf eine Platform Admin-Vertretung anlegen.');
+  modal(`<div class="row space"><h2>Platform Admin-Vertretung</h2><button onclick="closeModal()">✕</button></div>
+    <p class="muted">Die Vertretung darf Mandanten einsehen, administrieren und technische Diagnosen durchführen. Sie darf keine Platform-Admins verwalten und keine kritischen Plattform-/Löschfunktionen ausführen.</p>
+    <label>Anzeigename *</label><input id="platformDelegateName" placeholder="z. B. Max Mustermann">
+    <label>E-Mail / Benutzername *</label><input id="platformDelegateEmail" type="email" autocomplete="off" placeholder="admin2@duschlservice.de">
+    <div class="row" style="margin-top:14px"><button class="primary" onclick="createPlatformDelegate()">Vertretung anlegen</button></div>`);
+}
+
+async function createPlatformDelegate(){
+  if(!isAdminRole())return alert('Nur der primäre Platform Admin darf eine Platform Admin-Vertretung anlegen.');
+  const fullName=document.getElementById('platformDelegateName')?.value.trim()||'';
+  const email=document.getElementById('platformDelegateEmail')?.value.trim().toLowerCase()||'';
+  if(!fullName)return alert('Bitte einen Anzeigenamen eingeben.');
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return alert('Bitte eine gültige E-Mail-Adresse eingeben.');
+  try{
+
 
     const {data}=await callInviteUser({fullName,email,role:'object_manager',objectIds:[]});
 
