@@ -2,6 +2,13 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.10 · Dokumentation als Gesamtansicht
+     UX: Zentrale Dokumentationsseite zeigt nun klassische Feststellungen/Leistungen UND Maßnahmen-/Baudokumentationen.
+     FILTER: Typ erweitert um "Maßnahmen-/Baudokumentation".
+     CUSTOMER: Auftraggeber sieht nur für Berichte freigegebene Maßnahmen-/Baudokumentationen.
+     CARD: Titel, Typ, Status, letzter Eintrag, Ersteller, Eintragszahl und Vorschaubild.
+     ARCHITEKTUR: getrennte Datenmodelle bleiben bestehen; nur die Lesesicht wird zusammengeführt.
+     BACKEND/RLS: unverändert. -->
 <!-- RELEASE 3.09 · Dashboard-Stabilität / Supabase-Fehlalarm
      FIX: Auftraggeber-Dashboard entfernt keine KPI-DOM-Elemente mehr beim Rendern.
      ROOT CAUSE: kpiOpenDocs/kpiCritical wurden per innerHTML gelöscht; der nächste Renderlauf
@@ -132,7 +139,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.09</title>
+<title>Duschl Service – Objektplattform v3.10</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -6285,7 +6292,7 @@ table td,table th{
 <select id="customerObjectSelect" onchange="setCustomerObjectContext(this.value)"></select>
 </div>
 </div>
-<div class="row space"><div><div class="ds-section-eyebrow">DOKUMENTATION</div><h2>Dokumentation</h2><div class="muted" style="margin-top:-4px;margin-bottom:12px">Übersicht und Filter aller Dokumentationen. Neue Dokumentationen werden über „Objekte“ angelegt.</div><div class="muted">Feststellungen und Leistungsnachweise</div></div></div>
+<div class="row space"><div><div class="ds-section-eyebrow">DOKUMENTATION</div><h2>Dokumentation</h2><div class="muted" style="margin-top:-4px;margin-bottom:12px">Zentrale Übersicht aller objektbezogenen Dokumentationen. Neue Dokumentationen werden über „Objekte“ angelegt.</div><div class="muted">Feststellungen · Leistungsnachweise · Maßnahmen- und Baudokumentationen</div></div></div>
 <div class="grid g3 ds-filter-toolbar" style="margin:14px 0">
 <div><label>Objekt</label><select id="filterObject" onchange="renderFindings()"><option value="">Alle</option></select></div>
 <div><label>Status</label><select id="filterStatus" onchange="renderFindings()"><option value="active">Offen + In Bearbeitung</option><option value="">Alle</option><option>Offen</option><option>In Bearbeitung</option><option>Erledigt</option></select>
@@ -6299,7 +6306,7 @@ table td,table th{
 <option value="thirdparty">Extern freigegeben</option>
 </select></div>
 <div><label>Priorität</label><select id="filterPriority" onchange="renderFindings()"><option value="">Alle</option><option value="critical">Sofort + Dringend</option><option value="P1">Sofort</option><option value="P2">Dringend</option><option value="P3">Planbar</option><option value="P4">Beobachten</option></select></div>
-<div><label>Typ</label><select id="filterType" onchange="renderFindings()"><option value="">Alle</option><option>Feststellung</option><option>Leistung</option></select></div>
+<div><label>Typ</label><select id="filterType" onchange="renderFindings()"><option value="">Alle</option><option>Feststellung</option><option>Leistung</option><option value="object_documentation">Maßnahmen-/Baudokumentation</option></select></div>
 <div><label>Verantwortung</label><select id="filterResponsibility" onchange="renderFindings()"><option value="">Alle</option><option value="own">Eigene To-dos</option><option value="external">Bei Dritten</option><option value="completed">Abgeschlossen</option></select></div>
 </div>
 <div class="grid" id="findingList"></div>
@@ -10463,7 +10470,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.09';
+const APP_VERSION='3.10';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -24677,24 +24684,90 @@ function dedupeResidentRouteFindings(findings){
   return rows.filter(f=>!hidden.has(String(f.id||'')));
 }
 
+
+function objectDocumentationMatchesCentralFilters(d,{objectId,status,priority,decision,responsibility,type}){
+  if(!d)return false;
+
+  if(type && type!=='object_documentation')return false;
+  if(objectId && String(d.object_id||'')!==String(objectId))return false;
+
+  // Auftraggeber sehen ausschließlich Dokumentationen, die für Berichte freigegeben sind.
+  if(isCustomerRole() && d.include_in_report===false)return false;
+
+  // Diese Filter existieren fachlich nur für Feststellungen/Leistungsnachweise.
+  if(priority || decision)return false;
+
+  if(responsibility==='external' || responsibility==='own')return false;
+  if(responsibility==='completed' && String(d.status||'')!=='completed')return false;
+
+  if(status==='active' && !['open','in_progress'].includes(String(d.status||'')))return false;
+  if(status==='Offen' && String(d.status||'')!=='open')return false;
+  if(status==='In Bearbeitung' && String(d.status||'')!=='in_progress')return false;
+  if(status==='Erledigt' && String(d.status||'')!=='completed')return false;
+
+  return true;
+}
+
+function objectDocumentationCentralCard(d){
+  const entries=objectDocumentationEntriesFor(d.id)
+    .filter(e=>!isCustomerRole() || e.include_in_report!==false);
+  const lastEntry=entries.length?entries[entries.length-1]:null;
+  const lastMedia=lastEntry
+    ?objectDocumentationMediaFor(lastEntry.id).filter(m=>!isCustomerRole() || m.include_in_report!==false)
+    :[];
+  const firstMedia=lastMedia[0]||null;
+  const author=lastEntry?objectDocumentationAuthorName(lastEntry):'';
+  const updatedAt=lastEntry?.occurred_at||d.updated_at||d.created_at||'';
+  const canWrite=canWriteObjectDocumentationUI(d.object_id);
+
+  return `<div class="card finding object-documentation-central-card">
+    <div class="row space">
+      <div>
+        <span class="badge">${esc(objectDocumentationTypeLabel(d.documentation_type))}</span>
+        <span class="badge">${esc(objectDocumentationStatusLabel(d.status))}</span>
+      </div>
+      <small class="muted">${updatedAt?esc(reportDateText(updatedAt)):''}</small>
+    </div>
+    <h3 style="margin-bottom:5px">${esc(d.title||'Dokumentation')}</h3>
+    <div class="muted">${esc(objectName(d.object_id))}${d.start_date?' · Start '+esc(reportDateText(d.start_date)):''}</div>
+    ${d.description?`<p>${esc(d.description)}</p>`:''}
+    ${lastEntry?`<div style="margin-top:10px;padding:10px 12px;border-left:3px solid #4da3ff;background:rgba(255,255,255,.025);border-radius:0 10px 10px 0">
+      <div class="muted" style="font-size:12px">${esc(reportDateText(lastEntry.occurred_at))} · ${esc(objectDocumentationPhaseLabel(lastEntry.phase))}${author?' · '+esc(author):''}</div>
+      ${lastEntry.note?`<div style="margin-top:4px">${esc(lastEntry.note)}</div>`:''}
+      ${firstMedia?`<div style="margin-top:8px">${mediaImg(objectDocumentationMediaRef(firstMedia),'Dokumentationsfoto','thumb')}</div>`:''}
+    </div>`:''}
+    <div class="row space" style="margin-top:12px;align-items:center">
+      <span class="muted">${entries.length} ${entries.length===1?'Eintrag':'Einträge'}${d.include_in_report===false?' · nicht im Bericht':' · im Bericht'}</span>
+      <button onclick="openObjectDocumentationModule('${esc(d.object_id)}')">${canWrite?'Öffnen / bearbeiten':'Öffnen'}</button>
+    </div>
+  </div>`;
+}
+
 function renderFindings(){
   renderCustomerObjectContext();
   const df=document.getElementById('filterDecision')?.value||'';
   const rf=document.getElementById('filterResponsibility')?.value||'';
-  const of=document.getElementById('filterObject')?.value||'', sf=document.getElementById('filterStatus')?.value||'', pf=document.getElementById('filterPriority')?.value||'', tf=document.getElementById('filterType')?.value||'';
+  const of=document.getElementById('filterObject')?.value||'';
+  const sf=document.getElementById('filterStatus')?.value||'';
+  const pf=document.getElementById('filterPriority')?.value||'';
+  const tf=document.getElementById('filterType')?.value||'';
   const el=document.getElementById('findingList');
 
-  // v2.20.25: Externe Monitoring-Vorgänge werden direkt aus shared_work_orders
-  // dargestellt. Damit hängt die Dokumentationssicht nicht mehr davon ab, ob
-  // source_finding_id im aktuellen Mandanten auf eine lokal geladene Feststellung
-  // aufgelöst werden kann. Dashboard-KPI und Dokumentationsfilter verwenden
-  // dadurch dieselbe Datenquelle.
+  // Externe Monitoring-Vorgänge bleiben eine eigene operative Sicht.
   if(rf==='external'){
     let external=[...externalMonitoringOrdersForCurrentTenant()];
     let pendingOwner=[...pendingAtOwnerFindingsForCurrentTenant()];
-    if(of){external=external.filter(x=>String(x.source_object_id||'')===String(of));pendingOwner=pendingOwner.filter(f=>String(f.objectId||'')===String(of));}
-    if(pf==='critical'){external=external.filter(x=>['P1','P2'].includes(String(x.priority||'')));pendingOwner=pendingOwner.filter(f=>['P1','P2'].includes(String(f.priority||'')));}
-    else if(pf){external=external.filter(x=>String(x.priority||'')===String(pf));pendingOwner=pendingOwner.filter(f=>String(f.priority||'')===String(pf));}
+    if(of){
+      external=external.filter(x=>String(x.source_object_id||'')===String(of));
+      pendingOwner=pendingOwner.filter(f=>String(f.objectId||'')===String(of));
+    }
+    if(pf==='critical'){
+      external=external.filter(x=>['P1','P2'].includes(String(x.priority||'')));
+      pendingOwner=pendingOwner.filter(f=>['P1','P2'].includes(String(f.priority||'')));
+    }else if(pf){
+      external=external.filter(x=>String(x.priority||'')===String(pf));
+      pendingOwner=pendingOwner.filter(f=>String(f.priority||'')===String(pf));
+    }
     external.sort((a,b)=>{
       const ta=new Date(a.updated_at||a.accepted_at||a.created_at||0).getTime()||0;
       const tb=new Date(b.updated_at||b.accepted_at||b.created_at||0).getTime()||0;
@@ -24708,12 +24781,51 @@ function renderFindings(){
     return;
   }
 
-  let arr=dedupeResidentRouteFindings([...db.findings].filter(f=>findingVisibleInCurrentTenantUI(f))).sort((a,b)=>b.createdAt-a.createdAt);
-  if(of)arr=arr.filter(x=>x.objectId===of);if(sf==='active')arr=arr.filter(x=>x.status!=='Erledigt');else if(sf)arr=arr.filter(x=>x.status===sf);if(df)arr=arr.filter(x=>(x.decisionStatus||'pending')===df);if(pf==='critical')arr=arr.filter(x=>['P1','P2'].includes(x.priority));else if(pf)arr=arr.filter(x=>x.priority===pf);if(tf)arr=arr.filter(x=>(x.type||'Feststellung')===tf);
-  if(rf==='own')arr=arr.filter(x=>x.status!=='Erledigt'&&!findingIsOperationallyOwnedByOtherTenant(x.id));
-  else if(rf==='completed')arr=arr.filter(x=>x.status==='Erledigt'||String(externalResponsibilityOrderForFinding(x.id)?.review_status||'')==='verified');
+  // 1) Klassische Dokumentationen / Findings
+  let arr=dedupeResidentRouteFindings(
+    [...db.findings].filter(f=>findingVisibleInCurrentTenantUI(f))
+  ).sort((a,b)=>b.createdAt-a.createdAt);
+
+  if(tf==='object_documentation'){
+    arr=[];
+  }else{
+    if(of)arr=arr.filter(x=>x.objectId===of);
+    if(sf==='active')arr=arr.filter(x=>x.status!=='Erledigt');
+    else if(sf)arr=arr.filter(x=>x.status===sf);
+    if(df)arr=arr.filter(x=>(x.decisionStatus||'pending')===df);
+    if(pf==='critical')arr=arr.filter(x=>['P1','P2'].includes(x.priority));
+    else if(pf)arr=arr.filter(x=>x.priority===pf);
+    if(tf)arr=arr.filter(x=>(x.type||'Feststellung')===tf);
+    if(rf==='own')arr=arr.filter(x=>x.status!=='Erledigt'&&!findingIsOperationallyOwnedByOtherTenant(x.id));
+    else if(rf==='completed')arr=arr.filter(x=>x.status==='Erledigt'||String(externalResponsibilityOrderForFinding(x.id)?.review_status||'')==='verified');
+  }
+
+  // 2) Maßnahmen-/Baudokumentationen
+  const objectDocs=(cloudObjectDocumentations||[])
+    .filter(d=>objectDocumentationMatchesCentralFilters(d,{
+      objectId:of,
+      status:sf,
+      priority:pf,
+      decision:df,
+      responsibility:rf,
+      type:tf
+    }))
+    .sort((a,b)=>{
+      const ta=new Date(a.updated_at||a.created_at||0).getTime()||0;
+      const tb=new Date(b.updated_at||b.created_at||0).getTime()||0;
+      return tb-ta;
+    });
+
   if(el){
-    el.innerHTML=arr.length?arr.map(f=>findingCard(f)).join(''):`<div class="empty">Keine Dokumentationen im gewählten Filter.</div>`;
+    const cards=[
+      ...arr.map(f=>findingCard(f)),
+      ...objectDocs.map(d=>objectDocumentationCentralCard(d))
+    ];
+
+    el.innerHTML=cards.length
+      ?cards.join('')
+      :`<div class="empty">Keine Dokumentationen im gewählten Filter.</div>`;
+
     setTimeout(()=>{hydrateMediaImages(el);hydrateResidentReportImages(el);},0);
   }
 }
