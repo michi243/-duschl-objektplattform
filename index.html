@@ -2,6 +2,12 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.05 · Berichtfilter Maßnahmen-/Baudokumentation
+     NEU: Dokumentationstyp-Filter enthält "Maßnahmen-/Baudokumentation".
+     LOGIK: "Alle" zeigt Standarddokumentation + Maßnahmen-/Baudokumentation.
+     LOGIK: "Maßnahmen-/Baudokumentation" zeigt ausschließlich das neue Dokumentationsmodul.
+     COUNT: Dokumentationsanzahl im Bericht berücksichtigt beide Dokumentationsarten.
+     BACKEND/RLS: unverändert. -->
 <!-- RELEASE 3.04 · Auftraggeber-Ansicht
      UX/GOVERNANCE: Auftraggeber erhält ein reduziertes, kundengerechtes Menü.
      SICHTBAR: Dashboard, Entscheidungen, Objekte, Dokumentation, Berichte, Benachrichtigungen.
@@ -100,7 +106,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.04</title>
+<title>Duschl Service – Objektplattform v3.05</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -6351,6 +6357,7 @@ table td,table th{
 <option value="">Alle</option>
 <option value="Feststellung">Feststellung</option>
 <option value="Leistung">Leistung</option>
+<option value="object_documentation">Maßnahmen-/Baudokumentation</option>
 </select>
 </div>
 <div>
@@ -10389,7 +10396,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.04';
+const APP_VERSION='3.05';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -25412,18 +25419,38 @@ function renderReport(){
   }
 
   const cutoff=period ? Date.now()-Number(period)*24*60*60*1000 : 0;
-  const objectDocumentationReport=objectDocumentationReportHtml(objectId,reportCustomerMode,cutoff);
+
+  const includeStandardDocs=type!=='object_documentation';
+  const includeObjectDocs=type==='' || type==='object_documentation';
+
+  const reportableObjectDocumentations=includeObjectDocs
+    ? objectDocumentationForObject(objectId)
+        .filter(d=>d.include_in_report!==false)
+        .filter(d=>!cutoff ||
+          new Date(d.updated_at||d.created_at||0).getTime()>=cutoff ||
+          objectDocumentationEntriesFor(d.id).some(e=>
+            e.include_in_report!==false &&
+            new Date(e.occurred_at||e.created_at||0).getTime()>=cutoff
+          )
+        )
+    : [];
+
+  const objectDocumentationReport=includeObjectDocs
+    ? objectDocumentationReportHtml(objectId,reportCustomerMode,cutoff)
+    : '';
 
   let inspections=db.inspections
     .filter(i=>i.objectId===objectId)
     .filter(i=>!cutoff || Number(i.startedAt||i.createdAt||0)>=cutoff)
     .sort((a,b)=>Number(b.startedAt||b.createdAt||0)-Number(a.startedAt||a.createdAt||0));
 
-  let docs=db.findings
-    .filter(f=>f.objectId===objectId)
-    .filter(f=>!cutoff || Number(f.createdAt||f.updatedAt||0)>=cutoff);
+  let docs=includeStandardDocs
+    ? db.findings
+        .filter(f=>f.objectId===objectId)
+        .filter(f=>!cutoff || Number(f.createdAt||f.updatedAt||0)>=cutoff)
+    : [];
 
-  if(type)docs=docs.filter(f=>(f.type||'Feststellung')===type);
+  if(type && type!=='object_documentation')docs=docs.filter(f=>(f.type||'Feststellung')===type);
   if(status==='active')docs=docs.filter(f=>f.status!=='Erledigt');
   else if(status)docs=docs.filter(f=>f.status===status);
   if(priority)docs=docs.filter(f=>f.priority===priority);
@@ -25436,7 +25463,8 @@ function renderReport(){
   const rank={P1:1,P2:2,P3:3,P4:4};
   docs.sort((a,b)=>(rank[a.priority]||9)-(rank[b.priority]||9) || Number(b.createdAt||b.updatedAt||0)-Number(a.createdAt||a.updatedAt||0));
 
-  const count=document.getElementById('reportResultCount'); if(count)count.textContent=docs.length;
+  const totalReportDocs=docs.length+reportableObjectDocumentations.length;
+  const count=document.getElementById('reportResultCount'); if(count)count.textContent=totalReportDocs;
 
   const openFindings=docs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt').length;
   const urgentOpen=docs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&['P1','P2'].includes(f.priority)&&f.status!=='Erledigt').length;
@@ -25454,11 +25482,12 @@ function renderReport(){
       <div class="card"><b>Objekt</b><div>${esc(o.name)}</div>${o.address?`<div class="muted">${esc(o.address)}</div>`:''}</div>
       <div class="card"><b>Berichtszeitraum</b><div>${esc(periodLabel)}</div></div>
       <div class="card"><b>Erstellt am</b><div>${generated}</div></div>
-      <div class="card"><b>Dokumentationen</b><div>${docs.length}</div></div>
+      <div class="card"><b>Dokumentationen</b><div>${totalReportDocs}</div></div>
     </div>
     <h2>Dokumentation</h2>
-    ${docs.length?docs.map(customerDocCard).join(''):'<div class="empty">Keine kundenrelevanten Dokumentationen für diese Filterkombination.</div>'}
+    ${docs.length?docs.map(customerDocCard).join(''):''}
     ${objectDocumentationReport}
+    ${totalReportDocs===0?'<div class="empty">Keine kundenrelevanten Dokumentationen für diese Filterkombination.</div>':''}
     <div class="customer-report-footer">Duschl Service · Objekt- und Leistungsdokumentation · Dieser Bericht enthält ausschließlich kundenrelevante Informationen.</div>`;
   }else{
     el.innerHTML=`<div class="card">
@@ -25476,8 +25505,9 @@ function renderReport(){
     <h3>Dokumentation</h3>
     ${docs.length
       ? docs.map(f=>findingCard(f).replace(/<div class="row"><button[\s\S]*?<\/div>\s*<\/div>$/,'</div>')).join('')
-      : '<div class="empty">Keine Dokumentationen für diese Filterkombination.</div>'}
-    ${objectDocumentationReport}`;
+      : ''}
+    ${objectDocumentationReport}
+    ${totalReportDocs===0?'<div class="empty">Keine Dokumentationen für diese Filterkombination.</div>':''}`;
   }
   setTimeout(()=>{hydrateMediaImages(el);hydrateResidentReportImages(el);},0);
 }
