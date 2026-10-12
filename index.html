@@ -2,6 +2,13 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 2.96 · Objektbezogene Maßnahmen-/Baudokumentation
+     NEU: eigenständige Dokumentationsthemen je Objekt mit Status, Typ und Berichtsschalter.
+     NEU: chronologische Einträge mit Datum/Uhrzeit, Notiz, Phase und bis zu 10 Fotos.
+     NEU: automatische Einbindung in internen und Auftraggeber-Objektbericht.
+     NEU: Report-Selektivität je Dokumentation und je Foto.
+     STORAGE: private Medien im bestehenden Bucket objektplattform-media unter documentation/.
+     BACKEND/RLS: neue Tabellen/RLS aus sql_2.96_objektdokumentation.sql erforderlich. -->
 <!-- RELEASE 2.95 · DWD-only Cleanup
      PRODUKTIV: Wettercockpit nutzt ausschließlich DWD via Bright Sky.
      UI: Windy-/Modellvergleich, Prognosesicherheit und Diagnoseelemente entfernt.
@@ -44,7 +51,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.95</title>
+<title>Duschl Service – Objektplattform v2.96</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5543,6 +5550,35 @@ table td,table th{
 .dashboard-winter-grid-v285 .dashboard-winter-kpi.state-red:after{background:#e96d73;box-shadow:0 0 0 4px rgba(233,109,115,.11)}
 @media(max-width:680px){#dashboardWinterPanel{box-shadow:inset 3px 0 0 var(--winter-state-color),0 10px 24px rgba(0,0,0,.16)!important}}
 </style>
+
+<style id="duschl-object-documentation-v296">
+.object-doc-list{display:grid;gap:10px;margin-top:12px}
+.object-doc-topic{border:1px solid var(--line);border-radius:14px;padding:13px;background:var(--panel)}
+.object-doc-topic-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.object-doc-topic h3{margin:4px 0 2px}
+.object-doc-timeline{display:grid;gap:10px;margin-top:12px}
+.object-doc-entry{position:relative;border-left:3px solid #4f8fc9;padding:10px 10px 10px 14px;background:var(--bg-soft);border-radius:0 12px 12px 0}
+.object-doc-entry-meta{font-size:12px;color:var(--muted);margin-bottom:5px}
+.object-doc-photo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:9px}
+.object-doc-photo-grid .photo-item{aspect-ratio:4/3;overflow:hidden;border-radius:10px}
+.object-doc-photo-grid img{width:100%;height:100%;object-fit:cover}
+.object-doc-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.object-doc-report-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.object-doc-report-section{break-inside:avoid-page;margin:18px 0}
+.object-doc-report-topic{break-before:auto;border-top:2px solid #333;padding-top:10px;margin-top:16px}
+.object-doc-report-entry{break-inside:avoid;margin:10px 0;padding:10px;border:1px solid var(--line);border-radius:10px}
+.object-doc-report-photos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:8px}
+.object-doc-report-photos img{width:100%;max-height:320px;object-fit:contain;border:1px solid #ddd;border-radius:8px}
+@media(max-width:620px){
+  .object-doc-form-grid{grid-template-columns:1fr}
+  .object-doc-photo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media print{
+  .object-doc-report-photos{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .object-doc-report-topic,.object-doc-report-entry{break-inside:avoid}
+}
+</style>
+
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -10298,7 +10334,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='2.95';
+const APP_VERSION='2.96';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -11609,6 +11645,11 @@ let cloudObjectCollaborationScopes=[];
 let cloudServiceScopeCatalog=[];
 let cloudSharedObjectAssignees=[];
 let cloudSharedObjectAssignments=[]; // 2.24.17 reale Zuordnung collaboration_id ↔ user_id
+let cloudObjectDocumentations=[];
+let cloudObjectDocumentationEntries=[];
+let cloudObjectDocumentationMedia=[];
+let objectDocumentationPhotoDraft=[];
+
 let workQueueVisibilityProfiles=[];
 let platformOrganizationMemberships=[];
 let platformOrganizationProfiles=[];
@@ -13734,6 +13775,7 @@ async function refreshAllCloudData(){
     // Dokumentationen + Entscheidungen + Aufgaben serverseitig neu laden.
     // cloudReloadFindings() ruft cloudLoadTasks() bereits intern auf.
     await cloudReloadFindings();
+    await cloudLoadObjectDocumentations();
 
     // Benutzer/Zuweisungen nur laden, wenn die aktuelle Berechtigung dies zulässt.
     if(canManageUsersUI())await loadUserAdminData();
@@ -23899,6 +23941,7 @@ function renderObjects(){
             ${!o.externalManaged&&canManageObjectsUI()?`<button onclick="openObjectAreasModal('${esc(o.id)}')">Einheiten &amp; Bereiche</button><button onclick="openObjectServicesModal('${esc(o.id)}')">Leistungen &amp; Standards</button><button onclick="openObjectModal('${esc(o.id)}')">Objekt bearbeiten</button>`:''}
             ${o.externalManaged&&slTenantAdmin()?`<button onclick="openObjectServicesModal('${esc(o.id)}')">Leistungen &amp; Standards</button>`:''}
             ${!slTenantAdmin()&&canViewObjectStandardsUI(o.id)?`<button onclick="openObjectServicesModal('${esc(o.id)}')">SOPs &amp; Standards</button>`:''}
+            <button onclick="openObjectDocumentationModule('${esc(o.id)}')">Maßnahmen-/Baudoku</button>
             <button onclick="showObjectReport('${esc(o.id)}')">Bericht</button>
             ${o.externalManaged?`<button onclick="showSection('externalOrders')">Externe Aufträge</button>`:''}
           </div>
@@ -24274,6 +24317,246 @@ function renderFindings(){
     el.innerHTML=arr.length?arr.map(f=>findingCard(f)).join(''):`<div class="empty">Keine Dokumentationen im gewählten Filter.</div>`;
     setTimeout(()=>{hydrateMediaImages(el);hydrateResidentReportImages(el);},0);
   }
+}
+
+
+/* ============================================================
+   v2.96 · Objektbezogene Maßnahmen-/Baudokumentation
+   ============================================================ */
+function objectDocumentationTypeLabel(v){
+  return ({
+    construction:'Baudokumentation',
+    condition:'Zustandsdokumentation',
+    measure:'Maßnahmendokumentation',
+    acceptance:'Abnahme',
+    damage:'Schadendokumentation',
+    other:'Sonstige Dokumentation'
+  })[String(v||'')]||'Dokumentation';
+}
+function objectDocumentationStatusLabel(v){
+  return ({open:'Offen',in_progress:'Laufend',completed:'Abgeschlossen'})[String(v||'')]||'Offen';
+}
+function objectDocumentationPhaseLabel(v){
+  return ({before:'Vorher',progress:'Zwischenstand',after:'Nachher',acceptance:'Abnahme',note:'Hinweis'})[String(v||'')]||'Eintrag';
+}
+function objectDocumentationForObject(objectId){
+  return (cloudObjectDocumentations||[])
+    .filter(x=>String(x.object_id||'')===String(objectId||''))
+    .sort((a,b)=>String(b.updated_at||b.created_at||'').localeCompare(String(a.updated_at||a.created_at||'')));
+}
+function objectDocumentationEntriesFor(documentationId){
+  return (cloudObjectDocumentationEntries||[])
+    .filter(x=>String(x.documentation_id||'')===String(documentationId||''))
+    .sort((a,b)=>String(a.occurred_at||a.created_at||'').localeCompare(String(b.occurred_at||b.created_at||'')));
+}
+function objectDocumentationMediaFor(entryId){
+  return (cloudObjectDocumentationMedia||[])
+    .filter(x=>String(x.entry_id||'')===String(entryId||''))
+    .sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0));
+}
+function objectDocumentationMediaRef(m){
+  return String(m?.storage_ref||'');
+}
+async function cloudLoadObjectDocumentations(){
+  if(!cloudSession?.access_token){
+    cloudObjectDocumentations=[];cloudObjectDocumentationEntries=[];cloudObjectDocumentationMedia=[];
+    return;
+  }
+  try{
+    const docs=await cloudRequest('object_documentations?select=id,object_id,title,documentation_type,status,description,start_date,end_date,include_in_report,report_order,report_caption,created_by,created_at,updated_at&order=updated_at.desc');
+    const visibleObjectIds=new Set((db.objects||[]).map(o=>String(o.id)));
+    cloudObjectDocumentations=(docs||[]).filter(x=>visibleObjectIds.has(String(x.object_id)));
+    const docIds=cloudObjectDocumentations.map(x=>x.id).filter(Boolean);
+    if(!docIds.length){cloudObjectDocumentationEntries=[];cloudObjectDocumentationMedia=[];return;}
+    const inDocs=docIds.map(x=>encodeURIComponent(x)).join(',');
+    const entries=await cloudRequest(`object_documentation_entries?select=id,documentation_id,occurred_at,phase,note,include_in_report,created_by,created_at,updated_at&documentation_id=in.(${inDocs})&order=occurred_at.asc`);
+    cloudObjectDocumentationEntries=entries||[];
+    const entryIds=cloudObjectDocumentationEntries.map(x=>x.id).filter(Boolean);
+    if(!entryIds.length){cloudObjectDocumentationMedia=[];return;}
+    const inEntries=entryIds.map(x=>encodeURIComponent(x)).join(',');
+    cloudObjectDocumentationMedia=await cloudRequest(`object_documentation_media?select=id,entry_id,storage_ref,caption,include_in_report,sort_order,created_at&entry_id=in.(${inEntries})&order=sort_order.asc`)||[];
+  }catch(e){
+    console.warn('Objektdokumentationen konnten nicht geladen werden',e);
+    cloudObjectDocumentations=[];cloudObjectDocumentationEntries=[];cloudObjectDocumentationMedia=[];
+  }
+}
+async function saveObjectDocumentationTopic(objectId,documentationId=''){
+  const title=(document.getElementById('odTitle')?.value||'').trim();
+  const documentation_type=document.getElementById('odType')?.value||'construction';
+  const status=document.getElementById('odStatus')?.value||'in_progress';
+  const description=(document.getElementById('odDescription')?.value||'').trim();
+  const start_date=document.getElementById('odStartDate')?.value||null;
+  const end_date=document.getElementById('odEndDate')?.value||null;
+  const include_in_report=document.getElementById('odIncludeReport')?.checked!==false;
+  const report_caption=(document.getElementById('odReportCaption')?.value||'').trim()||null;
+  if(!title){alert('Bitte einen Titel für die Dokumentation eingeben.');return;}
+  const payload={object_id:objectId,title,documentation_type,status,description:description||null,start_date,end_date,include_in_report,report_caption,updated_at:new Date().toISOString()};
+  try{
+    if(documentationId){
+      await cloudRequest(`object_documentations?id=eq.${encodeURIComponent(documentationId)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(payload)});
+    }else{
+      payload.created_by=currentUserId()||null;
+      await cloudRequest('object_documentations',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(payload)});
+    }
+    await cloudLoadObjectDocumentations();
+    openObjectDocumentationModule(objectId);
+  }catch(e){alert('Dokumentation konnte nicht gespeichert werden: '+(e.message||e));}
+}
+function openObjectDocumentationTopicForm(objectId,documentationId=''){
+  const d=(cloudObjectDocumentations||[]).find(x=>String(x.id)===String(documentationId))||{};
+  modal(`<div class="row space"><div><h2 style="margin:0">${documentationId?'Dokumentation bearbeiten':'Neue Dokumentation'}</h2><div class="muted">${esc((db.objects||[]).find(o=>o.id===objectId)?.name||'Objekt')}</div></div></div>
+    <div class="object-doc-form-grid" style="margin-top:14px">
+      <label>Titel<input id="odTitle" value="${esc(d.title||'')}" placeholder="z. B. Zaunbau Nordseite"></label>
+      <label>Typ<select id="odType">
+        ${['construction','condition','measure','acceptance','damage','other'].map(v=>`<option value="${v}" ${String(d.documentation_type||'construction')===v?'selected':''}>${esc(objectDocumentationTypeLabel(v))}</option>`).join('')}
+      </select></label>
+      <label>Status<select id="odStatus">
+        ${['open','in_progress','completed'].map(v=>`<option value="${v}" ${String(d.status||'in_progress')===v?'selected':''}>${esc(objectDocumentationStatusLabel(v))}</option>`).join('')}
+      </select></label>
+      <label>Startdatum<input id="odStartDate" type="date" value="${esc(d.start_date||'')}"></label>
+      <label>Enddatum<input id="odEndDate" type="date" value="${esc(d.end_date||'')}"></label>
+      <label style="grid-column:1/-1">Beschreibung<textarea id="odDescription" rows="3">${esc(d.description||'')}</textarea></label>
+      <label style="grid-column:1/-1">Überschrift im Bericht (optional)<input id="odReportCaption" value="${esc(d.report_caption||'')}"></label>
+      <label style="grid-column:1/-1;display:flex;align-items:center;gap:9px"><input id="odIncludeReport" type="checkbox" ${d.include_in_report===false?'':'checked'} style="width:auto">Im Objektbericht ausgeben</label>
+    </div>
+    <div class="row" style="margin-top:16px"><button class="primary" onclick="saveObjectDocumentationTopic('${esc(objectId)}','${esc(documentationId)}')">Speichern</button><button onclick="closeModal()">Abbrechen</button></div>`);
+}
+function renderObjectDocumentationModule(objectId){
+  const docs=objectDocumentationForObject(objectId);
+  if(!docs.length)return '<div class="empty">Noch keine Maßnahmen-/Baudokumentation angelegt.</div>';
+  return `<div class="object-doc-list">${docs.map(d=>{
+    const entries=objectDocumentationEntriesFor(d.id);
+    return `<div class="object-doc-topic">
+      <div class="object-doc-topic-head">
+        <div><span class="badge">${esc(objectDocumentationTypeLabel(d.documentation_type))}</span><h3>${esc(d.title||'Dokumentation')}</h3>
+          <div class="muted">${esc(objectDocumentationStatusLabel(d.status))}${d.start_date?' · Start '+esc(reportDateText(d.start_date)):''}${d.end_date?' · Ende '+esc(reportDateText(d.end_date)):''}</div>
+        </div>
+        <div class="row"><button onclick="openObjectDocumentationEntryForm('${esc(objectId)}','${esc(d.id)}')">+ Eintrag</button><button onclick="openObjectDocumentationTopicForm('${esc(objectId)}','${esc(d.id)}')">Bearbeiten</button></div>
+      </div>
+      ${d.description?`<p>${esc(d.description)}</p>`:''}
+      <div class="object-doc-report-chip">${d.include_in_report===false?'Nicht im Bericht':'✓ Im Bericht'} · ${entries.length} Einträge</div>
+      <div class="object-doc-timeline">${entries.length?entries.map(e=>renderObjectDocumentationEntryCard(e)).join(''):'<div class="muted">Noch keine Einträge.</div>'}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+function renderObjectDocumentationEntryCard(e){
+  const media=objectDocumentationMediaFor(e.id);
+  return `<div class="object-doc-entry">
+    <div class="object-doc-entry-meta">${esc(reportDateText(e.occurred_at))} · ${esc(new Date(e.occurred_at||e.created_at||Date.now()).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}))} · ${esc(objectDocumentationPhaseLabel(e.phase))}${e.include_in_report===false?' · nicht im Bericht':''}</div>
+    ${e.note?`<div>${esc(e.note)}</div>`:''}
+    ${media.length?`<div class="object-doc-photo-grid">${media.map(m=>`<div>${mediaImg(objectDocumentationMediaRef(m),m.caption||'Dokumentationsfoto','photo-item')}${m.caption?`<div class="muted" style="font-size:11px;margin-top:3px">${esc(m.caption)}</div>`:''}</div>`).join('')}</div>`:''}
+  </div>`;
+}
+async function openObjectDocumentationModule(objectId){
+  const o=(db.objects||[]).find(x=>String(x.id)===String(objectId));
+  if(!o)return alert('Objekt nicht gefunden.');
+  await cloudLoadObjectDocumentations();
+  modal(`<div class="row space"><div><h2 style="margin:0">Dokumentationen</h2><div class="muted">${esc(o.name||'Objekt')} · Maßnahmen, Baufortschritt und Zustände</div></div><button class="primary" onclick="openObjectDocumentationTopicForm('${esc(objectId)}')">+ Neue Dokumentation</button></div>
+    <div id="objectDocumentationModuleHost">${renderObjectDocumentationModule(objectId)}</div>`);
+  setTimeout(()=>hydrateMediaImages(document.getElementById('objectDocumentationModuleHost')),0);
+}
+function renderObjectDocumentationPhotoDraft(){
+  const host=document.getElementById('odPhotoPreview');
+  const count=document.getElementById('odPhotoCount');
+  if(count)count.textContent=`${objectDocumentationPhotoDraft.length} von 10 Bildern`;
+  if(!host)return;
+  host.innerHTML=objectDocumentationPhotoDraft.map((p,i)=>`<div><div class="photo-item">${mediaImg(p,'Foto '+(i+1),'')}</div><button type="button" class="photo-remove" onclick="removeObjectDocumentationDraftPhoto(${i})">×</button></div>`).join('');
+  hydrateMediaImages(host);
+}
+async function handleObjectDocumentationPhotos(input){
+  const files=[...(input?.files||[])];
+  const free=Math.max(0,10-objectDocumentationPhotoDraft.length);
+  for(const f of files.slice(0,free)){
+    const data=await readPhoto(f);
+    const id='od_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+    await mediaPut(id,data);
+    objectDocumentationPhotoDraft.push('media:'+id);
+  }
+  if(input)input.value='';
+  renderObjectDocumentationPhotoDraft();
+}
+async function removeObjectDocumentationDraftPhoto(i){
+  const ref=objectDocumentationPhotoDraft[i];
+  objectDocumentationPhotoDraft.splice(i,1);
+  if(isMediaRef(ref))try{await mediaDelete(mediaId(ref))}catch(_e){}
+  renderObjectDocumentationPhotoDraft();
+}
+function openObjectDocumentationEntryForm(objectId,documentationId){
+  objectDocumentationPhotoDraft=[];
+  const now=new Date();
+  const local=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  modal(`<div><h2 style="margin:0">Dokumentationseintrag</h2><div class="muted">${esc((cloudObjectDocumentations||[]).find(x=>x.id===documentationId)?.title||'Dokumentation')}</div></div>
+    <div class="object-doc-form-grid" style="margin-top:14px">
+      <label>Zeitpunkt<input id="odEntryOccurredAt" type="datetime-local" value="${local}"></label>
+      <label>Phase<select id="odEntryPhase"><option value="before">Vorher</option><option value="progress" selected>Zwischenstand</option><option value="after">Nachher</option><option value="acceptance">Abnahme</option><option value="note">Hinweis</option></select></label>
+      <label style="grid-column:1/-1">Notiz<textarea id="odEntryNote" rows="4" placeholder="Was wurde festgestellt oder ausgeführt?"></textarea></label>
+      <label style="grid-column:1/-1;display:flex;align-items:center;gap:9px"><input id="odEntryIncludeReport" type="checkbox" checked style="width:auto">Eintrag im Objektbericht ausgeben</label>
+    </div>
+    <div style="margin-top:12px"><label class="public-report-file-trigger">Fotos auswählen<input class="public-report-native-file" type="file" accept="image/*" multiple onchange="handleObjectDocumentationPhotos(this)"></label><div id="odPhotoCount" class="muted" style="margin-top:5px">0 von 10 Bildern</div><div id="odPhotoPreview" class="object-doc-photo-grid"></div></div>
+    <div class="row" style="margin-top:16px"><button class="primary" onclick="saveObjectDocumentationEntry('${esc(objectId)}','${esc(documentationId)}')">Eintrag speichern</button><button onclick="openObjectDocumentationModule('${esc(objectId)}')">Abbrechen</button></div>`);
+}
+async function uploadObjectDocumentationPhotos(entryId,refs){
+  const out=[];
+  for(let i=0;i<(refs||[]).length;i++){
+    const ref=refs[i];
+    if(isCloudMediaRef(ref)){out.push(ref);continue;}
+    const blob=await photoRefToBlob(ref);
+    if(!blob)continue;
+    const ext=(blob.type||'image/jpeg').includes('png')?'png':'jpg';
+    const path=`documentation/${entryId}/${Date.now()}_${i}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+    out.push(await cloudMediaPut(path,blob));
+  }
+  return out;
+}
+async function saveObjectDocumentationEntry(objectId,documentationId){
+  const occurredLocal=document.getElementById('odEntryOccurredAt')?.value||'';
+  const occurred_at=occurredLocal?new Date(occurredLocal).toISOString():new Date().toISOString();
+  const phase=document.getElementById('odEntryPhase')?.value||'progress';
+  const note=(document.getElementById('odEntryNote')?.value||'').trim();
+  const include_in_report=document.getElementById('odEntryIncludeReport')?.checked!==false;
+  if(!note && !objectDocumentationPhotoDraft.length){alert('Bitte eine Notiz oder mindestens ein Foto erfassen.');return;}
+  const entryId=(globalThis.crypto?.randomUUID?.()||'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c==='x'?r:(r&3|8);return v.toString(16);}));
+  try{
+    await cloudRequest('object_documentation_entries',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({
+      id:entryId,documentation_id:documentationId,occurred_at,phase,note:note||null,include_in_report,created_by:currentUserId()||null
+    })});
+    const refs=await uploadObjectDocumentationPhotos(entryId,objectDocumentationPhotoDraft);
+    for(let i=0;i<refs.length;i++){
+      await cloudRequest('object_documentation_media',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({
+        entry_id:entryId,storage_ref:refs[i],caption:null,include_in_report:true,sort_order:i
+      })});
+    }
+    for(const ref of objectDocumentationPhotoDraft){if(isMediaRef(ref))try{await mediaDelete(mediaId(ref))}catch(_e){}}
+    objectDocumentationPhotoDraft=[];
+    await cloudLoadObjectDocumentations();
+    openObjectDocumentationModule(objectId);
+  }catch(e){
+    alert('Dokumentationseintrag konnte nicht gespeichert werden: '+(e.message||e));
+  }
+}
+function objectDocumentationReportHtml(objectId,customerMode=false,cutoff=0){
+  const docs=objectDocumentationForObject(objectId)
+    .filter(d=>d.include_in_report!==false)
+    .filter(d=>!cutoff || new Date(d.updated_at||d.created_at||0).getTime()>=cutoff || objectDocumentationEntriesFor(d.id).some(e=>new Date(e.occurred_at||e.created_at||0).getTime()>=cutoff));
+  if(!docs.length)return '';
+  const body=docs.map(d=>{
+    const entries=objectDocumentationEntriesFor(d.id)
+      .filter(e=>e.include_in_report!==false)
+      .filter(e=>!cutoff || new Date(e.occurred_at||e.created_at||0).getTime()>=cutoff);
+    if(!entries.length && cutoff)return '';
+    return `<section class="object-doc-report-topic">
+      <div class="row space"><div><span class="badge">${esc(objectDocumentationTypeLabel(d.documentation_type))}</span><h3>${esc(d.report_caption||d.title||'Dokumentation')}</h3></div><span class="badge">${esc(objectDocumentationStatusLabel(d.status))}</span></div>
+      ${d.description?`<p>${esc(d.description)}</p>`:''}
+      ${entries.map(e=>{
+        const media=objectDocumentationMediaFor(e.id).filter(m=>m.include_in_report!==false);
+        return `<div class="object-doc-report-entry"><div class="muted">${esc(reportDateText(e.occurred_at))} · ${esc(new Date(e.occurred_at||e.created_at||Date.now()).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}))} · ${esc(objectDocumentationPhaseLabel(e.phase))}</div>
+          ${e.note?`<p>${esc(e.note)}</p>`:''}
+          ${media.length?`<div class="object-doc-report-photos">${media.map(m=>`${mediaImg(objectDocumentationMediaRef(m),m.caption||'Dokumentationsfoto','')}${m.caption?`<div class="muted">${esc(m.caption)}</div>`:''}`).join('')}</div>`:''}
+        </div>`;
+      }).join('')}
+    </section>`;
+  }).join('');
+  return body?`<section class="object-doc-report-section"><h2>Maßnahmen- und Baudokumentation</h2>${body}</section>`:'';
 }
 
 let reportCustomerMode=false;
@@ -24804,6 +25087,7 @@ function renderReport(){
   }
 
   const cutoff=period ? Date.now()-Number(period)*24*60*60*1000 : 0;
+  const objectDocumentationReport=objectDocumentationReportHtml(objectId,reportCustomerMode,cutoff);
 
   let inspections=db.inspections
     .filter(i=>i.objectId===objectId)
@@ -24849,6 +25133,7 @@ function renderReport(){
     </div>
     <h2>Dokumentation</h2>
     ${docs.length?docs.map(customerDocCard).join(''):'<div class="empty">Keine kundenrelevanten Dokumentationen für diese Filterkombination.</div>'}
+    ${objectDocumentationReport}
     <div class="customer-report-footer">Duschl Service · Objekt- und Leistungsdokumentation · Dieser Bericht enthält ausschließlich kundenrelevante Informationen.</div>`;
   }else{
     el.innerHTML=`<div class="card">
@@ -24866,7 +25151,8 @@ function renderReport(){
     <h3>Dokumentation</h3>
     ${docs.length
       ? docs.map(f=>findingCard(f).replace(/<div class="row"><button[\s\S]*?<\/div>\s*<\/div>$/,'</div>')).join('')
-      : '<div class="empty">Keine Dokumentationen für diese Filterkombination.</div>'}`;
+      : '<div class="empty">Keine Dokumentationen für diese Filterkombination.</div>'}
+    ${objectDocumentationReport}`;
   }
   setTimeout(()=>{hydrateMediaImages(el);hydrateResidentReportImages(el);},0);
 }
@@ -24878,8 +25164,9 @@ function resetReportFilters(){
   renderReport();
 }
 
-function showObjectReport(id){
+async function showObjectReport(id){
   showSection('reports');
+  try{await cloudLoadObjectDocumentations();}catch(_e){}
   setTimeout(()=>{
     const e=document.getElementById('reportObject');
     if(e)e.value=id;
