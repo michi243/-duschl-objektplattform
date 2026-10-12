@@ -2,6 +2,13 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.07 · Auftraggeber-Dashboard Cleanup
+     UX: Auftraggeber sieht nur kundenrelevante Dashboard-KPIs.
+     DEINE AUFGABEN: Entscheidungen.
+     ÜBERSICHT: Objekte, Dokumentation, Berichte.
+     AUSGEBLENDET: Meldungen, Arbeitsvorrat, Bei Dritten.
+     DOKU-KPI: zählt zusätzlich Maßnahmen-/Baudokumentationen.
+     BACKEND/RLS: unverändert. -->
 <!-- RELEASE 3.06 · Neue Benutzer ohne Objektrolle
      FIX: fehlende Objektzuweisung wurde in zwei UI-Pfaden fälschlich als "Objektbetreuer · operativ" angezeigt.
      DEFAULT: Neue Benutzer haben für jedes Objekt "Keine Objektrolle".
@@ -112,7 +119,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.06</title>
+<title>Duschl Service – Objektplattform v3.07</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5646,6 +5653,38 @@ table td,table th{
 .object-doc-photo-help{font-size:12px;color:var(--muted);margin-top:6px}
 </style>
 
+
+<style id="customer-dashboard-v307">
+#operationalDashboard.customer-dashboard-mode #kpiResidentReportsCard,
+#operationalDashboard.customer-dashboard-mode #kpiWorkQueueCard,
+#operationalDashboard.customer-dashboard-mode #kpiExternalMonitoringCard{
+  display:none!important;
+}
+#operationalDashboard.customer-dashboard-mode .tenant-kpi-grid-v260{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+#operationalDashboard.customer-dashboard-mode #kpiDecisionsCard{order:1}
+#operationalDashboard.customer-dashboard-mode .tenant-kpi-group-info{order:2}
+#operationalDashboard.customer-dashboard-mode #kpiObjectsCard{order:3}
+#operationalDashboard.customer-dashboard-mode #kpiDocumentationCard{order:4}
+#operationalDashboard.customer-dashboard-mode #kpiReportsCard{order:5}
+#operationalDashboard.customer-dashboard-mode .tenant-kpi-group-tasks{order:0}
+#operationalDashboard.customer-dashboard-mode #kpiDecisionsCard,
+#operationalDashboard.customer-dashboard-mode #kpiObjectsCard,
+#operationalDashboard.customer-dashboard-mode #kpiDocumentationCard,
+#operationalDashboard.customer-dashboard-mode #kpiReportsCard{
+  min-height:112px;
+}
+@media(max-width:760px){
+  #operationalDashboard.customer-dashboard-mode .tenant-kpi-grid-v260{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  #operationalDashboard.customer-dashboard-mode #kpiDecisionsCard{
+    grid-column:1/-1;
+  }
+}
+</style>
+
 </head>
 <body>
 <div aria-live="polite" id="publicReportPage">
@@ -6132,7 +6171,11 @@ table td,table th{
     </button>
     <button id="kpiDocumentationCard" class="tenant-kpi-card tenant-kpi-green" type="button" onclick="showSection('findings')">
       <div class="tenant-kpi-icon">▤</div><div class="tenant-kpi-arrow">›</div>
-      <div class="tenant-kpi-label">Dokumentation</div><div class="tenant-kpi-value" id="kpiOpen">0</div><div class="tenant-kpi-sub"><span id="kpiOpenDocs">0</span> Vorgänge · <span id="kpiCritical">0</span> dringend</div>
+      <div class="tenant-kpi-label">Dokumentation</div><div class="tenant-kpi-value" id="kpiOpen">0</div><div class="tenant-kpi-sub" id="kpiDocumentationSub"><span id="kpiOpenDocs">0</span> Vorgänge · <span id="kpiCritical">0</span> dringend</div>
+    </button>
+    <button id="kpiReportsCard" class="tenant-kpi-card tenant-kpi-blue" type="button" onclick="showSection('reports')" style="display:none">
+      <div class="tenant-kpi-icon">▥</div><div class="tenant-kpi-arrow">›</div>
+      <div class="tenant-kpi-label">Berichte</div><div class="tenant-kpi-value">›</div><div class="tenant-kpi-sub">Objektberichte öffnen</div>
     </button>
     <button aria-label="Offene Bewohnermeldungen anzeigen" class="tenant-kpi-card tenant-kpi-orange" id="kpiResidentReportsCard"
       onclick="openDashboardResidentReports()"
@@ -10402,7 +10445,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.06';
+const APP_VERSION='3.07';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -24003,6 +24046,14 @@ function syncAppReleaseMeta(){
 
 function renderDashboard(){
   syncAppReleaseMeta();
+
+  const operationalDashboard=document.getElementById('operationalDashboard');
+  const customerDashboard=isCustomerRole();
+  if(operationalDashboard)operationalDashboard.classList.toggle('customer-dashboard-mode',customerDashboard);
+
+  const reportsCard=document.getElementById('kpiReportsCard');
+  if(reportsCard)reportsCard.style.display=customerDashboard?'':'none';
+
   const greetingName=document.getElementById('dashboardGreetingName');
   if(greetingName){
     const rawName=(currentUserProfile?.full_name||cloudSession?.user?.user_metadata?.full_name||cloudSession?.user?.email||'Benutzer').trim();
@@ -24021,17 +24072,30 @@ function renderDashboard(){
     }
   }
   document.getElementById('kpiObjects').textContent=db.objects.length;
-  // v2.20.23: Dashboard-KPI bildet die vollständige Dokumentation ab, nicht nur offene Punkte.
+  // Dashboard-Dokumentation: klassische Dokumentationen + Maßnahmen-/Baudokumentationen.
   const visibleDocumentation=(db.findings||[]).filter(f=>findingVisibleInCurrentTenantUI(f));
+  const visibleObjectDocumentation=(db.objects||[])
+    .flatMap(o=>objectDocumentationForObject(o.id))
+    .filter(d=>!customerDashboard || d.include_in_report!==false);
+  const totalDocumentationCount=visibleDocumentation.length+visibleObjectDocumentation.length;
+
   const open=visibleDocumentation.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt');
-  document.getElementById('kpiOpen').textContent=visibleDocumentation.length;
-  const openDocsEl=document.getElementById('kpiOpenDocs'); if(openDocsEl)openDocsEl.textContent=visibleDocumentation.length;
+  document.getElementById('kpiOpen').textContent=totalDocumentationCount;
+  const openDocsEl=document.getElementById('kpiOpenDocs'); if(openDocsEl)openDocsEl.textContent=totalDocumentationCount;
   const criticalCount=open.filter(f=>['P1','P2'].includes(f.priority)).length;
   document.getElementById('kpiCritical').textContent=criticalCount;
+
+  const documentationSub=document.getElementById('kpiDocumentationSub');
+  if(documentationSub){
+    documentationSub.innerHTML=customerDashboard
+      ? `${totalDocumentationCount} ${totalDocumentationCount===1?'Dokumentation':'Dokumentationen'}`
+      : `<span id="kpiOpenDocs">${totalDocumentationCount}</span> Vorgänge · <span id="kpiCritical">${criticalCount}</span> dringend`;
+  }
+
   const documentationCard=document.getElementById('kpiDocumentationCard');
   if(documentationCard){
-    documentationCard.classList.toggle('ds-critical',criticalCount>0);
-    documentationCard.classList.toggle('ds-active',criticalCount===0&&visibleDocumentation.length>0);
+    documentationCard.classList.toggle('ds-critical',!customerDashboard&&criticalCount>0);
+    documentationCard.classList.toggle('ds-active',totalDocumentationCount>0);
   }
   const criticalCard=document.getElementById('kpiCriticalCard');
   if(criticalCard){criticalCard.classList.toggle('is-disabled',criticalCount===0);criticalCard.setAttribute('aria-disabled',criticalCount===0?'true':'false');}
@@ -24048,7 +24112,7 @@ function renderDashboard(){
     reportCard.classList.toggle('is-disabled',residentReportCount===0);
     reportCard.classList.toggle('ds-attention',residentReportCount>0);
     reportCard.setAttribute('aria-disabled',residentReportCount===0?'true':'false');
-    reportCard.style.display=isCustomerRole()?'none':'';
+    reportCard.style.display=customerDashboard?'none':'';
   }
   const residentNavCount=document.getElementById('residentReportNavCount');
   if(residentNavCount){
@@ -24100,7 +24164,7 @@ function renderDashboard(){
   if(workKpi)workKpi.textContent=openWorkCount;
   const workCard=document.getElementById('kpiWorkQueueCard');
   if(workCard){
-    workCard.style.display=canUseWorkQueueUI()?'':'none';
+    workCard.style.display=customerDashboard?'none':(canUseWorkQueueUI()?'':'none');
     workCard.classList.toggle('is-disabled',openWorkCount===0);
     workCard.classList.toggle('ds-attention',openWorkCount>0);
     workCard.setAttribute('aria-disabled',openWorkCount===0?'true':'false');
@@ -24118,7 +24182,8 @@ function renderDashboard(){
   if(externalMonitoringKpi)externalMonitoringKpi.textContent=String(externalMonitoringCount);
   const externalMonitoringCard=document.getElementById('kpiExternalMonitoringCard');
   if(externalMonitoringCard){
-    // v2.20.21: Monitoring bleibt immer navigierbar – auch bei 0 Vorgängen.
+    externalMonitoringCard.style.display=customerDashboard?'none':'';
+    // v2.20.21: Monitoring bleibt für operative Rollen navigierbar – auch bei 0 Vorgängen.
     // So kann der Mandant die Monitoring-Ansicht bewusst öffnen und sieht dort
     // den eindeutigen Leerzustand statt einer scheinbar funktionslosen Kachel.
     externalMonitoringCard.classList.remove('is-disabled');
