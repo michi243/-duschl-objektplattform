@@ -2,6 +2,12 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 2.98 · Storage-Pfadfix Objektdokumentation
+     FIX: Dokumentationsfotos beginnen im Storage-Pfad jetzt mit object_id (UUID).
+     GRUND: bestehende Storage-RLS erwartet im ersten Pfadsegment eine UUID.
+     ALT: documentation/<entryId>/... führte zu 400 Invalid UUID "documentation".
+     NEU: <objectId>/documentation/<entryId>/...
+     KAMERA/UPLOAD/REPORT/BACKEND-RLS: unverändert. -->
 <!-- RELEASE 2.97 · Kamera + Bilderupload für Maßnahmen-Doku
      NEU: getrennte Aktionen "Kamera" und "Bilder auswählen".
      KAMERA: nutzt auf mobilen Geräten capture="environment" für die Rückkamera.
@@ -57,7 +63,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.97</title>
+<title>Duschl Service – Objektplattform v2.98</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -10346,7 +10352,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='2.97';
+const APP_VERSION='2.98';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -24521,7 +24527,7 @@ function openObjectDocumentationEntryForm(objectId,documentationId){
     </div>
     <div class="row" style="margin-top:16px"><button class="primary" onclick="saveObjectDocumentationEntry('${esc(objectId)}','${esc(documentationId)}')">Eintrag speichern</button><button onclick="openObjectDocumentationModule('${esc(objectId)}')">Abbrechen</button></div>`);
 }
-async function uploadObjectDocumentationPhotos(entryId,refs){
+async function uploadObjectDocumentationPhotos(objectId,entryId,refs){
   const out=[];
   for(let i=0;i<(refs||[]).length;i++){
     const ref=refs[i];
@@ -24529,7 +24535,7 @@ async function uploadObjectDocumentationPhotos(entryId,refs){
     const blob=await photoRefToBlob(ref);
     if(!blob)continue;
     const ext=(blob.type||'image/jpeg').includes('png')?'png':'jpg';
-    const path=`documentation/${entryId}/${Date.now()}_${i}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const path=`${objectId}/documentation/${entryId}/${Date.now()}_${i}_${Math.random().toString(36).slice(2,8)}.${ext}`;
     out.push(await cloudMediaPut(path,blob));
   }
   return out;
@@ -24546,7 +24552,7 @@ async function saveObjectDocumentationEntry(objectId,documentationId){
     await cloudRequest('object_documentation_entries',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({
       id:entryId,documentation_id:documentationId,occurred_at,phase,note:note||null,include_in_report,created_by:currentUserId()||null
     })});
-    const refs=await uploadObjectDocumentationPhotos(entryId,objectDocumentationPhotoDraft);
+    const refs=await uploadObjectDocumentationPhotos(objectId,entryId,objectDocumentationPhotoDraft);
     for(let i=0;i<refs.length;i++){
       await cloudRequest('object_documentation_media',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({
         entry_id:entryId,storage_ref:refs[i],caption:null,include_in_report:true,sort_order:i
