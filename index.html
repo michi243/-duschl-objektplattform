@@ -2,6 +2,20 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.04 · Auftraggeber-Ansicht
+     UX/GOVERNANCE: Auftraggeber erhält ein reduziertes, kundengerechtes Menü.
+     SICHTBAR: Dashboard, Entscheidungen, Objekte, Dokumentation, Berichte, Benachrichtigungen.
+     AUSGEBLENDET: Touren & Einsätze, Winterdienst, Partnerverzeichnis und operative Verwaltungsfunktionen.
+     HINWEIS: Backend/RLS bleiben unverändert; dies ist eine UI-/Navigationsbereinigung.
+     BASIS: enthält weiterhin Benutzer-bearbeiten aus v3.03. -->
+<!-- RELEASE 3.03 · Benutzer bearbeiten
+     NEU: Schaltfläche "Benutzer bearbeiten" in der Benutzerverwaltung.
+     NEU: Anzeigename, Login-E-Mail und Aktivstatus in eigenem Dialog änderbar.
+     AUTH: E-Mail wird serverseitig via Edge Function update-user in Supabase Auth geändert.
+     SYNC: public.profiles wird mit derselben ID synchronisiert.
+     GOVERNANCE: E-Mail-Änderung nur Platform Admin im Mandantenmodus oder Tenant Admin.
+     ADMIN-DELEGATE: darf Name/Aktivstatus bearbeiten, aber keine Login-E-Mail ändern.
+     BESTEHEND: Rollen, Objektzugriffe, Qualifikationen und Initialpasswort bleiben getrennt. -->
 <!-- RELEASE 3.02 · Invite-User Scope-Fix
      FIX: callInviteUser() lag in v3.01 versehentlich innerhalb von createPlatformDelegate().
      FIX: Helper jetzt global verfügbar für alle Benutzeranlage-Pfade.
@@ -86,7 +100,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.02</title>
+<title>Duschl Service – Objektplattform v3.04</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -10375,7 +10389,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.02';
+const APP_VERSION='3.04';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -12666,26 +12680,46 @@ function applyRoleUI(){
   // Keine ausgegrauten / nicht ausführbaren Menüpunkte.
   const hasAppRole=!!role;
   const platformMode=isPlatformOperatorRole()&&!isPlatformTenantMode();
+  const customerView=isCustomerRole();
+
   show('navDashboard',hasAppRole);
   show('navObjects',hasAppRole && !platformMode && tenantModuleEnabled('objects'));
   show('navInspections',false);
-  show('navFindings',hasAppRole && !platformMode && tenantModuleEnabled('findings') && canCreateDocumentationUI());
-  show('navResidentReports',hasAppRole && !platformMode && tenantModuleEnabled('resident_reports') && !isCustomerRole());
-  show('navWorkqueue',hasAppRole && !platformMode && tenantModuleEnabled('workqueue') && canUseWorkQueueUI());
-  show('navOperations',hasAppRole && !platformMode && tenantModuleEnabled('operations'));
-  show('navWinterService',hasAppRole && !platformMode && tenantModuleEnabled('winter_service'));
-  show('navOperatingResources',hasAppRole && !platformMode && tenantModuleEnabled('operating_resources') && operatingResourcesCanUse());
-  show('navDocumentManagement',hasAppRole && !platformMode && tenantModuleEnabled('document_management') && (slTenantAdmin() || isPlatformTenantMode()));
-  show('navProcessStandards',hasAppRole && !platformMode && tenantModuleEnabled('process_standards') && (slTenantAdmin() || isPlatformTenantMode()));
-  show('navExternalOrders',hasAppRole && !platformMode && tenantModuleEnabled('external_orders') && (hasOperationalAdminAccess()||isPropertyManagerRole()||isObjectManagerRole()));
+
+  // Auftraggeber: Dokumentation bleibt sichtbar, jedoch als kundenbezogene
+  // Informations-/Nachweisansicht. Schreibrechte werden weiterhin separat
+  // über Rollenlogik und RLS gesteuert.
+  show('navFindings',
+    hasAppRole &&
+    !platformMode &&
+    tenantModuleEnabled('findings') &&
+    (customerView || canCreateDocumentationUI())
+  );
+
+  show('navResidentReports',hasAppRole && !platformMode && tenantModuleEnabled('resident_reports') && !customerView);
+  show('navWorkqueue',hasAppRole && !platformMode && tenantModuleEnabled('workqueue') && !customerView && canUseWorkQueueUI());
+
+  // Operative Betriebssteuerung gehört nicht in die Auftraggeberansicht.
+  show('navOperations',hasAppRole && !platformMode && !customerView && tenantModuleEnabled('operations'));
+  show('navWinterService',hasAppRole && !platformMode && !customerView && tenantModuleEnabled('winter_service'));
+  show('navOperatingResources',hasAppRole && !platformMode && !customerView && tenantModuleEnabled('operating_resources') && operatingResourcesCanUse());
+
+  show('navDocumentManagement',hasAppRole && !platformMode && !customerView && tenantModuleEnabled('document_management') && (slTenantAdmin() || isPlatformTenantMode()));
+  show('navProcessStandards',hasAppRole && !platformMode && !customerView && tenantModuleEnabled('process_standards') && (slTenantAdmin() || isPlatformTenantMode()));
+  show('navExternalOrders',hasAppRole && !platformMode && !customerView && tenantModuleEnabled('external_orders') && (hasOperationalAdminAccess()||isPropertyManagerRole()||isObjectManagerRole()));
+
   show('navReports',hasAppRole && !platformMode && tenantModuleEnabled('reports'));
-  show('navPartnerDirectory',hasAppRole && (platformMode || tenantModuleEnabled('partner_directory')));
+
+  // Partnerverzeichnis enthält interne/operative Partnerinformationen und
+  // wird Auftraggebern nicht als Standardnavigation angeboten.
+  show('navPartnerDirectory',hasAppRole && !customerView && (platformMode || tenantModuleEnabled('partner_directory')));
+
   show('navDecisions',hasAppRole && !platformMode && tenantModuleEnabled('decisions') && canUseDecisionsUI());
   show('navOrganizations',hasAppRole && platformMode);
-  show('navUsers',hasAppRole && !platformMode && tenantModuleEnabled('users') && canManageUsersUI());
-  show('navResourcePlanning',hasAppRole && !platformMode && tenantModuleEnabled('resource_planning') && resourcePlanningCanAdmin());
+  show('navUsers',hasAppRole && !platformMode && !customerView && tenantModuleEnabled('users') && canManageUsersUI());
+  show('navResourcePlanning',hasAppRole && !platformMode && !customerView && tenantModuleEnabled('resource_planning') && resourcePlanningCanAdmin());
   show('navNotifications',hasAppRole && !platformMode && tenantModuleEnabled('notifications') && !!currentOrganization && !isPlatformOperatorRole());
-  show('navSettings',hasAppRole && !platformMode && tenantModuleEnabled('settings') && !!currentOrganization && dashboardSeasonCanAdmin());
+  show('navSettings',hasAppRole && !platformMode && !customerView && tenantModuleEnabled('settings') && !!currentOrganization && dashboardSeasonCanAdmin());
   show('headerTenantSwitchBtn',hasAppRole && !platformMode && (currentUserMemberships||[]).length>1);
   show('headerDataBtn',hasAppRole && !platformMode && dsCanManageTenantData());
   show('orphanUserCleanupBtn',isAdminRole() && platformMode);
@@ -20875,6 +20909,171 @@ async function loadUserAdminData(){
     loadUserAdminEditor();
   }catch(e){ed.innerHTML=`<div class="card"><h3>Fehler</h3><p>${esc(e.message)}</p></div>`}
 }
+
+async function callUpdateUser(payload){
+  if(!await cloudEnsureFreshSession(120)){
+    throw new Error('Sitzung abgelaufen. Bitte erneut anmelden.');
+  }
+
+  const doCall=async()=>await fetch(`${SUPABASE_URL}/functions/v1/update-user`,{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'Authorization':`Bearer ${cloudSession?.access_token||''}`,
+      'apikey':SUPABASE_PUBLISHABLE_KEY
+    },
+    body:JSON.stringify(payload)
+  });
+
+  let res=await doCall();
+
+  if(res.status===401){
+    const refreshed=await cloudRefreshSession();
+    if(!refreshed)throw new Error('Sitzung abgelaufen. Bitte erneut anmelden.');
+    res=await doCall();
+  }
+
+  const responseText=await res.text();
+  let data={};
+  try{data=responseText?JSON.parse(responseText):{};}catch{}
+
+  if(!res.ok || data?.ok===false || data?.success===false){
+    throw new Error(data?.error||data?.message||responseText||`HTTP ${res.status}`);
+  }
+
+  return data;
+}
+
+function canEditUserLoginEmailUI(){
+  return canResetUserPasswordUI();
+}
+
+function openUserIdentityEditModal(){
+  if(!canManageUsersUI())return alert('Benutzerverwaltung ist für diese Rolle nicht freigegeben.');
+
+  const uid=document.getElementById('userAdminSelect')?.value||'';
+  if(!uid)return alert('Bitte zuerst einen Benutzer auswählen.');
+
+  const p=(userAdminProfiles||[]).find(x=>String(x.id)===String(uid));
+  if(!p)return alert('Benutzerprofil wurde nicht gefunden.');
+
+  const orgId=currentOrganizationId();
+  const membership=(userAdminMemberships||[]).find(m=>
+    String(m.user_id)===String(uid) &&
+    String(m.organization_id)===String(orgId)
+  );
+
+  if(!orgId || !membership)return alert('Für den Benutzer fehlt die Mandantenzuordnung.');
+
+  const canEditEmail=canEditUserLoginEmailUI();
+
+  modal(`<div class="row space">
+      <div>
+        <h2 style="margin:0">Benutzer bearbeiten</h2>
+        <div class="muted">${esc(organizationName(orgId)||currentOrganization?.name||'Mandant')}</div>
+      </div>
+      <button onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="grid2" style="margin-top:14px">
+      <label>Anzeigename
+        <input id="editUserIdentityName" value="${esc(p.full_name||'')}" placeholder="z. B. Hans Müller">
+      </label>
+
+      <label>Login-E-Mail
+        <input id="editUserIdentityEmail" type="email" value="${esc(p.email||'')}"
+          ${canEditEmail?'':'readonly'}
+          autocomplete="off">
+      </label>
+
+      <label>Benutzer-ID
+        <input value="${esc(uid)}" readonly>
+      </label>
+
+      <label class="row" style="gap:10px;align-items:center;margin-top:24px">
+        <input id="editUserIdentityActive" type="checkbox" ${p.active!==false?'checked':''}>
+        <span>Benutzer aktiv</span>
+      </label>
+    </div>
+
+    ${canEditEmail
+      ?'<p class="muted" style="margin-top:10px">Eine Änderung der Login-E-Mail wird gleichzeitig in Supabase Auth und im Benutzerprofil gespeichert. Die Benutzer-ID bleibt unverändert.</p>'
+      :'<p class="muted" style="margin-top:10px">Die Login-E-Mail kann ausschließlich durch einen Mandanten-Admin oder Platform Admin geändert werden.</p>'}
+
+    <div class="row" style="margin-top:16px">
+      <button class="primary" onclick="saveUserIdentityEdit()">Benutzer speichern</button>
+      <button onclick="closeModal()">Abbrechen</button>
+    </div>`);
+}
+
+async function saveUserIdentityEdit(){
+  if(!canManageUsersUI())return alert('Benutzerverwaltung ist für diese Rolle nicht freigegeben.');
+
+  const uid=document.getElementById('userAdminSelect')?.value||'';
+  const orgId=currentOrganizationId();
+  const p=(userAdminProfiles||[]).find(x=>String(x.id)===String(uid));
+
+  if(!uid || !orgId || !p)return alert('Benutzerkontext ist unvollständig.');
+
+  const fullName=(document.getElementById('editUserIdentityName')?.value||'').trim();
+  const requestedEmail=(document.getElementById('editUserIdentityEmail')?.value||'').trim().toLowerCase();
+  const active=!!document.getElementById('editUserIdentityActive')?.checked;
+
+  if(!fullName)return alert('Bitte einen Anzeigenamen eingeben.');
+  if(!requestedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(requestedEmail)){
+    return alert('Bitte eine gültige E-Mail-Adresse eingeben.');
+  }
+  if(uid===currentUserProfile?.id && !active){
+    return alert('Der aktuell angemeldete Benutzer kann sich nicht selbst deaktivieren.');
+  }
+
+  const emailChanged=String(requestedEmail).toLowerCase()!==String(p.email||'').toLowerCase();
+
+  if(emailChanged && !canEditUserLoginEmailUI()){
+    return alert('Die Login-E-Mail darf nur durch einen Mandanten-Admin oder Platform Admin geändert werden.');
+  }
+
+  if(emailChanged){
+    const ok=confirm(
+      `Login-E-Mail wirklich ändern?\n\n`+
+      `Alt: ${p.email||'—'}\n`+
+      `Neu: ${requestedEmail}\n\n`+
+      `Der Benutzer muss sich danach mit der neuen E-Mail-Adresse anmelden.`
+    );
+    if(!ok)return;
+  }
+
+  const btn=event?.currentTarget;
+  if(btn){btn.disabled=true;btn.textContent='Speichern…';}
+
+  try{
+    await callUpdateUser({
+      userId:uid,
+      organizationId:orgId,
+      fullName,
+      email:requestedEmail,
+      active
+    });
+
+    closeModal();
+    await loadUserAdminData();
+
+    const select=document.getElementById('userAdminSelect');
+    if(select)select.value=uid;
+    loadUserAdminEditor();
+
+    alert(emailChanged
+      ?'Benutzer gespeichert. Die Login-E-Mail wurde in Auth und Profil synchronisiert.'
+      :'Benutzer gespeichert.');
+  }catch(e){
+    console.error(e);
+    alert('Benutzer konnte nicht gespeichert werden: '+(e?.message||e));
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Benutzer speichern';}
+  }
+}
+
+
 function loadUserAdminEditor(){
   if(!canManageUsersUI())return;
   const uid=document.getElementById('userAdminSelect')?.value,ed=document.getElementById('userAdminEditor');
@@ -21018,7 +21217,8 @@ function loadUserAdminEditor(){
   <h3 style="margin-top:18px">Objektrollen & Objektzugriffe</h3>
   <p class="muted">Mandantenrolle und Objektrolle sind unabhängig. Auch ein Mandanten-Admin kann zusätzlich für konkrete Objekte mit „Objektverantwortung“ geführt werden.</p>
   <div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px">
-  <button onclick="saveUserAdminPermissions()">Speichern</button>
+  <button class="primary" onclick="openUserIdentityEditModal()">Benutzer bearbeiten</button>
+  <button onclick="saveUserAdminPermissions()">Berechtigungen speichern</button>
   ${canResetUserPasswordUI()?'<button onclick="resetSelectedUserInitialPassword()">Initialpasswort erzeugen</button>':''}
   ${isAdminRole()?'<button class="danger" onclick="removeSelectedUserFromTenant()">Aus Mandant entfernen</button>':''}
 </div></div>`;
