@@ -2,6 +2,13 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.11 · Rollen-/Mandantenkontext atomar laden
+     FIX: Beim Reload wurde die UI bereits nach dem Profil, aber VOR der Mandantenrolle gerendert.
+     URSACHE: applyRoleUI() lief mit leerer Membership und interpretierte kurzzeitig die globale Profilrolle.
+     FIX: Rollen-UI wird erst angewendet, wenn Profil + Membership + aktiver Mandant vollständig aufgelöst sind.
+     UX: Während Initialisierung/Aktualisierung wird eine neutrale Ladeebene statt eines falschen Dashboards gezeigt.
+     GOVERNANCE: kein kurzzeitiges Sichtbarwerden rollenfremder Module mehr.
+     BACKEND/RLS: unverändert. -->
 <!-- RELEASE 3.10 · Dokumentation als Gesamtansicht
      UX: Zentrale Dokumentationsseite zeigt nun klassische Feststellungen/Leistungen UND Maßnahmen-/Baudokumentationen.
      FILTER: Typ erweitert um "Maßnahmen-/Baudokumentation".
@@ -139,7 +146,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.10</title>
+<title>Duschl Service – Objektplattform v3.11</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5705,8 +5712,41 @@ table td,table th{
 }
 </style>
 
+
+<style id="role-context-loading-v311">
+#roleContextLoader{
+  position:fixed;inset:0;z-index:9998;
+  display:none;align-items:center;justify-content:center;
+  background:#06131d;
+}
+#roleContextLoader .role-context-loading-card{
+  min-width:min(360px,calc(100vw - 40px));
+  padding:22px 24px;border:1px solid #29445d;border-radius:18px;
+  background:#0c2232;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.35);
+}
+#roleContextLoader .role-context-loading-title{font-size:18px;font-weight:900}
+#roleContextLoader .role-context-loading-copy{margin-top:6px;color:#9fb2c5;font-size:13px}
+body.role-context-loading #roleContextLoader{display:flex}
+body.role-context-loading .app-topbar,
+body.role-context-loading #appMenu,
+body.role-context-loading #appMenuBackdrop,
+body.role-context-loading main{
+  visibility:hidden!important;
+}
+body.role-context-loading #authGate:not(.hidden){
+  visibility:visible!important;
+  z-index:10001;
+}
+</style>
+
 </head>
-<body>
+<body class="role-context-loading">
+<div id="roleContextLoader" aria-live="polite" aria-busy="true">
+  <div class="role-context-loading-card">
+    <div class="role-context-loading-title">Ansicht wird geladen …</div>
+    <div class="role-context-loading-copy">Rolle, Mandant und Berechtigungen werden geprüft.</div>
+  </div>
+</div>
 <div aria-live="polite" id="publicReportPage">
 <div class="public-report-shell">
 <div class="public-report-brand">
@@ -10470,7 +10510,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.10';
+const APP_VERSION='3.11';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -12409,6 +12449,17 @@ function formatDocumentationTimestamp(f){
   return d.toLocaleDateString('de-DE')+' · '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
 }
 
+
+function beginRoleContextLoading(message='Rolle, Mandant und Berechtigungen werden geprüft.'){
+  document.body?.classList.add('role-context-loading');
+  const copy=document.querySelector('#roleContextLoader .role-context-loading-copy');
+  if(copy)copy.textContent=message;
+}
+
+function endRoleContextLoading(){
+  document.body?.classList.remove('role-context-loading');
+}
+
 async function cloudLoadCurrentProfile(){
   if(!cloudSession?.access_token){
     currentUserProfile=null;currentUserRole='';currentOrganizationMembership=null;currentOrganization=null;return null;
@@ -12423,12 +12474,11 @@ async function cloudLoadCurrentProfile(){
   currentUserProfile=p;
   currentUserRole=String(p.role||cloudSession?.user?.user_metadata?.app_role||'').trim().toLowerCase();
 
-  // v2.18.82: Die globale Profilrolle muss sofort wirksam werden.
-  // Ein Fehler beim Laden der Mandanten-Mitgliedschaft darf insbesondere
-  // einen platform_admin weder Navigation noch globalen Zugriff verlieren lassen.
+  // v3.11: Profil, Membership und Mandant werden als EIN Rollen-Kontext geladen.
+  // Keine UI-Freigabe zwischen diesen Schritten, damit keine globale Profilrolle
+  // kurzzeitig als operative Mandantenrolle sichtbar wird.
   currentOrganizationMembership=null;
   currentOrganization=null;
-  applyRoleUI();
 
   try{
     // v2.20.79: Identität zuerst, danach ALLE Memberships. Kein Rollen-Prioritätsmodell mehr.
@@ -13024,14 +13074,17 @@ async function cloudLogin(){
     if(!r.ok)throw new Error('Anmeldung fehlgeschlagen.');
     const s=await r.json();
     cloudStoreSession(s);
+    beginRoleContextLoading('Benutzerkontext wird geladen …');
     cloudShowGate(false);
     cloudAuthMessage('');
     await cloudLoadCurrentProfile();
     if(mustChangePassword()){
+      endRoleContextLoading();
       showPasswordChangeGate();
       return;
     }
     await cloudReloadObjects();
+    endRoleContextLoading();
   }catch(e){
     console.error('Anmeldung / Profilinitialisierung fehlgeschlagen',e);
     // v2.18.82: Die App darf bei fehlgeschlagener Profilinitialisierung
@@ -13041,12 +13094,14 @@ async function cloudLogin(){
     currentOrganizationMembership=null;
     currentOrganization=null;
     applyRoleUI();
+    endRoleContextLoading();
     cloudSetStatus('Anmeldung unvollständig','bad');
     cloudShowGate(true);
     cloudAuthMessage('Profil konnte nicht geladen werden: '+(e?.message||'Anmeldung fehlgeschlagen.'),true);
   }
 }
 async function cloudLogout(){
+  endRoleContextLoading();
   stopUserMessageAutoRefresh();
   stopUserActivityHeartbeat();
   try{
@@ -13926,11 +13981,12 @@ async function loadUserActivity(){
 }
 
 async function refreshAllCloudData(){
-  try{await cloudLoadObjectAssignments();}catch(_e){}
   if(!cloudSession?.access_token){
     alert('Bitte zuerst anmelden.');
     return;
   }
+  beginRoleContextLoading('Daten und Berechtigungen werden aktualisiert …');
+  try{await cloudLoadObjectAssignments();}catch(_e){}
   const btn=document.getElementById('globalRefreshBtn');
   const oldText=btn?.textContent||'↻ Aktualisieren';
   if(btn){btn.disabled=true;btn.textContent='↻ Lädt …';}
@@ -13960,6 +14016,7 @@ async function refreshAllCloudData(){
     alert('Daten konnten nicht vollständig aktualisiert werden: '+(e.message||e));
   }finally{
     if(btn){btn.disabled=false;btn.textContent=oldText;}
+    endRoleContextLoading();
   }
 }
 
@@ -17706,15 +17763,18 @@ async function openNotificationDeepLink(){
 }
 
 async function bootCloud(){
+  beginRoleContextLoading('Rolle, Mandant und Berechtigungen werden geprüft.');
   const recoverySession=cloudRecoverySessionFromUrl();
   cloudSession=recoverySession||cloudLoadStoredSession();
   if(recoverySession){
     cloudStoreSession(recoverySession);
     cloudShowGate(false);
+    endRoleContextLoading();
     showGeneralPasswordChangeGate(true);
     return;
   }
   if(!cloudSession){
+    endRoleContextLoading();
     cloudSetStatus('Nicht angemeldet','bad');
     cloudShowGate(true);
     return;
@@ -17723,10 +17783,12 @@ async function bootCloud(){
   try{
     await cloudLoadCurrentProfile();
     if(mustChangePassword()){
+      endRoleContextLoading();
       showPasswordChangeGate();
       return;
     }
     await cloudReloadObjects();
+    endRoleContextLoading();
   }catch(firstError){
     console.warn('Initialisierung mit gespeicherter Sitzung fehlgeschlagen',firstError);
     try{
@@ -17745,6 +17807,7 @@ async function bootCloud(){
       currentOrganizationMembership=null;
       currentOrganization=null;
       applyRoleUI();
+      endRoleContextLoading();
       cloudSetStatus('Profil konnte nicht geladen werden','bad');
       cloudShowGate(true);
       cloudAuthMessage('Profil konnte nicht geladen werden: '+(e?.message||e),true);
