@@ -2,6 +2,12 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.00 · Objektrollen für Maßnahmen-/Baudokumentation
+     GOVERNANCE: Schreibrecht der Maßnahmen-Doku ist jetzt explizit an Objektrollen gekoppelt.
+     SCHREIBEN: object_responsible, object_deputy, object_operator sowie Mandanten-Administration.
+     LESEN: bestehende objektbezogene Leserechte bleiben erhalten.
+     UI: Schreibaktionen werden bei fehlendem Schreibrecht ausgeblendet bzw. blockiert.
+     BACKEND: sql_3.00_objektdoku_objektrollen.sql aktualisiert die RLS-Hilfsfunktion. -->
 <!-- RELEASE 2.99 · Bilddaten-Fix Maßnahmen-Doku
      FIX: readPhoto() liefert Data-URL; diese wird vor IndexedDB jetzt in Blob konvertiert.
      FIX: Upload erhält echte Binärdaten statt eines Data-URL-Textstrings.
@@ -69,7 +75,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.99</title>
+<title>Duschl Service – Objektplattform v3.00</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -10358,7 +10364,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='2.99';
+const APP_VERSION='3.00';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -12106,6 +12112,19 @@ function currentUserObjectRole(objectId){
     String(a.objectId||a.object_id||'')===String(objectId||'')
   );
   return String(row?.object_role||'');
+}
+
+function canWriteObjectDocumentationUI(objectId){
+  if(isPlatformSuperuser()||hasOperationalAdminAccess())return true;
+
+  const objectRole=currentUserObjectRole(objectId);
+  if(['object_responsible','object_deputy','object_operator'].includes(objectRole))return true;
+
+  // Extern zugewiesene Objektbetreuung bleibt zulässig; die eigentliche
+  // Autorisierung erfolgt zusätzlich serverseitig per RLS.
+  if(isExternalContractorRole() && userIsAssignedToObject(objectId))return true;
+
+  return false;
 }
 
 function canViewObjectStandardsUI(objectId){
@@ -24424,6 +24443,9 @@ async function cloudLoadObjectDocumentations(){
   }
 }
 async function saveObjectDocumentationTopic(objectId,documentationId=''){
+  if(!canWriteObjectDocumentationUI(objectId)){
+    return alert('Für dieses Objekt besteht kein Schreibrecht für Maßnahmen-/Baudokumentationen.');
+  }
   const title=(document.getElementById('odTitle')?.value||'').trim();
   const documentation_type=document.getElementById('odType')?.value||'construction';
   const status=document.getElementById('odStatus')?.value||'in_progress';
@@ -24446,6 +24468,9 @@ async function saveObjectDocumentationTopic(objectId,documentationId=''){
   }catch(e){alert('Dokumentation konnte nicht gespeichert werden: '+(e.message||e));}
 }
 function openObjectDocumentationTopicForm(objectId,documentationId=''){
+  if(!canWriteObjectDocumentationUI(objectId)){
+    return alert('Für dieses Objekt besteht kein Schreibrecht für Maßnahmen-/Baudokumentationen.');
+  }
   const d=(cloudObjectDocumentations||[]).find(x=>String(x.id)===String(documentationId))||{};
   modal(`<div class="row space"><div><h2 style="margin:0">${documentationId?'Dokumentation bearbeiten':'Neue Dokumentation'}</h2><div class="muted">${esc((db.objects||[]).find(o=>o.id===objectId)?.name||'Objekt')}</div></div></div>
     <div class="object-doc-form-grid" style="margin-top:14px">
@@ -24466,7 +24491,10 @@ function openObjectDocumentationTopicForm(objectId,documentationId=''){
 }
 function renderObjectDocumentationModule(objectId){
   const docs=objectDocumentationForObject(objectId);
-  if(!docs.length)return '<div class="empty">Noch keine Maßnahmen-/Baudokumentation angelegt.</div>';
+  const canWrite=canWriteObjectDocumentationUI(objectId);
+  if(!docs.length)return canWrite
+    ? '<div class="empty">Noch keine Maßnahmen-/Baudokumentation angelegt.</div>'
+    : '<div class="empty">Noch keine Maßnahmen-/Baudokumentation angelegt. Für dieses Objekt besteht Nur-Lese-Zugriff.</div>';
   return `<div class="object-doc-list">${docs.map(d=>{
     const entries=objectDocumentationEntriesFor(d.id);
     return `<div class="object-doc-topic">
@@ -24474,7 +24502,7 @@ function renderObjectDocumentationModule(objectId){
         <div><span class="badge">${esc(objectDocumentationTypeLabel(d.documentation_type))}</span><h3>${esc(d.title||'Dokumentation')}</h3>
           <div class="muted">${esc(objectDocumentationStatusLabel(d.status))}${d.start_date?' · Start '+esc(reportDateText(d.start_date)):''}${d.end_date?' · Ende '+esc(reportDateText(d.end_date)):''}</div>
         </div>
-        <div class="row"><button onclick="openObjectDocumentationEntryForm('${esc(objectId)}','${esc(d.id)}')">+ Eintrag</button><button onclick="openObjectDocumentationTopicForm('${esc(objectId)}','${esc(d.id)}')">Bearbeiten</button></div>
+        ${canWrite?`<div class="row"><button onclick="openObjectDocumentationEntryForm('${esc(objectId)}','${esc(d.id)}')">+ Eintrag</button><button onclick="openObjectDocumentationTopicForm('${esc(objectId)}','${esc(d.id)}')">Bearbeiten</button></div>`:'<span class="badge">Nur Lesen</span>'}
       </div>
       ${d.description?`<p>${esc(d.description)}</p>`:''}
       <div class="object-doc-report-chip">${d.include_in_report===false?'Nicht im Bericht':'✓ Im Bericht'} · ${entries.length} Einträge</div>
@@ -24494,7 +24522,8 @@ async function openObjectDocumentationModule(objectId){
   const o=(db.objects||[]).find(x=>String(x.id)===String(objectId));
   if(!o)return alert('Objekt nicht gefunden.');
   await cloudLoadObjectDocumentations();
-  modal(`<div class="row space"><div><h2 style="margin:0">Dokumentationen</h2><div class="muted">${esc(o.name||'Objekt')} · Maßnahmen, Baufortschritt und Zustände</div></div><button class="primary" onclick="openObjectDocumentationTopicForm('${esc(objectId)}')">+ Neue Dokumentation</button></div>
+  const canWrite=canWriteObjectDocumentationUI(objectId);
+  modal(`<div class="row space"><div><h2 style="margin:0">Dokumentationen</h2><div class="muted">${esc(o.name||'Objekt')} · Maßnahmen, Baufortschritt und Zustände</div></div>${canWrite?`<button class="primary" onclick="openObjectDocumentationTopicForm('${esc(objectId)}')">+ Neue Dokumentation</button>`:'<span class="badge">Nur Lesen</span>'}</div>
     <div id="objectDocumentationModuleHost">${renderObjectDocumentationModule(objectId)}</div>`);
   setTimeout(()=>hydrateMediaImages(document.getElementById('objectDocumentationModuleHost')),0);
 }
@@ -24525,6 +24554,9 @@ async function removeObjectDocumentationDraftPhoto(i){
   renderObjectDocumentationPhotoDraft();
 }
 function openObjectDocumentationEntryForm(objectId,documentationId){
+  if(!canWriteObjectDocumentationUI(objectId)){
+    return alert('Für dieses Objekt besteht kein Schreibrecht für Maßnahmen-/Baudokumentationen.');
+  }
   objectDocumentationPhotoDraft=[];
   const now=new Date();
   const local=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,16);
@@ -24566,6 +24598,9 @@ async function uploadObjectDocumentationPhotos(objectId,entryId,refs){
   return out;
 }
 async function saveObjectDocumentationEntry(objectId,documentationId){
+  if(!canWriteObjectDocumentationUI(objectId)){
+    return alert('Für dieses Objekt besteht kein Schreibrecht für Maßnahmen-/Baudokumentationen.');
+  }
   const occurredLocal=document.getElementById('odEntryOccurredAt')?.value||'';
   const occurred_at=occurredLocal?new Date(occurredLocal).toISOString():new Date().toISOString();
   const phase=document.getElementById('odEntryPhase')?.value||'progress';
