@@ -2,6 +2,12 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 2.99 · Bilddaten-Fix Maßnahmen-Doku
+     FIX: readPhoto() liefert Data-URL; diese wird vor IndexedDB jetzt in Blob konvertiert.
+     FIX: Upload erhält echte Binärdaten statt eines Data-URL-Textstrings.
+     KOMPATIBILITÄT: bereits fehlerhaft als Data-URL-Text hochgeladene Bilder werden beim Laden erkannt und dekodiert.
+     ROBUSTHEIT: photoRefToBlob akzeptiert alte lokale String-Datensätze und konvertiert sie automatisch.
+     STORAGE-PFAD/RLS/REPORT: unverändert. -->
 <!-- RELEASE 2.98 · Storage-Pfadfix Objektdokumentation
      FIX: Dokumentationsfotos beginnen im Storage-Pfad jetzt mit object_id (UUID).
      GRUND: bestehende Storage-RLS erwartet im ersten Pfadsegment eine UUID.
@@ -63,7 +69,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v2.98</title>
+<title>Duschl Service – Objektplattform v2.99</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -10352,7 +10358,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='2.98';
+const APP_VERSION='2.99';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -17597,7 +17603,20 @@ async function cloudMediaPut(path,blob){
 async function cloudMediaGet(ref){
   const path=cloudMediaPath(ref);
   const r=await cloudStorageRequest(`object/authenticated/${SUPABASE_PHOTO_BUCKET}/${path}`,{method:'GET'});
-  return await r.blob();
+  const blob=await r.blob();
+
+  // v2.98-Kompatibilität:
+  // Dort konnte versehentlich der Text einer Data-URL als "image/jpeg" gespeichert werden.
+  // Solche Altdateien werden hier erkannt und beim Lesen korrekt dekodiert.
+  try{
+    const head=await blob.slice(0,64).text();
+    if(head.startsWith('data:image/')){
+      const dataUrl=await blob.text();
+      return dataUrlToBlob(dataUrl);
+    }
+  }catch(_e){}
+
+  return blob;
 }
 async function cloudMediaDelete(ref){
   if(!isCloudMediaRef(ref))return;
@@ -17611,7 +17630,12 @@ async function cloudMediaDelete(ref){
 async function photoRefToBlob(ref){
   if(!ref)return null;
   if(isCloudMediaRef(ref))return await cloudMediaGet(ref);
-  if(isMediaRef(ref))return await mediaGet(mediaId(ref));
+  if(isMediaRef(ref)){
+    const stored=await mediaGet(mediaId(ref));
+    if(stored instanceof Blob)return stored;
+    if(typeof stored==='string'&&stored.startsWith('data:image/'))return dataUrlToBlob(stored);
+    return null;
+  }
   if(typeof ref==='string'&&ref.startsWith('data:image/'))return dataUrlToBlob(ref);
   if(typeof ref==='string'){
     const r=await fetch(ref); if(r.ok)return await r.blob();
@@ -17724,8 +17748,9 @@ async function hydrateMediaImages(root=document){
     const ref=img.getAttribute('data-media-ref');
     if(!ref||img.dataset.mediaLoaded==='1')continue;
     try{
-      const blob=await mediaGet(mediaId(ref));
-      if(blob){
+      let blob=await mediaGet(mediaId(ref));
+      if(typeof blob==='string'&&blob.startsWith('data:image/'))blob=dataUrlToBlob(blob);
+      if(blob instanceof Blob){
         const url=URL.createObjectURL(blob);
         img.src=url;img.dataset.mediaLoaded='1';
         img.addEventListener('load',()=>setTimeout(()=>URL.revokeObjectURL(url),5000),{once:true});
@@ -24487,7 +24512,7 @@ async function handleObjectDocumentationPhotos(input){
   for(const f of files.slice(0,free)){
     const data=await readPhoto(f);
     const id='od_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
-    await mediaPut(id,data);
+    await mediaPut(id,dataUrlToBlob(data));
     objectDocumentationPhotoDraft.push('media:'+id);
   }
   if(input)input.value='';
