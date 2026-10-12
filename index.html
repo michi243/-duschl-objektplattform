@@ -2,6 +2,12 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.06 · Neue Benutzer ohne Objektrolle
+     FIX: fehlende Objektzuweisung wurde in zwei UI-Pfaden fälschlich als "Objektbetreuer · operativ" angezeigt.
+     DEFAULT: Neue Benutzer haben für jedes Objekt "Keine Objektrolle".
+     VERGABE: Objektrollen entstehen erst durch bewusste Auswahl und Speichern.
+     BESTEHENDE echte Objektrollen bleiben unverändert.
+     BACKEND/RLS: unverändert. -->
 <!-- RELEASE 3.05 · Berichtfilter Maßnahmen-/Baudokumentation
      NEU: Dokumentationstyp-Filter enthält "Maßnahmen-/Baudokumentation".
      LOGIK: "Alle" zeigt Standarddokumentation + Maßnahmen-/Baudokumentation.
@@ -106,7 +112,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.05</title>
+<title>Duschl Service – Objektplattform v3.06</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -10396,7 +10402,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.05';
+const APP_VERSION='3.06';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -14362,7 +14368,7 @@ async function openInternalObjectAssignmentModal(objectId){
 
   const options=users.map(u=>{
     const row=currentByUser.get(String(u.user_id));
-    const role=row?.active!==false?String(row?.object_role||'object_operator'):'';
+    const role=(row && row.active!==false)?String(row.object_role||''):'';
     return `<div class="user-message-recipient-row" style="align-items:center">
       <span class="user-message-recipient-main" style="flex:1">
         <span class="user-message-recipient-name">${esc(u.display_name)}</span>
@@ -21154,8 +21160,8 @@ function loadUserAdminEditor(){
       :null;
 
     const currentRole=
-      currentAssignment?.active!==false
-        ?String(currentAssignment?.object_role||'object_operator')
+      (currentAssignment && currentAssignment.active!==false)
+        ?String(currentAssignment.object_role||'')
         :'';
 
     const typeBadge=isShared
@@ -21222,7 +21228,7 @@ function loadUserAdminEditor(){
   <p class="muted">Qualifikationen steuern, für welche operativen Leistungen dieser Benutzer eingesetzt werden kann. Sie verändern keine Systemrolle und keine Objektberechtigung.</p>
   <div>${qualificationRows}</div>
   <h3 style="margin-top:18px">Objektrollen & Objektzugriffe</h3>
-  <p class="muted">Mandantenrolle und Objektrolle sind unabhängig. Auch ein Mandanten-Admin kann zusätzlich für konkrete Objekte mit „Objektverantwortung“ geführt werden.</p>
+  <p class="muted">Neue Benutzer starten ohne Objektrolle. Objektzugriff entsteht erst durch eine bewusste Rollenzuweisung. Mandantenrolle und Objektrolle bleiben unabhängig.</p>
   <div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px">
   <button class="primary" onclick="openUserIdentityEditModal()">Benutzer bearbeiten</button>
   <button onclick="saveUserAdminPermissions()">Berechtigungen speichern</button>
@@ -21240,7 +21246,7 @@ async function createUserAndInvite(){
   const email=document.getElementById('newUserEmail')?.value.trim().toLowerCase()||'';
   const role=document.getElementById('newUserRole')?.value||'object_manager';
   const organizationId=currentOrganizationId()||document.getElementById('newUserOrganization')?.value||'';
-  const objectIds=[]; // Objektzugriffe werden bewusst erst nach der Benutzeranlage vergeben.
+  const objectIds=[]; // Pflicht-Default: neuer Benutzer = keine Objektrolle / kein Objektzugriff.
 
   if(!fullName)return alert('Bitte einen Anzeigenamen eingeben.');
   if(!organizationId)return alert('Bitte ein Unternehmen / einen Mandanten auswählen.');
