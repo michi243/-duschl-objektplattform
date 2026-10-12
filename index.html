@@ -2,6 +2,12 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.08 · Fotograf/Ersteller in Maßnahmen-Doku
+     NEU: Dokumentationseinträge speichern zusätzlich einen lesbaren Erstellernamen.
+     UI: Unter jedem Foto wird "Foto: <Name>" angezeigt.
+     TIMELINE: Eintragskopf zeigt "Erfasst von <Name>".
+     BERICHT: Ersteller wird auch im Objektbericht ausgegeben.
+     BACKEND: additive Spalte created_by_name in object_documentation_entries. -->
 <!-- RELEASE 3.07 · Auftraggeber-Dashboard Cleanup
      UX: Auftraggeber sieht nur kundenrelevante Dashboard-KPIs.
      DEINE AUFGABEN: Entscheidungen.
@@ -119,7 +125,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.07</title>
+<title>Duschl Service – Objektplattform v3.08</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -10445,7 +10451,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.07';
+const APP_VERSION='3.08';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -24742,7 +24748,7 @@ async function cloudLoadObjectDocumentations(){
     const docIds=cloudObjectDocumentations.map(x=>x.id).filter(Boolean);
     if(!docIds.length){cloudObjectDocumentationEntries=[];cloudObjectDocumentationMedia=[];return;}
     const inDocs=docIds.map(x=>encodeURIComponent(x)).join(',');
-    const entries=await cloudRequest(`object_documentation_entries?select=id,documentation_id,occurred_at,phase,note,include_in_report,created_by,created_at,updated_at&documentation_id=in.(${inDocs})&order=occurred_at.asc`);
+    const entries=await cloudRequest(`object_documentation_entries?select=id,documentation_id,occurred_at,phase,note,include_in_report,created_by,created_by_name,created_at,updated_at&documentation_id=in.(${inDocs})&order=occurred_at.asc`);
     cloudObjectDocumentationEntries=entries||[];
     const entryIds=cloudObjectDocumentationEntries.map(x=>x.id).filter(Boolean);
     if(!entryIds.length){cloudObjectDocumentationMedia=[];return;}
@@ -24821,12 +24827,26 @@ function renderObjectDocumentationModule(objectId){
     </div>`;
   }).join('')}</div>`;
 }
+function objectDocumentationAuthorName(e){
+  if(!e)return 'Unbekannt';
+  if(e.created_by_name)return String(e.created_by_name);
+
+  const uid=String(e.created_by||'');
+  if(uid && String(currentUserId()||'')===uid){
+    return currentUserProfile?.full_name||cloudSession?.user?.user_metadata?.full_name||cloudSession?.user?.email||'Aktueller Benutzer';
+  }
+
+  return profileDisplayName(uid)||'Unbekannt';
+}
+
 function renderObjectDocumentationEntryCard(e){
   const media=objectDocumentationMediaFor(e.id);
+  const author=objectDocumentationAuthorName(e);
   return `<div class="object-doc-entry">
     <div class="object-doc-entry-meta">${esc(reportDateText(e.occurred_at))} · ${esc(new Date(e.occurred_at||e.created_at||Date.now()).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}))} · ${esc(objectDocumentationPhaseLabel(e.phase))}${e.include_in_report===false?' · nicht im Bericht':''}</div>
+    <div class="muted" style="font-size:12px;margin:2px 0 7px">Erfasst von ${esc(author)}</div>
     ${e.note?`<div>${esc(e.note)}</div>`:''}
-    ${media.length?`<div class="object-doc-photo-grid">${media.map(m=>`<div>${mediaImg(objectDocumentationMediaRef(m),m.caption||'Dokumentationsfoto','photo-item')}${m.caption?`<div class="muted" style="font-size:11px;margin-top:3px">${esc(m.caption)}</div>`:''}</div>`).join('')}</div>`:''}
+    ${media.length?`<div class="object-doc-photo-grid">${media.map(m=>`<div>${mediaImg(objectDocumentationMediaRef(m),m.caption||'Dokumentationsfoto','photo-item')}${m.caption?`<div class="muted" style="font-size:11px;margin-top:3px">${esc(m.caption)}</div>`:''}<div class="muted" style="font-size:11px;margin-top:3px">Foto: ${esc(author)}</div></div>`).join('')}</div>`:''}
   </div>`;
 }
 async function openObjectDocumentationModule(objectId){
@@ -24921,7 +24941,14 @@ async function saveObjectDocumentationEntry(objectId,documentationId){
   const entryId=(globalThis.crypto?.randomUUID?.()||'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c==='x'?r:(r&3|8);return v.toString(16);}));
   try{
     await cloudRequest('object_documentation_entries',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({
-      id:entryId,documentation_id:documentationId,occurred_at,phase,note:note||null,include_in_report,created_by:currentUserId()||null
+      id:entryId,
+      documentation_id:documentationId,
+      occurred_at,
+      phase,
+      note:note||null,
+      include_in_report,
+      created_by:currentUserId()||null,
+      created_by_name:currentUserProfile?.full_name||cloudSession?.user?.user_metadata?.full_name||cloudSession?.user?.email||null
     })});
     const refs=await uploadObjectDocumentationPhotos(objectId,entryId,objectDocumentationPhotoDraft);
     for(let i=0;i<refs.length;i++){
@@ -24953,6 +24980,7 @@ function objectDocumentationReportHtml(objectId,customerMode=false,cutoff=0){
       ${entries.map(e=>{
         const media=objectDocumentationMediaFor(e.id).filter(m=>m.include_in_report!==false);
         return `<div class="object-doc-report-entry"><div class="muted">${esc(reportDateText(e.occurred_at))} · ${esc(new Date(e.occurred_at||e.created_at||Date.now()).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}))} · ${esc(objectDocumentationPhaseLabel(e.phase))}</div>
+          <div class="muted" style="font-size:12px;margin-top:3px">Erfasst von ${esc(objectDocumentationAuthorName(e))}</div>
           ${e.note?`<p>${esc(e.note)}</p>`:''}
           ${media.length?`<div class="object-doc-report-photos">${media.map(m=>`${mediaImg(objectDocumentationMediaRef(m),m.caption||'Dokumentationsfoto','')}${m.caption?`<div class="muted">${esc(m.caption)}</div>`:''}`).join('')}</div>`:''}
         </div>`;
