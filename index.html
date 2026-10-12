@@ -2,6 +2,13 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.12 · Zentrale Dokumentationsansicht zuverlässig laden
+     FIX: Die Seite "Dokumentation" renderte vor dem Laden der Maßnahmen-/Baudokumentationen.
+     URSACHE: showSection('findings') rief renderFindings nicht nach cloudLoadObjectDocumentations erneut auf.
+     FIX: Beim Öffnen der Dokumentationsseite werden Objektdokumentationen zuerst/parallel geladen
+          und die Gesamtansicht danach erneut gerendert.
+     UX: kurzer Ladehinweis statt falschem Leerzustand.
+     BACKEND/RLS: unverändert. -->
 <!-- RELEASE 3.11 · Rollen-/Mandantenkontext atomar laden
      FIX: Beim Reload wurde die UI bereits nach dem Profil, aber VOR der Mandantenrolle gerendert.
      URSACHE: applyRoleUI() lief mit leerer Membership und interpretierte kurzzeitig die globale Profilrolle.
@@ -146,7 +153,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.11</title>
+<title>Duschl Service – Objektplattform v3.12</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -10510,7 +10517,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.11';
+const APP_VERSION='3.12';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -14001,6 +14008,7 @@ async function refreshAllCloudData(){
     // cloudReloadFindings() ruft cloudLoadTasks() bereits intern auf.
     await cloudReloadFindings();
     await cloudLoadObjectDocumentations();
+    if(document.getElementById('findings')?.classList.contains('active'))renderFindings();
 
     // Benutzer/Zuweisungen nur laden, wenn die aktuelle Berechtigung dies zulässt.
     if(canManageUsersUI())await loadUserAdminData();
@@ -19732,6 +19740,27 @@ function dsNavigateBack(){
   }
 }
 
+
+async function loadAndRenderDocumentationOverview(){
+  const list=document.getElementById('findingList');
+
+  // Wenn noch keine Objektdokumentationen geladen sind, keinen falschen Leerzustand zeigen.
+  if(list && !(cloudObjectDocumentations||[]).length){
+    list.innerHTML='<div class="empty">Dokumentationen werden geladen …</div>';
+  }
+
+  try{
+    await cloudLoadObjectDocumentations();
+  }catch(e){
+    console.error('Maßnahmen-/Baudokumentationen konnten für die Gesamtansicht nicht geladen werden',e);
+  }
+
+  // Nur erneut rendern, wenn die Dokumentationsseite noch aktiv ist.
+  if(document.getElementById('findings')?.classList.contains('active')){
+    renderFindings();
+  }
+}
+
 function showSection(id){
  if(id==='sopServices'){setTimeout(()=>slLoad(),0);}
 
@@ -19794,6 +19823,10 @@ function showSection(id){
   [...document.querySelectorAll('nav button')].find(b=>b.getAttribute('onclick')?.includes(`'${id}'`))?.classList.add('primary');
   document.querySelectorAll('#platformBottomNav [data-pa-nav]').forEach(b=>b.classList.toggle('active',b.getAttribute('data-pa-nav')===id));
   if(id==='objects'){renderObjectsDirect();try{renderObjects();}catch(e){console.error('Detail-Renderer Objektseite fehlgeschlagen',e);}}
+  if(id==='findings'){
+    renderFindings();
+    loadAndRenderDocumentationOverview();
+  }
   if(id==='platformUsers' && isAdminRole() && !isPlatformTenantMode()){renderPlatformUsersDashboard();}
   if(id==='dashboard'&&isAdminRole()){loadPlatformSystemStatus();}if(id==='processStandards'){psLoad();}if(id==='operatingResources'){loadOperatingResources();}if(id==='resourcePlanning'){loadResourcePlanning();}if(id==='partnerDirectory'){loadPartnerDirectory();}if(id==='reports')renderReport();if(id==='residentReports'){cloudLoadResidentReports().then(renderResidentReports).catch(e=>alert('Meldungen konnten nicht geladen werden: '+(e.message||e)));}if(id==='decisions')renderDecisions();if(id==='workqueue')renderWorkQueue();if(id==='externalOrders')cloudLoadExternalOrders();if(id==='users')loadUserAdminData();if(id==='winterService'){wsApplyWinterServiceViewMode();loadWinterService();}
   dsUpdateBackButton();
