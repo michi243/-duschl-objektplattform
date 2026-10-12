@@ -2,6 +2,13 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.13 · Kompakte Objektliste + Filter
+     UX: Objektübersicht von großen Karten auf kompakte, aufklappbare Zeilen umgestellt.
+     FILTER: Suche, Objekttyp, Auftraggebertyp und Handlungsstatus.
+     STAMMDATEN: neuer Auftraggebertyp am Objekt (WEG, Hausverwaltung, Privateigentümer,
+                 Unternehmen, Kommune, Sonstige).
+     SKALIERUNG: Standardansicht zeigt nur Kerninformationen; Aktionen erst nach Aufklappen.
+     BACKEND: additive Spalte objects.customer_type. -->
 <!-- RELEASE 3.12 · Zentrale Dokumentationsansicht zuverlässig laden
      FIX: Die Seite "Dokumentation" renderte vor dem Laden der Maßnahmen-/Baudokumentationen.
      URSACHE: showSection('findings') rief renderFindings nicht nach cloudLoadObjectDocumentations erneut auf.
@@ -153,7 +160,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.12</title>
+<title>Duschl Service – Objektplattform v3.13</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -5746,6 +5753,144 @@ body.role-context-loading #authGate:not(.hidden){
 }
 </style>
 
+
+<style id="object-list-v313">
+.ds-object-filterbar{
+  display:grid;
+  grid-template-columns:minmax(240px,2fr) repeat(3,minmax(160px,1fr));
+  gap:10px;
+  margin:14px 0;
+  padding:12px;
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:14px;
+  background:rgba(255,255,255,.025);
+}
+.ds-object-filterbar label{
+  margin:0;
+  font-size:11px;
+  color:#9EAFBC;
+}
+.ds-object-filterbar input,.ds-object-filterbar select{min-height:42px}
+
+.ds-object-grid{
+  display:block!important;
+}
+.ds-object-list-row{
+  margin:0 0 8px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:13px;
+  background:linear-gradient(145deg,#0E2232,#091A27);
+  overflow:hidden;
+}
+.ds-object-list-row[open]{
+  border-color:rgba(115,174,217,.28);
+}
+.ds-object-list-summary{
+  list-style:none;
+  cursor:pointer;
+  display:grid;
+  grid-template-columns:minmax(0,2.2fr) minmax(150px,.9fr) auto auto auto 30px;
+  gap:12px;
+  align-items:center;
+  padding:13px 15px;
+}
+.ds-object-list-summary::-webkit-details-marker{display:none}
+.ds-object-list-main{min-width:0}
+.ds-object-list-name{
+  font-size:16px;
+  font-weight:900;
+  color:#fff;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.ds-object-list-address{
+  color:#9EAFBC;
+  font-size:12px;
+  margin-top:3px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.ds-object-list-meta{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  margin-top:5px;
+}
+.ds-object-mini-badge{
+  display:inline-flex;
+  padding:2px 7px;
+  border:1px solid rgba(255,255,255,.11);
+  border-radius:999px;
+  font-size:9px;
+  font-weight:850;
+  color:#BFCAD2;
+  background:rgba(255,255,255,.045);
+}
+.ds-object-list-state{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  font-size:11px;
+  font-weight:800;
+  color:#AAB7C1;
+}
+.ds-object-list-kpi{
+  min-width:66px;
+  text-align:right;
+}
+.ds-object-list-kpi strong{
+  display:block;
+  font-size:18px;
+  color:#fff;
+}
+.ds-object-list-kpi span{
+  font-size:9px;
+  color:#91A4B2;
+}
+.ds-object-list-chevron{
+  font-size:22px;
+  color:#93A7B5;
+  transition:transform .18s ease;
+}
+.ds-object-list-row[open] .ds-object-list-chevron{transform:rotate(90deg)}
+.ds-object-list-details{
+  padding:0 15px 15px;
+  border-top:1px solid rgba(255,255,255,.065);
+}
+.ds-object-list-details .ds-object-actions{
+  margin-top:12px;
+}
+.ds-object-list-empty{
+  padding:28px;
+  text-align:center;
+  color:#9EAFBC;
+  border:1px dashed rgba(255,255,255,.14);
+  border-radius:14px;
+}
+@media(max-width:900px){
+  .ds-object-filterbar{grid-template-columns:1fr 1fr}
+  .ds-object-list-summary{
+    grid-template-columns:minmax(0,1fr) auto auto 28px;
+  }
+  .ds-object-list-state{grid-column:1/3}
+  .ds-object-list-kpi.docs{display:none}
+}
+@media(max-width:620px){
+  .ds-object-filterbar{grid-template-columns:1fr}
+  .ds-object-list-summary{
+    grid-template-columns:minmax(0,1fr) auto 26px;
+    gap:8px;
+    padding:12px;
+  }
+  .ds-object-list-state{grid-column:1/3}
+  .ds-object-list-kpi.docs{display:none}
+  .ds-object-list-meta{margin-top:6px}
+  .ds-object-list-details{padding:0 12px 12px}
+}
+</style>
+
 </head>
 <body class="role-context-loading">
 <div id="roleContextLoader" aria-live="polite" aria-busy="true">
@@ -6327,7 +6472,32 @@ body.role-context-loading #authGate:not(.hidden){
   <button class="primary" id="addObjectBtn" onclick="openObjectModal()">+ Objekt anlegen</button>
 </div>
 <div id="objectListStatus" class="ds-object-list-status">Objekte werden geladen …</div>
-<div class="grid g2 ds-object-grid" id="objectList" style="display:grid!important;visibility:visible!important;opacity:1!important"></div>
+
+<div class="ds-object-filterbar">
+  <label>Suche
+    <input id="objectFilterSearch" type="search" placeholder="Objekt, Adresse, Ort …" oninput="renderObjects()">
+  </label>
+  <label>Objekttyp
+    <select id="objectFilterType" onchange="renderObjects()">
+      <option value="">Alle Objekttypen</option>
+    </select>
+  </label>
+  <label>Auftraggebertyp
+    <select id="objectFilterCustomerType" onchange="renderObjects()">
+      <option value="">Alle Auftraggeber</option>
+    </select>
+  </label>
+  <label>Status
+    <select id="objectFilterStatus" onchange="renderObjects()">
+      <option value="">Alle Status</option>
+      <option value="critical">Sofort / Dringend</option>
+      <option value="open">Offene Punkte</option>
+      <option value="stable">Kein akuter Handlungsbedarf</option>
+    </select>
+  </label>
+</div>
+
+<div class="ds-object-grid" id="objectList" style="display:block!important;visibility:visible!important;opacity:1!important"></div>
 </section>
 <section class="section ds-work-section" id="findings">
 <div class="card" id="customerObjectContext" style="display:none;margin-bottom:14px">
@@ -10517,7 +10687,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.12';
+const APP_VERSION='3.13';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -13282,6 +13452,7 @@ function cloudObjectToLocal(o){
     city,
     address,
     objectType:o.object_type||'property',
+    customerType:o.customer_type||'',
     latitude:o.latitude==null?null:Number(o.latitude),
     longitude:o.longitude==null?null:Number(o.longitude),
     geocodedAt:o.geocoded_at||null,
@@ -17517,6 +17688,7 @@ async function cloudSaveObject(id,data){
     postal_code:data.postalCode||null,
     city:data.city||null,
     object_type:data.objectType||'property',
+    customer_type:data.customerType||null,
     notes:data.notes||null,
     is_test:data.isTest===true,
     updated_at:new Date().toISOString()
@@ -17549,9 +17721,12 @@ async function cloudSaveObject(id,data){
   await cloudRequest(`objects?id=eq.${encodeURIComponent(objectId)}`,{
     method:'PATCH',
     headers:{'Prefer':'return=minimal'},
-    body:JSON.stringify({object_type:payload.object_type})
+    body:JSON.stringify({
+      object_type:payload.object_type,
+      customer_type:payload.customer_type
+    })
   });
-  const rows=await cloudRequest(`objects?id=eq.${encodeURIComponent(objectId)}&select=id,organization_id,name,street,postal_code,city,object_type,latitude,longitude,geocoded_at,geocode_source,notes,is_test,created_at,updated_at`);
+  const rows=await cloudRequest(`objects?id=eq.${encodeURIComponent(objectId)}&select=id,organization_id,name,street,postal_code,city,object_type,customer_type,latitude,longitude,geocoded_at,geocode_source,notes,is_test,created_at,updated_at`);
   return rows?.[0];
 }
 async function cloudDeleteObject(id){
@@ -19822,7 +19997,11 @@ function showSection(id){
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('primary'));
   [...document.querySelectorAll('nav button')].find(b=>b.getAttribute('onclick')?.includes(`'${id}'`))?.classList.add('primary');
   document.querySelectorAll('#platformBottomNav [data-pa-nav]').forEach(b=>b.classList.toggle('active',b.getAttribute('data-pa-nav')===id));
-  if(id==='objects'){renderObjectsDirect();try{renderObjects();}catch(e){console.error('Detail-Renderer Objektseite fehlgeschlagen',e);}}
+  if(id==='objects'){
+    renderObjectsDirect();
+    try{renderObjects();}catch(e){console.error('Detail-Renderer Objektseite fehlgeschlagen',e);}
+    cloudLoadObjectDocumentations().then(()=>renderObjects()).catch(e=>console.warn('Objektdokumentationen für Objektliste konnten nicht nachgeladen werden',e));
+  }
   if(id==='findings'){
     renderFindings();
     loadAndRenderDocumentationOverview();
@@ -24372,92 +24551,161 @@ function renderObjects(){
   const status=document.getElementById('objectListStatus');
   if(!el)return;
 
-  const objects=Array.isArray(db.objects)?db.objects:[];
-  const visibleFindings=Array.isArray(db.findings)?db.findings.filter(f=>findingVisibleInCurrentTenantUI(f)):[];
+  const allObjects=Array.isArray(db.objects)?db.objects:[];
+  const visibleFindings=Array.isArray(db.findings)
+    ?db.findings.filter(f=>findingVisibleInCurrentTenantUI(f))
+    :[];
+
+  // Filteroptionen dynamisch aus dem aktuellen Datenbestand aufbauen.
+  const typeFilter=document.getElementById('objectFilterType');
+  if(typeFilter){
+    const current=typeFilter.value;
+    typeFilter.innerHTML='<option value="">Alle Objekttypen</option>'+
+      Object.entries(OBJECT_TYPE_LABELS)
+        .map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join('');
+    typeFilter.value=current;
+  }
+
+  const customerFilter=document.getElementById('objectFilterCustomerType');
+  if(customerFilter){
+    const current=customerFilter.value;
+    customerFilter.innerHTML='<option value="">Alle Auftraggeber</option>'+
+      Object.entries(OBJECT_CUSTOMER_TYPE_LABELS)
+        .map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join('')+
+      '<option value="__none">Nicht zugeordnet</option>';
+    customerFilter.value=current;
+  }
+
+  const search=(document.getElementById('objectFilterSearch')?.value||'').trim().toLowerCase();
+  const typeValue=typeFilter?.value||'';
+  const customerValue=customerFilter?.value||'';
+  const statusValue=document.getElementById('objectFilterStatus')?.value||'';
+
+  const objectMeta=new Map();
+
+  for(const o of allObjects){
+    const fs=visibleFindings.filter(f=>String(f.objectId)===String(o.id));
+    const open=fs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt').length;
+    const urgent=fs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt'&&['P1','P2'].includes(f.priority)).length;
+    const objectDocs=typeof objectDocumentationForObject==='function'?objectDocumentationForObject(o.id):[];
+    const documentationCount=fs.length+(objectDocs?.length||0);
+    const state=urgent>0?'critical':open>0?'open':'stable';
+    objectMeta.set(String(o.id),{fs,open,urgent,documentationCount,state});
+  }
+
+  let objects=allObjects.filter(o=>{
+    const meta=objectMeta.get(String(o.id))||{};
+    if(search){
+      const hay=[
+        o.name,o.address,o.street,o.postalCode,o.city,
+        objectTypeLabel(o.objectType),
+        objectCustomerTypeLabel(o.customerType)
+      ].filter(Boolean).join(' ').toLowerCase();
+      if(!hay.includes(search))return false;
+    }
+    if(typeValue && String(o.objectType||'property')!==typeValue)return false;
+    if(customerValue==='__none' && String(o.customerType||''))return false;
+    if(customerValue && customerValue!=='__none' && String(o.customerType||'')!==customerValue)return false;
+    if(statusValue && meta.state!==statusValue)return false;
+    return true;
+  });
+
   const totalOpen=visibleFindings.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt').length;
   const totalUrgent=visibleFindings.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt'&&['P1','P2'].includes(f.priority)).length;
 
   if(status){
-    status.innerHTML=`<span><strong>${objects.length}</strong> Objekt${objects.length===1?'':'e'} im Zugriff</span><span class="ds-object-status-sep">·</span><span><strong>${totalOpen}</strong> offene Feststellung${totalOpen===1?'':'en'}</span>${totalUrgent?`<span class="ds-object-status-sep">·</span><span class="ds-object-status-urgent"><strong>${totalUrgent}</strong> sofort/dringend</span>`:''}`;
+    status.innerHTML=`<span><strong>${objects.length}</strong> von <strong>${allObjects.length}</strong> Objekten</span><span class="ds-object-status-sep">·</span><span><strong>${totalOpen}</strong> offene Feststellung${totalOpen===1?'':'en'}</span>${totalUrgent?`<span class="ds-object-status-sep">·</span><span class="ds-object-status-urgent"><strong>${totalUrgent}</strong> sofort/dringend</span>`:''}`;
     status.style.display='flex';
   }
-  el.style.setProperty('display','grid','important');
-  el.style.setProperty('visibility','visible','important');
-  el.style.setProperty('opacity','1','important');
 
-  if(!objects.length){
-    el.innerHTML='<div class="empty" style="display:block!important;visibility:visible!important">Noch kein Objekt angelegt.</div>';
+  if(!allObjects.length){
+    el.innerHTML='<div class="ds-object-list-empty">Noch kein Objekt angelegt.</div>';
     return;
   }
 
-  const cards=objects.map(o=>{
+  if(!objects.length){
+    el.innerHTML='<div class="ds-object-list-empty">Keine Objekte entsprechen den gewählten Filtern.</div>';
+    return;
+  }
+
+  const rows=objects.map(o=>{
     try{
-      const fs=visibleFindings.filter(f=>f.objectId===o.id);
-      const open=fs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt').length;
-      const urgent=fs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt'&&['P1','P2'].includes(f.priority)).length;
-      const documentationCount=fs.length;
+      const meta=objectMeta.get(String(o.id))||{open:0,urgent:0,documentationCount:0,state:'stable'};
       const externalInProgressCount=externalMonitoringOrdersForObject(o.id).length+pendingAtOwnerForObject(o.id).length;
 
       let collaborationHtml='';
       if(!o.externalManaged){
-        try{ collaborationHtml=objectCollaborationAccessHtml(o.id); }
-        catch(e){ console.warn('Betreuungsstatus für Objekt konnte nicht gerendert werden',o.id,e); }
+        try{collaborationHtml=objectCollaborationAccessHtml(o.id);}
+        catch(e){console.warn('Betreuungsstatus für Objekt konnte nicht gerendert werden',o.id,e);}
       }
 
-      const stateClass=urgent>0?'ds-object-card-critical':open>0?'ds-object-card-open':'ds-object-card-stable';
-      const externalLabel=o.externalManaged?'<span class="ds-object-type-badge">EXTERN BETREUT</span>':'';
-      const urgentChip=urgent?`<button class="ds-object-metric ds-object-metric-critical" type="button" onclick="openObjectOpenFindings('${esc(o.id)}')" title="Sofort/Dringend anzeigen"><span>${urgent}</span><small>Sofort/Dringend</small></button>`:'';
-      const openChip=`<button class="ds-object-metric ${open?'ds-object-metric-open':'ds-object-metric-muted'}" type="button" ${open?`onclick="openObjectOpenFindings('${esc(o.id)}')"`:'disabled'}><span>${open}</span><small>offen</small></button>`;
-      const docChip=`<button class="ds-object-metric ${documentationCount?'':'ds-object-metric-muted'}" type="button" ${documentationCount?`onclick="openObjectDocumentation('${esc(o.id)}')"`:'disabled'}><span>${documentationCount}</span><small>Dokumentationen</small></button>`;
-      const extChip=externalInProgressCount?`<button class="ds-object-metric ds-object-metric-external" type="button" onclick="openObjectExternalMonitoring('${esc(o.id)}')"><span>${externalInProgressCount}</span><small>bei Dritten</small></button>`:'';
+      const stateLabel=meta.urgent>0?'Sofort / Dringend':meta.open>0?'Offene Punkte':'Kein akuter Handlungsbedarf';
+      const stateDot=meta.urgent>0?'critical':meta.open>0?'attention':'stable';
+      const customerLabel=objectCustomerTypeLabel(o.customerType);
+      const address=o.address||[o.street,[o.postalCode,o.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')||'Keine Adresse hinterlegt';
 
-      return `<article class="ds-object-card ${stateClass}">
-        <div class="ds-object-card-head">
-          <div class="ds-object-card-titlewrap">
-            <div class="ds-object-card-icon">⌂</div>
-            <div>
-              <div class="ds-object-card-titleline">
-                <h3>${esc(o.name||'Objekt')}</h3>${externalLabel}
-              </div>
-              <div class="ds-object-card-address">${esc(objectTypeLabel(o.objectType))}${o.address?' · '+esc(o.address):' · Keine Adresse hinterlegt'}</div>
-              ${o.externalManaged?`<div class="ds-object-card-owner">Auftraggeber: ${esc(o.ownerOrganizationName||'Partnerunternehmen')}</div>`:''}
+      return `<details class="ds-object-list-row">
+        <summary class="ds-object-list-summary">
+          <div class="ds-object-list-main">
+            <div class="ds-object-list-name">${esc(o.name||'Objekt')}</div>
+            <div class="ds-object-list-address">${esc(address)}</div>
+            <div class="ds-object-list-meta">
+              <span class="ds-object-mini-badge">${esc(objectTypeLabel(o.objectType))}</span>
+              <span class="ds-object-mini-badge">${esc(customerLabel)}</span>
+              ${o.externalManaged?'<span class="ds-object-mini-badge">Extern betreut</span>':''}
             </div>
           </div>
-          <div class="ds-object-state">${urgent?'<span class="ds-state-dot critical"></span>Sofort/Dringend':open?'<span class="ds-state-dot attention"></span>Offene Punkte':'<span class="ds-state-dot stable"></span>Kein akuter Handlungsbedarf'}</div>
-        </div>
 
-        <div class="ds-object-metrics">
-          ${urgentChip}${openChip}${docChip}${extChip}
-        </div>
+          <div class="ds-object-list-state"><span class="ds-state-dot ${stateDot}"></span>${esc(stateLabel)}</div>
 
-        ${o.notes?`<div class="ds-object-note">${esc(o.notes)}</div>`:''}
+          <div class="ds-object-list-kpi">
+            <strong>${meta.open}</strong><span>offen</span>
+          </div>
 
-        ${o.externalManaged
-          ? `<details class="ds-object-context-details"><summary>Betreuung & Leistungsumfang</summary><div class="ds-object-context">${o.serviceScope?`<div><strong>Leistungsumfang:</strong> ${esc(o.serviceScope)}</div>`:''}<div>Zur Betreuung durch dein Unternehmen freigegeben.</div></div></details>`
-          : (collaborationHtml?`<details class="ds-object-context-details"><summary>Betreuung & Zugriff</summary><div class="ds-object-context">${collaborationHtml}</div></details>`:'')}
+          <div class="ds-object-list-kpi docs">
+            <strong>${meta.documentationCount}</strong><span>Dokumentationen</span>
+          </div>
 
-        <div class="ds-object-actions">
-          <button class="primary ds-object-primary-action" onclick="openFindingModal('${esc(o.id)}','')">+ Dokumentation erfassen</button>
-          <div class="ds-object-secondary-actions">
-            ${!o.externalManaged&&!isCustomerRole()?`<button onclick="openObjectQrCode('${esc(o.id)}')">QR-Code</button>`:''}
-            ${!o.externalManaged&&canManageObjectsUI()?`<button onclick="openObjectAreasModal('${esc(o.id)}')">Einheiten &amp; Bereiche</button><button onclick="openObjectServicesModal('${esc(o.id)}')">Leistungen &amp; Standards</button><button onclick="openObjectModal('${esc(o.id)}')">Objekt bearbeiten</button>`:''}
-            ${o.externalManaged&&slTenantAdmin()?`<button onclick="openObjectServicesModal('${esc(o.id)}')">Leistungen &amp; Standards</button>`:''}
-            ${!slTenantAdmin()&&canViewObjectStandardsUI(o.id)?`<button onclick="openObjectServicesModal('${esc(o.id)}')">SOPs &amp; Standards</button>`:''}
-            <button onclick="openObjectDocumentationModule('${esc(o.id)}')">Maßnahmen-/Baudoku</button>
-            <button onclick="showObjectReport('${esc(o.id)}')">Bericht</button>
-            ${o.externalManaged?`<button onclick="showSection('externalOrders')">Externe Aufträge</button>`:''}
+          <div class="ds-object-list-kpi docs">
+            <strong>${externalInProgressCount}</strong><span>bei Dritten</span>
+          </div>
+
+          <div class="ds-object-list-chevron">›</div>
+        </summary>
+
+        <div class="ds-object-list-details">
+          ${o.notes?`<div class="ds-object-note">${esc(o.notes)}</div>`:''}
+
+          ${o.externalManaged
+            ? `<details class="ds-object-context-details"><summary>Betreuung & Leistungsumfang</summary><div class="ds-object-context">${o.serviceScope?`<div><strong>Leistungsumfang:</strong> ${esc(o.serviceScope)}</div>`:''}<div>Zur Betreuung durch dein Unternehmen freigegeben.</div></div></details>`
+            : (collaborationHtml?`<details class="ds-object-context-details"><summary>Betreuung & Zugriff</summary><div class="ds-object-context">${collaborationHtml}</div></details>`:'')}
+
+          <div class="ds-object-actions">
+            <button class="primary ds-object-primary-action" onclick="openFindingModal('${esc(o.id)}','')">+ Dokumentation erfassen</button>
+            <div class="ds-object-secondary-actions">
+              ${meta.open?`<button onclick="openObjectOpenFindings('${esc(o.id)}')">Offene Punkte (${meta.open})</button>`:''}
+              ${meta.documentationCount?`<button onclick="openObjectDocumentation('${esc(o.id)}')">Dokumentationen (${meta.documentationCount})</button>`:''}
+              ${!o.externalManaged&&!isCustomerRole()?`<button onclick="openObjectQrCode('${esc(o.id)}')">QR-Code</button>`:''}
+              ${!o.externalManaged&&canManageObjectsUI()?`<button onclick="openObjectAreasModal('${esc(o.id)}')">Einheiten &amp; Bereiche</button><button onclick="openObjectServicesModal('${esc(o.id)}')">Leistungen &amp; Standards</button><button onclick="openObjectModal('${esc(o.id)}')">Objekt bearbeiten</button>`:''}
+              ${o.externalManaged&&slTenantAdmin()?`<button onclick="openObjectServicesModal('${esc(o.id)}')">Leistungen &amp; Standards</button>`:''}
+              ${!slTenantAdmin()&&canViewObjectStandardsUI(o.id)?`<button onclick="openObjectServicesModal('${esc(o.id)}')">SOPs &amp; Standards</button>`:''}
+              <button onclick="openObjectDocumentationModule('${esc(o.id)}')">Maßnahmen-/Baudoku</button>
+              <button onclick="showObjectReport('${esc(o.id)}')">Bericht</button>
+              ${o.externalManaged?`<button onclick="showSection('externalOrders')">Externe Aufträge</button>`:''}
+            </div>
           </div>
         </div>
-      </article>`;
+      </details>`;
     }catch(e){
-      console.error('Objektkarte konnte nicht gerendert werden',o,e);
-      return `<article class="ds-object-card"><h3>${esc(o?.name||'Objekt')}</h3><div class="muted">${esc(o?.address||'')}</div><div class="muted" style="margin-top:8px">Objekt geladen – Detaildarstellung konnte nicht vollständig aufgebaut werden.</div></article>`;
+      console.error('Objektzeile konnte nicht gerendert werden',o,e);
+      return `<div class="ds-object-list-row"><div class="ds-object-list-summary"><div><strong>${esc(o?.name||'Objekt')}</strong><div class="muted">${esc(o?.address||'')}</div></div></div></div>`;
     }
   });
 
-  el.innerHTML=cards.join('');
-  console.info('Objektansicht gerendert',{count:objects.length,names:objects.map(o=>o?.name||'Objekt')});
+  el.innerHTML=rows.join('');
+  console.info('Kompakte Objektansicht gerendert',{shown:objects.length,total:allObjects.length});
 }
+
 function renderInspections(){renderObjectFiles()}
 
 function renderObjectFiles(){
@@ -26321,6 +26569,21 @@ const OBJECT_TYPE_LABELS={
   facility:'Betriebsstätte / Standort',
   other:'Sonstiges'
 };
+const OBJECT_CUSTOMER_TYPE_LABELS={
+  weg:'WEG / Eigentümergemeinschaft',
+  property_management:'Hausverwaltung',
+  private_owner:'Privateigentümer',
+  company:'Unternehmen',
+  municipality:'Kommune / öffentlicher Auftraggeber',
+  other:'Sonstige'
+};
+function objectCustomerTypeLabel(v){return OBJECT_CUSTOMER_TYPE_LABELS[String(v||'')]||'Nicht zugeordnet'}
+function objectCustomerTypeOptions(selected=''){
+  return '<option value="">Nicht zugeordnet</option>'+
+    Object.entries(OBJECT_CUSTOMER_TYPE_LABELS)
+      .map(([v,l])=>`<option value="${esc(v)}" ${String(selected||'')===v?'selected':''}>${esc(l)}</option>`)
+      .join('');
+}
 const OBJECT_AREA_KIND_LABELS={
   area:'Bereich',
   apartment:'Wohnung / Einheit',
@@ -26342,15 +26605,35 @@ function objectAreaKindOptions(selected='area'){
 }
 async function enrichObjectRowsWithType(rows){
   const list=Array.isArray(rows)?rows:[];
-  const missing=list.filter(r=>r && r.id && !r.object_type).map(r=>String(r.id));
+  const missing=list
+    .filter(r=>r && r.id && (!r.object_type || r.customer_type===undefined))
+    .map(r=>String(r.id));
+
   if(!missing.length)return list;
+
   try{
-    const typeRows=await cloudRequest(`objects?select=id,object_type&id=in.(${missing.map(encodeURIComponent).join(',')})`);
-    const typeMap=new Map((typeRows||[]).map(r=>[String(r.id),r.object_type||'property']));
-    return list.map(r=>({...r,object_type:r.object_type||typeMap.get(String(r.id))||'property'}));
+    const metaRows=await cloudRequest(
+      `objects?select=id,object_type,customer_type&id=in.(${missing.map(encodeURIComponent).join(',')})`
+    );
+    const metaMap=new Map((metaRows||[]).map(r=>[
+      String(r.id),
+      {object_type:r.object_type||'property',customer_type:r.customer_type||''}
+    ]));
+    return list.map(r=>{
+      const meta=metaMap.get(String(r.id))||{};
+      return {
+        ...r,
+        object_type:r.object_type||meta.object_type||'property',
+        customer_type:r.customer_type!==undefined?r.customer_type:(meta.customer_type||'')
+      };
+    });
   }catch(e){
-    console.warn('Objekttypen konnten nicht ergänzt werden',e);
-    return list.map(r=>({...r,object_type:r.object_type||'property'}));
+    console.warn('Objektmetadaten konnten nicht ergänzt werden',e);
+    return list.map(r=>({
+      ...r,
+      object_type:r.object_type||'property',
+      customer_type:r.customer_type||''
+    }));
   }
 }
 
@@ -26590,7 +26873,7 @@ async function geocodeObjectFromModal(objectId){
 
 function openObjectModal(id=''){
   if(!canManageObjectsUI())return alert('Objektverwaltung ist für diese Rolle nicht freigegeben.');
-  const o=db.objects.find(x=>x.id===id)||{id:'',organizationId:currentOrganizationId(),name:'',street:'',postalCode:'',city:'',address:'',objectType:'property',latitude:null,longitude:null,geocodedAt:null,geocodeSource:null,notes:'',isTest:false};
+  const o=db.objects.find(x=>x.id===id)||{id:'',organizationId:currentOrganizationId(),name:'',street:'',postalCode:'',city:'',address:'',objectType:'property',customerType:'',latitude:null,longitude:null,geocodedAt:null,geocodeSource:null,notes:'',isTest:false};
   const addressParts=objectAddressPartsForForm(o);
   const allowedOrgs=isAdminRole()?cloudOrganizations.filter(x=>x.active!==false):(currentOrganization?[currentOrganization]:[]);
   const fixedOrgId=id?o.organizationId:(o.organizationId||allowedOrgs[0]?.id||'');
@@ -26604,8 +26887,11 @@ function openObjectModal(id=''){
     <label>Objekttyp *
       <select id="oObjectType">${objectTypeOptions(o.objectType||'property')}</select>
     </label>
-    <label>Objektbezeichnung *
-      <input id="oName" value="${esc(o.name)}" placeholder="z. B. WEG Musterstraße 12, Hotel Zentrum, Stadtbezirk Nord">
+    <label>Auftraggebertyp
+      <select id="oCustomerType">${objectCustomerTypeOptions(o.customerType||'')}</select>
+    </label>
+    <label style="grid-column:1/-1">Objektbezeichnung *
+      <input id="oName" value="${esc(o.name)}" placeholder="z. B. WEG Musterstraße 12, Privathaus Müller, Gewerbepark Nord">
     </label>
   </div>
 
@@ -26721,6 +27007,7 @@ async function saveObject(id){
     organizationId,
     name,
     objectType:document.getElementById('oObjectType')?.value||'property',
+    customerType:document.getElementById('oCustomerType')?.value||'',
     street,
     postalCode,
     city,
