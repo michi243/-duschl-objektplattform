@@ -2,6 +2,11 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.14 · Auftraggeber-Mitteilung Mandantenkontext
+     FIX: send_customer_admin_message erhält den aktiven organization_id explizit.
+     URSACHE: Backend-RPC v2 erwartet p_organization_id; Frontend v3.13 sendete diesen Parameter noch nicht.
+     GOVERNANCE: Auftraggeber-Nachrichten bleiben mandantengebunden.
+     BACKEND: bestehende korrigierte RPC send_customer_admin_message(text,text,uuid,uuid) erforderlich. -->
 <!-- RELEASE 3.13 · Kompakte Objektliste + Filter
      UX: Objektübersicht von großen Karten auf kompakte, aufklappbare Zeilen umgestellt.
      FILTER: Suche, Objekttyp, Auftraggebertyp und Handlungsstatus.
@@ -160,7 +165,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.13</title>
+<title>Duschl Service – Objektplattform v3.14</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -10687,7 +10692,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.13';
+const APP_VERSION='3.14';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -11123,7 +11128,7 @@ async function openUserMessageComposer(){
       ? 'rpc/get_tenant_message_recipients'
       : 'rpc/get_user_message_recipients';
     const recipientBody=(isObjectManagerRole()||isExternalContractorRole())
-      ? {p_organization_id:currentOrganizationId()}
+      ? {p_organization_id:organizationId}
       : {};
     recipients=await cloudRequest(recipientRpc,{
       method:'POST',
@@ -11239,13 +11244,18 @@ async function sendUserMessage(){
   if(!message)return alert('Bitte eine Nachricht eingeben.');
 
   if(isCustomerRole()){
+    const organizationId=currentOrganizationId();
+    if(!organizationId){
+      return alert('Mandantenkontext konnte nicht ermittelt werden. Bitte Ansicht aktualisieren und erneut versuchen.');
+    }
     try{
       const result=await cloudRequest('rpc/send_customer_admin_message',{
         method:'POST',
         body:JSON.stringify({
           p_title:title,
           p_message:message,
-          p_object_id:objectId||null
+          p_object_id:objectId||null,
+          p_organization_id:currentOrganizationId()
         })
       });
       closeModal();
