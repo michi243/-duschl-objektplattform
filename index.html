@@ -2,6 +2,12 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.15 · Persönliche Mitteilungen per E-Mail
+     NEU: Empfänger kann persönliche Mitteilungen sofort per E-Mail erhalten.
+     INHALT: Absender, Objektbezug, Titel und vollständiger Nachrichtentext.
+     EINSTELLUNG: "Neue persönliche Mitteilungen" in den persönlichen Benachrichtigungen, Standard EIN.
+     DEEP LINK: E-Mail öffnet den persönlichen Mitteilungsbereich in der Plattform.
+     BACKEND: SQL 3.15 + Notification-Processor 2.73 erforderlich. -->
 <!-- RELEASE 3.14 · Auftraggeber-Mitteilung Mandantenkontext
      FIX: send_customer_admin_message erhält den aktiven organization_id explizit.
      URSACHE: Backend-RPC v2 erwartet p_organization_id; Frontend v3.13 sendete diesen Parameter noch nicht.
@@ -165,7 +171,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.14</title>
+<title>Duschl Service – Objektplattform v3.15</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -8136,6 +8142,7 @@ WINTERDIENST RÄUMKARTE
       <label class="row" style="align-items:center"><input id="notificationWorkOrderReturned" type="checkbox" style="width:auto" checked/><span>Auftrag zurückgegeben</span></label>
       <label class="row" style="align-items:center"><input id="notificationResidentUnroutable" type="checkbox" style="width:auto" checked/><span>Bewohnermeldung ohne Routing</span></label>
       <label class="row" style="align-items:center"><input id="notificationResidentRouted" type="checkbox" style="width:auto" checked/><span>Geroutete Bewohnermeldung</span></label>
+      <label class="row" style="align-items:center"><input id="notificationUserMessage" type="checkbox" style="width:auto" checked/><span>Neue persönliche Mitteilungen</span></label>
     </div>
     <div class="card">
       <h3>Zusammenfassung</h3>
@@ -10692,7 +10699,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.14';
+const APP_VERSION='3.15';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -17815,6 +17822,11 @@ async function notificationDeepLinkTarget(link){
   }else if(link.type==='operation_run'){
     const rows=await cloudRequest(`operation_runs?id=eq.${encodeURIComponent(link.id)}&select=id,organization_id`);
     organizationId=String(rows?.[0]?.organization_id||'');
+  }else if(link.type==='user_message'){
+    const rows=await cloudRequest(`user_messages?id=eq.${encodeURIComponent(link.id)}&select=id,object_id,recipient_id,created_by`);
+    const message=rows?.[0];
+    if(!message)throw new Error('Die Mitteilung ist für diesen Benutzer nicht verfügbar.');
+    objectId=String(message.object_id||'');
   }else{
     throw new Error('Unbekannter Vorgangstyp.');
   }
@@ -17945,6 +17957,17 @@ async function openNotificationDeepLink(){
       const run=(opsState.runs||[]).find(r=>String(r.id)===String(link.id));
       if(!run)throw new Error('Die Tour ist für diesen Benutzer nicht verfügbar.');
       await opsOpenRunWorkOrder(run.id);
+    }else if(link.type==='user_message'){
+      await loadUserMessages();
+      const message=(userDashboardMessages||[]).find(m=>String(m.id||'')===String(link.id));
+      if(!message)throw new Error('Die Mitteilung ist für diesen Benutzer nicht verfügbar.');
+      showSection('dashboard');
+      await new Promise(res=>setTimeout(res,120));
+      if(String(message.recipient_id||'')===String(currentUserId()||'') && !message.read_at){
+        try{await markUserMessageRead(message.id);}catch(_e){}
+      }
+      window.__messageArchiveMode=String(message.created_by||'')===String(currentUserId()||'')?'sent':'inbox';
+      await openMessageArchive();
     }
 
     clearNotificationDeepLink();
@@ -18701,7 +18724,7 @@ async function loadNotificationPreferences(){
   if(saveBtn)saveBtn.disabled=true;
   if(status)status.textContent='Einstellungen werden geladen …';
   try{
-    const select='email_task_created,email_work_order_created,email_decision_required,email_work_order_returned,email_resident_unroutable,email_resident_routed,digest_enabled,digest_interval_days';
+    const select='email_task_created,email_work_order_created,email_decision_required,email_work_order_returned,email_resident_unroutable,email_resident_routed,email_user_message,digest_enabled,digest_interval_days';
     const rows=await cloudRequest(`notification_preferences?user_id=eq.${encodeURIComponent(userId)}&organization_id=eq.${encodeURIComponent(organizationId)}&select=${select}&limit=1`);
     const pref=Array.isArray(rows)&&rows.length?rows[0]:null;
     const setCheck=(id,val)=>{const el=document.getElementById(id);if(el)el.checked=val!==false;};
@@ -18711,6 +18734,7 @@ async function loadNotificationPreferences(){
     setCheck('notificationWorkOrderReturned',pref?.email_work_order_returned);
     setCheck('notificationResidentUnroutable',pref?.email_resident_unroutable);
     setCheck('notificationResidentRouted',pref?.email_resident_routed);
+    setCheck('notificationUserMessage',pref?.email_user_message);
     setCheck('notificationDigestEnabled',pref?.digest_enabled);
     const interval=document.getElementById('notificationDigestInterval');
     if(interval)interval.value=String([1,2,4,7].includes(Number(pref?.digest_interval_days))?Number(pref.digest_interval_days):4);
@@ -18748,6 +18772,7 @@ async function saveNotificationPreferences(){
         email_work_order_returned:checked('notificationWorkOrderReturned'),
         email_resident_unroutable:checked('notificationResidentUnroutable'),
         email_resident_routed:checked('notificationResidentRouted'),
+        email_user_message:checked('notificationUserMessage'),
         digest_enabled:checked('notificationDigestEnabled'),
         digest_interval_days:[1,2,4,7].includes(digestInterval)?digestInterval:4,
         updated_at:new Date().toISOString()
