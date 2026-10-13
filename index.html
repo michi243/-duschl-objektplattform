@@ -2,6 +2,15 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.16 · Objektkontakte + Baudoku-Mail
+     ROLLENMODELL: Plattformrolle "Auftraggeber" bleibt bestehen.
+     NEU: Objektbezogene Funktion/Kontaktart unabhängig von System- und Objektrolle:
+          Beirat, Eigentümer, Hausverwaltung, Ansprechpartner, Privatkunde.
+     NEU: Je Objektkontakt kann "Baudoku-E-Mails" aktiviert/deaktiviert werden.
+     MAIL: reportfähige neue Maßnahmen-/Baudokumentationseinträge können automatisch
+           an die definierten Objektkontakte versendet werden.
+     GOVERNANCE: Kontaktfunktion verleiht KEINE zusätzlichen System-/Objektrechte.
+     BACKEND: SQL 3.16 + Notification-Processor 2.74 erforderlich. -->
 <!-- RELEASE 3.15 · Persönliche Mitteilungen per E-Mail
      NEU: Empfänger kann persönliche Mitteilungen sofort per E-Mail erhalten.
      INHALT: Absender, Objektbezug, Titel und vollständiger Nachrichtentext.
@@ -171,7 +180,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.15</title>
+<title>Duschl Service – Objektplattform v3.16</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -8143,6 +8152,7 @@ WINTERDIENST RÄUMKARTE
       <label class="row" style="align-items:center"><input id="notificationResidentUnroutable" type="checkbox" style="width:auto" checked/><span>Bewohnermeldung ohne Routing</span></label>
       <label class="row" style="align-items:center"><input id="notificationResidentRouted" type="checkbox" style="width:auto" checked/><span>Geroutete Bewohnermeldung</span></label>
       <label class="row" style="align-items:center"><input id="notificationUserMessage" type="checkbox" style="width:auto" checked/><span>Neue persönliche Mitteilungen</span></label>
+      <label class="row" style="align-items:center"><input id="notificationObjectDocumentation" type="checkbox" style="width:auto" checked/><span>Neue Maßnahmen-/Baudokumentation</span></label>
     </div>
     <div class="card">
       <h3>Zusammenfassung</h3>
@@ -10699,7 +10709,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.15';
+const APP_VERSION='3.16';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -17827,6 +17837,11 @@ async function notificationDeepLinkTarget(link){
     const message=rows?.[0];
     if(!message)throw new Error('Die Mitteilung ist für diesen Benutzer nicht verfügbar.');
     objectId=String(message.object_id||'');
+  }else if(link.type==='object_documentation'){
+    const rows=await cloudRequest(`object_documentations?id=eq.${encodeURIComponent(link.id)}&select=id,object_id,title`);
+    const doc=rows?.[0];
+    if(!doc)throw new Error('Die Dokumentation ist für diesen Benutzer nicht verfügbar.');
+    objectId=String(doc.object_id||'');
   }else{
     throw new Error('Unbekannter Vorgangstyp.');
   }
@@ -17968,6 +17983,10 @@ async function openNotificationDeepLink(){
       }
       window.__messageArchiveMode=String(message.created_by||'')===String(currentUserId()||'')?'sent':'inbox';
       await openMessageArchive();
+    }else if(link.type==='object_documentation'){
+      await cloudLoadObjectDocumentations();
+      if(!objectId)throw new Error('Objektbezug der Dokumentation fehlt.');
+      await openObjectDocumentationModule(objectId);
     }
 
     clearNotificationDeepLink();
@@ -18724,7 +18743,7 @@ async function loadNotificationPreferences(){
   if(saveBtn)saveBtn.disabled=true;
   if(status)status.textContent='Einstellungen werden geladen …';
   try{
-    const select='email_task_created,email_work_order_created,email_decision_required,email_work_order_returned,email_resident_unroutable,email_resident_routed,email_user_message,digest_enabled,digest_interval_days';
+    const select='email_task_created,email_work_order_created,email_decision_required,email_work_order_returned,email_resident_unroutable,email_resident_routed,email_user_message,email_object_documentation,digest_enabled,digest_interval_days';
     const rows=await cloudRequest(`notification_preferences?user_id=eq.${encodeURIComponent(userId)}&organization_id=eq.${encodeURIComponent(organizationId)}&select=${select}&limit=1`);
     const pref=Array.isArray(rows)&&rows.length?rows[0]:null;
     const setCheck=(id,val)=>{const el=document.getElementById(id);if(el)el.checked=val!==false;};
@@ -18735,6 +18754,7 @@ async function loadNotificationPreferences(){
     setCheck('notificationResidentUnroutable',pref?.email_resident_unroutable);
     setCheck('notificationResidentRouted',pref?.email_resident_routed);
     setCheck('notificationUserMessage',pref?.email_user_message);
+    setCheck('notificationObjectDocumentation',pref?.email_object_documentation);
     setCheck('notificationDigestEnabled',pref?.digest_enabled);
     const interval=document.getElementById('notificationDigestInterval');
     if(interval)interval.value=String([1,2,4,7].includes(Number(pref?.digest_interval_days))?Number(pref.digest_interval_days):4);
@@ -18773,6 +18793,7 @@ async function saveNotificationPreferences(){
         email_resident_unroutable:checked('notificationResidentUnroutable'),
         email_resident_routed:checked('notificationResidentRouted'),
         email_user_message:checked('notificationUserMessage'),
+        email_object_documentation:checked('notificationObjectDocumentation'),
         digest_enabled:checked('notificationDigestEnabled'),
         digest_interval_days:[1,2,4,7].includes(digestInterval)?digestInterval:4,
         updated_at:new Date().toISOString()
@@ -21259,6 +21280,27 @@ async function saveWorkItem(id){
 let userAdminProfiles=[];
 let userAdminAssignments=[];
 let userAdminQualifications=[];
+let userAdminObjectContacts=[];
+
+
+const OBJECT_CONTACT_TYPE_LABELS={
+  advisory_board:'Beirat',
+  owner:'Eigentümer',
+  property_management:'Hausverwaltung',
+  contact_person:'Ansprechpartner',
+  private_customer:'Privatkunde'
+};
+
+function objectContactTypeLabel(value){
+  return OBJECT_CONTACT_TYPE_LABELS[String(value||'')]||'Keine Kontaktfunktion';
+}
+
+function objectContactTypeOptions(selected=''){
+  return '<option value="">Keine Kontaktfunktion</option>'+
+    Object.entries(OBJECT_CONTACT_TYPE_LABELS)
+      .map(([v,l])=>`<option value="${esc(v)}" ${String(selected||'')===v?'selected':''}>${esc(l)}</option>`)
+      .join('');
+}
 
 async function loadUserAdminData(){
   if(!canManageUsersUI())return;
@@ -21279,6 +21321,15 @@ async function loadUserAdminData(){
       id:r.membership_id,organization_id:r.organization_id,user_id:r.user_id,role:r.membership_role
     }));
     userAdminAssignments=await cloudRequest('object_user_assignments?select=id,object_id,user_id,active,object_role,valid_from,valid_until')||[];
+    try{
+      userAdminObjectContacts=await cloudRequest('rpc/get_object_contacts_for_tenant_v1',{
+        method:'POST',
+        body:JSON.stringify({p_organization_id:orgId})
+      })||[];
+    }catch(_contactError){
+      userAdminObjectContacts=[];
+      console.warn('Objektkontakte konnten nicht geladen werden.',_contactError);
+    }
     try{
       userAdminQualifications=await cloudRequest(`user_service_qualifications?organization_id=eq.${encodeURIComponent(orgId)}&select=id,organization_id,user_id,qualification_code,active,valid_from,valid_until,notes`)||[];
     }catch(_qe){
@@ -21486,6 +21537,11 @@ function loadUserAdminEditor(){
       .filter(a=>String(a.user_id)===String(uid))
       .map(a=>[String(a.object_id),a])
   );
+  const contactByObject=new Map(
+    (userAdminObjectContacts||[])
+      .filter(c=>String(c.user_id)===String(uid)&&c.active!==false)
+      .map(c=>[String(c.object_id),c])
+  );
   const roles=[['tenant_admin','Mandanten-Admin'],['admin_delegate','Admin-Vertretung'],['property_manager','Verwaltung'],['object_manager','Objektbetreuung'],['external_contractor','Externer Auftragnehmer'],['customer','Auftraggeber']];
   const allowedRoles=isAdminDelegate()?roles.filter(([v])=>!['tenant_admin','admin_delegate'].includes(v)):roles;
   const roleOptions=allowedRoles.map(([v,l])=>`<option value="${v}" ${membership?.role===v?'selected':''}>${l}</option>`).join('');
@@ -21548,6 +21604,9 @@ function loadUserAdminEditor(){
       (currentAssignment && currentAssignment.active!==false)
         ?String(currentAssignment.object_role||'')
         :'';
+    const currentContact=contactByObject.get(String(o.id))||null;
+    const currentContactType=String(currentContact?.contact_type||'');
+    const currentContactNotify=currentContact?.notify_documentation!==false;
 
     const typeBadge=isShared
       ?'<span class="badge">EXTERN BETREUT</span>'
@@ -21584,6 +21643,17 @@ function loadUserAdminEditor(){
             <option value="object_deputy" ${currentRole==='object_deputy'?'selected':''}>Objektvertretung</option>
             <option value="object_responsible" ${currentRole==='object_responsible'?'selected':''}>Objektverantwortung · administrativ</option>
           </select>
+        </label>
+        <label style="min-width:230px">
+          Funktion am Objekt
+          <select class="userObjectContactType" data-object-id="${esc(o.id)}">
+            ${objectContactTypeOptions(currentContactType)}
+          </select>
+          <span class="muted" style="font-size:11px">Kontaktfunktion ist unabhängig von Berechtigungen.</span>
+        </label>
+        <label class="row" style="gap:8px;align-items:center;min-width:190px;margin-top:22px">
+          <input type="checkbox" class="userObjectContactNotify" data-object-id="${esc(o.id)}" ${currentContactNotify?'checked':''}>
+          <span>Baudoku-E-Mails</span>
         </label>
       </div>
     </div>`;
@@ -21928,6 +21998,30 @@ async function saveUserAdminPermissions(){
       });
     }
 
+    // Objektbezogene Kontaktfunktion: fachliche Kontakt-/Empfängerlogik,
+    // unabhängig von Systemrolle und Objektrolle.
+    const contactTypes=[...document.querySelectorAll('.userObjectContactType')].map(el=>({
+      object_id:String(el.dataset.objectId||''),
+      contact_type:String(el.value||'')
+    })).filter(x=>x.object_id);
+
+    for(const entry of contactTypes){
+      const notifyEl=[...document.querySelectorAll('.userObjectContactNotify')]
+        .find(el=>String(el.dataset.objectId||'')===String(entry.object_id));
+
+      await cloudRequest('rpc/set_object_contact_v1',{
+        method:'POST',
+        body:JSON.stringify({
+          p_organization_id:orgId,
+          p_object_id:entry.object_id,
+          p_user_id:uid,
+          p_contact_type:entry.contact_type||null,
+          p_notify_documentation:!!notifyEl?.checked,
+          p_active:!!entry.contact_type
+        })
+      });
+    }
+
     // Extern betreute Objekte: Zuweisung erfolgt weiterhin über die Kollaboration.
     const sharedChecks=[...document.querySelectorAll('.userSharedObjectAssignment')];
     for(const el of sharedChecks){
@@ -21989,7 +22083,7 @@ async function saveUserAdminPermissions(){
       }
     }
 
-    alert('Berechtigungen, Einsatzqualifikationen und Objektzugriffe gespeichert.');
+    alert('Berechtigungen, Einsatzqualifikationen, Objektzugriffe und Kontaktfunktionen gespeichert.');
     await loadUserAdminData();
   }catch(e){alert('Speichern fehlgeschlagen: '+e.message)}
 }
