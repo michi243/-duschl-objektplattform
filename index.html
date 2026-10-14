@@ -2,6 +2,12 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.17 · Objekt speichern über autoritative RPC
+     FIX: Mandanten-Admins konnten Objektänderungen über direkten PATCH nicht zuverlässig speichern.
+     URSACHE: PATCH + return=representation konnte durch RLS ohne Rückgabe enden; UI interpretierte dies als Fehler.
+     NEU: Bestehende Objekte werden über SECURITY-DEFINER-RPC update_tenant_object_v1 aktualisiert.
+     GOVERNANCE: Nur Platform Admin / Mandanten-Admin / Admin-Vertretung des Objektmandanten.
+     BACKEND: sql_3.17_update_tenant_object.sql erforderlich. -->
 <!-- RELEASE 3.16 · Objektkontakte + Baudoku-Mail
      ROLLENMODELL: Plattformrolle "Auftraggeber" bleibt bestehen.
      NEU: Objektbezogene Funktion/Kontaktart unabhängig von System- und Objektrolle:
@@ -180,7 +186,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.16</title>
+<title>Duschl Service – Objektplattform v3.17</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -10709,7 +10715,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.16';
+const APP_VERSION='3.17';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -17721,12 +17727,23 @@ async function cloudSaveObject(id,data){
     updated_at:new Date().toISOString()
   };
   if(id){
-    const rows=await cloudRequest(`objects?id=eq.${encodeURIComponent(id)}`,{
-      method:'PATCH',
-      headers:{'Prefer':'return=representation'},
-      body:JSON.stringify(payload)
+    const result=await cloudRequest('rpc/update_tenant_object_v1',{
+      method:'POST',
+      body:JSON.stringify({
+        p_object_id:id,
+        p_organization_id:payload.organization_id,
+        p_name:payload.name,
+        p_street:payload.street,
+        p_postal_code:payload.postal_code,
+        p_city:payload.city,
+        p_object_type:payload.object_type,
+        p_customer_type:payload.customer_type,
+        p_notes:payload.notes,
+        p_is_test:payload.is_test
+      })
     });
-    return rows?.[0];
+    const objectId=Array.isArray(result)?result[0]:result;
+    return objectId?{id:String(objectId)}:null;
   }
   // v2.18.82: Neue Objekte werden serverseitig angelegt.
   // Die RPC prüft die Mandantenrolle anhand der aktuellen Auth-Session
@@ -27146,7 +27163,7 @@ async function saveObject(id){
 
   try{
     const row=await cloudSaveObject(id,data);
-    if(!row)throw new Error('Keine Rückgabe aus Supabase.');
+    if(!row)throw new Error('Objektänderung wurde vom Server nicht bestätigt.');
 
     if(manualCoords.provided){
       await cloudSaveManualObjectCoordinates(
