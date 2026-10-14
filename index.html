@@ -2,6 +2,19 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.19 · Öffentliche Bewohnermeldung Boot-Fix
+     FIX: Öffentliche Bewohnermeldung blieb unter "Ansicht wird geladen …" hängen.
+     URSACHE: body startet seit v3.11 mit role-context-loading. Im öffentlichen QR-Pfad
+              wird bootCloud() bewusst nicht ausgeführt; dadurch wurde der Loader nie beendet.
+     LÖSUNG: bootPublicResidentReport() beendet den Rollen-Loader explizit, bevor das
+             anonyme Meldeformular angezeigt wird.
+     BACKEND/RLS/ROUTING: unverändert. -->
+<!-- RELEASE 3.18 · Bewohnermeldung Kategorie-UX
+     UX: Einstieg nach dem Prinzip "Was möchten Sie melden?" mit 6 klaren Hauptkategorien.
+     TECHNIK: Technischer Defekt öffnet gezielte Unterkategorien.
+     ROUTING: Bestehende fachliche Kategorie-Werte bleiben unverändert, damit Service-Scope-Routing kompatibel bleibt.
+     MOBIL: größere Auswahlflächen, kurze Erläuterungen, progressive Offenlegung statt 10 gleichgewichteter Buttons.
+     BACKEND/RLS: unverändert. -->
 <!-- RELEASE 3.17 · Objekt speichern über autoritative RPC
      FIX: Mandanten-Admins konnten Objektänderungen über direkten PATCH nicht zuverlässig speichern.
      URSACHE: PATCH + return=representation konnte durch RLS ohne Rückgabe enden; UI interpretierte dies als Fehler.
@@ -186,7 +199,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.17</title>
+<title>Duschl Service – Objektplattform v3.19</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -2663,6 +2676,13 @@ body.public-report-mode>#photoViewer{display:none!important}
 .public-report-category-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:16px}
 .public-report-category-btn{min-height:64px;text-align:left;padding:12px 13px!important;border:1px solid #35536a!important;border-radius:13px!important;background:#0b1c28!important;color:var(--text)!important;font-weight:800!important}
 .public-report-category-btn.is-selected{border-color:#2f8fff!important;background:#102a40!important;box-shadow:0 0 0 1px #2f8fff inset}
+.public-report-main-category-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}
+.public-report-main-category{display:flex!important;flex-direction:column;align-items:flex-start;gap:5px;min-height:92px;text-align:left;padding:14px!important;border:1px solid #35536a!important;border-radius:14px!important;background:#0b1c28!important;color:var(--text)!important}
+.public-report-main-category.is-selected{border-color:#2f8fff!important;background:#102a40!important;box-shadow:0 0 0 1px #2f8fff inset}
+.public-report-main-category-title{font-weight:850;font-size:16px;line-height:1.2}
+.public-report-main-category-copy{font-size:12px;line-height:1.35;color:var(--muted);font-weight:600}
+.public-report-subcategory-panel{margin-top:14px;padding:13px;border:1px solid #35536a;border-radius:14px;background:#081925}
+.public-report-subcategory-title{font-size:13px;font-weight:850;color:#dfeaf2;margin-bottom:8px}
 .public-report-object-chip{margin-top:14px;padding:12px 14px;border-radius:13px;background:#0a1722;border:1px solid var(--line)}
 .public-report-object-chip strong{display:block;font-size:17px}
 .public-report-actions{display:grid;grid-template-columns:1fr 1.5fr;gap:10px;margin-top:20px}
@@ -2677,6 +2697,8 @@ body.public-report-mode>#photoViewer{display:none!important}
   .public-report-brand{padding-bottom:12px}
   .public-report-card{padding:16px}
   .public-report-category-grid{grid-template-columns:1fr 1fr}
+  .public-report-main-category-grid{grid-template-columns:1fr}
+  .public-report-main-category{min-height:78px}
   .public-report-category-btn{min-height:58px;font-size:14px!important}
   .public-report-summary-row{grid-template-columns:88px minmax(0,1fr)}
 }
@@ -5767,6 +5789,7 @@ table td,table th{
 #roleContextLoader .role-context-loading-title{font-size:18px;font-weight:900}
 #roleContextLoader .role-context-loading-copy{margin-top:6px;color:#9fb2c5;font-size:13px}
 body.role-context-loading #roleContextLoader{display:flex}
+body.public-report-mode #roleContextLoader{display:none!important}
 body.role-context-loading .app-topbar,
 body.role-context-loading #appMenu,
 body.role-context-loading #appMenuBackdrop,
@@ -5942,21 +5965,52 @@ body.role-context-loading #authGate:not(.hidden){
 
 <div class="public-report-step active" data-pr-step="1">
   <div class="public-report-step-label">SCHRITT 1 VON 4</div>
-  <h2 class="public-report-step-title">Worum geht es?</h2>
-  <div class="public-report-step-copy">Wählen Sie das Thema, das Ihr Anliegen am besten beschreibt.</div>
+  <h2 class="public-report-step-title">Was möchten Sie melden?</h2>
+  <div class="public-report-step-copy">Wählen Sie zuerst den passenden Themenbereich. So gelangt Ihre Meldung schneller an die richtige Stelle.</div>
   <div id="prContext" class="public-report-object-chip" style="display:none"></div>
   <input id="prCategory" type="hidden" value="">
-  <div class="public-report-category-grid" id="prCategoryGrid">
-    <button type="button" class="public-report-category-btn" data-category="Sauberkeit" onclick="selectPublicReportCategory(this)">Sauberkeit</button>
-    <button type="button" class="public-report-category-btn" data-category="Beleuchtung" onclick="selectPublicReportCategory(this)">Beleuchtung</button>
-    <button type="button" class="public-report-category-btn" data-category="Tür / Tor / Zugang" onclick="selectPublicReportCategory(this)">Tür / Tor</button>
-    <button type="button" class="public-report-category-btn" data-category="Aufzug defekt" onclick="selectPublicReportCategory(this)">Aufzug</button>
-    <button type="button" class="public-report-category-btn" data-category="Außenanlage" onclick="selectPublicReportCategory(this)">Außenanlage</button>
-    <button type="button" class="public-report-category-btn" data-category="Schaden / Defekt" onclick="selectPublicReportCategory(this)">Schaden / Defekt</button>
-    <button type="button" class="public-report-category-btn" data-category="Wasser / Feuchtigkeit" onclick="selectPublicReportCategory(this)">Wasser / Feuchtigkeit</button>
-    <button type="button" class="public-report-category-btn" data-category="Heizung / Wärme" onclick="selectPublicReportCategory(this)">Heizung / Wärme</button>
-    <button type="button" class="public-report-category-btn" data-category="Winterdienst" onclick="selectPublicReportCategory(this)">Winterdienst</button>
-    <button type="button" class="public-report-category-btn" data-category="Sonstiges" onclick="selectPublicReportCategory(this)">Sonstiges</button>
+
+  <div class="public-report-main-category-grid" id="prCategoryGrid">
+    <button type="button" class="public-report-main-category" data-group="technical" onclick="selectPublicReportMainCategory(this)">
+      <span class="public-report-main-category-title">Technischer Defekt</span>
+      <span class="public-report-main-category-copy">Beleuchtung, Tür/Tor, Aufzug, Heizung oder sonstiger Defekt</span>
+    </button>
+
+    <button type="button" class="public-report-main-category" data-category="Wasser / Feuchtigkeit" onclick="selectPublicReportMainCategory(this)">
+      <span class="public-report-main-category-title">Wasser / Feuchtigkeit</span>
+      <span class="public-report-main-category-copy">Leckage, Wasserschaden, Feuchtigkeit oder Nässe</span>
+    </button>
+
+    <button type="button" class="public-report-main-category" data-category="Sauberkeit" onclick="selectPublicReportMainCategory(this)">
+      <span class="public-report-main-category-title">Reinigung / Verschmutzung</span>
+      <span class="public-report-main-category-copy">Verschmutzung, Abfall oder Reinigungsbedarf</span>
+    </button>
+
+    <button type="button" class="public-report-main-category" data-category="Außenanlage" onclick="selectPublicReportMainCategory(this)">
+      <span class="public-report-main-category-title">Außenanlage</span>
+      <span class="public-report-main-category-copy">Grünflächen, Wege, Spielbereiche oder Außenflächen</span>
+    </button>
+
+    <button type="button" class="public-report-main-category" data-category="Winterdienst" onclick="selectPublicReportMainCategory(this)">
+      <span class="public-report-main-category-title">Winterdienst</span>
+      <span class="public-report-main-category-copy">Schnee, Eis, Räumung oder Streuung</span>
+    </button>
+
+    <button type="button" class="public-report-main-category" data-category="Sonstiges" onclick="selectPublicReportMainCategory(this)">
+      <span class="public-report-main-category-title">Sonstiges</span>
+      <span class="public-report-main-category-copy">Ihr Anliegen passt in keinen der anderen Bereiche</span>
+    </button>
+  </div>
+
+  <div id="prTechnicalCategories" class="public-report-subcategory-panel" style="display:none">
+    <div class="public-report-subcategory-title">Technischen Bereich auswählen</div>
+    <div class="public-report-category-grid">
+      <button type="button" class="public-report-category-btn" data-category="Beleuchtung" onclick="selectPublicReportCategory(this)">Beleuchtung</button>
+      <button type="button" class="public-report-category-btn" data-category="Tür / Tor / Zugang" onclick="selectPublicReportCategory(this)">Tür / Tor / Zugang</button>
+      <button type="button" class="public-report-category-btn" data-category="Aufzug defekt" onclick="selectPublicReportCategory(this)">Aufzug</button>
+      <button type="button" class="public-report-category-btn" data-category="Heizung / Wärme" onclick="selectPublicReportCategory(this)">Heizung / Wärme</button>
+      <button type="button" class="public-report-category-btn" data-category="Schaden / Defekt" onclick="selectPublicReportCategory(this)">Sonstiger Schaden / Defekt</button>
+    </div>
   </div>
   <div class="public-report-actions one">
     <button class="primary" type="button" onclick="publicReportNextStep()">Weiter</button>
@@ -10715,7 +10769,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.17';
+const APP_VERSION='3.19';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -11459,11 +11513,44 @@ function publicReportSetStep(step){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
+function selectPublicReportMainCategory(btn){
+  const category=String(btn?.dataset?.category||'').trim();
+  const group=String(btn?.dataset?.group||'').trim();
+  const input=document.getElementById('prCategory');
+  const technical=document.getElementById('prTechnicalCategories');
+
+  document.querySelectorAll('.public-report-main-category')
+    .forEach(b=>b.classList.toggle('is-selected',b===btn));
+
+  document.querySelectorAll('.public-report-category-btn')
+    .forEach(b=>b.classList.remove('is-selected'));
+
+  if(group==='technical'){
+    if(input)input.value='';
+    if(technical)technical.style.display='block';
+    technical?.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }else{
+    if(input)input.value=category;
+    if(technical)technical.style.display='none';
+  }
+
+  publicReportMessage('');
+  refreshPublicReportSummary();
+}
+
 function selectPublicReportCategory(btn){
   const value=String(btn?.dataset?.category||'').trim();
   const input=document.getElementById('prCategory');
   if(input)input.value=value;
-  document.querySelectorAll('.public-report-category-btn').forEach(b=>b.classList.toggle('is-selected',b===btn));
+
+  document.querySelectorAll('.public-report-category-btn')
+    .forEach(b=>b.classList.toggle('is-selected',b===btn));
+
+  const technicalMain=document.querySelector('.public-report-main-category[data-group="technical"]');
+  document.querySelectorAll('.public-report-main-category')
+    .forEach(b=>b.classList.toggle('is-selected',b===technicalMain));
+
+  publicReportMessage('');
   refreshPublicReportSummary();
 }
 
@@ -11492,7 +11579,10 @@ function publicReportValidateStep(step){
   if(step===1){
     const category=String(document.getElementById('prCategory')?.value||'').trim();
     if(!category){
-      publicReportMessage('Bitte wählen Sie aus, worum es geht.');
+      const technicalOpen=document.getElementById('prTechnicalCategories')?.style.display!=='none';
+      publicReportMessage(technicalOpen
+        ?'Bitte wählen Sie den technischen Bereich aus.'
+        :'Bitte wählen Sie aus, was Sie melden möchten.');
       return false;
     }
   }
@@ -11529,6 +11619,12 @@ function publicReportPrevStep(){
 function bootPublicResidentReport(){
   const hasParam=new URLSearchParams(location.search).has('meldung');
   if(!hasParam)return false;
+
+  // v3.19: Öffentliche QR-Meldung benötigt keinen Rollen-/Mandantenkontext.
+  // Da bootCloud() in diesem Modus bewusst nicht startet, muss der globale
+  // Rollen-Loader hier explizit beendet werden.
+  endRoleContextLoading();
+
   publicResidentReportMode=true;
   publicResidentObjectId=publicReportObjectFromUrl();
   // v2.20.54: Alte Bereichsparameter werden absichtlich ignoriert.
