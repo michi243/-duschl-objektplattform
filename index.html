@@ -2,6 +2,13 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.23 · Bewohnermeldung autoritativ schließen
+     FIX: Direkter PATCH auf resident_reports konnte unter RLS ohne Rückgabe enden.
+     - Schließen erfolgt jetzt über SECURITY-DEFINER-RPC close_resident_report_v1.
+     - RPC prüft Objektmandant, Benutzerstatus und zulässige Mandantenrolle.
+     - Zielstatus wird serverseitig gespeichert und zurückgegeben.
+     - Frontend aktualisiert Liste sofort und bestätigt anschließend per Reload.
+     BACKEND: sql_3.23_close_resident_report.sql erforderlich. -->
 <!-- RELEASE 3.22 · Bewohnermeldung Schließen / Listenaktualisierung
      FIX: Geschlossene Meldungen blieben bis zum nächsten vollständigen Reload in der Standardansicht sichtbar.
      - PATCH fordert jetzt return=representation an und bestätigt den gespeicherten Zielstatus.
@@ -221,7 +228,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.22</title>
+<title>Duschl Service – Objektplattform v3.23</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -10816,7 +10823,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.22';
+const APP_VERSION='3.23';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -26189,20 +26196,16 @@ async function saveResidentReportClosure(id,targetStatus){
   const now=new Date().toISOString();
   try{
     cloudSetStatus('Meldung wird dokumentiert …','wait');
-    const payload={
-      status:targetStatus,
-      internal_assessment:reason,
-      reviewed_at:r.reviewed_at||now,
-      closed_at:now,
-      updated_at:now
-    };
-    const savedRows=await cloudRequest(`resident_reports?id=eq.${encodeURIComponent(id)}`,{
-      method:'PATCH',
-      headers:{'Prefer':'return=representation'},
-      body:JSON.stringify(payload)
+    const savedRows=await cloudRequest('rpc/close_resident_report_v1',{
+      method:'POST',
+      body:JSON.stringify({
+        p_report_id:id,
+        p_target_status:targetStatus,
+        p_reason:reason
+      })
     });
 
-    const saved=Array.isArray(savedRows)?savedRows[0]:null;
+    const saved=Array.isArray(savedRows)?savedRows[0]:savedRows;
     if(!saved || String(saved.status||'').toLowerCase()!==String(targetStatus).toLowerCase()){
       throw new Error('Der Abschlussstatus wurde vom Server nicht bestätigt.');
     }
