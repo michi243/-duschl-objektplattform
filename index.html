@@ -2,6 +2,13 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.27 · Mailtransparenz mobile Lesbarkeit
+     UX:
+     - Mailstatus je Objekt nicht mehr als blasser Fließtext.
+     - Management- und Baudoku-Status werden in kontrastreichen Statuszeilen dargestellt.
+     - Positive Zustände grün, keine Berechtigung neutral/grau.
+     - Mobile Darstellung mit klaren Überschriften und besserem Zeilenumbruch.
+     BACKEND: unverändert. -->
 <!-- RELEASE 3.26 · Mailtransparenz & aktive Objektvertretung
      GOVERNANCE:
      - tenant_admin/admin_delegate erhalten Management-Mails mandantenweit.
@@ -245,7 +252,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.26</title>
+<title>Duschl Service – Objektplattform v3.27</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -2351,6 +2358,49 @@ body.platform-menu-mode #organizationList{
   background:rgba(255,255,255,.025);
   color:var(--muted);
 }
+
+.userObjectMailSummary{
+  margin-top:12px;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+}
+.userObjectMailTitle{
+  font-size:13px;
+  font-weight:800;
+  margin-bottom:8px;
+  color:var(--ink);
+}
+.userObjectMailRow{
+  display:grid;
+  grid-template-columns:minmax(92px,auto) 1fr;
+  gap:10px;
+  align-items:start;
+  padding:7px 0;
+  border-top:1px solid #edf1f4;
+}
+.userObjectMailRow:first-of-type{border-top:0}
+.userObjectMailLabel{
+  font-size:12px;
+  font-weight:800;
+  color:#44515d;
+}
+.userObjectMailValue{
+  font-size:12px;
+  font-weight:750;
+  line-height:1.45;
+  color:var(--ink);
+}
+.userObjectMailValue.ok{color:var(--ok)}
+.userObjectMailValue.off{color:var(--muted)}
+@media(max-width:640px){
+  .userObjectMailSummary{padding:11px}
+  .userObjectMailRow{grid-template-columns:1fr;gap:3px}
+  .userObjectMailValue{font-size:13px}
+  .userObjectMailLabel{font-size:12px}
+}
+
 </style>
 <style>
 .object-file{border:1px solid #dfe5e8;border-radius:14px;background:#fff;margin-bottom:14px;overflow:hidden}
@@ -10840,7 +10890,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.26';
+const APP_VERSION='3.27';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -21853,11 +21903,21 @@ function dsObjectMailSummaryHtml({uid,tenantRole,assignment,contact}){
     ?(mgmt.items.length?mgmt.items.join(' · '):'keine – individuell deaktiviert')
     :`keine – ${mgmt.reason}`;
 
-  return `<div style="margin-top:10px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:#f8fafb">
-    <div style="font-size:12px;font-weight:750">E-Mail-Empfang für dieses Objekt</div>
-    <div class="muted" style="font-size:12px;margin-top:4px">
-      <strong>Management:</strong> ${esc(mgmtText)}<br>
-      <strong>Baudoku:</strong> ${baudoku?'Ja':'Nein'}
+  return `<div class="userObjectMailSummary">
+    <div class="userObjectMailTitle">E-Mail-Empfang für dieses Objekt</div>
+    <div class="userObjectMailRow">
+      <div class="userObjectMailLabel">Management</div>
+      <div class="userObjectMailValue ${mgmt.eligible&&mgmt.items.length?'ok':'off'}">
+        ${mgmt.eligible&&mgmt.items.length
+          ?esc(mgmt.items.join(' · '))
+          :esc(mgmtText)}
+      </div>
+    </div>
+    <div class="userObjectMailRow">
+      <div class="userObjectMailLabel">Baudoku</div>
+      <div class="userObjectMailValue ${baudoku?'ok':'off'}">
+        ${baudoku?'Ja – Benachrichtigung aktiv':'Nein'}
+      </div>
     </div>
   </div>`;
 }
