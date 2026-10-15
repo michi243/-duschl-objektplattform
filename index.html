@@ -2,6 +2,16 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.29 · Eigentümer-Entscheidungen + Baudoku-Haken
+     GOVERNANCE:
+     - customer + object_responsible erhält decision.required am eigenen Objekt.
+     - aktive Eigentümerkontakte erhalten decision.required ebenfalls für ihr Objekt.
+     - resident_report-/work_order-Managementmails bleiben davon unberührt.
+     UX:
+     - Baudoku-Haken ist ohne Kontaktfunktion deaktiviert und nicht angehakt.
+     - Beim Entfernen einer Kontaktfunktion wird der Baudoku-Haken automatisch entfernt.
+     - Mailtransparenz zeigt bei Eigentümer-Auftraggebern den Entscheidungsstatus.
+     BACKEND: resolve_notification_recipients v3.29. -->
 <!-- RELEASE 3.28 · Mailtransparenz kompakt / dunkel
      UX:
      - weiße Statusfläche entfernt.
@@ -259,7 +269,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.28</title>
+<title>Duschl Service – Objektplattform v3.29</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -10902,7 +10912,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.28';
+const APP_VERSION='3.29';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -21865,49 +21875,64 @@ function dsUserMailPreference(uid,key){
   return pref ? pref[key]!==false : true;
 }
 
-function dsManagementMailStateForObject({uid,tenantRole,assignment}){
+function dsManagementMailStateForObject({uid,tenantRole,assignment,contact}){
   const role=String(assignment?.object_role||'');
   const active=assignment?.active!==false;
-  let eligible=false;
-  let reason='keine Berechtigung';
+  const tenant=String(tenantRole||'');
+  const isOwnerContact=!!contact && contact.active!==false && String(contact.contact_type||'')==='owner';
 
-  if(['tenant_admin','admin_delegate'].includes(String(tenantRole||''))){
-    eligible=true;
-    reason='mandantenweite Administration';
-  }else if(String(tenantRole||'')==='property_manager' && active && role==='object_responsible'){
-    eligible=true;
-    reason='Objektverantwortung';
-  }else if(
-    String(tenantRole||'')==='property_manager' &&
-    active &&
-    role==='object_deputy' &&
-    assignment?.management_notifications_enabled===true
-  ){
-    eligible=true;
-    reason='aktive Objektvertretung';
-  }else if(String(tenantRole||'')==='property_manager' && active && role==='object_deputy'){
+  if(['tenant_admin','admin_delegate'].includes(tenant)){
+    const types=[
+      ['Nicht routbare Meldung','email_resident_unroutable'],
+      ['Geroutete Meldung','email_resident_routed'],
+      ['Entscheidung erforderlich','email_decision_required'],
+      ['Auftrag zurückgegeben','email_work_order_returned']
+    ];
+    return {eligible:true,reason:'mandantenweite Administration',
+      items:types.filter(([,key])=>dsUserMailPreference(uid,key)).map(([label])=>label)};
+  }
+
+  if(tenant==='property_manager' && active && (
+    role==='object_responsible' ||
+    (role==='object_deputy' && assignment?.management_notifications_enabled===true)
+  )){
+    const types=[
+      ['Nicht routbare Meldung','email_resident_unroutable'],
+      ['Geroutete Meldung','email_resident_routed'],
+      ['Entscheidung erforderlich','email_decision_required'],
+      ['Auftrag zurückgegeben','email_work_order_returned']
+    ];
+    return {eligible:true,
+      reason:role==='object_responsible'?'Objektverantwortung':'aktive Objektvertretung',
+      items:types.filter(([,key])=>dsUserMailPreference(uid,key)).map(([label])=>label)};
+  }
+
+  if(tenant==='customer' && (
+    (active && role==='object_responsible') || isOwnerContact
+  )){
+    return {
+      eligible:true,
+      reason:isOwnerContact?'Eigentümer / Auftraggeber':'Objektverantwortung Auftraggeber',
+      items:dsUserMailPreference(uid,'email_decision_required')
+        ?['Entscheidung erforderlich']
+        :[]
+    };
+  }
+
+  let reason='keine Berechtigung';
+  if(tenant==='property_manager' && active && role==='object_deputy'){
     reason='Objektvertretung ohne aktivierte Management-Mails';
   }else if(active && role==='object_operator'){
     reason='operative Objektrolle';
+  }else if(tenant==='customer' && active && role==='object_deputy'){
+    reason='Auftraggeber ohne Entscheidungszuständigkeit';
   }
 
-  if(!eligible)return {eligible:false,reason,items:[]};
-
-  const types=[
-    ['Nicht routbare Meldung','email_resident_unroutable'],
-    ['Geroutete Meldung','email_resident_routed'],
-    ['Entscheidung erforderlich','email_decision_required'],
-    ['Auftrag zurückgegeben','email_work_order_returned']
-  ];
-  return {
-    eligible:true,
-    reason,
-    items:types.filter(([,key])=>dsUserMailPreference(uid,key)).map(([label])=>label)
-  };
+  return {eligible:false,reason,items:[]};
 }
 
 function dsObjectMailSummaryHtml({uid,tenantRole,assignment,contact}){
-  const mgmt=dsManagementMailStateForObject({uid,tenantRole,assignment});
+  const mgmt=dsManagementMailStateForObject({uid,tenantRole,assignment,contact});
   const baudokuEligible=!!contact && contact.active!==false && contact.notify_documentation!==false;
   const baudoku=baudokuEligible && dsUserMailPreference(uid,'email_object_documentation');
 
@@ -21955,6 +21980,19 @@ function dsRefreshDeputyMailControls(){
       const box=wrap.querySelector('.userDeputyNotifications');
       if(box)box.checked=false;
     }
+  });
+}
+
+
+function dsRefreshObjectContactNotifyControls(){
+  document.querySelectorAll('.userObjectContactType').forEach(typeEl=>{
+    const objectId=String(typeEl.dataset.objectId||'');
+    const notifyEl=[...document.querySelectorAll('.userObjectContactNotify')]
+      .find(x=>String(x.dataset.objectId||'')===objectId);
+    if(!notifyEl)return;
+    const hasContact=!!String(typeEl.value||'');
+    notifyEl.disabled=!hasContact;
+    if(!hasContact)notifyEl.checked=false;
   });
 }
 
@@ -22041,7 +22079,7 @@ function loadUserAdminEditor(){
         :'';
     const currentContact=contactByObject.get(String(o.id))||null;
     const currentContactType=String(currentContact?.contact_type||'');
-    const currentContactNotify=currentContact?.notify_documentation!==false;
+    const currentContactNotify=!!currentContact && currentContact.active!==false && currentContact.notify_documentation===true;
 
     const typeBadge=isShared
       ?'<span class="badge">EXTERN BETREUT</span>'
@@ -22087,7 +22125,7 @@ function loadUserAdminEditor(){
           <span class="muted" style="font-size:11px">Kontaktfunktion ist unabhängig von Berechtigungen.</span>
         </label>
         <label class="row" style="gap:8px;align-items:center;min-width:190px;margin-top:22px">
-          <input type="checkbox" class="userObjectContactNotify" data-object-id="${esc(o.id)}" ${currentContactNotify?'checked':''}>
+          <input type="checkbox" class="userObjectContactNotify" data-object-id="${esc(o.id)}" ${currentContactNotify?'checked':''} ${currentContactType?'':'disabled'}>
           <span>Baudoku-E-Mails</span>
         </label>
         <label class="row userDeputyNotificationWrap"
@@ -22142,9 +22180,13 @@ function loadUserAdminEditor(){
 </div></div>`;
   setTimeout(()=>{
     dsRefreshDeputyMailControls();
+    dsRefreshObjectContactNotifyControls();
     document.getElementById('userAdminRole')?.addEventListener('change',dsRefreshDeputyMailControls);
     document.querySelectorAll('.userObjectRole').forEach(el=>{
       el.addEventListener('change',dsRefreshDeputyMailControls);
+    });
+    document.querySelectorAll('.userObjectContactType').forEach(el=>{
+      el.addEventListener('change',dsRefreshObjectContactNotifyControls);
     });
   },0);
 }
@@ -22488,7 +22530,7 @@ async function saveUserAdminPermissions(){
           p_object_id:entry.object_id,
           p_user_id:uid,
           p_contact_type:entry.contact_type||null,
-          p_notify_documentation:!!notifyEl?.checked,
+          p_notify_documentation:!!entry.contact_type && !!notifyEl?.checked,
           p_active:!!entry.contact_type
         })
       });
