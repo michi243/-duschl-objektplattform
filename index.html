@@ -2,6 +2,16 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.26 · Mailtransparenz & aktive Objektvertretung
+     GOVERNANCE:
+     - tenant_admin/admin_delegate erhalten Management-Mails mandantenweit.
+     - property_manager + object_responsible erhält Management-Mails für das konkrete Objekt.
+     - property_manager + object_deputy erhält Management-Mails nur bei explizit aktivierter Vertretung.
+     UX:
+     - Benutzerverwaltung zeigt pro Objekt den resultierenden Mail-Empfang.
+     - Stellvertreter erhalten einen expliziten Schalter für Management-Mails.
+     - Baudoku-Mailstatus bleibt separat über Objektkontakt + Benachrichtigungseinstellung.
+     BACKEND: SQL 3.26 erforderlich. -->
 <!-- RELEASE 3.24 · Bewohnermeldung sofort aus Liste entfernen
      FIX: Erfolgreich geschlossene Meldung blieb bis zum manuellen Aktualisieren sichtbar.
      - Karten erhalten stabile data-resident-report-id.
@@ -235,7 +245,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.24</title>
+<title>Duschl Service – Objektplattform v3.26</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -10830,7 +10840,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.24';
+const APP_VERSION='3.26';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -21530,6 +21540,7 @@ async function saveWorkItem(id){
    Backend: neue SECURITY DEFINER RPC get_tenant_users(uuid); bestehende Schreib-/Löschlogik unverändert. */
 let userAdminProfiles=[];
 let userAdminAssignments=[];
+let userAdminNotificationPreferences=[];
 let userAdminQualifications=[];
 let userAdminObjectContacts=[];
 
@@ -21571,7 +21582,15 @@ async function loadUserAdminData(){
     userAdminMemberships=(tenantUsers||[]).map(r=>({
       id:r.membership_id,organization_id:r.organization_id,user_id:r.user_id,role:r.membership_role
     }));
-    userAdminAssignments=await cloudRequest('object_user_assignments?select=id,object_id,user_id,active,object_role,valid_from,valid_until')||[];
+    userAdminAssignments=await cloudRequest('object_user_assignments?select=id,object_id,user_id,active,object_role,valid_from,valid_until,management_notifications_enabled')||[];
+    try{
+      userAdminNotificationPreferences=await cloudRequest(
+        `notification_preferences?organization_id=eq.${encodeURIComponent(orgId)}&select=user_id,organization_id,email_work_order_created,email_decision_required,email_work_order_returned,email_resident_unroutable,email_resident_routed,email_task_created,email_user_message,email_object_documentation`
+      )||[];
+    }catch(_npe){
+      userAdminNotificationPreferences=[];
+      console.warn('Benachrichtigungseinstellungen konnten für die Mailtransparenz nicht geladen werden.',_npe);
+    }
     try{
       userAdminObjectContacts=await cloudRequest('rpc/get_object_contacts_for_tenant_v1',{
         method:'POST',
@@ -21774,6 +21793,91 @@ async function saveUserIdentityEdit(){
 }
 
 
+
+function dsUserMailPreference(uid,key){
+  const orgId=currentOrganizationId();
+  const pref=(userAdminNotificationPreferences||[]).find(x=>
+    String(x.user_id||'')===String(uid||'') &&
+    String(x.organization_id||'')===String(orgId||'')
+  );
+  return pref ? pref[key]!==false : true;
+}
+
+function dsManagementMailStateForObject({uid,tenantRole,assignment}){
+  const role=String(assignment?.object_role||'');
+  const active=assignment?.active!==false;
+  let eligible=false;
+  let reason='keine Berechtigung';
+
+  if(['tenant_admin','admin_delegate'].includes(String(tenantRole||''))){
+    eligible=true;
+    reason='mandantenweite Administration';
+  }else if(String(tenantRole||'')==='property_manager' && active && role==='object_responsible'){
+    eligible=true;
+    reason='Objektverantwortung';
+  }else if(
+    String(tenantRole||'')==='property_manager' &&
+    active &&
+    role==='object_deputy' &&
+    assignment?.management_notifications_enabled===true
+  ){
+    eligible=true;
+    reason='aktive Objektvertretung';
+  }else if(String(tenantRole||'')==='property_manager' && active && role==='object_deputy'){
+    reason='Objektvertretung ohne aktivierte Management-Mails';
+  }else if(active && role==='object_operator'){
+    reason='operative Objektrolle';
+  }
+
+  if(!eligible)return {eligible:false,reason,items:[]};
+
+  const types=[
+    ['Nicht routbare Meldung','email_resident_unroutable'],
+    ['Geroutete Meldung','email_resident_routed'],
+    ['Entscheidung erforderlich','email_decision_required'],
+    ['Auftrag zurückgegeben','email_work_order_returned']
+  ];
+  return {
+    eligible:true,
+    reason,
+    items:types.filter(([,key])=>dsUserMailPreference(uid,key)).map(([label])=>label)
+  };
+}
+
+function dsObjectMailSummaryHtml({uid,tenantRole,assignment,contact}){
+  const mgmt=dsManagementMailStateForObject({uid,tenantRole,assignment});
+  const baudokuEligible=!!contact && contact.active!==false && contact.notify_documentation!==false;
+  const baudoku=baudokuEligible && dsUserMailPreference(uid,'email_object_documentation');
+
+  const mgmtText=mgmt.eligible
+    ?(mgmt.items.length?mgmt.items.join(' · '):'keine – individuell deaktiviert')
+    :`keine – ${mgmt.reason}`;
+
+  return `<div style="margin-top:10px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:#f8fafb">
+    <div style="font-size:12px;font-weight:750">E-Mail-Empfang für dieses Objekt</div>
+    <div class="muted" style="font-size:12px;margin-top:4px">
+      <strong>Management:</strong> ${esc(mgmtText)}<br>
+      <strong>Baudoku:</strong> ${baudoku?'Ja':'Nein'}
+    </div>
+  </div>`;
+}
+
+function dsRefreshDeputyMailControls(){
+  const tenantRole=String(document.getElementById('userAdminRole')?.value||'');
+  document.querySelectorAll('.userObjectRole').forEach(roleEl=>{
+    const objectId=String(roleEl.dataset.objectId||'');
+    const wrap=[...document.querySelectorAll('.userDeputyNotificationWrap')]
+      .find(x=>String(x.dataset.objectId||'')===objectId);
+    if(!wrap)return;
+    const show=tenantRole==='property_manager' && String(roleEl.value||'')==='object_deputy';
+    wrap.style.display=show?'flex':'none';
+    if(!show){
+      const box=wrap.querySelector('.userDeputyNotifications');
+      if(box)box.checked=false;
+    }
+  });
+}
+
 function loadUserAdminEditor(){
   if(!canManageUsersUI())return;
   const uid=document.getElementById('userAdminSelect')?.value,ed=document.getElementById('userAdminEditor');
@@ -21906,7 +22010,22 @@ function loadUserAdminEditor(){
           <input type="checkbox" class="userObjectContactNotify" data-object-id="${esc(o.id)}" ${currentContactNotify?'checked':''}>
           <span>Baudoku-E-Mails</span>
         </label>
+        <label class="row userDeputyNotificationWrap"
+          data-object-id="${esc(o.id)}"
+          style="gap:8px;align-items:center;min-width:290px;margin-top:22px;${membership?.role==='property_manager'&&currentRole==='object_deputy'?'':'display:none'}">
+          <input type="checkbox"
+            class="userDeputyNotifications"
+            data-object-id="${esc(o.id)}"
+            ${currentAssignment?.management_notifications_enabled===true?'checked':''}>
+          <span>Vertretung aktiv – Management-Mails erhalten</span>
+        </label>
       </div>
+      ${dsObjectMailSummaryHtml({
+        uid,
+        tenantRole:membership?.role||'',
+        assignment:currentAssignment,
+        contact:currentContact
+      })}
     </div>`;
   }).join('')||'<p class="muted">Keine eigenen oder extern betreuten Objekte vorhanden.</p>';
   const qualificationCatalog=[
@@ -21934,13 +22053,20 @@ function loadUserAdminEditor(){
   <p class="muted">Qualifikationen steuern, für welche operativen Leistungen dieser Benutzer eingesetzt werden kann. Sie verändern keine Systemrolle und keine Objektberechtigung.</p>
   <div>${qualificationRows}</div>
   <h3 style="margin-top:18px">Objektrollen & Objektzugriffe</h3>
-  <p class="muted">Neue Benutzer starten ohne Objektrolle. Objektzugriff entsteht erst durch eine bewusste Rollenzuweisung. Mandantenrolle und Objektrolle bleiben unabhängig.</p>
+  <p class="muted">Neue Benutzer starten ohne Objektrolle. Objektzugriff entsteht erst durch eine bewusste Rollenzuweisung. Mandantenrolle und Objektrolle bleiben unabhängig. Stellvertreter erhalten Management-Mails nur bei explizit aktivierter Vertretung.</p>
   <div>${objectRows}</div><div class="row" style="gap:10px;margin-top:18px">
   <button class="primary" onclick="openUserIdentityEditModal()">Benutzer bearbeiten</button>
   <button onclick="saveUserAdminPermissions()">Berechtigungen speichern</button>
   ${canResetUserPasswordUI()?'<button onclick="resetSelectedUserInitialPassword()">Initialpasswort erzeugen</button>':''}
   ${isAdminRole()?'<button class="danger" onclick="removeSelectedUserFromTenant()">Aus Mandant entfernen</button>':''}
 </div></div>`;
+  setTimeout(()=>{
+    dsRefreshDeputyMailControls();
+    document.getElementById('userAdminRole')?.addEventListener('change',dsRefreshDeputyMailControls);
+    document.querySelectorAll('.userObjectRole').forEach(el=>{
+      el.addEventListener('change',dsRefreshDeputyMailControls);
+    });
+  },0);
 }
 
 /* v2.21.00 – Benutzeranlage: bestehende E-Mail-Adressen werden case-insensitiv gesucht.
@@ -22214,10 +22340,16 @@ async function saveUserAdminPermissions(){
   if(!orgId)return alert('Für den Benutzer fehlt die Mandantenzuordnung.');
   if(!isAdminRole()&&orgId!==currentOrganizationId())return alert('Benutzer eines anderen Mandanten dürfen nicht bearbeitet werden.');
   if(uid===currentUserProfile?.id&&!active)return alert('Der aktuell angemeldete Benutzer kann sich nicht selbst deaktivieren.');
-  const objectRoles=[...document.querySelectorAll('.userObjectRole')].map(el=>({
-    object_id:String(el.dataset.objectId||''),
-    object_role:String(el.value||'')
-  })).filter(x=>x.object_id);
+  const objectRoles=[...document.querySelectorAll('.userObjectRole')].map(el=>{
+    const objectId=String(el.dataset.objectId||'');
+    const deputyBox=[...document.querySelectorAll('.userDeputyNotifications')]
+      .find(x=>String(x.dataset.objectId||'')===objectId);
+    return {
+      object_id:objectId,
+      object_role:String(el.value||''),
+      deputy_management_notifications:!!deputyBox?.checked
+    };
+  }).filter(x=>x.object_id);
   const globalRole=['customer','property_manager'].includes(organizationRole)?'customer':'object_manager';
   try{
     await cloudRequest('profiles?id=eq.'+encodeURIComponent(uid),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({full_name:fullName,role:globalRole,active})});
@@ -22245,6 +22377,15 @@ async function saveUserAdminPermissions(){
           p_active:!!role,
           p_valid_from:null,
           p_valid_until:null
+        })
+      });
+      await cloudRequest('rpc/set_object_deputy_management_notifications_v1',{
+        method:'POST',
+        body:JSON.stringify({
+          p_organization_id:orgId,
+          p_object_id:entry.object_id,
+          p_user_id:uid,
+          p_enabled:role==='object_deputy' && entry.deputy_management_notifications===true
         })
       });
     }
