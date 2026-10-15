@@ -2,6 +2,14 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.20 · Bewohnermeldung Netzwerkdiagnose
+     FIX/DIAGNOSE: Öffentliche Meldung erhält kontrollierten REST-Timeout und eindeutige Diagnose.
+     - 15s Timeout via AbortController.
+     - Messung der RPC-Laufzeit im Browser.
+     - HTTP-Fehler, Timeout und Safari-Netzwerkfehler werden getrennt behandelt.
+     - Keine automatische Wiederholung: Schutz vor Doppelmeldungen bei unklarem Serverstatus.
+     - Fotos werden weiterhin erst nach bestätigter report_id hochgeladen.
+     BACKEND/RLS/ROUTING: unverändert. -->
 <!-- RELEASE 3.19 · Öffentliche Bewohnermeldung Boot-Fix
      FIX: Öffentliche Bewohnermeldung blieb unter "Ansicht wird geladen …" hängen.
      URSACHE: body startet seit v3.11 mit role-context-loading. Im öffentlichen QR-Pfad
@@ -199,7 +207,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.19</title>
+<title>Duschl Service – Objektplattform v3.20</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -10769,7 +10777,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.19';
+const APP_VERSION='3.20';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -11797,6 +11805,54 @@ async function uploadPublicResidentReportPhotos(reportId,publicStatusToken){
   }
 }
 
+
+function publicReportRequestId(){
+  try{
+    if(window.crypto?.randomUUID)return window.crypto.randomUUID();
+  }catch(_e){}
+  return 'pr-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);
+}
+
+async function publicReportRpcFetch(url,options={},timeoutMs=15000){
+  const controller=new AbortController();
+  const requestId=publicReportRequestId();
+  const started=performance.now();
+  const timer=setTimeout(()=>controller.abort(),timeoutMs);
+
+  try{
+    const headers=new Headers(options.headers||{});
+    headers.set('X-Client-Info','duschl-objectplatform-public-report');
+    headers.set('X-Request-ID',requestId);
+
+    const response=await fetch(url,{
+      ...options,
+      headers,
+      signal:controller.signal
+    });
+
+    const elapsedMs=Math.round(performance.now()-started);
+    return {response,elapsedMs,requestId};
+  }catch(error){
+    const elapsedMs=Math.round(performance.now()-started);
+    if(error?.name==='AbortError'){
+      const e=new Error(`Zeitüberschreitung nach ${Math.round(timeoutMs/1000)} Sekunden`);
+      e.code='PUBLIC_REPORT_TIMEOUT';
+      e.requestId=requestId;
+      e.elapsedMs=elapsedMs;
+      throw e;
+    }
+
+    const e=new Error(error?.message||'Netzwerkverbindung fehlgeschlagen');
+    e.code='PUBLIC_REPORT_NETWORK';
+    e.requestId=requestId;
+    e.elapsedMs=elapsedMs;
+    e.original=error;
+    throw e;
+  }finally{
+    clearTimeout(timer);
+  }
+}
+
 async function submitPublicResidentReport(){
   if(!publicResidentObjectId)return publicReportMessage('Der Objektlink ist ungültig.');
   const name=(document.getElementById('prName')?.value||'').trim();
@@ -11844,15 +11900,27 @@ async function submitPublicResidentReport(){
       p_consent_given:true
     };
     payload.p_area_id=areaId;
-    const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/${rpcName}`,{
+    const rpcCall=await publicReportRpcFetch(`${SUPABASE_URL}/rest/v1/rpc/${rpcName}`,{
       method:'POST',
       headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},
       body:JSON.stringify(payload)
-    });
+    },15000);
+    const r=rpcCall.response;
     const raw=await r.text();
+    console.info('Bewohnermeldung RPC', {
+      requestId:rpcCall.requestId,
+      elapsedMs:rpcCall.elapsedMs,
+      status:r.status,
+      ok:r.ok
+    });
     if(!r.ok){
       let detail=raw; try{detail=JSON.parse(raw)?.message||raw}catch(_e){}
-      throw new Error(detail||`HTTP ${r.status}`);
+      const err=new Error(detail||`HTTP ${r.status}`);
+      err.code='PUBLIC_REPORT_HTTP';
+      err.httpStatus=r.status;
+      err.requestId=rpcCall.requestId;
+      err.elapsedMs=rpcCall.elapsedMs;
+      throw err;
     }
 
     let rows=[]; try{rows=raw?JSON.parse(raw):[]}catch(_e){}
@@ -11889,11 +11957,20 @@ async function submitPublicResidentReport(){
   }catch(e){
     console.error('Öffentliche Meldung fehlgeschlagen',e);
     const detail=(e&&e.message)?e.message:String(e||'Unbekannter Fehler');
+    const diag=e?.requestId?` · Diagnose ${String(e.requestId).slice(0,18)}`:'';
+
     if(reportCreated){
-      publicReportMessage('Die Meldung wurde gespeichert, aber mindestens ein Foto konnte nicht hochgeladen werden. Bitte senden Sie die Meldung nicht erneut. Technischer Hinweis: '+detail);
+      publicReportMessage('Die Meldung wurde gespeichert, aber mindestens ein Foto konnte nicht hochgeladen werden. Bitte senden Sie die Meldung nicht erneut. Technischer Hinweis: '+detail+diag);
+    }else if(e?.code==='PUBLIC_REPORT_TIMEOUT'){
+      publicReportMessage('Die Serverantwort dauert ungewöhnlich lange. Bitte die Meldung jetzt nicht erneut absenden. Prüfen Sie zunächst, ob sie bereits eingegangen ist.'+diag);
+    }else if(e?.code==='PUBLIC_REPORT_NETWORK'){
+      publicReportMessage('Die Verbindung zum Server wurde während des Sendens unterbrochen. Bitte die Meldung jetzt nicht erneut absenden. Prüfen Sie zunächst, ob sie bereits eingegangen ist.'+diag);
+    }else if(e?.code==='PUBLIC_REPORT_HTTP'){
+      publicReportMessage('Die Meldung konnte serverseitig nicht verarbeitet werden: '+detail+diag);
     }else{
-      publicReportMessage('Senden fehlgeschlagen: '+detail);
+      publicReportMessage('Senden fehlgeschlagen: '+detail+diag);
     }
+
     if(btn){btn.disabled=false;btn.textContent='Meldung absenden';}
   }
 }
