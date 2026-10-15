@@ -2,6 +2,13 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.21 · Bewohnermeldung Auswahlmarkierung
+     UX: Gewählte Hauptkategorie wird auf Mobilgeräten eindeutig sichtbar markiert.
+     - Akzentfarbener Rahmen und Hintergrund.
+     - Check-Indikator rechts oben.
+     - Haupttitel erhält stärkeren Kontrast.
+     - Auswahlstatus bleibt bis zur Änderung bestehen.
+     BACKEND/RLS/ROUTING: unverändert. -->
 <!-- RELEASE 3.20 · Bewohnermeldung Netzwerkdiagnose
      FIX/DIAGNOSE: Öffentliche Meldung erhält kontrollierten REST-Timeout und eindeutige Diagnose.
      - 15s Timeout via AbortController.
@@ -207,7 +214,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.20</title>
+<title>Duschl Service – Objektplattform v3.21</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -2686,9 +2693,34 @@ body.public-report-mode>#photoViewer{display:none!important}
 .public-report-category-btn.is-selected{border-color:#2f8fff!important;background:#102a40!important;box-shadow:0 0 0 1px #2f8fff inset}
 .public-report-main-category-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}
 .public-report-main-category{display:flex!important;flex-direction:column;align-items:flex-start;gap:5px;min-height:92px;text-align:left;padding:14px!important;border:1px solid #35536a!important;border-radius:14px!important;background:#0b1c28!important;color:var(--text)!important}
-.public-report-main-category.is-selected{border-color:#2f8fff!important;background:#102a40!important;box-shadow:0 0 0 1px #2f8fff inset}
+.public-report-main-category{position:relative;transition:border-color .16s ease,background .16s ease,box-shadow .16s ease,transform .08s ease}
+.public-report-main-category.is-selected{
+  border-color:var(--accent,#2f8fff)!important;
+  background:color-mix(in srgb,var(--accent,#2f8fff) 16%,#0b1c28)!important;
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--accent,#2f8fff) 70%,transparent) inset!important;
+  padding-right:54px!important;
+}
+.public-report-main-category.is-selected::after{
+  content:'✓';
+  position:absolute;
+  top:50%;
+  right:16px;
+  width:30px;
+  height:30px;
+  transform:translateY(-50%);
+  display:grid;
+  place-items:center;
+  border-radius:999px;
+  background:var(--accent,#2f8fff);
+  color:#fff;
+  font-size:18px;
+  font-weight:900;
+  line-height:1;
+}
+.public-report-main-category.is-selected .public-report-main-category-title{color:#fff}
 .public-report-main-category-title{font-weight:850;font-size:16px;line-height:1.2}
 .public-report-main-category-copy{font-size:12px;line-height:1.35;color:var(--muted);font-weight:600}
+.public-report-main-category:active{transform:scale(.992)}
 .public-report-subcategory-panel{margin-top:14px;padding:13px;border:1px solid #35536a;border-radius:14px;background:#081925}
 .public-report-subcategory-title{font-size:13px;font-weight:850;color:#dfeaf2;margin-bottom:8px}
 .public-report-object-chip{margin-top:14px;padding:12px 14px;border-radius:13px;background:#0a1722;border:1px solid var(--line)}
@@ -5979,32 +6011,32 @@ body.role-context-loading #authGate:not(.hidden){
   <input id="prCategory" type="hidden" value="">
 
   <div class="public-report-main-category-grid" id="prCategoryGrid">
-    <button type="button" class="public-report-main-category" data-group="technical" onclick="selectPublicReportMainCategory(this)">
+    <button type="button" class="public-report-main-category" aria-pressed="false" data-group="technical" onclick="selectPublicReportMainCategory(this)">
       <span class="public-report-main-category-title">Technischer Defekt</span>
       <span class="public-report-main-category-copy">Beleuchtung, Tür/Tor, Aufzug, Heizung oder sonstiger Defekt</span>
     </button>
 
-    <button type="button" class="public-report-main-category" data-category="Wasser / Feuchtigkeit" onclick="selectPublicReportMainCategory(this)">
+    <button type="button" class="public-report-main-category" aria-pressed="false" data-category="Wasser / Feuchtigkeit" onclick="selectPublicReportMainCategory(this)">
       <span class="public-report-main-category-title">Wasser / Feuchtigkeit</span>
       <span class="public-report-main-category-copy">Leckage, Wasserschaden, Feuchtigkeit oder Nässe</span>
     </button>
 
-    <button type="button" class="public-report-main-category" data-category="Sauberkeit" onclick="selectPublicReportMainCategory(this)">
+    <button type="button" class="public-report-main-category" aria-pressed="false" data-category="Sauberkeit" onclick="selectPublicReportMainCategory(this)">
       <span class="public-report-main-category-title">Reinigung / Verschmutzung</span>
       <span class="public-report-main-category-copy">Verschmutzung, Abfall oder Reinigungsbedarf</span>
     </button>
 
-    <button type="button" class="public-report-main-category" data-category="Außenanlage" onclick="selectPublicReportMainCategory(this)">
+    <button type="button" class="public-report-main-category" aria-pressed="false" data-category="Außenanlage" onclick="selectPublicReportMainCategory(this)">
       <span class="public-report-main-category-title">Außenanlage</span>
       <span class="public-report-main-category-copy">Grünflächen, Wege, Spielbereiche oder Außenflächen</span>
     </button>
 
-    <button type="button" class="public-report-main-category" data-category="Winterdienst" onclick="selectPublicReportMainCategory(this)">
+    <button type="button" class="public-report-main-category" aria-pressed="false" data-category="Winterdienst" onclick="selectPublicReportMainCategory(this)">
       <span class="public-report-main-category-title">Winterdienst</span>
       <span class="public-report-main-category-copy">Schnee, Eis, Räumung oder Streuung</span>
     </button>
 
-    <button type="button" class="public-report-main-category" data-category="Sonstiges" onclick="selectPublicReportMainCategory(this)">
+    <button type="button" class="public-report-main-category" aria-pressed="false" data-category="Sonstiges" onclick="selectPublicReportMainCategory(this)">
       <span class="public-report-main-category-title">Sonstiges</span>
       <span class="public-report-main-category-copy">Ihr Anliegen passt in keinen der anderen Bereiche</span>
     </button>
@@ -10777,7 +10809,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.20';
+const APP_VERSION='3.21';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -11528,7 +11560,11 @@ function selectPublicReportMainCategory(btn){
   const technical=document.getElementById('prTechnicalCategories');
 
   document.querySelectorAll('.public-report-main-category')
-    .forEach(b=>b.classList.toggle('is-selected',b===btn));
+    .forEach(b=>{
+      const selected=b===btn;
+      b.classList.toggle('is-selected',selected);
+      b.setAttribute('aria-pressed',selected?'true':'false');
+    });
 
   document.querySelectorAll('.public-report-category-btn')
     .forEach(b=>b.classList.remove('is-selected'));
@@ -11556,7 +11592,11 @@ function selectPublicReportCategory(btn){
 
   const technicalMain=document.querySelector('.public-report-main-category[data-group="technical"]');
   document.querySelectorAll('.public-report-main-category')
-    .forEach(b=>b.classList.toggle('is-selected',b===technicalMain));
+    .forEach(b=>{
+      const selected=b===technicalMain;
+      b.classList.toggle('is-selected',selected);
+      b.setAttribute('aria-pressed',selected?'true':'false');
+    });
 
   publicReportMessage('');
   refreshPublicReportSummary();
