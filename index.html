@@ -2,6 +2,15 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.31 · Objektstatus mit 4 Eskalationsstufen
+     NEU: Grün / Gelb / Orange / Rot statt 3-Stufen-Status.
+     ROT: offene P1/P2-Feststellung.
+     ORANGE: Managementbedarf, z. B. überfällige Aufgabe, offene Entscheidung,
+             nicht routbare Meldung, Abnahme offen oder zurückgegebener Auftrag.
+     GELB: normaler offener Vorgang ohne Managementeskalation.
+     GRÜN: aktuell kein offener Handlungsbedarf.
+     STATUS: aggregiert Feststellungen, Aufgaben, Entscheidungen, Meldungen und Rückgaben.
+     BACKEND/RLS: unverändert; reine Frontend-Aggregation aus bereits geladenen Daten. -->
 <!-- RELEASE 3.30 · Objektübersicht ultrakompakt
      UX:
      - geschlossene Objektkarten auf Mobilgeräten deutlich flacher.
@@ -277,7 +286,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.30</title>
+<title>Duschl Service – Objektplattform v3.31</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -3887,8 +3896,10 @@ table td,table th{
   color:#A9B6C0;font-size:11px;font-weight:800
 }
 .ds-state-dot{width:7px;height:7px;border-radius:50%;background:#7FAF94}
-.ds-state-dot.critical{background:var(--ds-danger)}
-.ds-state-dot.attention{background:var(--ds-warning)}
+.ds-state-dot.red{background:#E96D73}
+.ds-state-dot.orange{background:#F29A3F}
+.ds-state-dot.yellow{background:#E6B84A}
+.ds-state-dot.green{background:#7FAF94}
 
 .ds-object-metrics{
   display:flex;gap:8px;flex-wrap:wrap;margin-top:14px
@@ -6148,9 +6159,10 @@ body.role-context-loading #authGate:not(.hidden){
     color:#BFCAD2;
     background:rgba(255,255,255,.035);
   }
-  .ds-object-mobile-state.critical{color:#FFB6B6;border-color:rgba(255,100,100,.30)}
-  .ds-object-mobile-state.attention{color:#FFD58B;border-color:rgba(255,190,80,.28)}
-  .ds-object-mobile-state.stable{color:#9DD7B7;border-color:rgba(120,200,155,.28)}
+  .ds-object-mobile-state.red{color:#FFB6B6;border-color:rgba(233,109,115,.42);background:rgba(233,109,115,.08)}
+  .ds-object-mobile-state.orange{color:#FFC17A;border-color:rgba(242,154,63,.42);background:rgba(242,154,63,.08)}
+  .ds-object-mobile-state.yellow{color:#F4D67D;border-color:rgba(230,184,74,.38);background:rgba(230,184,74,.07)}
+  .ds-object-mobile-state.green{color:#9DD7B7;border-color:rgba(120,200,155,.28);background:rgba(120,200,155,.06)}
 
   .ds-object-list-row[open] .ds-object-list-summary{
     padding-bottom:9px;
@@ -6794,9 +6806,10 @@ body.role-context-loading #authGate:not(.hidden){
   <label>Status
     <select id="objectFilterStatus" onchange="renderObjects()">
       <option value="">Alle Status</option>
-      <option value="critical">Sofort / Dringend</option>
-      <option value="open">Offene Punkte</option>
-      <option value="stable">Kein akuter Handlungsbedarf</option>
+      <option value="red">Rot – kritisch</option>
+      <option value="orange">Orange – Managementbedarf</option>
+      <option value="yellow">Gelb – offen</option>
+      <option value="green">Grün – unauffällig</option>
     </select>
   </label>
 </div>
@@ -10993,7 +11006,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.30';
+const APP_VERSION='3.31';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -25270,6 +25283,102 @@ function renderObjectsDirect(){
   }).join('');
 }
 
+
+function dsObjectEscalationMeta(objectId,visibleFindings){
+  const oid=String(objectId||'');
+  const fs=(visibleFindings||[]).filter(f=>String(f.objectId||'')===oid);
+  const openFindings=fs.filter(f=>
+    String(f.type||'Feststellung')==='Feststellung' &&
+    String(f.status||'')!=='Erledigt'
+  );
+  const criticalFindings=openFindings.filter(f=>['P1','P2'].includes(String(f.priority||'')));
+
+  const tasks=(db.tasks||[]).filter(t=>
+    String(t.objectId||t.object_id||'')===oid &&
+    !['completed','done','closed'].includes(String(t.status||'').toLowerCase())
+  );
+  const today=new Date();
+  today.setHours(0,0,0,0);
+  const overdueTasks=tasks.filter(t=>{
+    if(!t.dueDate && !t.due_date)return false;
+    const d=new Date(t.dueDate||t.due_date);
+    if(Number.isNaN(d.getTime()))return false;
+    d.setHours(0,0,0,0);
+    return d<today;
+  });
+
+  const openDecisions=openFindings.filter(f=>
+    f.decisionRequired!==false &&
+    typeof decisionIsOpen==='function' &&
+    decisionIsOpen(f.decisionStatus||f.decision_status)
+  );
+
+  const returnedOrders=(typeof returnedExternalOrderDecisions==='function'
+    ?returnedExternalOrderDecisions()
+    :[]
+  ).filter(x=>String(x.source_object_id||x.object_id||'')===oid);
+
+  const reports=(cloudResidentReports||[]).filter(r=>
+    String(r.object_id||'')===oid &&
+    typeof isOpenResidentReport==='function' &&
+    isOpenResidentReport(r)
+  );
+  const unroutableReports=reports.filter(r=>
+    String(r.routing_state||'').toLowerCase()==='unroutable'
+  );
+  const managementReports=reports.filter(r=>{
+    const state=typeof residentReportWorkflowState==='function'
+      ?residentReportWorkflowState(r)
+      :{key:''};
+    return r.requires_management===true ||
+      ['decision_required','review_required'].includes(String(state.key||''));
+  });
+
+  const normalReports=reports.filter(r=>
+    !unroutableReports.includes(r) &&
+    !managementReports.includes(r)
+  );
+
+  const orangeReasons=[];
+  if(overdueTasks.length)orangeReasons.push(`${overdueTasks.length} Aufgabe${overdueTasks.length===1?'':'n'} überfällig`);
+  if(openDecisions.length)orangeReasons.push(`${openDecisions.length} Entscheidung${openDecisions.length===1?'':'en'} offen`);
+  if(unroutableReports.length)orangeReasons.push(`${unroutableReports.length} Meldung${unroutableReports.length===1?'':'en'} nicht routbar`);
+  if(managementReports.length)orangeReasons.push(`${managementReports.length} Meldung${managementReports.length===1?'':'en'} mit Managementbedarf`);
+  if(returnedOrders.length)orangeReasons.push(`${returnedOrders.length} Auftrag${returnedOrders.length===1?'':'träge'} zurückgegeben`);
+
+  let level='green';
+  let label='Unauffällig';
+  let shortLabel='OK';
+
+  if(criticalFindings.length){
+    level='red';
+    label='Kritisch / sofortiger Handlungsbedarf';
+    shortLabel=`${criticalFindings.length} kritisch`;
+  }else if(orangeReasons.length){
+    level='orange';
+    label='Erhöhter Managementbedarf';
+    shortLabel='Management';
+  }else if(openFindings.length || tasks.length || normalReports.length){
+    level='yellow';
+    label='Offene Punkte';
+    const count=openFindings.length+tasks.length+normalReports.length;
+    shortLabel=`${count} offen`;
+  }
+
+  return {
+    level,label,shortLabel,
+    openFindings:openFindings.length,
+    criticalFindings:criticalFindings.length,
+    overdueTasks:overdueTasks.length,
+    openDecisions:openDecisions.length,
+    unroutableReports:unroutableReports.length,
+    managementReports:managementReports.length,
+    returnedOrders:returnedOrders.length,
+    normalReports:normalReports.length,
+    orangeReasons
+  };
+}
+
 function renderObjects(){
   const el=document.getElementById('objectList');
   const status=document.getElementById('objectListStatus');
@@ -25309,12 +25418,17 @@ function renderObjects(){
 
   for(const o of allObjects){
     const fs=visibleFindings.filter(f=>String(f.objectId)===String(o.id));
-    const open=fs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt').length;
-    const urgent=fs.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt'&&['P1','P2'].includes(f.priority)).length;
     const objectDocs=typeof objectDocumentationForObject==='function'?objectDocumentationForObject(o.id):[];
     const documentationCount=fs.length+(objectDocs?.length||0);
-    const state=urgent>0?'critical':open>0?'open':'stable';
-    objectMeta.set(String(o.id),{fs,open,urgent,documentationCount,state});
+    const escalation=dsObjectEscalationMeta(o.id,visibleFindings);
+    objectMeta.set(String(o.id),{
+      fs,
+      open:escalation.openFindings,
+      urgent:escalation.criticalFindings,
+      documentationCount,
+      state:escalation.level,
+      escalation
+    });
   }
 
   let objects=allObjects.filter(o=>{
@@ -25334,11 +25448,18 @@ function renderObjects(){
     return true;
   });
 
-  const totalOpen=visibleFindings.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt').length;
-  const totalUrgent=visibleFindings.filter(f=>(f.type||'Feststellung')==='Feststellung'&&f.status!=='Erledigt'&&['P1','P2'].includes(f.priority)).length;
+  const statusCounts={red:0,orange:0,yellow:0,green:0};
+  for(const o of allObjects){
+    const level=objectMeta.get(String(o.id))?.state||'green';
+    if(statusCounts[level]!==undefined)statusCounts[level]++;
+  }
 
   if(status){
-    status.innerHTML=`<span><strong>${objects.length}</strong> von <strong>${allObjects.length}</strong> Objekten</span><span class="ds-object-status-sep">·</span><span><strong>${totalOpen}</strong> offene Feststellung${totalOpen===1?'':'en'}</span>${totalUrgent?`<span class="ds-object-status-sep">·</span><span class="ds-object-status-urgent"><strong>${totalUrgent}</strong> sofort/dringend</span>`:''}`;
+    status.innerHTML=
+      `<span><strong>${objects.length}</strong> von <strong>${allObjects.length}</strong> Objekten</span>`+
+      `${statusCounts.red?`<span class="ds-object-status-sep">·</span><span style="color:#FFB6B6"><strong>${statusCounts.red}</strong> rot</span>`:''}`+
+      `${statusCounts.orange?`<span class="ds-object-status-sep">·</span><span style="color:#FFC17A"><strong>${statusCounts.orange}</strong> orange</span>`:''}`+
+      `${statusCounts.yellow?`<span class="ds-object-status-sep">·</span><span style="color:#F4D67D"><strong>${statusCounts.yellow}</strong> gelb</span>`:''}`;
     status.style.display='flex';
   }
 
@@ -25363,8 +25484,9 @@ function renderObjects(){
         catch(e){console.warn('Betreuungsstatus für Objekt konnte nicht gerendert werden',o.id,e);}
       }
 
-      const stateLabel=meta.urgent>0?'Sofort / Dringend':meta.open>0?'Offene Punkte':'Kein akuter Handlungsbedarf';
-      const stateDot=meta.urgent>0?'critical':meta.open>0?'attention':'stable';
+      const escMeta=meta.escalation||dsObjectEscalationMeta(o.id,visibleFindings);
+      const stateLabel=escMeta.label;
+      const stateDot=escMeta.level;
       const customerLabel=objectCustomerTypeLabel(o.customerType);
       const address=o.address||[o.street,[o.postalCode,o.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')||'Keine Adresse hinterlegt';
 
@@ -25379,7 +25501,7 @@ function renderObjects(){
               ${o.externalManaged?'<span class="ds-object-mini-badge">Extern betreut</span>':''}
               <span class="ds-object-mobile-state ${stateDot}">
                 <span class="ds-state-dot ${stateDot}"></span>
-                ${meta.urgent>0?`${meta.urgent} dringend`:meta.open>0?`${meta.open} offen`:'OK'}
+                ${esc(escMeta.shortLabel)}
               </span>
             </div>
           </div>
@@ -25402,6 +25524,10 @@ function renderObjects(){
         </summary>
 
         <div class="ds-object-list-details">
+          <div class="ds-object-note" style="margin-bottom:8px">
+            <strong>Status:</strong> ${esc(stateLabel)}
+            ${escMeta.orangeReasons?.length?`<br><span class="muted">${esc(escMeta.orangeReasons.join(' · '))}</span>`:''}
+          </div>
           ${o.notes?`<div class="ds-object-note">${esc(o.notes)}</div>`:''}
 
           ${o.externalManaged
