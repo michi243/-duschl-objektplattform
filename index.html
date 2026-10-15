@@ -2,6 +2,13 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.24 · Bewohnermeldung sofort aus Liste entfernen
+     FIX: Erfolgreich geschlossene Meldung blieb bis zum manuellen Aktualisieren sichtbar.
+     - Karten erhalten stabile data-resident-report-id.
+     - Nach bestätigter RPC wird der lokale Datensatz direkt auf finalen Status gesetzt.
+     - Karte wird unmittelbar aus offenen Filtern entfernt, bevor Hintergrund-Reload startet.
+     - Server-Reload bleibt als Konsistenzprüfung erhalten.
+     BACKEND/RLS/ROUTING: unverändert gegenüber v3.23. -->
 <!-- RELEASE 3.23 · Bewohnermeldung autoritativ schließen
      FIX: Direkter PATCH auf resident_reports konnte unter RLS ohne Rückgabe enden.
      - Schließen erfolgt jetzt über SECURITY-DEFINER-RPC close_resident_report_v1.
@@ -228,7 +235,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.23</title>
+<title>Duschl Service – Objektplattform v3.24</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -10823,7 +10830,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.23';
+const APP_VERSION='3.24';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -26038,7 +26045,7 @@ function renderResidentReports(){
     const finalState=['closed','rejected','completed'].includes(r.status||'');
     const workflow=residentReportWorkflowState(r);
     const workflowContext=workflow.partner?`${workflow.label} · ${workflow.partner}`:workflow.label;
-    return `<div class="card">
+    return `<div class="card" data-resident-report-id="${esc(r.id)}">
       <div class="row space">
         <div>
           <strong>${esc(r.category||'Meldung')}</strong>
@@ -26185,6 +26192,43 @@ async function logResidentReportEvent(reportId,eventType,status,note){
   }
 }
 
+function hideClosedResidentReportImmediately(id,targetStatus){
+  const normalized=String(targetStatus||'').toLowerCase();
+
+  // Autoritativer RPC-Status ist bereits bestätigt; lokalen Cache sofort nachziehen.
+  const row=(cloudResidentReports||[]).find(x=>String(x.id)===String(id));
+  if(row){
+    row.status=normalized;
+    row.closed_at=row.closed_at||new Date().toISOString();
+    row.updated_at=new Date().toISOString();
+  }
+
+  const filter=document.getElementById('residentReportStatusFilter')?.value||'';
+  const shouldDisappear =
+    filter==='new' ||
+    filter==='active' ||
+    filter==='routed' ||
+    filter==='in_progress' ||
+    filter==='decision_required' ||
+    filter==='review_required' ||
+    filter==='internal';
+
+  if(shouldDisappear){
+    const card=document.querySelector(
+      `#residentReportList [data-resident-report-id="${CSS.escape(String(id))}"]`
+    );
+    if(card)card.remove();
+
+    const list=document.getElementById('residentReportList');
+    if(list && !list.querySelector('[data-resident-report-id]')){
+      list.innerHTML='<div class="empty">Keine Meldungen im gewählten Filter.</div>';
+    }
+  }
+
+  renderResidentReports();
+  try{renderDashboard();}catch(_e){}
+}
+
 async function saveResidentReportClosure(id,targetStatus){
   if(isCustomerRole())return alert('Kein Zugriff auf Bewohnermeldungen.');
   const r=getResidentReportById(id); if(!r)return;
@@ -26210,16 +26254,13 @@ async function saveResidentReportClosure(id,targetStatus){
       throw new Error('Der Abschlussstatus wurde vom Server nicht bestätigt.');
     }
 
-    // v3.22: Nach bestätigtem Server-Update sofort lokal aktualisieren.
-    // Damit verschwindet eine geschlossene Meldung unmittelbar aus dem Standardfilter,
-    // ohne auf den nachgelagerten vollständigen Reload warten zu müssen.
-    cloudResidentReports=(cloudResidentReports||[]).map(x=>
-      String(x.id)===String(id) ? {...x,...saved} : x
-    );
+    // v3.24: bestätigten Serverstatus direkt in lokalen Cache übernehmen
+    // und die Karte aus offenen Filtern entfernen.
+    const localRow=(cloudResidentReports||[]).find(x=>String(x.id)===String(id));
+    if(localRow)Object.assign(localRow,saved);
+    hideClosedResidentReportImmediately(id,targetStatus);
 
     closeModal();
-    renderResidentReports();
-    try{renderDashboard();}catch(_e){}
 
     await logResidentReportEvent(
       id,
