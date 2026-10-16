@@ -2,6 +2,16 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.32 · Betriebsmittel Inventar & QR
+     ADDITIV: bestehende v3.31-Funktionen bleiben unverändert.
+     NEU:
+     - automatische Inventar-/Artikelnummern: BM-xxxxxx bzw. VM-xxxxxx.
+     - Hersteller, Modell, Kaufdatum, Netto-Anschaffungskosten, Etikettenhinweis.
+     - QR-Code je Betriebsmittel/Bestandsartikel mit Direktlink in die Plattform.
+     - druckbares Betriebsmittel-Etikett und PNG-QR.
+     - QR-Direktlink öffnet nach Login den passenden Datensatz.
+     - Inventarnummer, Hersteller, Modell und Seriennummer in Suche/Übersicht.
+     BACKEND: additive Migration operating_resources_qr_inventory_v3_32. -->
 <!-- RELEASE 3.31 · Objektstatus mit 4 Eskalationsstufen
      NEU: Grün / Gelb / Orange / Rot statt 3-Stufen-Status.
      ROT: offene P1/P2-Feststellung.
@@ -286,7 +296,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.31</title>
+<title>Duschl Service – Objektplattform v3.32</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -8042,7 +8052,7 @@ WINTERDIENST RÄUMKARTE
     <div>
       <div class="ds-section-eyebrow">BETRIEB</div>
       <h2 style="margin:0">Betriebsmittel</h2>
-      <div class="muted" style="margin-top:6px">Betriebsmittel werden Leistungen zugeordnet und bei konkreten Touren automatisch auf Einsatzbereitschaft geprüft.</div>
+      <div class="muted" style="margin-top:6px">Inventar, QR-Kennzeichnung, Standort und Einsatzbereitschaft in einer durchgängigen Betriebsmittelakte.</div>
     </div>
     <button type="button" onclick="loadOperatingResources()">↻ Aktualisieren</button>
   </div>
@@ -8054,9 +8064,9 @@ WINTERDIENST RÄUMKARTE
     <div class="card"><div class="muted">Wartung / defekt</div><div class="big" id="orKpiIssue">—</div></div>
   </div>
   <div class="card or-process-hint" style="margin-top:12px">
-    <strong>So funktioniert die Einsatzprüfung:</strong>
-    Leistungsbezogene Zuordnung → automatische Einsatzprüfung im Tourstopp. Objektbezogene und allgemeine Betriebsmittel bleiben flexibel verfügbar und benötigen keine künstliche Leistungsart.
-    In der Tour erscheint für leistungsbezogenen Bedarf automatisch <strong>Bereit</strong>, <strong>Prüfen</strong> oder <strong>Nicht bereit</strong>.
+    <strong>Inventarprinzip:</strong>
+    Einzelassets erhalten automatisch eine <strong>BM-Nummer</strong> und einen eigenen QR-Code. Mengen-/Verbrauchsartikel erhalten eine <strong>VM-Nummer</strong>; der QR gehört an Lagerplatz oder Gebindegruppe.
+    Standortänderungen und Mengenstände bleiben historisiert. Die bestehende Einsatzprüfung bleibt unverändert.
   </div>
 
   <div class="card operating-resource-admin" id="orAdminCard" style="margin-top:14px">
@@ -8088,8 +8098,15 @@ WINTERDIENST RÄUMKARTE
           <option value="quantity">Mengenbestand</option>
         </select>
       </label>
-      <label>Inventarnummer<input id="orInventoryNumber" placeholder="optional"></label>
+      <label>Inventar-/Artikelnummer
+        <input id="orInventoryNumber" placeholder="automatisch bei Speichern: BM-… / VM-…">
+        <span class="muted" style="font-size:11px">Leer lassen = automatische Vergabe. BM für Einzelassets, VM für Mengen-/Verbrauchsartikel.</span>
+      </label>
       <label>Seriennummer<input id="orSerialNumber" placeholder="optional"></label>
+      <label>Hersteller<input id="orManufacturer" placeholder="z. B. STIHL"></label>
+      <label>Modell / Typ<input id="orModel" placeholder="z. B. FSA 200"></label>
+      <label>Kaufdatum<input id="orPurchaseDate" type="date"></label>
+      <label>Netto-Anschaffungskosten (€)<input id="orAcquisitionCostNet" type="number" min="0" step="0.01" placeholder="optional"></label>
       <label id="orQuantityLabel">Menge<input id="orQuantity" type="number" min="0" step="0.1" value="1"></label>
       <label>Einheit<input id="orUnit" placeholder="z. B. kg, l, Stk."></label>
       <label>Status
@@ -8119,6 +8136,7 @@ WINTERDIENST RÄUMKARTE
       <label>Standortdetail / Freitext<input id="orLocationText" placeholder="z. B. UG, hinter rechter Metalltür"></label>
     </div>
     <label style="margin-top:10px">Hinweis / Beschreibung<textarea id="orNotes" rows="2" placeholder="Optional. Nur Informationen erfassen, die im Betrieb helfen."></textarea></label>
+    <label style="margin-top:10px">Etikettenhinweis<input id="orLabelNote" maxlength="120" placeholder="optional, z. B. Anhänger Grünpflege · Fach links"></label>
     <label style="margin-top:10px;display:flex;align-items:center;gap:8px"><input id="orPlanningRelevant" type="checkbox" checked style="width:auto">Für Ressourcen-/Einsatzplanung relevant</label>
     <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">
       <button class="primary" type="button" onclick="orSaveResource()">Speichern</button>
@@ -11006,7 +11024,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.31';
+const APP_VERSION='3.32';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -20130,7 +20148,7 @@ function orUpdateTrackingUI(){
 
 function orResetEditor(){
   operatingResourcesState.selected=null;
-  const vals={orEditId:'',orSavedLocationId:'',orName:'',orKind:'equipment',orCategory:'',orTrackingMode:'individual',orInventoryNumber:'',orSerialNumber:'',orQuantity:'1',orUnit:'',orStatus:'available',orLocationType:'warehouse',orObjectId:'',orLocationText:'',orNotes:''};
+  const vals={orEditId:'',orSavedLocationId:'',orName:'',orKind:'equipment',orCategory:'',orTrackingMode:'individual',orInventoryNumber:'',orSerialNumber:'',orManufacturer:'',orModel:'',orPurchaseDate:'',orAcquisitionCostNet:'',orQuantity:'1',orUnit:'',orStatus:'available',orLocationType:'warehouse',orObjectId:'',orLocationText:'',orNotes:'',orLabelNote:''};
   Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
   const pr=document.getElementById('orPlanningRelevant');if(pr)pr.checked=true;
   const title=document.getElementById('orEditorTitle');if(title)title.textContent='Betriebsmittel anlegen';
@@ -20143,7 +20161,7 @@ function orEditResource(id){
   const r=operatingResourcesState.resources.find(x=>String(x.id)===String(id));
   if(!r)return;
   operatingResourcesState.selected=r;
-  const vals={orEditId:r.id||'',orSavedLocationId:r.current_location_id||'',orName:r.name||'',orKind:r.resource_kind||'equipment',orCategory:r.category||'',orTrackingMode:r.tracking_mode||'individual',orInventoryNumber:r.inventory_number||'',orSerialNumber:r.serial_number||'',orQuantity:r.quantity??'',orUnit:r.unit||'',orStatus:r.status||'available',orLocationType:r.current_location_type||'free_text',orObjectId:r.current_object_id||'',orLocationText:r.current_location_text||'',orNotes:r.notes||''};
+  const vals={orEditId:r.id||'',orSavedLocationId:r.current_location_id||'',orName:r.name||'',orKind:r.resource_kind||'equipment',orCategory:r.category||'',orTrackingMode:r.tracking_mode||'individual',orInventoryNumber:r.inventory_number||'',orSerialNumber:r.serial_number||'',orManufacturer:r.manufacturer||'',orModel:r.model||'',orPurchaseDate:r.purchase_date||'',orAcquisitionCostNet:r.acquisition_cost_net??'',orQuantity:r.quantity??'',orUnit:r.unit||'',orStatus:r.status||'available',orLocationType:r.current_location_type||'free_text',orObjectId:r.current_object_id||'',orLocationText:r.current_location_text||'',orNotes:r.notes||'',orLabelNote:r.label_note||''};
   Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
   const pr=document.getElementById('orPlanningRelevant');if(pr)pr.checked=r.planning_relevant!==false;
   const title=document.getElementById('orEditorTitle');if(title)title.textContent='Betriebsmittel bearbeiten';
@@ -20183,6 +20201,7 @@ async function loadOperatingResources(){
     set('orKpiLinked',(operatingResourcesState.requirements||[]).filter(x=>x.active!==false).length);
     set('orKpiIssue',active.filter(x=>['maintenance','defective'].includes(x.status)).length);
     orRenderList();
+    orHandleAssetDeepLink();
   }catch(e){
     console.error('Betriebsmittel konnten nicht geladen werden',e);
     const host=document.getElementById('orResourceList');if(host)host.innerHTML=`<div class="bad">Betriebsmittel konnten nicht geladen werden: ${esc(e.message||e)}</div>`;
@@ -20238,7 +20257,7 @@ function orRenderList(){
   const rows=(operatingResourcesState.resources||[]).filter(r=>{
     if(sf&&r.status!==sf)return false;
     if(!q)return true;
-    return [r.name,r.category,r.current_location_text,orObjectName(r.current_object_id),r.notes].some(v=>String(v||'').toLowerCase().includes(q));
+    return [r.name,r.inventory_number,r.serial_number,r.manufacturer,r.model,r.category,r.current_location_text,orObjectName(r.current_object_id),r.notes].some(v=>String(v||'').toLowerCase().includes(q));
   });
   if(!rows.length){host.innerHTML='<div class="muted">Keine Betriebsmittel gefunden.</div>';return;}
   host.innerHTML=rows.map(r=>{
@@ -20248,13 +20267,15 @@ function orRenderList(){
     return `<div class="card" style="margin:0 0 10px;padding:12px">
       <div style="min-width:0">
         <div class="row" style="gap:7px;flex-wrap:wrap;align-items:center"><strong style="min-width:0;overflow-wrap:anywhere">${esc(r.name||'Betriebsmittel')}</strong><span class="badge${issue?' bad':''}">${esc(orStatusLabel(r.status))}</span>${r.category?`<span class="badge">${esc(r.category)}</span>`:''}</div>
-        <div class="muted" style="margin-top:5px">${esc(orKindLabel(r.resource_kind))}${qty?` · ${esc(qty)}`:''}</div>
+        <div class="muted" style="margin-top:5px">${esc(orKindLabel(r.resource_kind))}${qty?` · ${esc(qty)}`:''}${r.inventory_number?` · <strong>${esc(r.inventory_number)}</strong>`:''}</div>
+        ${(r.manufacturer||r.model||r.serial_number)?`<div class="muted" style="margin-top:4px">${esc([r.manufacturer,r.model].filter(Boolean).join(' '))}${r.serial_number?` · SN ${esc(r.serial_number)}`:''}</div>`:''}
         <div style="margin-top:6px"><strong>Standort:</strong> ${esc(savedLoc?orLocationLabel(savedLoc):orFormatLocation(r))}</div>
         ${r.notes?`<div class="muted" style="margin-top:4px">${esc(r.notes)}</div>`:''}
         ${orResourceUsageHtml(r)}
       </div>
       <div class="row" style="gap:7px;flex-wrap:wrap;margin-top:10px">
         <button type="button" class="primary" style="flex:1 1 160px" onclick="orOpenMovement('${esc(r.id)}')">Standort / Bestand ändern</button>
+        <button type="button" style="flex:1 1 95px" onclick="orOpenAssetQr('${esc(r.id)}')">QR / Etikett</button>
         ${operatingResourcesCanAdmin()?`<button type="button" style="flex:1 1 120px" onclick="orEditResource('${esc(r.id)}')">Stammdaten</button>`:''}
       </div>
     </div>`;
@@ -20269,7 +20290,7 @@ async function orSaveResource(){
   const qtyRaw=String(document.getElementById('orQuantity')?.value||'').trim();
   const quantity=qtyRaw===''?null:Number(qtyRaw);
   try{
-    await cloudRequest('rpc/save_operating_resource_v2',{method:'POST',body:JSON.stringify({
+    const saved=await cloudRequest('rpc/save_operating_resource_v3',{method:'POST',body:JSON.stringify({
       p_organization_id:currentOrganizationId(),
       p_resource_id:document.getElementById('orEditId')?.value||null,
       p_name:name,
@@ -20286,10 +20307,20 @@ async function orSaveResource(){
       p_location_type:document.getElementById('orLocationType')?.value||'free_text',
       p_object_id:document.getElementById('orObjectId')?.value||null,
       p_location_text:String(document.getElementById('orLocationText')?.value||'').trim()||null,
-      p_notes:String(document.getElementById('orNotes')?.value||'').trim()||null
+      p_notes:String(document.getElementById('orNotes')?.value||'').trim()||null,
+      p_manufacturer:String(document.getElementById('orManufacturer')?.value||'').trim()||null,
+      p_model:String(document.getElementById('orModel')?.value||'').trim()||null,
+      p_purchase_date:document.getElementById('orPurchaseDate')?.value||null,
+      p_acquisition_cost_net:String(document.getElementById('orAcquisitionCostNet')?.value||'').trim()===''?null:Number(document.getElementById('orAcquisitionCostNet')?.value),
+      p_label_note:String(document.getElementById('orLabelNote')?.value||'').trim()||null
     })});
+    const savedRow=Array.isArray(saved)?saved[0]:saved;
     orResetEditor();
     await loadOperatingResources();
+    if(savedRow?.id){
+      const inv=savedRow.inventory_number?` (${savedRow.inventory_number})`:'';
+      alert(`Betriebsmittel gespeichert${inv}.`);
+    }
   }catch(e){alert('Betriebsmittel konnte nicht gespeichert werden: '+(e.message||e));}
 }
 
@@ -20303,6 +20334,146 @@ async function orDeactivateResource(){
     await loadOperatingResources();
   }catch(e){alert('Betriebsmittel konnte nicht deaktiviert werden: '+(e.message||e));}
 }
+
+
+function orAssetDirectUrl(resourceId){
+  const u=new URL(window.location.href);
+  u.searchParams.delete('meldung');
+  u.searchParams.set('asset',String(resourceId||''));
+  u.hash='';
+  return u.toString();
+}
+
+function orAssetDisplayName(r){
+  return [r?.manufacturer,r?.model].filter(Boolean).join(' ') || r?.name || 'Betriebsmittel';
+}
+
+async function orOpenAssetQr(id){
+  const r=(operatingResourcesState.resources||[]).find(x=>String(x.id)===String(id));
+  if(!r)return alert('Betriebsmittel wurde nicht gefunden.');
+  try{await ensureQrCodeLibrary();}catch(e){return alert('QR-Code-Bibliothek ist nicht verfügbar.');}
+
+  const loc=(operatingResourcesState.locations||[]).find(x=>String(x.id)===String(r.current_location_id||''));
+  const location=loc?orLocationLabel(loc):orFormatLocation(r);
+  const url=orAssetDirectUrl(r.id);
+  const number=r.inventory_number||'ohne Inventarnummer';
+  const material=r.tracking_mode==='quantity';
+
+  modal(`<div class="qr-modal-head"><h2>${material?'Lageretikett':'Betriebsmittel-Etikett'}</h2></div>
+    <div class="card qr-modal-card" style="text-align:center">
+      <canvas id="orAssetQrCanvas" width="280" height="280" class="qr-modal-canvas"></canvas>
+      <div class="qr-modal-object">${esc(number)}</div>
+      <div style="font-weight:800;margin-top:5px">${esc(r.name||'Betriebsmittel')}</div>
+      ${(r.manufacturer||r.model)?`<div class="muted">${esc([r.manufacturer,r.model].filter(Boolean).join(' '))}</div>`:''}
+      <div class="muted" style="margin-top:5px">${esc(location)}</div>
+      ${r.label_note?`<div style="margin-top:6px">${esc(r.label_note)}</div>`:''}
+    </div>
+    <div class="qr-modal-actions">
+      <button class="primary" type="button" onclick="orPrintAssetLabel('${esc(r.id)}')">Etikett drucken</button>
+      <button type="button" onclick="orDownloadAssetQr('${esc(r.id)}')">QR als PNG</button>
+      <button type="button" onclick="navigator.clipboard?.writeText(orAssetDirectUrl('${esc(r.id)}')).then(()=>alert('Link kopiert.'))">Link kopieren</button>
+    </div>`);
+  const canvas=document.getElementById('orAssetQrCanvas');
+  try{
+    await QRCode.toCanvas(canvas,url,{width:280,margin:2,errorCorrectionLevel:'M',color:{dark:'#000000',light:'#ffffff'}});
+  }catch(e){
+    console.error('Betriebsmittel-QR konnte nicht erzeugt werden',e);
+    alert('QR-Code konnte nicht erzeugt werden.');
+  }
+}
+
+function orDownloadAssetQr(id){
+  const r=(operatingResourcesState.resources||[]).find(x=>String(x.id)===String(id));
+  const canvas=document.getElementById('orAssetQrCanvas');
+  if(!r||!canvas)return;
+  const clean=x=>String(x||'').replace(/[^\p{L}\p{N}_-]+/gu,'_').replace(/^_+|_+$/g,'').slice(0,60);
+  const a=document.createElement('a');
+  a.download=`QR_${clean(r.inventory_number||r.name||'Betriebsmittel')}.png`;
+  a.href=canvas.toDataURL('image/png');
+  document.body.appendChild(a);a.click();a.remove();
+}
+
+function orPrintAssetLabel(id){
+  const r=(operatingResourcesState.resources||[]).find(x=>String(x.id)===String(id));
+  const canvas=document.getElementById('orAssetQrCanvas');
+  if(!r||!canvas)return alert('QR-Code zuerst öffnen.');
+  const loc=(operatingResourcesState.locations||[]).find(x=>String(x.id)===String(r.current_location_id||''));
+  const location=loc?orLocationLabel(loc):orFormatLocation(r);
+  let img='';
+  try{img=canvas.toDataURL('image/png');}catch(_e){return alert('Etikett konnte nicht vorbereitet werden.');}
+  const number=esc(r.inventory_number||'—');
+  const title=esc(r.name||'Betriebsmittel');
+  const sub=esc([r.manufacturer,r.model].filter(Boolean).join(' '));
+  const note=esc(r.label_note||'');
+  const html=`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>${number}</title><style>
+    @page{size:70mm 35mm;margin:2mm}
+    *{box-sizing:border-box}
+    body{margin:0;background:#fff;color:#111;font-family:Arial,sans-serif}
+    .label{width:66mm;height:31mm;display:grid;grid-template-columns:27mm 1fr;gap:2.5mm;align-items:center;overflow:hidden}
+    img{width:27mm;height:27mm;object-fit:contain}
+    .num{font-size:15pt;font-weight:900;line-height:1.05}
+    .name{font-size:10pt;font-weight:800;margin-top:1.5mm;line-height:1.1}
+    .sub,.loc,.note{font-size:7pt;line-height:1.15;margin-top:1mm}
+    .loc{font-weight:700}
+    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+  </style></head><body><div class="label"><img src="${img}"><div>
+    <div class="num">${number}</div>
+    <div class="name">${title}</div>
+    ${sub?`<div class="sub">${sub}</div>`:''}
+    <div class="loc">${esc(location)}</div>
+    ${note?`<div class="note">${note}</div>`:''}
+  </div></div><script>window.onload=()=>{window.print();setTimeout(()=>window.close(),400)}<\/script></body></html>`;
+  const w=window.open('','_blank','width=720,height=480');
+  if(!w)return alert('Druckfenster wurde blockiert.');
+  w.document.open();w.document.write(html);w.document.close();
+}
+
+function orOpenAssetDetails(id){
+  const r=(operatingResourcesState.resources||[]).find(x=>String(x.id)===String(id));
+  if(!r)return false;
+  const loc=(operatingResourcesState.locations||[]).find(x=>String(x.id)===String(r.current_location_id||''));
+  const location=loc?orLocationLabel(loc):orFormatLocation(r);
+  modal(`<h2>${esc(r.inventory_number||r.name||'Betriebsmittel')}</h2>
+    <div class="card">
+      <div><strong>${esc(r.name||'Betriebsmittel')}</strong></div>
+      ${(r.manufacturer||r.model)?`<div class="muted" style="margin-top:4px">${esc([r.manufacturer,r.model].filter(Boolean).join(' '))}</div>`:''}
+      ${r.serial_number?`<div style="margin-top:8px"><strong>Seriennummer:</strong> ${esc(r.serial_number)}</div>`:''}
+      <div style="margin-top:8px"><strong>Status:</strong> ${esc(orStatusLabel(r.status))}</div>
+      <div style="margin-top:8px"><strong>Standort:</strong> ${esc(location)}</div>
+      ${orFmtQty(r)?`<div style="margin-top:8px"><strong>Bestand:</strong> ${esc(orFmtQty(r))}</div>`:''}
+    </div>
+    <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">
+      <button class="primary" type="button" onclick="closeModal();orOpenMovement('${esc(r.id)}')">Standort / Bestand ändern</button>
+      <button type="button" onclick="orOpenAssetQr('${esc(r.id)}')">QR / Etikett</button>
+      ${operatingResourcesCanAdmin()?`<button type="button" onclick="closeModal();orEditResource('${esc(r.id)}')">Stammdaten</button>`:''}
+    </div>`);
+  return true;
+}
+
+let orDeepLinkHandled=false;
+function orHandleAssetDeepLink(){
+  if(orDeepLinkHandled)return;
+  const id=new URL(window.location.href).searchParams.get('asset');
+  if(!id)return;
+  if(!(operatingResourcesState.resources||[]).some(x=>String(x.id)===String(id)))return;
+  orDeepLinkHandled=true;
+  orOpenAssetDetails(id);
+}
+
+(function installOperatingResourceDeepLink(){
+  let tries=0;
+  const timer=setInterval(()=>{
+    tries++;
+    const id=new URL(window.location.href).searchParams.get('asset');
+    if(!id){clearInterval(timer);return;}
+    if(currentOrganizationId() && operatingResourcesCanUse()){
+      clearInterval(timer);
+      showSection('operatingResources');
+    }else if(tries>=60){
+      clearInterval(timer);
+    }
+  },500);
+})();
 
 async function orOpenMovement(id){
   const r=operatingResourcesState.resources.find(x=>String(x.id)===String(id));if(!r)return;
