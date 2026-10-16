@@ -2,6 +2,15 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.33 · Betriebsmittel Workspace
+     UX-REDESIGN, KEINE BACKEND-ÄNDERUNG:
+     - Bestand & Standort ist die Standard-Arbeitsfläche.
+     - Anlage, Standortverwaltung und Einsatzbedarf sind getrennte Arbeitsmodi.
+     - Große Admin-Formulare sind standardmäßig geschlossen.
+     - Betriebsmittelanlage in Identifikation / Betrieb / weitere Angaben gegliedert.
+     - KPI-Zeile kompakter und mobil scrollbar statt vier großer Karten untereinander.
+     - Bestand bleibt jederzeit sichtbar und durchsuchbar.
+     - Bestehende IDs, RPCs, QR-, Standort-, Bewegungs- und Einsatzlogik bleiben erhalten. -->
 <!-- RELEASE 3.32 · Betriebsmittel Inventar & QR
      ADDITIV: bestehende v3.31-Funktionen bleiben unverändert.
      NEU:
@@ -296,7 +305,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.32</title>
+<title>Duschl Service – Objektplattform v3.33</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -2448,6 +2457,101 @@ body.platform-menu-mode #organizationList{
   .userObjectMailSummary{margin-top:9px;padding-top:9px}
   .userObjectMailTitle{font-size:11px;margin-bottom:6px}
   .userObjectMailChip{font-size:10.5px;padding:5px 7px}
+}
+
+
+/* ===== v3.33 Betriebsmittel Workspace ===== */
+#operatingResources .or-workspace-panel:not(.is-open){
+  display:none!important;
+}
+#operatingResources .or-workspace-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:12px 0 10px;
+}
+#operatingResources .or-workspace-actions button{
+  min-height:38px;
+}
+#operatingResources .or-workspace-main-label{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+  margin:14px 0 7px;
+}
+#operatingResources .or-workspace-main-label strong{
+  font-size:18px;
+}
+#operatingResources .or-form-section{
+  margin-top:14px;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:rgba(255,255,255,.018);
+}
+#operatingResources .or-form-section-title{
+  font-size:12px;
+  font-weight:850;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:10px;
+}
+#operatingResources .or-advanced-details{
+  margin-top:12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:0 12px 12px;
+}
+#operatingResources .or-advanced-details>summary{
+  cursor:pointer;
+  font-weight:800;
+  padding:12px 0;
+}
+#operatingResources #orInventoryCard{
+  margin-top:0!important;
+}
+#operatingResources .or-inventory-kpis{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+  margin-top:12px;
+}
+#operatingResources .or-inventory-kpis .card{
+  padding:10px 12px;
+}
+#operatingResources .or-inventory-kpis .big{
+  font-size:22px;
+}
+@media(max-width:640px){
+  #operatingResources .or-workspace-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+  #operatingResources .or-workspace-actions .primary{
+    grid-column:1/-1;
+  }
+  #operatingResources .or-workspace-main-label{
+    align-items:flex-start;
+    flex-direction:column;
+    gap:2px;
+  }
+  #operatingResources .or-inventory-kpis{
+    display:flex;
+    overflow-x:auto;
+    gap:7px;
+    padding-bottom:2px;
+    scrollbar-width:none;
+  }
+  #operatingResources .or-inventory-kpis::-webkit-scrollbar{display:none}
+  #operatingResources .or-inventory-kpis .card{
+    flex:0 0 122px;
+    min-width:122px;
+    padding:9px 10px;
+  }
+  #operatingResources .or-inventory-kpis .big{font-size:20px}
+  #operatingResources .or-form-section{padding:10px}
 }
 
 </style>
@@ -8057,11 +8161,11 @@ WINTERDIENST RÄUMKARTE
     <button type="button" onclick="loadOperatingResources()">↻ Aktualisieren</button>
   </div>
 
-  <div class="grid g4" style="margin-top:14px">
-    <div class="card"><div class="muted">Aktive Betriebsmittel</div><div class="big" id="orKpiActive">—</div></div>
+  <div class="or-inventory-kpis">
+    <div class="card"><div class="muted">Aktiv</div><div class="big" id="orKpiActive">—</div></div>
     <div class="card"><div class="muted">Verfügbar</div><div class="big" id="orKpiAvailable">—</div></div>
-    <div class="card"><div class="muted">Einsatzzuordnungen</div><div class="big" id="orKpiLinked">—</div></div>
-    <div class="card"><div class="muted">Wartung / defekt</div><div class="big" id="orKpiIssue">—</div></div>
+    <div class="card"><div class="muted">Zuordnungen</div><div class="big" id="orKpiLinked">—</div></div>
+    <div class="card"><div class="muted">Wartung/Defekt</div><div class="big" id="orKpiIssue">—</div></div>
   </div>
   <div class="card or-process-hint" style="margin-top:12px">
     <strong>Inventarprinzip:</strong>
@@ -8069,89 +8173,156 @@ WINTERDIENST RÄUMKARTE
     Standortänderungen und Mengenstände bleiben historisiert. Die bestehende Einsatzprüfung bleibt unverändert.
   </div>
 
-  <div class="card operating-resource-admin" id="orAdminCard" style="margin-top:14px">
+  <div class="or-workspace-actions" id="orWorkspaceActions">
+    <button class="primary" type="button" onclick="orOpenWorkspacePanel('asset',true)">+ Betriebsmittel</button>
+    <button type="button" onclick="orOpenWorkspacePanel('locations')">Standorte verwalten</button>
+    <button type="button" onclick="orOpenWorkspacePanel('requirements')">Einsatzbedarf verwalten</button>
+  </div>
+
+  <div class="or-workspace-main-label">
+    <div>
+      <div class="ds-section-eyebrow">ARBEITSFLÄCHE</div>
+      <strong>Bestand & Standort</strong>
+    </div>
+    <span class="muted">Suchen, scannen, umlagern und Bestand buchen</span>
+  </div>
+
+  <div class="card operating-resource-admin or-workspace-panel" id="orAdminCard" data-or-panel="asset" style="margin-top:14px">
     <div class="row space" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
       <div>
+        <div class="ds-section-eyebrow">STAMMDATEN</div>
         <h3 style="margin:0" id="orEditorTitle">Betriebsmittel anlegen</h3>
-        <div class="muted" style="margin-top:5px">Nur relevante Maschinen, Fahrzeuge oder Materialien. Kategorien bleiben bewusst flexibel.</div>
+        <div class="muted" style="margin-top:5px">Erst die Identifikation, danach Betriebsdaten. Seltene Angaben bleiben eingeklappt.</div>
       </div>
-      <button type="button" onclick="orResetEditor()">Neu / zurücksetzen</button>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <button type="button" onclick="orResetEditor()">Neu / zurücksetzen</button>
+        <button type="button" onclick="orCloseWorkspacePanel('asset')">Schließen</button>
+      </div>
     </div>
+
     <input id="orEditId" type="hidden">
-    <div class="grid2" style="margin-top:12px">
-      <label>Bezeichnung *<input id="orName" placeholder="z. B. Hochdruckreiniger Kärcher"></label>
-      <label>Art
-        <select id="orKind" onchange="orUpdateTrackingUI()">
-          <option value="equipment">Gerät / Maschine</option>
-          <option value="vehicle">Fahrzeug / Anhänger</option>
-          <option value="material">Material / Verbrauch</option>
-          <option value="other">Sonstiges</option>
-        </select>
-      </label>
-      <label>Kategorie<input id="orCategory" list="orCategorySuggestions" placeholder="z. B. Winterdienst, Grünpflege oder frei"></label>
-      <datalist id="orCategorySuggestions">
-        <option value="Winterdienst"></option><option value="Grünpflege"></option><option value="Reinigung"></option><option value="Transport"></option><option value="Haustechnik"></option>
-      </datalist>
-      <label>Erfassung
-        <select id="orTrackingMode" onchange="orUpdateTrackingUI()">
-          <option value="individual">Einzelnes Betriebsmittel</option>
-          <option value="quantity">Mengenbestand</option>
-        </select>
-      </label>
-      <label>Inventar-/Artikelnummer
-        <input id="orInventoryNumber" placeholder="automatisch bei Speichern: BM-… / VM-…">
-        <span class="muted" style="font-size:11px">Leer lassen = automatische Vergabe. BM für Einzelassets, VM für Mengen-/Verbrauchsartikel.</span>
-      </label>
-      <label>Seriennummer<input id="orSerialNumber" placeholder="optional"></label>
-      <label>Hersteller<input id="orManufacturer" placeholder="z. B. STIHL"></label>
-      <label>Modell / Typ<input id="orModel" placeholder="z. B. FSA 200"></label>
-      <label>Kaufdatum<input id="orPurchaseDate" type="date"></label>
-      <label>Netto-Anschaffungskosten (€)<input id="orAcquisitionCostNet" type="number" min="0" step="0.01" placeholder="optional"></label>
-      <label id="orQuantityLabel">Menge<input id="orQuantity" type="number" min="0" step="0.1" value="1"></label>
-      <label>Einheit<input id="orUnit" placeholder="z. B. kg, l, Stk."></label>
-      <label>Status
-        <select id="orStatus">
-          <option value="available">Verfügbar</option>
-          <option value="in_use">Im Einsatz</option>
-          <option value="maintenance">Wartung</option>
-          <option value="defective">Defekt</option>
-          <option value="out_of_service">Außer Betrieb</option>
-        </select>
-      </label>
-      <label>Gespeicherter Standort (optional)
-        <select id="orSavedLocationId" onchange="orApplySavedLocation('editor')"><option value="">Freie Standortangabe</option></select>
-      </label>
-      <label>Standorttyp
-        <select id="orLocationType">
-          <option value="warehouse">Lager</option>
-          <option value="vehicle">Fahrzeug</option>
-          <option value="object">Objekt</option>
-          <option value="utility_room">Wirtschafts-/Technikraum</option>
-          <option value="employee">Mitarbeiter</option>
-          <option value="external">Externer Standort</option>
-          <option value="free_text">Sonstiges / Freitext</option>
-        </select>
-      </label>
-      <label>Objekt (optional)<select id="orObjectId"><option value="">Kein Objekt</option></select></label>
-      <label>Standortdetail / Freitext<input id="orLocationText" placeholder="z. B. UG, hinter rechter Metalltür"></label>
+
+    <div class="or-form-section">
+      <div class="or-form-section-title">1 · Identifikation</div>
+      <div class="grid2">
+        <label>Bezeichnung *
+          <input id="orName" placeholder="z. B. Motorsense">
+        </label>
+        <label>Art
+          <select id="orKind" onchange="orUpdateTrackingUI()">
+            <option value="equipment">Gerät / Maschine</option>
+            <option value="vehicle">Fahrzeug / Anhänger</option>
+            <option value="material">Material / Verbrauch</option>
+            <option value="other">Sonstiges</option>
+          </select>
+        </label>
+        <label>Hersteller
+          <input id="orManufacturer" placeholder="z. B. STIHL">
+        </label>
+        <label>Modell / Typ
+          <input id="orModel" placeholder="z. B. FSA 200">
+        </label>
+        <label>Inventar-/Artikelnummer
+          <input id="orInventoryNumber" placeholder="automatisch: BM-… / VM-…">
+          <span class="muted" style="font-size:11px">Leer lassen = automatische Nummernvergabe.</span>
+        </label>
+        <label>Seriennummer
+          <input id="orSerialNumber" placeholder="optional">
+        </label>
+      </div>
     </div>
-    <label style="margin-top:10px">Hinweis / Beschreibung<textarea id="orNotes" rows="2" placeholder="Optional. Nur Informationen erfassen, die im Betrieb helfen."></textarea></label>
-    <label style="margin-top:10px">Etikettenhinweis<input id="orLabelNote" maxlength="120" placeholder="optional, z. B. Anhänger Grünpflege · Fach links"></label>
-    <label style="margin-top:10px;display:flex;align-items:center;gap:8px"><input id="orPlanningRelevant" type="checkbox" checked style="width:auto">Für Ressourcen-/Einsatzplanung relevant</label>
-    <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">
+
+    <div class="or-form-section">
+      <div class="or-form-section-title">2 · Betrieb</div>
+      <div class="grid2">
+        <label>Erfassung
+          <select id="orTrackingMode" onchange="orUpdateTrackingUI()">
+            <option value="individual">Einzelnes Betriebsmittel</option>
+            <option value="quantity">Mengenbestand</option>
+          </select>
+        </label>
+        <label>Status
+          <select id="orStatus">
+            <option value="available">Verfügbar</option>
+            <option value="in_use">Im Einsatz</option>
+            <option value="maintenance">Wartung</option>
+            <option value="defective">Defekt</option>
+            <option value="out_of_service">Außer Betrieb</option>
+          </select>
+        </label>
+        <label>Gespeicherter Standort
+          <select id="orSavedLocationId" onchange="orApplySavedLocation('editor')">
+            <option value="">Freie Standortangabe</option>
+          </select>
+        </label>
+        <label id="orQuantityLabel">Menge
+          <input id="orQuantity" type="number" min="0" step="0.1" value="1">
+        </label>
+      </div>
+    </div>
+
+    <details class="or-advanced-details">
+      <summary>Weitere Angaben</summary>
+      <div class="grid2" style="margin-top:12px">
+        <label>Kategorie
+          <input id="orCategory" list="orCategorySuggestions" placeholder="z. B. Winterdienst, Grünpflege">
+        </label>
+        <datalist id="orCategorySuggestions">
+          <option value="Winterdienst"></option><option value="Grünpflege"></option><option value="Reinigung"></option><option value="Transport"></option><option value="Haustechnik"></option>
+        </datalist>
+        <label>Einheit
+          <input id="orUnit" placeholder="z. B. kg, l, Stk.">
+        </label>
+        <label>Kaufdatum
+          <input id="orPurchaseDate" type="date">
+        </label>
+        <label>Netto-Anschaffungskosten (€)
+          <input id="orAcquisitionCostNet" type="number" min="0" step="0.01" placeholder="optional">
+        </label>
+        <label>Standorttyp
+          <select id="orLocationType">
+            <option value="warehouse">Lager</option>
+            <option value="vehicle">Fahrzeug</option>
+            <option value="object">Objekt</option>
+            <option value="utility_room">Wirtschafts-/Technikraum</option>
+            <option value="employee">Mitarbeiter</option>
+            <option value="external">Externer Standort</option>
+            <option value="free_text">Sonstiges / Freitext</option>
+          </select>
+        </label>
+        <label>Objekt (optional)
+          <select id="orObjectId"><option value="">Kein Objekt</option></select>
+        </label>
+        <label style="grid-column:1/-1">Standortdetail / Freitext
+          <input id="orLocationText" placeholder="z. B. Regal B · Fach 03">
+        </label>
+      </div>
+      <label style="margin-top:10px">Hinweis / Beschreibung
+        <textarea id="orNotes" rows="2" placeholder="Nur Informationen erfassen, die im Betrieb helfen."></textarea>
+      </label>
+      <label style="margin-top:10px">Etikettenhinweis
+        <input id="orLabelNote" maxlength="120" placeholder="z. B. Anhänger Grünpflege · Fach links">
+      </label>
+      <label style="margin-top:10px;display:flex;align-items:center;gap:8px">
+        <input id="orPlanningRelevant" type="checkbox" checked style="width:auto">
+        Für Ressourcen-/Einsatzplanung relevant
+      </label>
+    </details>
+
+    <div class="row" style="margin-top:14px;gap:8px;flex-wrap:wrap">
       <button class="primary" type="button" onclick="orSaveResource()">Speichern</button>
       <button type="button" id="orDeactivateBtn" class="hidden" onclick="orDeactivateResource()">Deaktivieren</button>
     </div>
   </div>
 
-  <div class="card operating-resource-admin" id="orLocationAdminCard" style="margin-top:14px">
+  <div class="card operating-resource-admin or-workspace-panel" id="orLocationAdminCard" data-or-panel="locations" style="margin-top:14px">
     <div class="row space" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
       <div>
         <div class="ds-section-eyebrow">STANDORTE</div>
         <h3 style="margin:0">Lager- &amp; Ablageorte</h3>
         <div class="muted" style="margin-top:5px">Wiederkehrende Orte einmal anlegen. Freitext bleibt jederzeit möglich.</div>
       </div>
-      <button type="button" onclick="orResetLocationEditor()">Neu / zurücksetzen</button>
+      <div class="row" style="gap:8px"><button type="button" onclick="orResetLocationEditor()">Neu / zurücksetzen</button><button type="button" onclick="orCloseWorkspacePanel('locations')">Schließen</button></div>
     </div>
     <input id="orLocationEditId" type="hidden">
     <div class="grid2" style="margin-top:12px">
@@ -8177,14 +8348,14 @@ WINTERDIENST RÄUMKARTE
     <div id="orLocationList" style="margin-top:12px"></div>
   </div>
 
-  <div class="card operating-resource-admin" id="orRequirementAdminCard" style="margin-top:14px">
+  <div class="card operating-resource-admin or-workspace-panel" id="orRequirementAdminCard" data-or-panel="requirements" style="margin-top:14px">
     <div class="row space" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
       <div>
         <div class="ds-section-eyebrow">EINSATZBEDARF</div>
         <h3 style="margin:0">Leistung mit Betriebsmittel verknüpfen</h3>
         <div class="muted" style="margin-top:5px">Betriebsmittel können leistungsbezogen, einem Objekt fest zugeordnet oder als allgemeiner Bestand geführt werden.</div>
       </div>
-      <button type="button" onclick="orResetRequirementEditor()">Neue Zuordnung</button>
+      <div class="row" style="gap:8px"><button type="button" onclick="orResetRequirementEditor()">Neue Zuordnung</button><button type="button" onclick="orCloseWorkspacePanel('requirements')">Schließen</button></div>
     </div>
     <input id="orRequirementEditId" type="hidden">
     <div class="grid2" style="margin-top:12px">
@@ -8220,7 +8391,7 @@ WINTERDIENST RÄUMKARTE
     <div id="orRequirementList" style="margin-top:12px"></div>
   </div>
 
-  <div class="card" style="margin-top:14px">
+  <div class="card" style="margin-top:14px" id="orInventoryCard">
     <div class="row space" style="gap:10px;align-items:end;flex-wrap:wrap">
       <div>
         <h3 style="margin:0">Bestand &amp; Standort</h3>
@@ -11024,7 +11195,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.32';
+const APP_VERSION='3.33';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -19924,7 +20095,7 @@ function orEditLocation(id){
   const vals={orLocationEditId:loc.id||'',orLocationName:loc.name||'',orLocationMasterType:loc.location_type||'warehouse',orLocationObjectId:loc.object_id||'',orLocationDetail:loc.location_detail||''};
   Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
   const b=document.getElementById('orLocationDeactivateBtn');if(b)b.classList.remove('hidden');
-  document.getElementById('orLocationAdminCard')?.scrollIntoView({behavior:'smooth',block:'start'});
+  orOpenWorkspacePanel('locations');
 }
 
 function orRenderLocations(){
@@ -20049,7 +20220,7 @@ function orEditRequirement(id){
   const rq=document.getElementById('orRequirementRequired');if(rq)rq.checked=r.required!==false;
   const b=document.getElementById('orRequirementDeactivateBtn');if(b)b.classList.remove('hidden');
   orRequirementScopeChanged();
-  document.getElementById('orRequirementAdminCard')?.scrollIntoView({behavior:'smooth',block:'start'});
+  orOpenWorkspacePanel('requirements');
 }
 
 function orRenderRequirements(){
@@ -20146,6 +20317,61 @@ function orUpdateTrackingUI(){
   }
 }
 
+
+function orWorkspacePanelElement(panel){
+  return panel==='asset'
+    ?document.getElementById('orAdminCard')
+    :panel==='locations'
+      ?document.getElementById('orLocationAdminCard')
+      :panel==='requirements'
+        ?document.getElementById('orRequirementAdminCard')
+        :null;
+}
+
+function orCloseAllWorkspacePanels(){
+  document.querySelectorAll('#operatingResources .or-workspace-panel').forEach(el=>el.classList.remove('is-open'));
+}
+
+function orOpenWorkspacePanel(panel,reset=false){
+  if(!operatingResourcesCanAdmin())return alert('Diese Verwaltung ist dem Mandanten-Admin vorbehalten.');
+  if(reset && panel==='asset')orResetEditor();
+  if(reset && panel==='locations')orResetLocationEditor();
+  if(reset && panel==='requirements')orResetRequirementEditor();
+  orCloseAllWorkspacePanels();
+  const el=orWorkspacePanelElement(panel);
+  if(!el)return;
+  el.classList.add('is-open');
+  requestAnimationFrame(()=>el.scrollIntoView({behavior:'smooth',block:'start'}));
+}
+
+function orCloseWorkspacePanel(panel){
+  orWorkspacePanelElement(panel)?.classList.remove('is-open');
+  document.getElementById('orInventoryCard')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function orInitWorkspace(){
+  const section=document.getElementById('operatingResources');
+  const inventory=document.getElementById('orInventoryCard');
+  const actions=document.getElementById('orWorkspaceActions');
+  const label=section?.querySelector('.or-workspace-main-label');
+  if(!section||!inventory||!actions||!label)return;
+
+  // Bestand ist die führende Arbeitsfläche: direkt hinter den Aktionsbuttons.
+  if(label.nextElementSibling!==inventory){
+    label.insertAdjacentElement('afterend',inventory);
+  }
+
+  // Schnellbuchung folgt direkt auf Bestand; Administrationspanels bleiben danach verborgen.
+  const movement=document.getElementById('orMovementCard');
+  if(movement && inventory.nextElementSibling!==movement){
+    inventory.insertAdjacentElement('afterend',movement);
+  }
+
+  document.querySelectorAll('#operatingResources .or-workspace-panel').forEach(el=>{
+    if(!el.classList.contains('is-open'))el.classList.remove('is-open');
+  });
+}
+
 function orResetEditor(){
   operatingResourcesState.selected=null;
   const vals={orEditId:'',orSavedLocationId:'',orName:'',orKind:'equipment',orCategory:'',orTrackingMode:'individual',orInventoryNumber:'',orSerialNumber:'',orManufacturer:'',orModel:'',orPurchaseDate:'',orAcquisitionCostNet:'',orQuantity:'1',orUnit:'',orStatus:'available',orLocationType:'warehouse',orObjectId:'',orLocationText:'',orNotes:'',orLabelNote:''};
@@ -20167,7 +20393,7 @@ function orEditResource(id){
   const title=document.getElementById('orEditorTitle');if(title)title.textContent='Betriebsmittel bearbeiten';
   const btn=document.getElementById('orDeactivateBtn');if(btn)btn.classList.remove('hidden');
   orUpdateTrackingUI();
-  document.getElementById('orAdminCard')?.scrollIntoView({behavior:'smooth',block:'start'});
+  orOpenWorkspacePanel('asset');
 }
 
 async function loadOperatingResources(){
@@ -20201,6 +20427,7 @@ async function loadOperatingResources(){
     set('orKpiLinked',(operatingResourcesState.requirements||[]).filter(x=>x.active!==false).length);
     set('orKpiIssue',active.filter(x=>['maintenance','defective'].includes(x.status)).length);
     orRenderList();
+    orInitWorkspace();
     orHandleAssetDeepLink();
   }catch(e){
     console.error('Betriebsmittel konnten nicht geladen werden',e);
@@ -20246,7 +20473,7 @@ function orStartRequirementForResource(resourceId){
   const u=document.getElementById('orRequirementUnit');
   if(u&&resource)u.value=resource.unit||(resource.tracking_mode==='individual'?'Stk.':'');
   orRequirementScopeChanged();
-  document.getElementById('orRequirementAdminCard')?.scrollIntoView({behavior:'smooth',block:'start'});
+  orOpenWorkspacePanel('requirements');
   setTimeout(()=>document.getElementById('orRequirementScopeType')?.focus(),350);
 }
 
