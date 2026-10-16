@@ -2,6 +2,15 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.40 · Mindestbestand & Nachbestellampel
+     ADDITIV:
+     - kritischer Bestand, Mindestbestand und Sollbestand je Mengen-/Verbrauchsartikel.
+     - Ampellogik: Grün = ausreichend, Gelb = Mindestbestand erreicht/unterschritten,
+       Rot = kritischer Bestand erreicht/unterschritten.
+     - Nachbestellmenge = Sollbestand minus Istbestand, sobald Gelb/Rot.
+     - Filter nach Bestandsampel und KPI „Nachbestellen“.
+     - Einzelassets bleiben unverändert.
+     BACKEND: additive Spalten + save_operating_resource_v5. -->
 <!-- RELEASE 3.39 · Header-Icon Objekt + Haken
      UX:
      - generisches Haus-Symbol durch Variante 1 ersetzt.
@@ -351,7 +360,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.39</title>
+<title>Duschl Service – Objektplattform v3.40</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -2670,6 +2679,58 @@ body.platform-menu-mode #organizationList{
     width:26px;
     height:26px;
   }
+}
+
+
+/* v3.40 · Bestandsampel */
+#operatingResources .or-stock-threshold-title{
+  font-size:12px;
+  font-weight:850;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:8px;
+}
+#operatingResources .or-reorder-status{
+  display:flex;
+  align-items:flex-start;
+  gap:9px;
+  margin-top:8px;
+  padding:9px 10px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:rgba(255,255,255,.018);
+}
+#operatingResources .or-reorder-dot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  flex:0 0 10px;
+  margin-top:4px;
+  background:#7f8b94;
+}
+#operatingResources .or-reorder-status.green{
+  border-color:rgba(83,182,122,.35);
+  background:rgba(83,182,122,.07);
+}
+#operatingResources .or-reorder-status.green .or-reorder-dot{background:#53B67A}
+#operatingResources .or-reorder-status.yellow{
+  border-color:rgba(230,184,74,.42);
+  background:rgba(230,184,74,.08);
+}
+#operatingResources .or-reorder-status.yellow .or-reorder-dot{background:#E6B84A}
+#operatingResources .or-reorder-status.red{
+  border-color:rgba(233,109,115,.45);
+  background:rgba(233,109,115,.08);
+}
+#operatingResources .or-reorder-status.red .or-reorder-dot{background:#E96D73}
+#operatingResources .or-reorder-status.unconfigured{
+  border-style:dashed;
+  opacity:.82;
+}
+#operatingResources .or-reorder-qty{
+  margin-top:4px;
+  font-size:12px;
 }
 
 </style>
@@ -8309,6 +8370,11 @@ WINTERDIENST RÄUMKARTE
       <div class="big" id="orKpiIssue">—</div>
       <div class="muted" style="font-size:11px;margin-top:2px">Handlungsbedarf</div>
     </div>
+    <div class="card">
+      <div class="muted">Nachbestellen</div>
+      <div class="big" id="orKpiReorder">—</div>
+      <div class="muted" style="font-size:11px;margin-top:2px">Gelb / Rot</div>
+    </div>
   </div>
   <div class="card or-process-hint" style="margin-top:12px">
     <strong>Inventarprinzip:</strong>
@@ -8402,6 +8468,24 @@ WINTERDIENST RÄUMKARTE
           <input id="orQuantity" type="number" min="0" step="0.1" value="1">
           <span id="orQuantityHint" class="muted" style="font-size:11px"></span>
         </label>
+      </div>
+
+      <div id="orStockThresholdFields" class="hidden" style="margin-top:12px">
+        <div class="or-stock-threshold-title">Bestandssteuerung</div>
+        <div class="grid3">
+          <label>Kritischer Bestand
+            <input id="orCriticalStock" type="number" min="0" step="0.1" placeholder="0">
+            <span class="muted" style="font-size:11px">Rot ab diesem Bestand oder darunter.</span>
+          </label>
+          <label>Mindestbestand
+            <input id="orMinimumStock" type="number" min="0" step="0.1" placeholder="z. B. 3">
+            <span class="muted" style="font-size:11px">Gelb ab diesem Bestand oder darunter.</span>
+          </label>
+          <label>Sollbestand
+            <input id="orTargetStock" type="number" min="0" step="0.1" placeholder="z. B. 8">
+            <span class="muted" style="font-size:11px">Zielbestand nach Nachbestellung.</span>
+          </label>
+        </div>
       </div>
     </div>
 
@@ -8557,6 +8641,13 @@ WINTERDIENST RÄUMKARTE
           <option value="maintenance">Wartung</option>
           <option value="defective">Defekt</option>
           <option value="out_of_service">Außer Betrieb</option>
+        </select>
+        <select id="orReorderFilter" onchange="orRenderList()" style="min-width:150px">
+          <option value="">Alle Bestandsampeln</option>
+          <option value="green">Grün – ausreichend</option>
+          <option value="yellow">Gelb – Mindestbestand</option>
+          <option value="red">Rot – kritisch</option>
+          <option value="unconfigured">Nicht konfiguriert</option>
         </select>
       </div>
     </div>
@@ -11393,7 +11484,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.39';
+const APP_VERSION='3.40';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -20589,6 +20680,7 @@ function orUpdateTrackingUI(){
   const q=document.getElementById('orQuantity');
   const unit=document.getElementById('orUnit');
   const hint=document.getElementById('orQuantityHint');
+  const threshold=document.getElementById('orStockThresholdFields');
   const isQuantity=mode==='quantity';
 
   if(q){
@@ -20606,6 +20698,7 @@ function orUpdateTrackingUI(){
       ?'Gesamtbestand wird automatisch aus den Lagerorten berechnet. Bestände über „Standort / Bestand ändern“ buchen.'
       :'';
   }
+  threshold?.classList.toggle('hidden',!isQuantity);
 }
 
 
@@ -20665,7 +20758,7 @@ function orInitWorkspace(){
 
 function orResetEditor(){
   operatingResourcesState.selected=null;
-  const vals={orEditId:'',orSavedLocationId:'',orName:'',orKind:'equipment',orCategory:'',orTrackingMode:'individual',orInventoryNumber:'',orSerialNumber:'',orManufacturer:'',orModel:'',orPurchaseDate:'',orAcquisitionCostNet:'',orQuantity:'1',orUnit:'',orStatus:'available',orLocationType:'warehouse',orObjectId:'',orLocationText:'',orNotes:'',orLabelNote:''};
+  const vals={orEditId:'',orSavedLocationId:'',orName:'',orKind:'equipment',orCategory:'',orTrackingMode:'individual',orInventoryNumber:'',orSerialNumber:'',orManufacturer:'',orModel:'',orPurchaseDate:'',orAcquisitionCostNet:'',orQuantity:'1',orUnit:'',orStatus:'available',orLocationType:'warehouse',orObjectId:'',orLocationText:'',orNotes:'',orLabelNote:'',orCriticalStock:'0',orMinimumStock:'',orTargetStock:''};
   Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
   const pr=document.getElementById('orPlanningRelevant');if(pr)pr.checked=true;
   const title=document.getElementById('orEditorTitle');if(title)title.textContent='Betriebsmittel anlegen';
@@ -20680,7 +20773,7 @@ function orEditResource(id){
   if(!r)return;
   operatingResourcesState.selected=r;
   const quantityMode=r.tracking_mode==='quantity';
-  const vals={orEditId:r.id||'',orSavedLocationId:quantityMode?'':(r.current_location_id||''),orName:r.name||'',orKind:r.resource_kind||'equipment',orCategory:r.category||'',orTrackingMode:r.tracking_mode||'individual',orInventoryNumber:r.inventory_number||'',orSerialNumber:r.serial_number||'',orManufacturer:r.manufacturer||'',orModel:r.model||'',orPurchaseDate:r.purchase_date||'',orAcquisitionCostNet:r.acquisition_cost_net??'',orQuantity:r.quantity??0,orUnit:r.unit||'',orStatus:r.status||'available',orLocationType:quantityMode?'warehouse':(r.current_location_type||'free_text'),orObjectId:quantityMode?'':(r.current_object_id||''),orLocationText:quantityMode?'':(r.current_location_text||''),orNotes:r.notes||'',orLabelNote:r.label_note||''};
+  const vals={orEditId:r.id||'',orSavedLocationId:quantityMode?'':(r.current_location_id||''),orName:r.name||'',orKind:r.resource_kind||'equipment',orCategory:r.category||'',orTrackingMode:r.tracking_mode||'individual',orInventoryNumber:r.inventory_number||'',orSerialNumber:r.serial_number||'',orManufacturer:r.manufacturer||'',orModel:r.model||'',orPurchaseDate:r.purchase_date||'',orAcquisitionCostNet:r.acquisition_cost_net??'',orQuantity:r.quantity??0,orUnit:r.unit||'',orStatus:r.status||'available',orLocationType:quantityMode?'warehouse':(r.current_location_type||'free_text'),orObjectId:quantityMode?'':(r.current_object_id||''),orLocationText:quantityMode?'':(r.current_location_text||''),orNotes:r.notes||'',orLabelNote:r.label_note||'',orCriticalStock:r.critical_stock??0,orMinimumStock:r.minimum_stock??'',orTargetStock:r.target_stock??''};
   Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
   const pr=document.getElementById('orPlanningRelevant');if(pr)pr.checked=r.planning_relevant!==false;
   const title=document.getElementById('orEditorTitle');if(title)title.textContent='Betriebsmittel bearbeiten';
@@ -20727,6 +20820,10 @@ async function loadOperatingResources(){
     set('orKpiConsumables',active.filter(x=>x.tracking_mode==='quantity').length);
     set('orKpiLocations',(operatingResourcesState.locations||[]).filter(x=>x.active!==false).length);
     set('orKpiIssue',active.filter(x=>['maintenance','defective'].includes(x.status)).length);
+    set('orKpiReorder',active.filter(x=>{
+      const m=orReorderMeta(x);
+      return m.state==='yellow'||m.state==='red';
+    }).length);
     orRenderList();
     orInitWorkspace();
     orHandleAssetDeepLink();
@@ -20778,11 +20875,73 @@ function orStartRequirementForResource(resourceId){
   setTimeout(()=>document.getElementById('orRequirementScopeType')?.focus(),350);
 }
 
+
+function orReorderMeta(resource){
+  if(resource?.tracking_mode!=='quantity'){
+    return {state:'not_applicable',label:'',reorderQuantity:0,configured:false};
+  }
+
+  const current=Number(resource.quantity||0);
+  const critical=resource.critical_stock===null||resource.critical_stock===undefined||resource.critical_stock===''?0:Number(resource.critical_stock);
+  const minimum=resource.minimum_stock===null||resource.minimum_stock===undefined||resource.minimum_stock===''?null:Number(resource.minimum_stock);
+  const target=resource.target_stock===null||resource.target_stock===undefined||resource.target_stock===''?null:Number(resource.target_stock);
+  const configured=minimum!==null || target!==null;
+
+  if(!configured){
+    return {state:'unconfigured',label:'Bestandsgrenzen nicht konfiguriert',reorderQuantity:0,configured:false,current,critical,minimum,target};
+  }
+
+  let state='green';
+  let label='Bestand ausreichend';
+
+  if(current<=critical){
+    state='red';
+    label='Kritischer Bestand';
+  }else if(minimum!==null && current<=minimum){
+    state='yellow';
+    label='Mindestbestand erreicht';
+  }
+
+  const reorderQuantity=(state==='yellow'||state==='red') && target!==null
+    ?Math.max(target-current,0)
+    :0;
+
+  return {state,label,reorderQuantity,configured:true,current,critical,minimum,target};
+}
+
+function orReorderHtml(resource){
+  if(resource?.tracking_mode!=='quantity')return '';
+  const m=orReorderMeta(resource);
+  const unit=resource.unit?` ${esc(resource.unit)}`:'';
+
+  if(m.state==='unconfigured'){
+    return `<div class="or-reorder-status unconfigured">
+      <span class="or-reorder-dot"></span>
+      <div><strong>Bestandssteuerung nicht konfiguriert</strong><div class="muted">Mindest- und Sollbestand in den Stammdaten hinterlegen.</div></div>
+    </div>`;
+  }
+
+  const detail=[
+    m.minimum!==null?`Mindestbestand ${Number(m.minimum).toLocaleString('de-DE',{maximumFractionDigits:3})}${unit}`:'',
+    m.target!==null?`Sollbestand ${Number(m.target).toLocaleString('de-DE',{maximumFractionDigits:3})}${unit}`:''
+  ].filter(Boolean).join(' · ');
+
+  return `<div class="or-reorder-status ${m.state}">
+    <span class="or-reorder-dot"></span>
+    <div style="min-width:0;flex:1">
+      <strong>${esc(m.label)}</strong>
+      ${detail?`<div class="muted">${detail}</div>`:''}
+      ${m.reorderQuantity>0?`<div class="or-reorder-qty">Nachbestellbedarf: <strong>${Number(m.reorderQuantity).toLocaleString('de-DE',{maximumFractionDigits:3})}${unit}</strong></div>`:''}
+    </div>
+  </div>`;
+}
+
 function orRenderList(){
   const host=document.getElementById('orResourceList');if(!host)return;
   const q=String(document.getElementById('orSearch')?.value||'').trim().toLowerCase();
   const sf=String(document.getElementById('orStatusFilter')?.value||'');
   const lf=String(document.getElementById('orLifecycleFilter')?.value||'active');
+  const rf=String(document.getElementById('orReorderFilter')?.value||'');
 
   const rows=(operatingResourcesState.resources||[]).filter(r=>{
     const deleted=!!r.deleted_at;
@@ -20792,6 +20951,10 @@ function orRenderList(){
     if(lf==='inactive' && !inactive)return false;
     if(lf==='deleted' && !deleted)return false;
     if(sf&&r.status!==sf)return false;
+    if(rf){
+      const rm=orReorderMeta(r);
+      if(rm.state!==rf)return false;
+    }
     if(!q)return true;
     return [r.name,r.inventory_number,r.serial_number,r.manufacturer,r.model,r.category,r.current_location_text,orObjectName(r.current_object_id),r.notes].some(v=>String(v||'').toLowerCase().includes(q));
   });
@@ -20834,6 +20997,7 @@ function orRenderList(){
             :esc(savedLoc?orLocationLabel(savedLoc):orFormatLocation(r))
         }</div>
         ${r.tracking_mode==='quantity'?orStockOverviewHtml(r):''}
+        ${r.tracking_mode==='quantity'?orReorderHtml(r):''}
         ${deletedMeta}
         ${r.notes?`<div class="muted" style="margin-top:4px">${esc(r.notes)}</div>`:''}
         ${!deleted?orResourceUsageHtml(r):''}
@@ -20855,7 +21019,7 @@ async function orSaveResource(){
   if(!name)return alert('Bezeichnung eingeben.');
   const mode=document.getElementById('orTrackingMode')?.value||'individual';
   try{
-    const saved=await cloudRequest('rpc/save_operating_resource_v4',{method:'POST',body:JSON.stringify({
+    const saved=await cloudRequest('rpc/save_operating_resource_v5',{method:'POST',body:JSON.stringify({
       p_organization_id:currentOrganizationId(),
       p_resource_id:document.getElementById('orEditId')?.value||null,
       p_name:name,
@@ -20876,7 +21040,10 @@ async function orSaveResource(){
       p_model:String(document.getElementById('orModel')?.value||'').trim()||null,
       p_purchase_date:document.getElementById('orPurchaseDate')?.value||null,
       p_acquisition_cost_net:String(document.getElementById('orAcquisitionCostNet')?.value||'').trim()===''?null:Number(document.getElementById('orAcquisitionCostNet')?.value),
-      p_label_note:String(document.getElementById('orLabelNote')?.value||'').trim()||null
+      p_label_note:String(document.getElementById('orLabelNote')?.value||'').trim()||null,
+      p_critical_stock:mode==='quantity'?(String(document.getElementById('orCriticalStock')?.value||'').trim()===''?0:Number(document.getElementById('orCriticalStock')?.value)):null,
+      p_minimum_stock:mode==='quantity'?(String(document.getElementById('orMinimumStock')?.value||'').trim()===''?null:Number(document.getElementById('orMinimumStock')?.value)):null,
+      p_target_stock:mode==='quantity'?(String(document.getElementById('orTargetStock')?.value||'').trim()===''?null:Number(document.getElementById('orTargetStock')?.value)):null
     })});
     const savedRow=Array.isArray(saved)?saved[0]:saved;
     orResetEditor();
