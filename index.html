@@ -2,6 +2,12 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.37 · Betriebsmittel Ladefehler-Fix
+     FIX:
+     - orRenderLocations verwendete die nicht existente Funktion orLocationLabel().
+     - Aufruf auf die vorhandene zentrale Funktion orLocationLabel() vereinheitlicht.
+     - Dadurch bricht loadOperatingResources() nicht mehr beim Rendern der Standorte ab.
+     BACKEND: unverändert. -->
 <!-- RELEASE 3.36 · Betriebsmittel KPI-Logik
      UX:
      - KPI-Kopfleiste auf steuerungsrelevante Kennzahlen umgestellt.
@@ -331,7 +337,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.36</title>
+<title>Duschl Service – Objektplattform v3.37</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -11343,7 +11349,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.36';
+const APP_VERSION='3.37';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -20292,7 +20298,7 @@ function orRenderLocations(){
   const host=document.getElementById('orLocationList');if(!host)return;
   const rows=(operatingResourcesState.locations||[]).filter(x=>x.active!==false);
   if(!rows.length){host.innerHTML='<div class="muted">Noch keine gespeicherten Standorte. Freitext kann trotzdem genutzt werden.</div>';return;}
-  host.innerHTML=rows.map(loc=>`<div class="row space" style="padding:8px 0;border-bottom:1px solid var(--line,#ddd);gap:10px;align-items:flex-start;flex-wrap:wrap"><div style="min-width:0;flex:1"><strong>${esc(loc.name||'Standort')}</strong><div class="muted">${esc(orLocationTypeLabel(loc.location_type))}${loc.object_id?' · '+esc(orObjectName(loc.object_id)):''}${loc.location_detail?' · '+esc(loc.location_detail):''}</div></div><button type="button" onclick="orEditLocation('${esc(loc.id)}')">Bearbeiten</button></div>`).join('');
+  host.innerHTML=rows.map(loc=>`<div class="row space" style="padding:8px 0;border-bottom:1px solid var(--line,#ddd);gap:10px;align-items:flex-start;flex-wrap:wrap"><div style="min-width:0;flex:1"><strong>${esc(loc.name||'Standort')}</strong><div class="muted">${esc(orLocationLabel(loc.location_type))}${loc.object_id?' · '+esc(orObjectName(loc.object_id)):''}${loc.location_detail?' · '+esc(loc.location_detail):''}</div></div><button type="button" onclick="orEditLocation('${esc(loc.id)}')">Bearbeiten</button></div>`).join('');
 }
 
 async function orSaveLocation(){
