@@ -2,6 +2,14 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.36 · Betriebsmittel KPI-Logik
+     UX:
+     - KPI-Kopfleiste auf steuerungsrelevante Kennzahlen umgestellt.
+     - Assets = aktive Einzelbetriebsmittel.
+     - Verbrauchsartikel = aktive Mengenbestände.
+     - Lagerorte = aktive strukturierte Standorte.
+     - Wartung / Defekt = aktive Assets mit technischem Handlungsbedarf.
+     BACKEND: unverändert. -->
 <!-- RELEASE 3.35 · Betriebsmittel Mehrlagerbestand
      ADDITIV:
      - Einzelassets behalten exakt die bestehende Standortlogik.
@@ -323,7 +331,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.35</title>
+<title>Duschl Service – Objektplattform v3.36</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -8232,10 +8240,26 @@ WINTERDIENST RÄUMKARTE
   </div>
 
   <div class="or-inventory-kpis">
-    <div class="card"><div class="muted">Aktiv</div><div class="big" id="orKpiActive">—</div></div>
-    <div class="card"><div class="muted">Verfügbar</div><div class="big" id="orKpiAvailable">—</div></div>
-    <div class="card"><div class="muted">Zuordnungen</div><div class="big" id="orKpiLinked">—</div></div>
-    <div class="card"><div class="muted">Wartung/Defekt</div><div class="big" id="orKpiIssue">—</div></div>
+    <div class="card">
+      <div class="muted">Assets</div>
+      <div class="big" id="orKpiAssets">—</div>
+      <div class="muted" style="font-size:11px;margin-top:2px">Einzelbetriebsmittel</div>
+    </div>
+    <div class="card">
+      <div class="muted">Verbrauchsartikel</div>
+      <div class="big" id="orKpiConsumables">—</div>
+      <div class="muted" style="font-size:11px;margin-top:2px">Mengenbestände</div>
+    </div>
+    <div class="card">
+      <div class="muted">Lagerorte</div>
+      <div class="big" id="orKpiLocations">—</div>
+      <div class="muted" style="font-size:11px;margin-top:2px">aktive Standorte</div>
+    </div>
+    <div class="card">
+      <div class="muted">Wartung / Defekt</div>
+      <div class="big" id="orKpiIssue">—</div>
+      <div class="muted" style="font-size:11px;margin-top:2px">Handlungsbedarf</div>
+    </div>
   </div>
   <div class="card or-process-hint" style="margin-top:12px">
     <strong>Inventarprinzip:</strong>
@@ -11319,7 +11343,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.35';
+const APP_VERSION='3.36';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -20597,9 +20621,9 @@ async function loadOperatingResources(){
     orRenderRequirements();
     const active=operatingResourcesState.resources.filter(x=>x.active!==false&&!x.deleted_at);
     const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=String(v);};
-    set('orKpiActive',active.length);
-    set('orKpiAvailable',active.filter(x=>x.status==='available').length);
-    set('orKpiLinked',(operatingResourcesState.requirements||[]).filter(x=>x.active!==false).length);
+    set('orKpiAssets',active.filter(x=>x.tracking_mode!=='quantity').length);
+    set('orKpiConsumables',active.filter(x=>x.tracking_mode==='quantity').length);
+    set('orKpiLocations',(operatingResourcesState.locations||[]).filter(x=>x.active!==false).length);
     set('orKpiIssue',active.filter(x=>['maintenance','defective'].includes(x.status)).length);
     orRenderList();
     orInitWorkspace();
