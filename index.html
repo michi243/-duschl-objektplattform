@@ -2,6 +2,15 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.41 · Mobile Compact UI Betriebsmittel
+     UX:
+     - kompakter Mobile-Header; Benutzertext auf kleinen Displays nur als Avatar.
+     - KPI-Bereich als 2-Spalten-Raster statt horizontal abgeschnittener Karten.
+     - Betriebsmittelkarten deutlich verdichtet.
+     - doppelte Einsatzbezüge werden in der Darstellung zusammengeführt.
+     - Mobile Aktionen: primär Bestand/Standort, QR kompakt, weitere Stammdaten über ⋯.
+     - Desktop bleibt funktional unverändert.
+     BACKEND: keine SQL-Änderung. -->
 <!-- RELEASE 3.40 · Mindestbestand & Nachbestellampel
      ADDITIV:
      - kritischer Bestand, Mindestbestand und Sollbestand je Mengen-/Verbrauchsartikel.
@@ -360,7 +369,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.40</title>
+<title>Duschl Service – Objektplattform v3.41</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -6469,6 +6478,330 @@ body.role-context-loading #authGate:not(.hidden){
 }
 </style>
 
+<style id="mobile-compact-v341">
+
+/* ==========================================================
+   v3.41 · MOBILE COMPACT UI · Betriebsmittel
+   ========================================================== */
+.or-process-hint-mobile{display:none}
+.or-resource-card{margin:0 0 10px!important;padding:12px!important}
+.or-resource-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.or-resource-title-wrap{display:flex;gap:7px;align-items:center;flex-wrap:wrap;min-width:0}
+.or-resource-title{min-width:0;overflow-wrap:anywhere}
+.or-resource-head-badges{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.or-resource-meta,.or-resource-submeta{color:var(--muted);margin-top:4px}
+.or-resource-location{margin-top:6px}
+.or-resource-notes{color:var(--muted);margin-top:4px}
+.or-resource-actions-desktop{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.or-resource-actions-desktop button{flex:1 1 120px}
+.or-resource-actions-mobile{display:none}
+
+@media(max-width:680px){
+  /* Header */
+  .app-topbar{
+    height:54px!important;
+    padding:6px 8px!important;
+    gap:7px!important;
+  }
+  .menu-toggle,
+  .ds-global-back{
+    width:38px!important;
+    height:38px!important;
+    min-width:38px!important;
+    padding:7px!important;
+    border-radius:10px!important;
+  }
+  .menu-toggle span{width:20px!important}
+  .app-brand{
+    gap:7px!important;
+    flex:1 1 auto!important;
+    min-width:0!important;
+  }
+  .app-brand-mark{
+    width:32px!important;
+    height:32px!important;
+    min-width:32px!important;
+    border-radius:9px!important;
+  }
+  .app-brand-mark.ds-brand-mark-v339 svg{
+    width:23px!important;
+    height:23px!important;
+  }
+  .app-brand h1{
+    font-size:14px!important;
+    letter-spacing:.04em!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    white-space:nowrap!important;
+    max-width:none!important;
+  }
+  .app-brand small{display:none!important}
+  .topbar-meta{margin-left:0!important;flex:0 0 auto!important}
+  .topbar-user{
+    width:38px!important;
+    max-width:38px!important;
+    height:38px!important;
+    padding:3px!important;
+    border-radius:12px!important;
+    justify-content:center!important;
+  }
+  .topbar-user-avatar{
+    width:30px!important;
+    height:30px!important;
+    flex-basis:30px!important;
+    font-size:11px!important;
+  }
+  .topbar-user-copy{display:none!important}
+
+  /* Bereichskopf */
+  #operatingResources>.row.space{
+    gap:8px!important;
+    align-items:center!important;
+  }
+  #operatingResources>.row.space>div:first-child{
+    min-width:0!important;
+    flex:1 1 auto!important;
+  }
+  #operatingResources>.row.space h2{
+    font-size:21px!important;
+  }
+  #operatingResources>.row.space .muted{
+    font-size:12px!important;
+    line-height:1.35!important;
+  }
+  #operatingResources>.row.space>button{
+    width:auto!important;
+    min-height:38px!important;
+    padding:7px 10px!important;
+    font-size:13px!important;
+    flex:0 0 auto!important;
+  }
+
+  /* KPI – echtes 2×n Raster statt horizontaler Scrollleiste */
+  #operatingResources .or-inventory-kpis{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:8px!important;
+    overflow:visible!important;
+    margin-top:12px!important;
+  }
+  #operatingResources .or-inventory-kpis>.card{
+    min-width:0!important;
+    width:auto!important;
+    min-height:88px!important;
+    padding:10px 11px!important;
+    border-radius:12px!important;
+  }
+  #operatingResources .or-inventory-kpis>.card:nth-child(5){
+    grid-column:1 / -1!important;
+    min-height:72px!important;
+  }
+  #operatingResources .or-inventory-kpis>.card>.muted:first-child{
+    font-size:12px!important;
+    line-height:1.15!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere!important;
+  }
+  #operatingResources .or-inventory-kpis .big{
+    font-size:27px!important;
+    line-height:1!important;
+    margin-top:5px!important;
+  }
+  #operatingResources .or-inventory-kpis>.card>.muted:last-child{
+    font-size:10px!important;
+    line-height:1.15!important;
+  }
+
+  /* Inventarhinweis kürzen */
+  .or-process-hint{padding:9px 11px!important;font-size:12px!important}
+  .or-process-hint-desktop{display:none!important}
+  .or-process-hint-mobile{display:block!important}
+
+  /* Workspace-Aktionen kompakter */
+  #operatingResources .or-workspace-actions{
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    gap:7px!important;
+  }
+  #operatingResources .or-workspace-actions button{
+    min-height:40px!important;
+    padding:8px!important;
+    font-size:12px!important;
+  }
+  #operatingResources .or-workspace-actions button:first-child{
+    grid-column:1 / -1!important;
+  }
+
+  /* Filter untereinander ohne horizontales Abschneiden */
+  #orInventoryCard>.row.space{
+    display:block!important;
+  }
+  #orInventoryCard>.row.space>.row{
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    gap:7px!important;
+    margin-top:10px!important;
+  }
+  #orInventoryCard #orSearch{
+    grid-column:1 / -1!important;
+    min-width:0!important;
+  }
+  #orInventoryCard select{
+    min-width:0!important;
+    width:100%!important;
+  }
+
+  /* Betriebsmittelkarten */
+  #orResourceList{margin-top:9px!important}
+  #orResourceList .or-resource-card{
+    padding:11px!important;
+    margin-bottom:8px!important;
+    border-radius:13px!important;
+  }
+  #orResourceList .or-resource-head{
+    gap:7px!important;
+  }
+  #orResourceList .or-resource-title{
+    font-size:16px!important;
+    line-height:1.2!important;
+  }
+  #orResourceList .or-resource-head-badges{
+    gap:4px!important;
+    max-width:46%!important;
+  }
+  #orResourceList .badge{
+    font-size:11px!important;
+    padding:3px 7px!important;
+  }
+  #orResourceList .or-category-badge{
+    display:none!important;
+  }
+  #orResourceList .or-resource-meta{
+    font-size:12px!important;
+    margin-top:3px!important;
+  }
+  #orResourceList .or-resource-submeta{
+    font-size:11px!important;
+    margin-top:2px!important;
+  }
+  #orResourceList .or-resource-location{
+    font-size:13px!important;
+    margin-top:4px!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+
+  /* Einsatzbezug als kompakte Zeile */
+  #orResourceList .or-resource-usage{
+    margin-top:7px!important;
+    padding:7px 8px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:8px!important;
+    border-radius:10px!important;
+  }
+  #orResourceList .or-resource-usage-main{
+    min-width:0!important;
+    display:flex!important;
+    align-items:center!important;
+    gap:7px!important;
+    flex:1 1 auto!important;
+  }
+  #orResourceList .or-resource-usage-main>strong{
+    font-size:11px!important;
+    white-space:nowrap!important;
+  }
+  #orResourceList .or-resource-service-tags{
+    display:flex!important;
+    gap:4px!important;
+    min-width:0!important;
+    overflow:hidden!important;
+  }
+  #orResourceList .or-resource-service-tags .badge{
+    max-width:145px!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+  #orResourceList .or-resource-assign-btn{
+    min-height:30px!important;
+    padding:5px 7px!important;
+    font-size:0!important;
+    width:32px!important;
+    flex:0 0 32px!important;
+  }
+  #orResourceList .or-resource-assign-btn::after{
+    content:"+";
+    font-size:18px!important;
+    line-height:1!important;
+  }
+
+  /* Aktionen */
+  #orResourceList .or-resource-actions-desktop{display:none!important}
+  #orResourceList .or-resource-actions-mobile{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) 56px 42px!important;
+    gap:6px!important;
+    margin-top:8px!important;
+    position:relative!important;
+  }
+  #orResourceList .or-resource-actions-mobile button{
+    min-height:38px!important;
+    padding:7px 9px!important;
+    font-size:12px!important;
+    font-weight:800!important;
+  }
+  #orResourceList .or-mobile-primary{
+    min-width:0!important;
+  }
+  #orResourceList .or-mobile-qr,
+  #orResourceList .or-mobile-more-btn{
+    padding:7px 5px!important;
+  }
+  #orResourceList .or-mobile-more{
+    position:relative!important;
+  }
+  #orResourceList .or-mobile-more-btn{
+    width:100%!important;
+    font-size:20px!important;
+    line-height:1!important;
+  }
+  #orResourceList .or-mobile-more-menu{
+    display:none;
+    position:absolute;
+    right:0;
+    bottom:44px;
+    min-width:150px;
+    z-index:20;
+    padding:6px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    background:#0b1c29;
+    box-shadow:0 12px 28px rgba(0,0,0,.45);
+  }
+  #orResourceList .or-mobile-more-menu.open{display:grid!important;gap:5px!important}
+  #orResourceList .or-mobile-more-menu button{
+    width:100%!important;
+    text-align:left!important;
+    min-height:36px!important;
+  }
+
+  /* Mengenartikel-Ampel ebenfalls kompakt */
+  #orResourceList .or-reorder-status{
+    padding:7px 8px!important;
+    margin-top:6px!important;
+    font-size:11px!important;
+  }
+}
+
+@media(min-width:681px){
+  .or-resource-actions-desktop{display:flex!important}
+  .or-resource-actions-mobile{display:none!important}
+}
+
+</style>
 </head>
 <body class="role-context-loading">
 <div id="roleContextLoader" aria-live="polite" aria-busy="true">
@@ -8377,9 +8710,14 @@ WINTERDIENST RÄUMKARTE
     </div>
   </div>
   <div class="card or-process-hint" style="margin-top:12px">
-    <strong>Inventarprinzip:</strong>
-    Einzelassets erhalten automatisch eine <strong>BM-Nummer</strong> und einen eigenen QR-Code. Mengen-/Verbrauchsartikel erhalten eine <strong>VM-Nummer</strong>; der QR gehört an Lagerplatz oder Gebindegruppe.
-    Standortänderungen und Mengenstände bleiben historisiert. Die bestehende Einsatzprüfung bleibt unverändert.
+    <div class="or-process-hint-desktop">
+      <strong>Inventarprinzip:</strong>
+      Einzelassets erhalten automatisch eine <strong>BM-Nummer</strong> und einen eigenen QR-Code. Mengen-/Verbrauchsartikel erhalten eine <strong>VM-Nummer</strong>; der QR gehört an Lagerplatz oder Gebindegruppe.
+      Standortänderungen und Mengenstände bleiben historisiert. Die bestehende Einsatzprüfung bleibt unverändert.
+    </div>
+    <div class="or-process-hint-mobile">
+      <strong>Inventar:</strong> BM = Einzelasset · VM = Verbrauchsartikel
+    </div>
   </div>
 
   <div class="or-workspace-actions" id="orWorkspaceActions">
@@ -11484,7 +11822,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.40';
+const APP_VERSION='3.41';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -20851,11 +21189,12 @@ function orResourceUsageHtml(resource){
       ${operatingResourcesCanAdmin()?`<button type="button" onclick="orStartRequirementForResource('${esc(resource?.id||'')}')">Einsatzart zuordnen</button>`:''}
     </div>`;
   }
+  const labels=[...new Set(links.map(r=>String(orRequirementContextLabel(r)||'').trim()).filter(Boolean))];
   return `<div class="or-resource-usage">
-    <div><strong>Einsatzbezug</strong><div class="or-resource-service-tags">${
-      links.map(r=>`<span class="badge">${esc(orRequirementContextLabel(r))}</span>`).join('')
+    <div class="or-resource-usage-main"><strong>Einsatzbezug</strong><div class="or-resource-service-tags">${
+      labels.map(label=>`<span class="badge">${esc(label)}</span>`).join('')
     }</div></div>
-    ${operatingResourcesCanAdmin()?`<button type="button" onclick="orStartRequirementForResource('${esc(resource?.id||'')}')">Zuordnung ergänzen</button>`:''}
+    ${operatingResourcesCanAdmin()?`<button type="button" class="or-resource-assign-btn" onclick="orStartRequirementForResource('${esc(resource?.id||'')}')">Zuordnung ergänzen</button>`:''}
   </div>`;
 }
 function orStartRequirementForResource(resourceId){
@@ -20936,6 +21275,13 @@ function orReorderHtml(resource){
   </div>`;
 }
 
+function orToggleMobileResourceActions(resourceId){
+  const el=document.getElementById(`orMobileActions-${resourceId}`);
+  if(!el)return;
+  document.querySelectorAll('.or-mobile-more-menu.open').forEach(x=>{if(x!==el)x.classList.remove('open');});
+  el.classList.toggle('open');
+}
+
 function orRenderList(){
   const host=document.getElementById('orResourceList');if(!host)return;
   const q=String(document.getElementById('orSearch')?.value||'').trim().toLowerCase();
@@ -20981,33 +21327,56 @@ function orRenderList(){
       ?`<div class="muted" style="margin-top:5px">Gelöscht: ${esc(new Date(r.deleted_at).toLocaleString('de-DE'))}${r.delete_reason?` · ${esc(r.delete_reason)}`:''}</div>`
       :'';
 
-    return `<div class="card ${deleted?'or-resource-deleted':inactive?'or-resource-inactive':''}" style="margin:0 0 10px;padding:12px">
-      <div style="min-width:0">
-        <div class="row" style="gap:7px;flex-wrap:wrap;align-items:center">
-          <strong style="min-width:0;overflow-wrap:anywhere">${esc(r.name||'Betriebsmittel')}</strong>
-          ${lifecycleBadge}
-          <span class="badge${issue?' bad':''}">${esc(orStatusLabel(r.status))}</span>
-          ${r.category?`<span class="badge">${esc(r.category)}</span>`:''}
+    return `<div class="card or-resource-card ${deleted?'or-resource-deleted':inactive?'or-resource-inactive':''}">
+      <div class="or-resource-content">
+        <div class="or-resource-head">
+          <div class="or-resource-title-wrap">
+            <strong class="or-resource-title">${esc(r.name||'Betriebsmittel')}</strong>
+            ${lifecycleBadge}
+          </div>
+          <div class="or-resource-head-badges">
+            <span class="badge${issue?' bad':''}">${esc(orStatusLabel(r.status))}</span>
+            ${r.category?`<span class="badge or-category-badge">${esc(r.category)}</span>`:''}
+          </div>
         </div>
-        <div class="muted" style="margin-top:5px">${esc(orKindLabel(r.resource_kind))}${qty?` · ${esc(qty)}`:''}${r.inventory_number?` · <strong>${esc(r.inventory_number)}</strong>`:''}</div>
-        ${(r.manufacturer||r.model||r.serial_number)?`<div class="muted" style="margin-top:4px">${esc([r.manufacturer,r.model].filter(Boolean).join(' '))}${r.serial_number?` · SN ${esc(r.serial_number)}`:''}</div>`:''}
-        <div style="margin-top:6px"><strong>${r.tracking_mode==='quantity'?'Gesamtbestand':'Standort'}:</strong> ${
+
+        <div class="or-resource-meta">${esc(orKindLabel(r.resource_kind))}${r.inventory_number?` · <strong>${esc(r.inventory_number)}</strong>`:''}${r.tracking_mode==='quantity'&&qty?` · ${esc(qty)}`:''}</div>
+
+        ${(r.manufacturer||r.model||r.serial_number)?`<div class="or-resource-submeta">${esc([r.manufacturer,r.model].filter(Boolean).join(' '))}${r.serial_number?` · SN ${esc(r.serial_number)}`:''}</div>`:''}
+
+        <div class="or-resource-location"><strong>${r.tracking_mode==='quantity'?'Gesamtbestand':'Standort'}:</strong> ${
           r.tracking_mode==='quantity'
             ?esc(orFmtQty(r))
             :esc(savedLoc?orLocationLabel(savedLoc):orFormatLocation(r))
         }</div>
+
         ${r.tracking_mode==='quantity'?orStockOverviewHtml(r):''}
         ${r.tracking_mode==='quantity'?orReorderHtml(r):''}
         ${deletedMeta}
-        ${r.notes?`<div class="muted" style="margin-top:4px">${esc(r.notes)}</div>`:''}
+        ${r.notes?`<div class="or-resource-notes">${esc(r.notes)}</div>`:''}
         ${!deleted?orResourceUsageHtml(r):''}
       </div>
-      <div class="row" style="gap:7px;flex-wrap:wrap;margin-top:10px">
-        ${!deleted&&r.active!==false?`<button type="button" class="primary" style="flex:1 1 160px" onclick="orOpenMovement('${esc(r.id)}')">Standort / Bestand ändern</button>`:''}
-        ${!deleted?`<button type="button" style="flex:1 1 95px" onclick="orOpenAssetQr('${esc(r.id)}')">QR / Etikett</button>`:''}
-        ${operatingResourcesCanAdmin()&&!deleted?`<button type="button" style="flex:1 1 120px" onclick="orEditResource('${esc(r.id)}')">Stammdaten</button>`:''}
+
+      <div class="or-resource-actions-desktop">
+        ${!deleted&&r.active!==false?`<button type="button" class="primary" onclick="orOpenMovement('${esc(r.id)}')">Standort / Bestand ändern</button>`:''}
+        ${!deleted?`<button type="button" onclick="orOpenAssetQr('${esc(r.id)}')">QR / Etikett</button>`:''}
+        ${operatingResourcesCanAdmin()&&!deleted?`<button type="button" onclick="orEditResource('${esc(r.id)}')">Stammdaten</button>`:''}
         ${operatingResourcesCanAdmin()&&inactive?`<button type="button" onclick="orReactivateResource('${esc(r.id)}')">Reaktivieren</button>`:''}
         ${operatingResourcesCanAdmin()&&deleted?`<button type="button" onclick="orRestoreResource('${esc(r.id)}')">Wiederherstellen</button>`:''}
+      </div>
+
+      <div class="or-resource-actions-mobile">
+        ${!deleted&&r.active!==false?`<button type="button" class="primary or-mobile-primary" onclick="orOpenMovement('${esc(r.id)}')">${r.tracking_mode==='quantity'?'Bestand':'Standort'}</button>`:''}
+        ${!deleted?`<button type="button" class="or-mobile-qr" onclick="orOpenAssetQr('${esc(r.id)}')">QR</button>`:''}
+        ${(operatingResourcesCanAdmin()&&!deleted)||(operatingResourcesCanAdmin()&&inactive)||(operatingResourcesCanAdmin()&&deleted)
+          ?`<div class="or-mobile-more">
+              <button type="button" class="or-mobile-more-btn" aria-label="Weitere Aktionen" onclick="orToggleMobileResourceActions('${esc(r.id)}')">⋯</button>
+              <div class="or-mobile-more-menu" id="orMobileActions-${esc(r.id)}">
+                ${operatingResourcesCanAdmin()&&!deleted?`<button type="button" onclick="orEditResource('${esc(r.id)}')">Stammdaten</button>`:''}
+                ${operatingResourcesCanAdmin()&&inactive?`<button type="button" onclick="orReactivateResource('${esc(r.id)}')">Reaktivieren</button>`:''}
+                ${operatingResourcesCanAdmin()&&deleted?`<button type="button" onclick="orRestoreResource('${esc(r.id)}')">Wiederherstellen</button>`:''}
+              </div>
+            </div>`:''}
       </div>
     </div>`;
   }).join('');
