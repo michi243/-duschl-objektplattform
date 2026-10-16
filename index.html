@@ -2,6 +2,15 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.38 · Mengenbestand als Single Source of Truth
+     FIX / GOVERNANCE:
+     - Mengen-/Verbrauchsartikel werden ausschließlich über Lagerbuchungen geführt.
+     - Gesamtbestand ist nur noch die Summe der Standortbestände.
+     - Direkte Mengen- und Standortänderung in den Stammdaten ist bei Mengenartikeln gesperrt.
+     - Stock-Dropdowns enthalten nur strukturierte Lagerorte, keine freie Standortangabe.
+     - Quellstandort zeigt nur Lagerorte mit positivem Bestand.
+     - VM-000001 Altbestand wurde reconciliert: 2 Studiensiedlung + 3 Max-Bill-Str. 7 / Duplex = 5.
+     BACKEND: save_operating_resource_v4 + DB-Schutztrigger. -->
 <!-- RELEASE 3.37 · Betriebsmittel Ladefehler-Fix
      FIX:
      - orRenderLocations verwendete die nicht existente Funktion orLocationLabel().
@@ -337,7 +346,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.37</title>
+<title>Duschl Service – Objektplattform v3.38</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -8357,6 +8366,7 @@ WINTERDIENST RÄUMKARTE
         </label>
         <label id="orQuantityLabel">Menge
           <input id="orQuantity" type="number" min="0" step="0.1" value="1">
+          <span id="orQuantityHint" class="muted" style="font-size:11px"></span>
         </label>
       </div>
     </div>
@@ -11349,7 +11359,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.37';
+const APP_VERSION='3.38';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -20225,7 +20235,7 @@ function orStockOverviewHtml(resource){
   if(!rows.length){
     return `<div class="or-stock-overview is-empty">
       <strong>Lagerorte</strong>
-      <div class="muted">Bestand ist noch keinem strukturierten Lagerort zugeordnet.</div>
+      <div class="muted">Noch kein strukturierter Lagerbestand. Zugang oder Bestandskorrektur + buchen.</div>
     </div>`;
   }
   return `<div class="or-stock-overview">
@@ -20262,11 +20272,52 @@ function orLocationLabel(loc){
 
 function orFillSavedLocationSelects(){
   const rows=(operatingResourcesState.locations||[]).filter(x=>x.active!==false);
-  const opts=['<option value="">Freie Standortangabe</option>'].concat(rows.map(x=>`<option value="${esc(x.id)}">${esc(orLocationLabel(x))}</option>`)).join('');
-  ['orSavedLocationId','orMoveSavedLocationId','orStockFromLocationId','orStockToLocationId'].forEach(id=>{
+  const generalOpts=['<option value="">Freie Standortangabe</option>']
+    .concat(rows.map(x=>`<option value="${esc(x.id)}">${esc(orLocationLabel(x))}</option>`))
+    .join('');
+
+  ['orSavedLocationId','orMoveSavedLocationId'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
-    const keep=el.value;el.innerHTML=opts;if([...el.options].some(x=>x.value===keep))el.value=keep;
+    const keep=el.value;
+    el.innerHTML=generalOpts;
+    if([...el.options].some(x=>x.value===keep))el.value=keep;
   });
+
+  orFillStockLocationSelects(operatingResourcesState.selected?.id||null);
+}
+
+function orFillStockLocationSelects(resourceId){
+  const rows=(operatingResourcesState.locations||[]).filter(x=>x.active!==false);
+  const stockRows=resourceId?orStockRowsForResource(resourceId):[];
+  const stockLocationIds=new Set(stockRows.map(x=>String(x.location_id||'')));
+
+  const toOpts=['<option value="">Standort wählen …</option>']
+    .concat(rows.map(x=>`<option value="${esc(x.id)}">${esc(orLocationLabel(x))}</option>`))
+    .join('');
+
+  const fromRows=resourceId
+    ? rows.filter(x=>stockLocationIds.has(String(x.id)))
+    : rows;
+  const fromOpts=['<option value="">Quellstandort wählen …</option>']
+    .concat(fromRows.map(x=>{
+      const s=stockRows.find(z=>String(z.location_id)===String(x.id));
+      const qty=s?` · ${Number(s.quantity||0).toLocaleString('de-DE',{maximumFractionDigits:3})}${s.unit?' '+esc(s.unit):''}`:'';
+      return `<option value="${esc(x.id)}">${esc(orLocationLabel(x))}${qty}</option>`;
+    }))
+    .join('');
+
+  const from=document.getElementById('orStockFromLocationId');
+  const to=document.getElementById('orStockToLocationId');
+  if(from){
+    const keep=from.value;
+    from.innerHTML=fromOpts;
+    if([...from.options].some(x=>x.value===keep))from.value=keep;
+  }
+  if(to){
+    const keep=to.value;
+    to.innerHTML=toOpts;
+    if([...to.options].some(x=>x.value===keep))to.value=keep;
+  }
 }
 
 function orApplySavedLocation(mode){
@@ -20503,13 +20554,23 @@ function orUpdateTrackingUI(){
   const mode=document.getElementById('orTrackingMode')?.value||'individual';
   const q=document.getElementById('orQuantity');
   const unit=document.getElementById('orUnit');
-  if(mode==='individual'){
-    if(q&&!q.value)q.value='1';
-    if(q)q.step='1';
-    if(unit&&!unit.value)unit.placeholder='z. B. Stk.';
-  }else{
-    if(q)q.step='0.1';
-    if(unit)unit.placeholder='z. B. kg, l, Stk.';
+  const hint=document.getElementById('orQuantityHint');
+  const isQuantity=mode==='quantity';
+
+  if(q){
+    q.disabled=isQuantity;
+    q.readOnly=isQuantity;
+    q.step=isQuantity?'0.1':'1';
+    if(!isQuantity && !q.value)q.value='1';
+    if(isQuantity && document.getElementById('orEditId')?.value==='')q.value='0';
+  }
+  if(unit){
+    if(!unit.value)unit.placeholder=isQuantity?'z. B. kg, l, Sack':'z. B. Stk.';
+  }
+  if(hint){
+    hint.textContent=isQuantity
+      ?'Gesamtbestand wird automatisch aus den Lagerorten berechnet. Bestände über „Standort / Bestand ändern“ buchen.'
+      :'';
   }
 }
 
@@ -20584,7 +20645,8 @@ function orEditResource(id){
   const r=operatingResourcesState.resources.find(x=>String(x.id)===String(id));
   if(!r)return;
   operatingResourcesState.selected=r;
-  const vals={orEditId:r.id||'',orSavedLocationId:r.current_location_id||'',orName:r.name||'',orKind:r.resource_kind||'equipment',orCategory:r.category||'',orTrackingMode:r.tracking_mode||'individual',orInventoryNumber:r.inventory_number||'',orSerialNumber:r.serial_number||'',orManufacturer:r.manufacturer||'',orModel:r.model||'',orPurchaseDate:r.purchase_date||'',orAcquisitionCostNet:r.acquisition_cost_net??'',orQuantity:r.quantity??'',orUnit:r.unit||'',orStatus:r.status||'available',orLocationType:r.current_location_type||'free_text',orObjectId:r.current_object_id||'',orLocationText:r.current_location_text||'',orNotes:r.notes||'',orLabelNote:r.label_note||''};
+  const quantityMode=r.tracking_mode==='quantity';
+  const vals={orEditId:r.id||'',orSavedLocationId:quantityMode?'':(r.current_location_id||''),orName:r.name||'',orKind:r.resource_kind||'equipment',orCategory:r.category||'',orTrackingMode:r.tracking_mode||'individual',orInventoryNumber:r.inventory_number||'',orSerialNumber:r.serial_number||'',orManufacturer:r.manufacturer||'',orModel:r.model||'',orPurchaseDate:r.purchase_date||'',orAcquisitionCostNet:r.acquisition_cost_net??'',orQuantity:r.quantity??0,orUnit:r.unit||'',orStatus:r.status||'available',orLocationType:quantityMode?'warehouse':(r.current_location_type||'free_text'),orObjectId:quantityMode?'':(r.current_object_id||''),orLocationText:quantityMode?'':(r.current_location_text||''),orNotes:r.notes||'',orLabelNote:r.label_note||''};
   Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
   const pr=document.getElementById('orPlanningRelevant');if(pr)pr.checked=r.planning_relevant!==false;
   const title=document.getElementById('orEditorTitle');if(title)title.textContent='Betriebsmittel bearbeiten';
@@ -20758,10 +20820,8 @@ async function orSaveResource(){
   const name=String(document.getElementById('orName')?.value||'').trim();
   if(!name)return alert('Bezeichnung eingeben.');
   const mode=document.getElementById('orTrackingMode')?.value||'individual';
-  const qtyRaw=String(document.getElementById('orQuantity')?.value||'').trim();
-  const quantity=qtyRaw===''?null:Number(qtyRaw);
   try{
-    const saved=await cloudRequest('rpc/save_operating_resource_v3',{method:'POST',body:JSON.stringify({
+    const saved=await cloudRequest('rpc/save_operating_resource_v4',{method:'POST',body:JSON.stringify({
       p_organization_id:currentOrganizationId(),
       p_resource_id:document.getElementById('orEditId')?.value||null,
       p_name:name,
@@ -20770,7 +20830,6 @@ async function orSaveResource(){
       p_tracking_mode:mode,
       p_inventory_number:String(document.getElementById('orInventoryNumber')?.value||'').trim()||null,
       p_serial_number:String(document.getElementById('orSerialNumber')?.value||'').trim()||null,
-      p_quantity:mode==='individual'?(quantity??1):quantity,
       p_unit:String(document.getElementById('orUnit')?.value||'').trim()||null,
       p_status:document.getElementById('orStatus')?.value||'available',
       p_planning_relevant:document.getElementById('orPlanningRelevant')?.checked!==false,
@@ -21032,6 +21091,7 @@ async function orOpenMovement(id){
 
   if(r.tracking_mode==='quantity'){
     orRenderStockCurrent(r.id);
+    orFillStockLocationSelects(r.id);
     const type=document.getElementById('orStockMovementType');if(type)type.value='transfer';
     const qty=document.getElementById('orStockMoveQuantity');if(qty)qty.value='';
     const note=document.getElementById('orStockMoveNote');if(note)note.value='';
