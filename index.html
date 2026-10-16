@@ -2,6 +2,15 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.34 · Betriebsmittel Lifecycle
+     ADDITIV:
+     - Standardansicht zeigt ausschließlich aktive, nicht gelöschte Betriebsmittel.
+     - Lifecycle-Filter: Aktiv / Deaktiviert / Gelöscht / Alle.
+     - Löschen = Soft Delete mit deleted_at/deleted_by/delete_reason.
+     - Löschen ist nur zulässig, wenn keine Bewegung, Einsatzzuordnung oder Reservierung existiert.
+     - Bereits genutzte Betriebsmittel müssen deaktiviert / ausgesondert werden.
+     - Gelöschte Datensätze bleiben historisch erhalten und können wiederhergestellt werden.
+     BACKEND: additive Migration v3.34; bestehende v3.33-Logik bleibt erhalten. -->
 <!-- RELEASE 3.33 · Betriebsmittel Workspace
      UX-REDESIGN, KEINE BACKEND-ÄNDERUNG:
      - Bestand & Standort ist die Standard-Arbeitsfläche.
@@ -305,7 +314,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.33</title>
+<title>Duschl Service – Objektplattform v3.34</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -2552,6 +2561,18 @@ body.platform-menu-mode #organizationList{
   }
   #operatingResources .or-inventory-kpis .big{font-size:20px}
   #operatingResources .or-form-section{padding:10px}
+}
+
+
+#operatingResources .or-resource-inactive{
+  opacity:.72;
+}
+#operatingResources .or-resource-deleted{
+  opacity:.60;
+  border-style:dashed;
+}
+#operatingResources .or-resource-deleted strong{
+  text-decoration:none;
 }
 
 </style>
@@ -8312,6 +8333,7 @@ WINTERDIENST RÄUMKARTE
     <div class="row" style="margin-top:14px;gap:8px;flex-wrap:wrap">
       <button class="primary" type="button" onclick="orSaveResource()">Speichern</button>
       <button type="button" id="orDeactivateBtn" class="hidden" onclick="orDeactivateResource()">Deaktivieren</button>
+      <button type="button" id="orDeleteBtn" class="hidden danger" onclick="orDeleteResource()">Löschen</button>
     </div>
   </div>
 
@@ -8399,8 +8421,14 @@ WINTERDIENST RÄUMKARTE
       </div>
       <div class="row" style="gap:8px;flex-wrap:wrap">
         <input id="orSearch" placeholder="Suchen …" oninput="orRenderList()" style="min-width:180px">
+        <select id="orLifecycleFilter" onchange="orRenderList()" style="min-width:150px">
+          <option value="active">Aktiv</option>
+          <option value="inactive">Deaktiviert</option>
+          <option value="deleted">Gelöscht</option>
+          <option value="all">Alle</option>
+        </select>
         <select id="orStatusFilter" onchange="orRenderList()" style="min-width:150px">
-          <option value="">Alle Status</option>
+          <option value="">Alle Betriebsstatus</option>
           <option value="available">Verfügbar</option>
           <option value="in_use">Im Einsatz</option>
           <option value="maintenance">Wartung</option>
@@ -8450,7 +8478,7 @@ WINTERDIENST RÄUMKARTE
   </div>
 
   <div class="resource-calculation-note" style="margin-top:14px">
-    <strong>Prinzip:</strong> Wiederkehrende Standorte strukturiert speichern, Sonderfälle weiterhin frei dokumentieren. Jede Änderung bleibt historisiert.
+    <strong>Prinzip:</strong> Aktive Betriebsmittel bilden die Standardansicht. Deaktivierte und gelöschte Datensätze erscheinen nur über den Lifecycle-Filter. Historie und Nachvollziehbarkeit bleiben erhalten.
   </div>
 </section>
 
@@ -11195,7 +11223,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.33';
+const APP_VERSION='3.34';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -20146,7 +20174,7 @@ function orFillRequirementSelects(){
   const rr=document.getElementById('orRequirementResource');
   if(rr){
     const keep=rr.value;
-    rr.innerHTML='<option value="">Freier Bedarf / kein konkretes Asset</option>'+((operatingResourcesState.resources||[]).filter(x=>x.active!==false&&x.planning_relevant!==false).map(x=>`<option value="${esc(x.id)}">${esc(x.name||'Betriebsmittel')}</option>`).join(''));
+    rr.innerHTML='<option value="">Freier Bedarf / kein konkretes Asset</option>'+((operatingResourcesState.resources||[]).filter(x=>x.active!==false&&!x.deleted_at&&x.planning_relevant!==false).map(x=>`<option value="${esc(x.id)}">${esc(x.name||'Betriebsmittel')}</option>`).join(''));
     if([...rr.options].some(x=>x.value===keep))rr.value=keep;
   }
   orRequirementScopeChanged();
@@ -20379,6 +20407,7 @@ function orResetEditor(){
   const pr=document.getElementById('orPlanningRelevant');if(pr)pr.checked=true;
   const title=document.getElementById('orEditorTitle');if(title)title.textContent='Betriebsmittel anlegen';
   const btn=document.getElementById('orDeactivateBtn');if(btn)btn.classList.add('hidden');
+  const del=document.getElementById('orDeleteBtn');if(del)del.classList.add('hidden');
   orUpdateTrackingUI();
 }
 
@@ -20391,7 +20420,10 @@ function orEditResource(id){
   Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
   const pr=document.getElementById('orPlanningRelevant');if(pr)pr.checked=r.planning_relevant!==false;
   const title=document.getElementById('orEditorTitle');if(title)title.textContent='Betriebsmittel bearbeiten';
-  const btn=document.getElementById('orDeactivateBtn');if(btn)btn.classList.remove('hidden');
+  const btn=document.getElementById('orDeactivateBtn');
+  if(btn)btn.classList.toggle('hidden',r.active===false||!!r.deleted_at);
+  const del=document.getElementById('orDeleteBtn');
+  if(del)del.classList.toggle('hidden',!!r.deleted_at);
   orUpdateTrackingUI();
   orOpenWorkspacePanel('asset');
 }
@@ -20408,7 +20440,7 @@ async function loadOperatingResources(){
   try{
     const [locations,rows,serviceTypes,requirements]=await Promise.all([
       cloudRequest(`operating_resource_locations?organization_id=eq.${encodeURIComponent(org)}&active=eq.true&select=*&order=name.asc`),
-      cloudRequest(`operating_resources?organization_id=eq.${encodeURIComponent(org)}&active=eq.true&select=*&order=name.asc`),
+      cloudRequest(`operating_resources?organization_id=eq.${encodeURIComponent(org)}&select=*&order=name.asc`),
       canAdmin?cloudRequest(`service_types?organization_id=eq.${encodeURIComponent(org)}&active=eq.true&select=id,name,active&order=name.asc`):Promise.resolve([]),
       canAdmin?cloudRequest(`operating_resource_requirements?organization_id=eq.${encodeURIComponent(org)}&active=eq.true&select=*&order=created_at.asc`):Promise.resolve([])
     ]);
@@ -20420,7 +20452,7 @@ async function loadOperatingResources(){
     orFillRequirementSelects();
     orRenderLocations();
     orRenderRequirements();
-    const active=operatingResourcesState.resources;
+    const active=operatingResourcesState.resources.filter(x=>x.active!==false&&!x.deleted_at);
     const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=String(v);};
     set('orKpiActive',active.length);
     set('orKpiAvailable',active.filter(x=>x.status==='available').length);
@@ -20481,29 +20513,63 @@ function orRenderList(){
   const host=document.getElementById('orResourceList');if(!host)return;
   const q=String(document.getElementById('orSearch')?.value||'').trim().toLowerCase();
   const sf=String(document.getElementById('orStatusFilter')?.value||'');
+  const lf=String(document.getElementById('orLifecycleFilter')?.value||'active');
+
   const rows=(operatingResourcesState.resources||[]).filter(r=>{
+    const deleted=!!r.deleted_at;
+    const inactive=r.active===false&&!deleted;
+
+    if(lf==='active' && (deleted||r.active===false))return false;
+    if(lf==='inactive' && !inactive)return false;
+    if(lf==='deleted' && !deleted)return false;
     if(sf&&r.status!==sf)return false;
     if(!q)return true;
     return [r.name,r.inventory_number,r.serial_number,r.manufacturer,r.model,r.category,r.current_location_text,orObjectName(r.current_object_id),r.notes].some(v=>String(v||'').toLowerCase().includes(q));
   });
-  if(!rows.length){host.innerHTML='<div class="muted">Keine Betriebsmittel gefunden.</div>';return;}
+
+  if(!rows.length){
+    host.innerHTML=lf==='active'
+      ?'<div class="muted">Keine aktiven Betriebsmittel gefunden.</div>'
+      :'<div class="muted">Keine Betriebsmittel für diesen Filter gefunden.</div>';
+    return;
+  }
+
   host.innerHTML=rows.map(r=>{
     const qty=orFmtQty(r);
+    const deleted=!!r.deleted_at;
+    const inactive=r.active===false&&!deleted;
     const issue=['maintenance','defective','out_of_service'].includes(r.status);
     const savedLoc=(operatingResourcesState.locations||[]).find(x=>String(x.id)===String(r.current_location_id||''));
-    return `<div class="card" style="margin:0 0 10px;padding:12px">
+    const lifecycleBadge=deleted
+      ?'<span class="badge bad">GELÖSCHT</span>'
+      :inactive
+        ?'<span class="badge">DEAKTIVIERT</span>'
+        :'';
+    const deletedMeta=deleted
+      ?`<div class="muted" style="margin-top:5px">Gelöscht: ${esc(new Date(r.deleted_at).toLocaleString('de-DE'))}${r.delete_reason?` · ${esc(r.delete_reason)}`:''}</div>`
+      :'';
+
+    return `<div class="card ${deleted?'or-resource-deleted':inactive?'or-resource-inactive':''}" style="margin:0 0 10px;padding:12px">
       <div style="min-width:0">
-        <div class="row" style="gap:7px;flex-wrap:wrap;align-items:center"><strong style="min-width:0;overflow-wrap:anywhere">${esc(r.name||'Betriebsmittel')}</strong><span class="badge${issue?' bad':''}">${esc(orStatusLabel(r.status))}</span>${r.category?`<span class="badge">${esc(r.category)}</span>`:''}</div>
+        <div class="row" style="gap:7px;flex-wrap:wrap;align-items:center">
+          <strong style="min-width:0;overflow-wrap:anywhere">${esc(r.name||'Betriebsmittel')}</strong>
+          ${lifecycleBadge}
+          <span class="badge${issue?' bad':''}">${esc(orStatusLabel(r.status))}</span>
+          ${r.category?`<span class="badge">${esc(r.category)}</span>`:''}
+        </div>
         <div class="muted" style="margin-top:5px">${esc(orKindLabel(r.resource_kind))}${qty?` · ${esc(qty)}`:''}${r.inventory_number?` · <strong>${esc(r.inventory_number)}</strong>`:''}</div>
         ${(r.manufacturer||r.model||r.serial_number)?`<div class="muted" style="margin-top:4px">${esc([r.manufacturer,r.model].filter(Boolean).join(' '))}${r.serial_number?` · SN ${esc(r.serial_number)}`:''}</div>`:''}
         <div style="margin-top:6px"><strong>Standort:</strong> ${esc(savedLoc?orLocationLabel(savedLoc):orFormatLocation(r))}</div>
+        ${deletedMeta}
         ${r.notes?`<div class="muted" style="margin-top:4px">${esc(r.notes)}</div>`:''}
-        ${orResourceUsageHtml(r)}
+        ${!deleted?orResourceUsageHtml(r):''}
       </div>
       <div class="row" style="gap:7px;flex-wrap:wrap;margin-top:10px">
-        <button type="button" class="primary" style="flex:1 1 160px" onclick="orOpenMovement('${esc(r.id)}')">Standort / Bestand ändern</button>
-        <button type="button" style="flex:1 1 95px" onclick="orOpenAssetQr('${esc(r.id)}')">QR / Etikett</button>
-        ${operatingResourcesCanAdmin()?`<button type="button" style="flex:1 1 120px" onclick="orEditResource('${esc(r.id)}')">Stammdaten</button>`:''}
+        ${!deleted&&r.active!==false?`<button type="button" class="primary" style="flex:1 1 160px" onclick="orOpenMovement('${esc(r.id)}')">Standort / Bestand ändern</button>`:''}
+        ${!deleted?`<button type="button" style="flex:1 1 95px" onclick="orOpenAssetQr('${esc(r.id)}')">QR / Etikett</button>`:''}
+        ${operatingResourcesCanAdmin()&&!deleted?`<button type="button" style="flex:1 1 120px" onclick="orEditResource('${esc(r.id)}')">Stammdaten</button>`:''}
+        ${operatingResourcesCanAdmin()&&inactive?`<button type="button" onclick="orReactivateResource('${esc(r.id)}')">Reaktivieren</button>`:''}
+        ${operatingResourcesCanAdmin()&&deleted?`<button type="button" onclick="orRestoreResource('${esc(r.id)}')">Wiederherstellen</button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -20701,6 +20767,68 @@ function orHandleAssetDeepLink(){
     }
   },500);
 })();
+
+
+async function orReactivateResource(id){
+  if(!operatingResourcesCanAdmin())return;
+  try{
+    await cloudRequest('rpc/set_operating_resource_active_v1',{
+      method:'POST',
+      body:JSON.stringify({p_resource_id:id,p_active:true})
+    });
+    await loadOperatingResources();
+  }catch(e){
+    alert('Betriebsmittel konnte nicht reaktiviert werden: '+(e.message||e));
+  }
+}
+
+async function orDeleteResource(){
+  if(!operatingResourcesCanAdmin())return;
+  const id=document.getElementById('orEditId')?.value||'';
+  if(!id)return;
+  const r=(operatingResourcesState.resources||[]).find(x=>String(x.id)===String(id));
+  if(!r)return;
+
+  const reason=prompt(
+    `Betriebsmittel „${r.name||'Betriebsmittel'}“ löschen?\n\n`+
+    `Löschen ist nur möglich, wenn noch keine Bewegung, Einsatzzuordnung oder Reservierung existiert.\n`+
+    `Bereits verwendete Betriebsmittel müssen deaktiviert werden.\n\n`+
+    `Optionaler Löschgrund:`,
+    ''
+  );
+  if(reason===null)return;
+
+  try{
+    await cloudRequest('rpc/soft_delete_operating_resource_v1',{
+      method:'POST',
+      body:JSON.stringify({
+        p_resource_id:id,
+        p_reason:String(reason||'').trim()||null
+      })
+    });
+    orResetEditor();
+    orCloseWorkspacePanel('asset');
+    const lf=document.getElementById('orLifecycleFilter');if(lf)lf.value='active';
+    await loadOperatingResources();
+  }catch(e){
+    alert(e.message||e);
+  }
+}
+
+async function orRestoreResource(id){
+  if(!operatingResourcesCanAdmin())return;
+  if(!confirm('Gelöschtes Betriebsmittel wiederherstellen?'))return;
+  try{
+    await cloudRequest('rpc/restore_operating_resource_v1',{
+      method:'POST',
+      body:JSON.stringify({p_resource_id:id})
+    });
+    const lf=document.getElementById('orLifecycleFilter');if(lf)lf.value='active';
+    await loadOperatingResources();
+  }catch(e){
+    alert('Betriebsmittel konnte nicht wiederhergestellt werden: '+(e.message||e));
+  }
+}
 
 async function orOpenMovement(id){
   const r=operatingResourcesState.resources.find(x=>String(x.id)===String(id));if(!r)return;
