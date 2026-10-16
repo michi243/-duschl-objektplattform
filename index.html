@@ -2,6 +2,15 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.35 · Betriebsmittel Mehrlagerbestand
+     ADDITIV:
+     - Einzelassets behalten exakt die bestehende Standortlogik.
+     - Mengen-/Verbrauchsartikel werden je gespeichertem Standort geführt.
+     - Gesamtbestand = Summe aller Standortbestände.
+     - Buchungsarten: Zugang, Verbrauch, Umlagerung, Bestandskorrektur +/−.
+     - Standortbestände und Mehrlager-Historie werden separat angezeigt.
+     - Bestehende v3.34 Lifecycle-, QR-, Inventar- und Einsatzlogik bleibt erhalten.
+     BACKEND: additive Tabellen/RPCs v3.35. -->
 <!-- RELEASE 3.34 · Betriebsmittel Lifecycle
      ADDITIV:
      - Standardansicht zeigt ausschließlich aktive, nicht gelöschte Betriebsmittel.
@@ -314,7 +323,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.34</title>
+<title>Duschl Service – Objektplattform v3.35</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -2573,6 +2582,46 @@ body.platform-menu-mode #organizationList{
 }
 #operatingResources .or-resource-deleted strong{
   text-decoration:none;
+}
+
+
+#operatingResources .or-stock-overview{
+  margin-top:8px;
+  padding:8px 10px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:rgba(255,255,255,.018);
+}
+#operatingResources .or-stock-overview.is-empty{
+  color:var(--muted);
+}
+#operatingResources .or-stock-row,
+#operatingResources .or-stock-current-row{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding:6px 0;
+  border-top:1px solid rgba(255,255,255,.07);
+}
+#operatingResources .or-stock-row:first-of-type{
+  margin-top:5px;
+}
+#operatingResources .or-stock-current{
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:10px 12px;
+}
+#operatingResources .or-stock-current-head{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:3px;
+}
+@media(max-width:640px){
+  #operatingResources .or-stock-row,
+  #operatingResources .or-stock-current-row{
+    align-items:flex-start;
+  }
 }
 
 </style>
@@ -8444,33 +8493,80 @@ WINTERDIENST RÄUMKARTE
     <div class="row space" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
       <div>
         <div class="ds-section-eyebrow">SCHNELLBUCHUNG</div>
-        <h3 style="margin:0" id="orMovementTitle">Standort dokumentieren</h3>
+        <h3 style="margin:0" id="orMovementTitle">Standort / Bestand</h3>
         <div class="muted" id="orMovementCurrent" style="margin-top:5px"></div>
       </div>
       <button type="button" onclick="orCloseMovement()">Schließen</button>
     </div>
     <input id="orMovementResourceId" type="hidden">
-    <div class="grid2" style="margin-top:12px">
-      <label>Gespeicherter Standort (optional)
-        <select id="orMoveSavedLocationId" onchange="orApplySavedLocation('movement')"><option value="">Freie Standortangabe</option></select>
-      </label>
-      <label>Neuer Standorttyp
-        <select id="orMoveLocationType">
-          <option value="warehouse">Lager</option>
-          <option value="vehicle">Fahrzeug</option>
-          <option value="object">Objekt</option>
-          <option value="utility_room">Wirtschafts-/Technikraum</option>
-          <option value="employee">Mitarbeiter</option>
-          <option value="external">Externer Standort</option>
-          <option value="free_text">Sonstiges / Freitext</option>
-        </select>
-      </label>
-      <label>Objekt (optional)<select id="orMoveObjectId"><option value="">Kein Objekt</option></select></label>
-      <label>Standortdetail / Freitext<input id="orMoveLocationText" placeholder="z. B. Wirtschaftsraum UG, rechts neben Streusalz"></label>
-      <label id="orMoveQuantityLabel">Aktueller Mengenbestand<input id="orMoveQuantity" type="number" min="0" step="0.1"></label>
+
+    <!-- Einzelasset: bestehende Standortlogik -->
+    <div id="orSingleMovementFields">
+      <div class="grid2" style="margin-top:12px">
+        <label>Gespeicherter Standort (optional)
+          <select id="orMoveSavedLocationId" onchange="orApplySavedLocation('movement')"><option value="">Freie Standortangabe</option></select>
+        </label>
+        <label>Neuer Standorttyp
+          <select id="orMoveLocationType">
+            <option value="warehouse">Lager</option>
+            <option value="vehicle">Fahrzeug</option>
+            <option value="object">Objekt</option>
+            <option value="utility_room">Wirtschafts-/Technikraum</option>
+            <option value="employee">Mitarbeiter</option>
+            <option value="external">Externer Standort</option>
+            <option value="free_text">Sonstiges / Freitext</option>
+          </select>
+        </label>
+        <label>Objekt (optional)<select id="orMoveObjectId"><option value="">Kein Objekt</option></select></label>
+        <label>Standortdetail / Freitext<input id="orMoveLocationText" placeholder="z. B. Fahrzeug 1 · Fach links"></label>
+      </div>
+      <label style="margin-top:10px">Bemerkung<textarea id="orMoveNote" rows="2" placeholder="optional, z. B. nach Einsatz dort abgelegt"></textarea></label>
+      <div class="row" style="margin-top:12px">
+        <button class="primary" type="button" onclick="orRecordMovement()">Standort speichern</button>
+      </div>
     </div>
-    <label style="margin-top:10px">Bemerkung<textarea id="orMoveNote" rows="2" placeholder="optional, z. B. nach Einsatz dort abgelegt"></textarea></label>
-    <div class="row" style="margin-top:12px"><button class="primary" type="button" onclick="orRecordMovement()">Standort / Bestand speichern</button></div>
+
+    <!-- Mengen-/Verbrauchsartikel: Mehrlagerbuchung -->
+    <div id="orStockMovementFields" class="hidden">
+      <div class="or-stock-current" id="orStockCurrent" style="margin-top:12px"></div>
+
+      <div class="grid2" style="margin-top:12px">
+        <label>Buchungsart *
+          <select id="orStockMovementType" onchange="orStockBookingTypeChanged()">
+            <option value="transfer">Umlagerung</option>
+            <option value="receipt">Zugang</option>
+            <option value="consumption">Verbrauch / Entnahme</option>
+            <option value="correction_plus">Bestandskorrektur +</option>
+            <option value="correction_minus">Bestandskorrektur −</option>
+          </select>
+        </label>
+        <label>Menge *
+          <input id="orStockMoveQuantity" type="number" min="0.001" step="0.1" placeholder="z. B. 2">
+        </label>
+
+        <label id="orStockFromWrap">Von Standort *
+          <select id="orStockFromLocationId"><option value="">Standort wählen …</option></select>
+        </label>
+        <label id="orStockToWrap">Nach Standort *
+          <select id="orStockToLocationId"><option value="">Standort wählen …</option></select>
+        </label>
+      </div>
+
+      <label style="margin-top:10px">Bemerkung
+        <textarea id="orStockMoveNote" rows="2" placeholder="optional, z. B. 2 Sack für Objektbestand"></textarea>
+      </label>
+
+      <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">
+        <button class="primary" type="button" onclick="orBookStock()">Bestand buchen</button>
+        <button type="button" onclick="orOpenWorkspacePanel('locations')">Lagerort anlegen</button>
+      </div>
+
+      <div class="resource-calculation-note" style="margin-top:12px">
+        <strong>Mehrlagerprinzip:</strong> Der Gesamtbestand wird automatisch aus allen Lagerorten summiert.
+        Umlagerungen verändern den Gesamtbestand nicht; Zugang und Verbrauch schon.
+      </div>
+    </div>
+
     <div style="margin-top:16px">
       <h4 style="margin:0 0 8px">Letzte Bewegungen</h4>
       <div id="orMovementHistory" class="muted">Noch keine Historie geladen.</div>
@@ -11223,7 +11319,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.34';
+const APP_VERSION='3.35';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -20035,7 +20131,7 @@ async function loadResourcePlanningOverview(){
 // BETRIEBSMITTEL | RELEASE 2.25.2
 // ============================================================
 
-let operatingResourcesState={resources:[],locations:[],serviceTypes:[],requirements:[],selected:null,movements:[]};
+let operatingResourcesState={resources:[],locations:[],serviceTypes:[],requirements:[],stock:[],selected:null,movements:[],stockMovements:[]};
 
 function operatingResourcesCanUse(){
   if(!currentOrganizationId())return false;
@@ -20055,7 +20151,7 @@ function orKindLabel(v){
   return ({equipment:'Gerät / Maschine',vehicle:'Fahrzeug / Anhänger',material:'Material / Verbrauch',other:'Sonstiges'})[v]||v||'—';
 }
 function orLocationLabel(v){
-  return ({warehouse:'Lager',vehicle:'Fahrzeug',object:'Objekt',utility_room:'Wirtschafts-/Technikraum',employee:'Mitarbeiter',external:'Externer Standort',free_text:'Sonstiges'})[v]||v||'—';
+  return ({warehouse:'Lager',vehicle:'Fahrzeug',object:'Objekt',utility_room:'Wirtschafts-/Technikraum',employee:'Mitarbeiter',external:'Externer Standort',free_text:'Sonstiges',multiple_locations:'Mehrere Lagerorte'})[v]||v||'—';
 }
 function orObjectName(id){
   if(!id)return '';
@@ -20072,6 +20168,48 @@ function orFormatLocation(r,prefix='current_'){
   if(text)parts.push(text);
   return parts.length?parts.join(' · '):'Standort nicht dokumentiert';
 }
+
+function orStockRowsForResource(resourceId){
+  const rid=String(resourceId||'');
+  return (operatingResourcesState.stock||[])
+    .filter(x=>String(x.resource_id||'')===rid && Number(x.quantity||0)>0)
+    .sort((a,b)=>String(a.location_name||'').localeCompare(String(b.location_name||''),'de'));
+}
+
+function orStockTotalForResource(resourceId){
+  return orStockRowsForResource(resourceId).reduce((sum,x)=>sum+Number(x.quantity||0),0);
+}
+
+function orStockLocationLabel(row){
+  if(!row)return '—';
+  const bits=[row.location_name];
+  const obj=orObjectName(row.object_id);
+  if(obj&&!String(row.location_name||'').toLowerCase().includes(String(obj).toLowerCase()))bits.push(obj);
+  if(row.location_detail)bits.push(row.location_detail);
+  return bits.filter(Boolean).join(' · ');
+}
+
+function orStockOverviewHtml(resource){
+  if(resource?.tracking_mode!=='quantity')return '';
+  const rows=orStockRowsForResource(resource.id);
+  if(!rows.length){
+    return `<div class="or-stock-overview is-empty">
+      <strong>Lagerorte</strong>
+      <div class="muted">Bestand ist noch keinem strukturierten Lagerort zugeordnet.</div>
+    </div>`;
+  }
+  return `<div class="or-stock-overview">
+    <div class="row space" style="gap:8px">
+      <strong>Lagerorte</strong>
+      <span class="badge">${rows.length}</span>
+    </div>
+    ${rows.map(x=>`<div class="or-stock-row">
+      <span>${esc(orStockLocationLabel(x))}</span>
+      <strong>${Number(x.quantity||0).toLocaleString('de-DE',{maximumFractionDigits:3})}${x.unit?' '+esc(x.unit):''}</strong>
+    </div>`).join('')}
+  </div>`;
+}
+
 function orFmtQty(r){
   if(r?.tracking_mode!=='quantity')return '';
   const q=r?.quantity;
@@ -20095,7 +20233,7 @@ function orLocationLabel(loc){
 function orFillSavedLocationSelects(){
   const rows=(operatingResourcesState.locations||[]).filter(x=>x.active!==false);
   const opts=['<option value="">Freie Standortangabe</option>'].concat(rows.map(x=>`<option value="${esc(x.id)}">${esc(orLocationLabel(x))}</option>`)).join('');
-  ['orSavedLocationId','orMoveSavedLocationId'].forEach(id=>{
+  ['orSavedLocationId','orMoveSavedLocationId','orStockFromLocationId','orStockToLocationId'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
     const keep=el.value;el.innerHTML=opts;if([...el.options].some(x=>x.value===keep))el.value=keep;
   });
@@ -20438,16 +20576,21 @@ async function loadOperatingResources(){
   const locAdmin=document.getElementById('orLocationAdminCard');if(locAdmin)locAdmin.classList.toggle('hidden',!canAdmin);
   const reqAdmin=document.getElementById('orRequirementAdminCard');if(reqAdmin)reqAdmin.classList.toggle('hidden',!canAdmin);
   try{
-    const [locations,rows,serviceTypes,requirements]=await Promise.all([
+    const [locations,rows,serviceTypes,requirements,stock]=await Promise.all([
       cloudRequest(`operating_resource_locations?organization_id=eq.${encodeURIComponent(org)}&active=eq.true&select=*&order=name.asc`),
       cloudRequest(`operating_resources?organization_id=eq.${encodeURIComponent(org)}&select=*&order=name.asc`),
       canAdmin?cloudRequest(`service_types?organization_id=eq.${encodeURIComponent(org)}&active=eq.true&select=id,name,active&order=name.asc`):Promise.resolve([]),
-      canAdmin?cloudRequest(`operating_resource_requirements?organization_id=eq.${encodeURIComponent(org)}&active=eq.true&select=*&order=created_at.asc`):Promise.resolve([])
+      canAdmin?cloudRequest(`operating_resource_requirements?organization_id=eq.${encodeURIComponent(org)}&active=eq.true&select=*&order=created_at.asc`):Promise.resolve([]),
+      cloudRequest('rpc/get_operating_resource_stock_v1',{
+        method:'POST',
+        body:JSON.stringify({p_organization_id:org})
+      }).catch(e=>{console.warn('Mehrlagerbestand konnte nicht geladen werden',e);return [];})
     ]);
     operatingResourcesState.locations=Array.isArray(locations)?locations:[];
     operatingResourcesState.resources=Array.isArray(rows)?rows:[];
     operatingResourcesState.serviceTypes=Array.isArray(serviceTypes)?serviceTypes:[];
     operatingResourcesState.requirements=Array.isArray(requirements)?requirements:[];
+    operatingResourcesState.stock=Array.isArray(stock)?stock:[];
     orFillSavedLocationSelects();
     orFillRequirementSelects();
     orRenderLocations();
@@ -20559,7 +20702,12 @@ function orRenderList(){
         </div>
         <div class="muted" style="margin-top:5px">${esc(orKindLabel(r.resource_kind))}${qty?` · ${esc(qty)}`:''}${r.inventory_number?` · <strong>${esc(r.inventory_number)}</strong>`:''}</div>
         ${(r.manufacturer||r.model||r.serial_number)?`<div class="muted" style="margin-top:4px">${esc([r.manufacturer,r.model].filter(Boolean).join(' '))}${r.serial_number?` · SN ${esc(r.serial_number)}`:''}</div>`:''}
-        <div style="margin-top:6px"><strong>Standort:</strong> ${esc(savedLoc?orLocationLabel(savedLoc):orFormatLocation(r))}</div>
+        <div style="margin-top:6px"><strong>${r.tracking_mode==='quantity'?'Gesamtbestand':'Standort'}:</strong> ${
+          r.tracking_mode==='quantity'
+            ?esc(orFmtQty(r))
+            :esc(savedLoc?orLocationLabel(savedLoc):orFormatLocation(r))
+        }</div>
+        ${r.tracking_mode==='quantity'?orStockOverviewHtml(r):''}
         ${deletedMeta}
         ${r.notes?`<div class="muted" style="margin-top:4px">${esc(r.notes)}</div>`:''}
         ${!deleted?orResourceUsageHtml(r):''}
@@ -20835,15 +20983,38 @@ async function orOpenMovement(id){
   operatingResourcesState.selected=r;
   const card=document.getElementById('orMovementCard');if(card)card.classList.remove('hidden');
   const rid=document.getElementById('orMovementResourceId');if(rid)rid.value=r.id;
-  const title=document.getElementById('orMovementTitle');if(title)title.textContent=`${r.name} · Standort dokumentieren`;
-  const cur=document.getElementById('orMovementCurrent');if(cur)cur.textContent=`Aktuell: ${orFormatLocation(r)}${orFmtQty(r)?' · '+orFmtQty(r):''}`;
-  const sl=document.getElementById('orMoveSavedLocationId');if(sl)sl.value=r.current_location_id||'';
-  const lt=document.getElementById('orMoveLocationType');if(lt)lt.value=r.current_location_type||'free_text';
-  const oi=document.getElementById('orMoveObjectId');if(oi)oi.value=r.current_object_id||'';
-  const tx=document.getElementById('orMoveLocationText');if(tx)tx.value=r.current_location_text||'';
-  const q=document.getElementById('orMoveQuantity');if(q)q.value=r.quantity??'';
-  const ql=document.getElementById('orMoveQuantityLabel');if(ql)ql.classList.toggle('hidden',r.tracking_mode!=='quantity');
-  const note=document.getElementById('orMoveNote');if(note)note.value='';
+  const title=document.getElementById('orMovementTitle');
+  if(title)title.textContent=r.tracking_mode==='quantity'
+    ?`${r.name} · Lagerbestand buchen`
+    :`${r.name} · Standort dokumentieren`;
+
+  const single=document.getElementById('orSingleMovementFields');
+  const stock=document.getElementById('orStockMovementFields');
+  single?.classList.toggle('hidden',r.tracking_mode==='quantity');
+  stock?.classList.toggle('hidden',r.tracking_mode!=='quantity');
+
+  const cur=document.getElementById('orMovementCurrent');
+  if(cur){
+    cur.textContent=r.tracking_mode==='quantity'
+      ?`Gesamtbestand: ${orFmtQty(r)} · ${orStockRowsForResource(r.id).length} Lagerort(e)`
+      :`Aktuell: ${orFormatLocation(r)}`;
+  }
+
+  if(r.tracking_mode==='quantity'){
+    orRenderStockCurrent(r.id);
+    const type=document.getElementById('orStockMovementType');if(type)type.value='transfer';
+    const qty=document.getElementById('orStockMoveQuantity');if(qty)qty.value='';
+    const note=document.getElementById('orStockMoveNote');if(note)note.value='';
+    orFillSavedLocationSelects();
+    orStockBookingTypeChanged();
+  }else{
+    const sl=document.getElementById('orMoveSavedLocationId');if(sl)sl.value=r.current_location_id||'';
+    const lt=document.getElementById('orMoveLocationType');if(lt)lt.value=r.current_location_type||'free_text';
+    const oi=document.getElementById('orMoveObjectId');if(oi)oi.value=r.current_object_id||'';
+    const tx=document.getElementById('orMoveLocationText');if(tx)tx.value=r.current_location_text||'';
+    const note=document.getElementById('orMoveNote');if(note)note.value='';
+  }
+
   await orLoadMovementHistory(r.id);
   card?.scrollIntoView({behavior:'smooth',block:'start'});
 }
@@ -20855,7 +21026,7 @@ function orCloseMovement(){
 
 async function orRecordMovement(){
   const r=operatingResourcesState.selected; if(!r)return;
-  const qRaw=String(document.getElementById('orMoveQuantity')?.value||'').trim();
+  if(r.tracking_mode==='quantity')return alert('Mengenbestand bitte über die Lagerbuchung führen.');
   try{
     await cloudRequest('rpc/record_operating_resource_movement_v2',{method:'POST',body:JSON.stringify({
       p_resource_id:r.id,
@@ -20863,28 +21034,137 @@ async function orRecordMovement(){
       p_location_type:document.getElementById('orMoveLocationType')?.value||'free_text',
       p_object_id:document.getElementById('orMoveObjectId')?.value||null,
       p_location_text:String(document.getElementById('orMoveLocationText')?.value||'').trim()||null,
-      p_quantity_after:r.tracking_mode==='quantity'?(qRaw===''?null:Number(qRaw)):null,
+      p_quantity_after:null,
       p_note:String(document.getElementById('orMoveNote')?.value||'').trim()||null
     })});
     await loadOperatingResources();
     await orOpenMovement(r.id);
-  }catch(e){alert('Standort / Bestand konnte nicht gespeichert werden: '+(e.message||e));}
+  }catch(e){alert('Standort konnte nicht gespeichert werden: '+(e.message||e));}
+}
+
+function orRenderStockCurrent(resourceId){
+  const host=document.getElementById('orStockCurrent');if(!host)return;
+  const r=(operatingResourcesState.resources||[]).find(x=>String(x.id)===String(resourceId));
+  const rows=orStockRowsForResource(resourceId);
+  if(!rows.length){
+    host.innerHTML='<div class="muted">Noch kein Bestand auf strukturierten Lagerorten. Buche einen Zugang oder eine Bestandskorrektur +.</div>';
+    return;
+  }
+  host.innerHTML=`<div class="or-stock-current-head"><strong>Bestand je Lagerort</strong><span>Gesamt ${esc(orFmtQty(r))}</span></div>
+    ${rows.map(x=>`<div class="or-stock-current-row">
+      <span>${esc(orStockLocationLabel(x))}</span>
+      <strong>${Number(x.quantity||0).toLocaleString('de-DE',{maximumFractionDigits:3})}${x.unit?' '+esc(x.unit):''}</strong>
+    </div>`).join('')}`;
+}
+
+function orStockBookingTypeChanged(){
+  const type=document.getElementById('orStockMovementType')?.value||'transfer';
+  const from=document.getElementById('orStockFromWrap');
+  const to=document.getElementById('orStockToWrap');
+  const needsFrom=['consumption','transfer','correction_minus'].includes(type);
+  const needsTo=['receipt','transfer','correction_plus'].includes(type);
+  if(from)from.classList.toggle('hidden',!needsFrom);
+  if(to)to.classList.toggle('hidden',!needsTo);
+}
+
+async function orBookStock(){
+  const r=operatingResourcesState.selected;if(!r||r.tracking_mode!=='quantity')return;
+  const type=document.getElementById('orStockMovementType')?.value||'transfer';
+  const from=document.getElementById('orStockFromLocationId')?.value||null;
+  const to=document.getElementById('orStockToLocationId')?.value||null;
+  const q=Number(document.getElementById('orStockMoveQuantity')?.value||0);
+  if(!Number.isFinite(q)||q<=0)return alert('Menge muss größer als 0 sein.');
+
+  const needFrom=['consumption','transfer','correction_minus'].includes(type);
+  const needTo=['receipt','transfer','correction_plus'].includes(type);
+  if(needFrom&&!from)return alert('Quellstandort wählen.');
+  if(needTo&&!to)return alert('Zielstandort wählen.');
+
+  try{
+    await cloudRequest('rpc/book_operating_resource_stock_v1',{
+      method:'POST',
+      body:JSON.stringify({
+        p_resource_id:r.id,
+        p_movement_type:type,
+        p_from_location_id:from,
+        p_to_location_id:to,
+        p_quantity:q,
+        p_note:String(document.getElementById('orStockMoveNote')?.value||'').trim()||null
+      })
+    });
+    await loadOperatingResources();
+    await orOpenMovement(r.id);
+  }catch(e){
+    alert('Bestandsbuchung fehlgeschlagen: '+(e.message||e));
+  }
+}
+
+function orStockMovementLabel(type){
+  return ({
+    receipt:'Zugang',
+    consumption:'Verbrauch / Entnahme',
+    transfer:'Umlagerung',
+    correction_plus:'Bestandskorrektur +',
+    correction_minus:'Bestandskorrektur −'
+  })[type]||type||'Buchung';
 }
 
 async function orLoadMovementHistory(resourceId){
-  const host=document.getElementById('orMovementHistory');if(host)host.innerHTML='<span class="muted">Historie wird geladen …</span>';
+  const host=document.getElementById('orMovementHistory');
+  if(host)host.innerHTML='<span class="muted">Historie wird geladen …</span>';
+  const r=(operatingResourcesState.resources||[]).find(x=>String(x.id)===String(resourceId));
   try{
+    if(r?.tracking_mode==='quantity'){
+      const rows=await cloudRequest('rpc/get_operating_resource_stock_movements_v1',{
+        method:'POST',
+        body:JSON.stringify({p_resource_id:resourceId})
+      })||[];
+      operatingResourcesState.stockMovements=Array.isArray(rows)?rows:[];
+      if(!host)return;
+      if(!operatingResourcesState.stockMovements.length){
+        host.innerHTML='<span class="muted">Noch keine Lagerbuchung dokumentiert.</span>';
+        return;
+      }
+      const locName=id=>{
+        const loc=(operatingResourcesState.locations||[]).find(x=>String(x.id)===String(id||''));
+        return loc?orLocationLabel(loc):'—';
+      };
+      host.innerHTML=operatingResourcesState.stockMovements.map(m=>{
+        const d=m.moved_at?new Date(m.moved_at).toLocaleString('de-DE'):'—';
+        const route=m.movement_type==='transfer'
+          ?`${locName(m.from_location_id)} → ${locName(m.to_location_id)}`
+          :['consumption','correction_minus'].includes(m.movement_type)
+            ?locName(m.from_location_id)
+            :locName(m.to_location_id);
+        return `<div style="padding:8px 0;border-bottom:1px solid var(--line,#ddd)">
+          <div class="row space" style="gap:8px;flex-wrap:wrap">
+            <strong>${esc(d)}</strong>
+            <span class="badge">${esc(orStockMovementLabel(m.movement_type))}</span>
+          </div>
+          <div>${esc(route)} · <strong>${Number(m.quantity||0).toLocaleString('de-DE',{maximumFractionDigits:3})}${m.unit?' '+esc(m.unit):''}</strong></div>
+          ${m.note?`<div class="muted">${esc(m.note)}</div>`:''}
+        </div>`;
+      }).join('');
+      return;
+    }
+
     const rows=await cloudRequest(`operating_resource_movements?resource_id=eq.${encodeURIComponent(resourceId)}&select=*&order=moved_at.desc&limit=20`)||[];
     operatingResourcesState.movements=Array.isArray(rows)?rows:[];
     if(!host)return;
-    if(!operatingResourcesState.movements.length){host.innerHTML='<span class="muted">Noch keine Bewegung dokumentiert.</span>';return;}
+    if(!operatingResourcesState.movements.length){
+      host.innerHTML='<span class="muted">Noch keine Bewegung dokumentiert.</span>';
+      return;
+    }
     host.innerHTML=operatingResourcesState.movements.map(m=>{
       const d=m.moved_at?new Date(m.moved_at).toLocaleString('de-DE'):'—';
       const to=orFormatLocation({location_type:m.to_location_type,object_id:m.to_object_id,location_text:m.to_location_text},'');
-      const qty=m.quantity_after===null||m.quantity_after===undefined?'':` · ${Number(m.quantity_after).toLocaleString('de-DE',{maximumFractionDigits:3})}${m.unit?' '+m.unit:''}`;
-      return `<div style="padding:8px 0;border-bottom:1px solid var(--line,#ddd)"><strong>${esc(d)}</strong><div>${esc(to)}${esc(qty)}</div>${m.note?`<div class="muted">${esc(m.note)}</div>`:''}</div>`;
+      return `<div style="padding:8px 0;border-bottom:1px solid var(--line,#ddd)">
+        <strong>${esc(d)}</strong><div>${esc(to)}</div>${m.note?`<div class="muted">${esc(m.note)}</div>`:''}
+      </div>`;
     }).join('');
-  }catch(e){if(host)host.innerHTML=`<span class="bad">Historie konnte nicht geladen werden: ${esc(e.message||e)}</span>`;}
+  }catch(e){
+    if(host)host.innerHTML=`<span class="bad">Historie konnte nicht geladen werden: ${esc(e.message||e)}</span>`;
+  }
 }
 
 
