@@ -2,6 +2,15 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.44 · Geführte Erfassung & Routenplanung
+     UX:
+     - Betriebsmittelanlage/-bearbeitung als modaler 4-Schritt-Wizard.
+     - Bestehende Feld-IDs und Speicherlogik bleiben erhalten.
+     - Wiederkehrende Tour als 4-Schritt-Wizard:
+       Rahmen → Leistungen → Reihenfolge → Prüfen & Speichern.
+     - Stoppreihenfolge zusätzlich per Drag & Drop steuerbar.
+     - Mobile-first, klare Fortschrittsanzeige und Zusammenfassung.
+     BACKEND: keine SQL-Änderung. -->
 <!-- RELEASE 3.43 · Aufgabenturnus je Objektleistung
      FACHLICH:
      - Turnus liegt auf Objekt × Leistung × Checklistenaufgabe, nicht in der SOP selbst.
@@ -393,7 +402,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.43</title>
+<title>Duschl Service – Objektplattform v3.44</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -7012,6 +7021,218 @@ body.role-context-loading #authGate:not(.hidden){
 }
 
 </style>
+<style id="wizard-ui-v344">
+
+/* ==========================================================
+   v3.44 · WIZARDS: BETRIEBSMITTEL + ROUTENPLANUNG
+   ========================================================== */
+
+/* Shared steppers */
+.or-wizard-progress,.ops-tour-wizard-progress{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:6px;
+  margin-top:14px;
+}
+.or-wizard-progress button,.ops-tour-wizard-progress button{
+  min-width:0;
+  padding:8px 6px!important;
+  background:#0a1722!important;
+  border-color:var(--line)!important;
+  color:var(--muted)!important;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  font-weight:900;
+}
+.or-wizard-progress button span,.ops-tour-wizard-progress button span{
+  font-size:11px;
+  font-weight:700;
+}
+.or-wizard-progress button.active,.ops-tour-wizard-progress button.active{
+  border-color:var(--accent)!important;
+  color:#fff!important;
+  box-shadow:inset 0 -2px 0 var(--accent)!important;
+}
+.or-wizard-progress button.done,.ops-tour-wizard-progress button.done{
+  color:#b8d7ff!important;
+  border-color:rgba(47,143,255,.35)!important;
+}
+.or-wizard-counter,.ops-tour-wizard-counter{
+  margin-top:7px;
+  color:var(--muted);
+  font-size:11px;
+  text-align:right;
+}
+
+/* Betriebsmittel = echtes Dialogfenster */
+.or-wizard-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:94;
+  background:rgba(0,6,11,.78);
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+  opacity:0;
+  visibility:hidden;
+  transition:.16s ease;
+}
+.or-wizard-backdrop.open{opacity:1;visibility:visible}
+body.or-wizard-open{overflow:hidden!important}
+#orAdminCard.or-asset-wizard-modal{
+  display:none!important;
+}
+#orAdminCard.or-asset-wizard-modal.is-open{
+  display:block!important;
+  position:fixed!important;
+  z-index:95!important;
+  top:50%!important;
+  left:50%!important;
+  transform:translate(-50%,-50%)!important;
+  width:min(860px,calc(100vw - 28px))!important;
+  max-height:min(88vh,820px)!important;
+  overflow:auto!important;
+  margin:0!important;
+  padding:16px!important;
+  border-color:rgba(88,168,255,.35)!important;
+  box-shadow:0 28px 80px rgba(0,0,0,.62)!important;
+}
+#orAdminCard .or-wizard-step.hidden{display:none!important}
+#orAdminCard .or-wizard-nav{
+  position:sticky;
+  bottom:-16px;
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  margin:16px -16px -16px;
+  padding:11px 16px max(11px,env(safe-area-inset-bottom));
+  border-top:1px solid var(--line);
+  background:rgba(7,19,29,.97);
+  backdrop-filter:blur(10px);
+}
+#orAdminCard .or-wizard-nav button{min-width:96px}
+.or-wizard-review{
+  display:grid;
+  gap:7px;
+  margin-top:10px;
+}
+.or-wizard-review-row{
+  display:grid;
+  grid-template-columns:minmax(120px,.65fr) minmax(0,1.35fr);
+  gap:10px;
+  padding:9px 10px;
+  border:1px solid var(--line-soft);
+  border-radius:9px;
+  background:rgba(255,255,255,.025);
+}
+.or-wizard-review-row span{color:var(--muted);font-size:11px}
+
+/* Tour wizard */
+.ops-tour-wizard-card{grid-column:1/-1}
+.ops-tour-wizard-step.hidden{display:none!important}
+.ops-tour-wizard-nav{
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  margin-top:14px;
+  padding-top:12px;
+  border-top:1px solid var(--line-soft);
+}
+.ops-tour-route-summary{
+  padding:9px 10px;
+  border:1px solid rgba(47,143,255,.25);
+  border-radius:10px;
+  background:rgba(47,143,255,.06);
+  margin-top:10px;
+  font-size:12px;
+}
+.ops-tour-draft-row[draggable="true"]{
+  grid-template-columns:28px 34px minmax(0,1fr) auto!important;
+  cursor:grab;
+  transition:transform .12s ease,border-color .12s ease,opacity .12s ease;
+}
+.ops-tour-draft-row.dragging{opacity:.45;cursor:grabbing}
+.ops-tour-draft-row.drag-over{
+  border-color:var(--accent)!important;
+  transform:translateY(2px);
+}
+.ops-tour-drag-handle{
+  display:grid;
+  place-items:center;
+  color:#7890a3;
+  font-size:17px;
+  letter-spacing:-4px;
+  user-select:none;
+}
+.ops-tour-wizard-review{display:grid;gap:10px}
+.ops-tour-review-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+}
+.ops-tour-review-grid>div{
+  padding:9px 10px;
+  border:1px solid var(--line-soft);
+  border-radius:9px;
+  background:rgba(255,255,255,.025);
+}
+.ops-tour-review-grid span{display:block;color:var(--muted);font-size:10px;margin-bottom:3px}
+.ops-tour-review-route{display:grid;gap:6px}
+.ops-tour-review-stop{
+  display:grid;
+  grid-template-columns:28px minmax(0,1fr);
+  gap:8px;
+  align-items:center;
+  padding:8px 9px;
+  border:1px solid var(--line-soft);
+  border-radius:9px;
+}
+.ops-tour-review-stop>span{
+  width:26px;height:26px;border-radius:50%;
+  display:grid;place-items:center;
+  background:#10283a;color:#b9dcff;font-weight:900;font-size:11px;
+}
+
+@media(max-width:680px){
+  #orAdminCard.or-asset-wizard-modal.is-open{
+    top:0!important;
+    left:0!important;
+    transform:none!important;
+    width:100vw!important;
+    max-height:100dvh!important;
+    height:100dvh!important;
+    border-radius:0!important;
+    padding:12px!important;
+  }
+  #orAdminCard .or-wizard-progress,
+  #opsTourTemplateCard .ops-tour-wizard-progress{gap:4px}
+  #orAdminCard .or-wizard-progress button,
+  #opsTourTemplateCard .ops-tour-wizard-progress button{
+    padding:7px 3px!important;
+    font-size:11px!important;
+  }
+  #orAdminCard .or-wizard-progress button span,
+  #opsTourTemplateCard .ops-tour-wizard-progress button span{
+    display:none!important;
+  }
+  #orAdminCard .or-wizard-nav{
+    bottom:-12px;
+    margin:14px -12px -12px;
+    padding:9px 12px max(9px,env(safe-area-inset-bottom));
+  }
+  #orAdminCard .or-wizard-nav button{flex:1;min-width:0!important}
+  .or-wizard-review-row{grid-template-columns:1fr!important;gap:3px!important}
+  .ops-tour-wizard-card{padding:10px!important}
+  .ops-tour-wizard-nav button{flex:1;min-width:0!important}
+  .ops-tour-review-grid{grid-template-columns:1fr 1fr!important}
+  .ops-tour-draft-row[draggable="true"]{
+    grid-template-columns:24px 30px minmax(0,1fr) auto!important;
+  }
+  .ops-tour-drag-handle{font-size:15px}
+}
+
+</style>
 </head>
 <body class="role-context-loading">
 <div id="roleContextLoader" aria-live="polite" aria-busy="true">
@@ -8703,74 +8924,101 @@ WINTERDIENST RÄUMKARTE
     </details>
   </div>
   <div class="grid g2 ops-planning-only" style="margin-top:14px">
-    <div class="card ops-planning-section-card" id="opsTourTemplateCard">
+    <div class="card ops-planning-section-card ops-tour-wizard-card" id="opsTourTemplateCard">
       <div class="ops-planning-section-head">
         <div class="ops-planning-step">1</div>
         <div class="ops-planning-section-title">
           <h3>Wiederkehrende Tour</h3>
-          <div class="muted">Mehrere Objektleistungen gemeinsam planen – mit einem Rhythmus und einer festen Reihenfolge.</div>
+          <div class="muted">Geführt anlegen, anschließend Stopps visuell sortieren.</div>
         </div>
       </div>
-      <div class="ops-when-use"><strong>Standardfall:</strong> Hier planst du den Regelbetrieb. Wähle die Leistungen der Objekte, lege Reihenfolge, Rhythmus, Wochentag und Startzeit fest. Daraus entstehen automatisch die konkreten Tourtermine.</div>
-      <div class="ops-no-double-plan">Keine Doppelplanung: Die Leistung wird direkt über diese Tour terminiert. Ein separater wiederkehrender Leistungsplan ist nicht erforderlich.</div>
-      <div class="grid2" style="margin-top:12px">
-        <label>Tourname<input id="opsTourName" placeholder="z. B. Dienstag Nord"></label>
-        <label>Startzeit<input id="opsTourStart" type="time" value="07:00"></label>
+
+      <div class="ops-tour-wizard-progress" id="opsTourWizardProgress">
+        <button type="button" data-ops-tour-step="1" onclick="opsTourWizardGo(1)">1<span>Rahmen</span></button>
+        <button type="button" data-ops-tour-step="2" onclick="opsTourWizardGo(2)">2<span>Leistungen</span></button>
+        <button type="button" data-ops-tour-step="3" onclick="opsTourWizardGo(3)">3<span>Reihenfolge</span></button>
+        <button type="button" data-ops-tour-step="4" onclick="opsTourWizardGo(4)">4<span>Prüfen</span></button>
       </div>
-      <div class="grid2" style="margin-top:10px">
-        <label>Rhythmus
-          <select id="opsTourInterval">
-            <option value="1">wöchentlich</option>
-            <option value="2">alle 2 Wochen</option>
-            <option value="4">alle 4 Wochen</option>
-          </select>
-        </label>
-        <div>
-          <label>Wochentage</label>
-          <div class="ops-tour-weekdays">
-            <label><input type="checkbox" class="ops-tour-weekday" value="1"> Mo</label>
-            <label><input type="checkbox" class="ops-tour-weekday" value="2"> Di</label>
-            <label><input type="checkbox" class="ops-tour-weekday" value="3"> Mi</label>
-            <label><input type="checkbox" class="ops-tour-weekday" value="4"> Do</label>
-            <label><input type="checkbox" class="ops-tour-weekday" value="5"> Fr</label>
-            <label><input type="checkbox" class="ops-tour-weekday" value="6"> Sa</label>
-            <label><input type="checkbox" class="ops-tour-weekday" value="0"> So</label>
+      <div class="ops-tour-wizard-counter" id="opsTourWizardCounter">Schritt 1 von 4</div>
+
+      <div class="ops-tour-wizard-step" data-ops-tour-wizard-step="1">
+        <div class="ops-when-use"><strong>Rahmen festlegen:</strong> Name, Rhythmus, Wochentage und Gültigkeit gelten für die komplette Tour.</div>
+        <div class="grid2" style="margin-top:12px">
+          <label>Tourname<input id="opsTourName" placeholder="z. B. Dienstag Nord"></label>
+          <label>Startzeit<input id="opsTourStart" type="time" value="07:00"></label>
+        </div>
+        <div class="grid2" style="margin-top:10px">
+          <label>Rhythmus
+            <select id="opsTourInterval">
+              <option value="1">wöchentlich</option>
+              <option value="2">alle 2 Wochen</option>
+              <option value="4">alle 4 Wochen</option>
+            </select>
+          </label>
+          <div>
+            <label>Wochentage</label>
+            <div class="ops-tour-weekdays">
+              <label><input type="checkbox" class="ops-tour-weekday" value="1"> Mo</label>
+              <label><input type="checkbox" class="ops-tour-weekday" value="2"> Di</label>
+              <label><input type="checkbox" class="ops-tour-weekday" value="3"> Mi</label>
+              <label><input type="checkbox" class="ops-tour-weekday" value="4"> Do</label>
+              <label><input type="checkbox" class="ops-tour-weekday" value="5"> Fr</label>
+              <label><input type="checkbox" class="ops-tour-weekday" value="6"> Sa</label>
+              <label><input type="checkbox" class="ops-tour-weekday" value="0"> So</label>
+            </div>
+          </div>
+        </div>
+        <div class="grid2" style="margin-top:10px">
+          <label>Gültig von<input id="opsTourFrom" type="date"></label>
+          <label>Gültig bis<input id="opsTourUntil" type="date"></label>
+        </div>
+      </div>
+
+      <div class="ops-tour-wizard-step hidden" data-ops-tour-wizard-step="2">
+        <div class="ops-when-use"><strong>Leistungen auswählen:</strong> Nur aktive Objekt-Leistungszuordnungen werden angeboten. SOP und Checklisten werden automatisch vererbt.</div>
+        <div class="ops-tour-stop-editor" style="margin-top:10px">
+          <div id="opsPlanningCandidatesBox" class="ops-planning-candidates hidden"></div>
+          <div class="grid2 ops-tour-object-service-select">
+            <label>1. Objekt
+              <select id="opsTourObjectAdd" onchange="opsTourObjectChanged()">
+                <option value="">Objekt wählen …</option>
+              </select>
+            </label>
+            <label>2. Leistung
+              <select id="opsTourServiceAdd" disabled onchange="opsTourServiceChanged()">
+                <option value="">Zuerst Objekt wählen …</option>
+              </select>
+            </label>
+          </div>
+          <div id="opsTourSelectionInfo" class="muted" style="margin-top:8px">Objekt auswählen, danach eine aktive Leistung dieses Objekts.</div>
+          <div class="row" style="margin-top:8px;align-items:center;gap:8px;flex-wrap:wrap">
+            <button id="opsTourAddBtn" type="button" class="primary" onclick="opsTourAddObjectService()" disabled>+ Zur Tour hinzufügen</button>
+            <span id="opsTourDraftCount" class="muted">0 Stopps gewählt</span>
           </div>
         </div>
       </div>
-      <div class="grid2" style="margin-top:10px">
-        <label>Gültig von<input id="opsTourFrom" type="date"></label>
-        <label>Gültig bis<input id="opsTourUntil" type="date"></label>
-      </div>
-      <div class="muted" style="margin-top:7px">Rhythmus, Wochentage und Gültigkeit gelten für die komplette Tour.</div>
-      <div class="ops-tour-stop-editor" style="margin-top:10px">
-        <div id="opsPlanningCandidatesBox" class="ops-planning-candidates hidden"></div>
 
-        <div class="grid2 ops-tour-object-service-select">
-          <label>1. Objekt
-            <select id="opsTourObjectAdd" onchange="opsTourObjectChanged()">
-              <option value="">Objekt wählen …</option>
-            </select>
-          </label>
-          <label>2. Leistung
-            <select id="opsTourServiceAdd" disabled onchange="opsTourServiceChanged()">
-              <option value="">Zuerst Objekt wählen …</option>
-            </select>
-          </label>
-        </div>
-        <div id="opsTourSelectionInfo" class="muted" style="margin-top:8px">Objekt auswählen, danach eine aktive Leistung dieses Objekts.</div>
-        <div class="row" style="margin-top:8px">
-          <button id="opsTourAddBtn" type="button" class="primary" onclick="opsTourAddObjectService()" disabled>+ Zur Tour hinzufügen</button>
-        </div>
-        <div class="muted" style="margin-top:8px">SOP, Arbeitsanweisungen und Checklisten werden automatisch über die Leistungsart vererbt. Die Reihenfolge unten entspricht der späteren Tourreihenfolge.</div>
+      <div class="ops-tour-wizard-step hidden" data-ops-tour-wizard-step="3">
+        <div class="ops-when-use"><strong>Reihenfolge planen:</strong> Stopps ziehen oder mit ↑/↓ verschieben. Die Reihenfolge entspricht der späteren Tour.</div>
+        <div class="ops-tour-route-summary" id="opsTourRouteSummary">Noch keine Stopps.</div>
         <div id="opsTourDraftStops" class="ops-tour-draft-stops" style="margin-top:10px"></div>
       </div>
-      <div class="row" style="margin-top:10px;gap:8px">
-        <button id="opsTourSaveBtn" class="primary" type="button" onclick="opsSaveTour()">Wiederkehrende Tour speichern</button>
+
+      <div class="ops-tour-wizard-step hidden" data-ops-tour-wizard-step="4">
+        <div class="ops-when-use"><strong>Prüfen:</strong> Rahmen und Route vor dem Speichern kontrollieren.</div>
+        <div id="opsTourWizardReview" class="ops-tour-wizard-review" style="margin-top:10px"></div>
+        <div id="opsTourEditInfo" class="muted hidden" style="margin-top:8px">Bearbeitungsmodus: bestehende Tourvorlage.</div>
+      </div>
+
+      <div class="ops-tour-wizard-nav">
+        <button id="opsTourWizardBackBtn" type="button" onclick="opsTourWizardPrev()">Zurück</button>
+        <button id="opsTourWizardNextBtn" class="primary" type="button" onclick="opsTourWizardNext()">Weiter</button>
+        <button id="opsTourSaveBtn" class="primary hidden" type="button" onclick="opsSaveTour()">Wiederkehrende Tour speichern</button>
         <button id="opsTourCancelBtn" class="hidden" type="button" onclick="opsCancelTourEdit()">Abbrechen</button>
       </div>
-      <div id="opsTourEditInfo" class="muted hidden" style="margin-top:8px">Bearbeitungsmodus: bestehende Tourvorlage.</div>
-      <div id="opsTourList" style="margin-top:12px"></div></div>
+
+      <div id="opsTourList" style="margin-top:12px"></div>
+    </div>
     <div class="card"><h3>Automatisch erzeugte Tourtermine</h3><div class="muted">Aus der wiederkehrenden Tour entstehen konkrete Einsätze. Änderungen an einem einzelnen Termin verändern die Tourvorlage nicht.</div><div id="opsRunList" style="margin-top:12px"></div></div>
   </div>
 
@@ -8969,7 +9217,7 @@ WINTERDIENST RÄUMKARTE
     <span class="muted">Suchen, scannen, umlagern und Bestand buchen</span>
   </div>
 
-  <div class="card operating-resource-admin or-workspace-panel" id="orAdminCard" data-or-panel="asset" style="margin-top:14px">
+  <div class="card operating-resource-admin or-workspace-panel or-asset-wizard-modal" id="orAdminCard" data-or-panel="asset" style="margin-top:14px">
     <div class="row space" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
       <div>
         <div class="ds-section-eyebrow">STAMMDATEN</div>
@@ -8984,7 +9232,15 @@ WINTERDIENST RÄUMKARTE
 
     <input id="orEditId" type="hidden">
 
-    <div class="or-form-section">
+    <div class="or-wizard-progress" id="orWizardProgress">
+      <button type="button" data-or-step-indicator="1" onclick="orWizardGo(1)">1<span>Identifikation</span></button>
+      <button type="button" data-or-step-indicator="2" onclick="orWizardGo(2)">2<span>Betrieb</span></button>
+      <button type="button" data-or-step-indicator="3" onclick="orWizardGo(3)">3<span>Details</span></button>
+      <button type="button" data-or-step-indicator="4" onclick="orWizardGo(4)">4<span>Prüfen</span></button>
+    </div>
+    <div class="or-wizard-counter" id="orWizardCounter">Schritt 1 von 4</div>
+
+    <div class="or-form-section or-wizard-step" data-or-wizard-step="1">
       <div class="or-form-section-title">1 · Identifikation</div>
       <div class="grid2">
         <label>Bezeichnung *
@@ -9014,7 +9270,7 @@ WINTERDIENST RÄUMKARTE
       </div>
     </div>
 
-    <div class="or-form-section">
+    <div class="or-form-section or-wizard-step" data-or-wizard-step="2">
       <div class="or-form-section-title">2 · Betrieb</div>
       <div class="grid2">
         <label>Erfassung
@@ -9062,7 +9318,8 @@ WINTERDIENST RÄUMKARTE
       </div>
     </div>
 
-    <details class="or-advanced-details">
+    <div class="or-advanced-details or-wizard-step" data-or-wizard-step="3">
+      <div class="or-form-section-title">3 · Details & Zuordnung</div>
       <summary>Weitere Angaben</summary>
       <div class="grid2" style="margin-top:12px">
         <label>Kategorie
@@ -9108,12 +9365,21 @@ WINTERDIENST RÄUMKARTE
         <input id="orPlanningRelevant" type="checkbox" checked style="width:auto">
         Für Ressourcen-/Einsatzplanung relevant
       </label>
-    </details>
+    </div>
 
-    <div class="row" style="margin-top:14px;gap:8px;flex-wrap:wrap">
-      <button class="primary" type="button" onclick="orSaveResource()">Speichern</button>
-      <button type="button" id="orDeactivateBtn" class="hidden" onclick="orDeactivateResource()">Deaktivieren</button>
-      <button type="button" id="orDeleteBtn" class="hidden danger" onclick="orDeleteResource()">Löschen</button>
+    <div class="or-wizard-step" data-or-wizard-step="4">
+      <div class="or-form-section-title">4 · Prüfen & speichern</div>
+      <div id="orWizardReview" class="or-wizard-review"></div>
+      <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">
+        <button type="button" id="orDeactivateBtn" class="hidden" onclick="orDeactivateResource()">Deaktivieren</button>
+        <button type="button" id="orDeleteBtn" class="hidden danger" onclick="orDeleteResource()">Löschen</button>
+      </div>
+    </div>
+
+    <div class="or-wizard-nav">
+      <button type="button" id="orWizardBackBtn" onclick="orWizardPrev()">Zurück</button>
+      <button type="button" id="orWizardNextBtn" class="primary" onclick="orWizardNext()">Weiter</button>
+      <button type="button" id="orWizardSaveBtn" class="primary hidden" onclick="orSaveResource()">Speichern</button>
     </div>
   </div>
 
@@ -12057,7 +12323,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.43';
+const APP_VERSION='3.44';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -21289,6 +21555,91 @@ function orCloseAllWorkspacePanels(){
   document.querySelectorAll('#operatingResources .or-workspace-panel').forEach(el=>el.classList.remove('is-open'));
 }
 
+
+let orWizardStep=1;
+
+function orWizardBackdrop(open){
+  let bg=document.getElementById('orWizardBackdrop');
+  if(open){
+    if(!bg){
+      bg=document.createElement('div');
+      bg.id='orWizardBackdrop';
+      bg.className='or-wizard-backdrop';
+      bg.onclick=()=>orCloseWorkspacePanel('asset');
+      document.body.appendChild(bg);
+    }
+    bg.classList.add('open');
+    document.body.classList.add('or-wizard-open');
+  }else{
+    bg?.classList.remove('open');
+    document.body.classList.remove('or-wizard-open');
+  }
+}
+
+function orWizardValidate(step){
+  if(step===1){
+    const name=document.getElementById('orName')?.value.trim()||'';
+    if(!name){alert('Bitte zuerst die Bezeichnung des Betriebsmittels eingeben.');document.getElementById('orName')?.focus();return false;}
+  }
+  if(step===2){
+    const mode=document.getElementById('orTrackingMode')?.value||'individual';
+    if(mode==='quantity'){
+      const critical=Number(document.getElementById('orCriticalStock')?.value||0);
+      const minRaw=document.getElementById('orMinimumStock')?.value;
+      const targetRaw=document.getElementById('orTargetStock')?.value;
+      const minimum=minRaw===''?null:Number(minRaw);
+      const target=targetRaw===''?null:Number(targetRaw);
+      if([critical,minimum,target].filter(v=>v!==null).some(v=>!Number.isFinite(v)||v<0)){
+        alert('Bestandsgrenzen müssen positiv oder 0 sein.');return false;
+      }
+      if(minimum!==null && critical>minimum){alert('Kritischer Bestand darf nicht über dem Mindestbestand liegen.');return false;}
+      if(target!==null && minimum!==null && minimum>target){alert('Mindestbestand darf nicht über dem Sollbestand liegen.');return false;}
+    }
+  }
+  return true;
+}
+
+function orWizardReviewHtml(){
+  const val=id=>document.getElementById(id)?.value||'';
+  const mode=val('orTrackingMode');
+  const rows=[
+    ['Bezeichnung',val('orName')||'—'],
+    ['Art',document.getElementById('orKind')?.selectedOptions?.[0]?.textContent||'—'],
+    ['Hersteller / Modell',[val('orManufacturer'),val('orModel')].filter(Boolean).join(' ')||'—'],
+    ['Erfassung',document.getElementById('orTrackingMode')?.selectedOptions?.[0]?.textContent||'—'],
+    ['Status',document.getElementById('orStatus')?.selectedOptions?.[0]?.textContent||'—'],
+    ['Standort',document.getElementById('orSavedLocationId')?.selectedOptions?.[0]?.textContent||val('orLocationText')||'—']
+  ];
+  if(mode==='quantity'){
+    rows.push(['Bestandsgrenzen',`kritisch ${val('orCriticalStock')||'0'} · Mindest ${val('orMinimumStock')||'—'} · Soll ${val('orTargetStock')||'—'}`]);
+  }
+  return rows.map(([k,v])=>`<div class="or-wizard-review-row"><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join('');
+}
+
+function orWizardGo(step,{validate=true}={}){
+  step=Math.max(1,Math.min(4,Number(step)||1));
+  if(validate && step>orWizardStep && !orWizardValidate(orWizardStep))return;
+  orWizardStep=step;
+  document.querySelectorAll('#orAdminCard [data-or-wizard-step]').forEach(el=>{
+    el.classList.toggle('hidden',Number(el.dataset.orWizardStep)!==step);
+  });
+  document.querySelectorAll('#orWizardProgress [data-or-step-indicator]').forEach(btn=>{
+    const n=Number(btn.dataset.orStepIndicator);
+    btn.classList.toggle('active',n===step);
+    btn.classList.toggle('done',n<step);
+  });
+  const counter=document.getElementById('orWizardCounter');if(counter)counter.textContent=`Schritt ${step} von 4`;
+  const back=document.getElementById('orWizardBackBtn');if(back)back.disabled=step===1;
+  document.getElementById('orWizardNextBtn')?.classList.toggle('hidden',step===4);
+  document.getElementById('orWizardSaveBtn')?.classList.toggle('hidden',step!==4);
+  if(step===4){
+    const review=document.getElementById('orWizardReview');if(review)review.innerHTML=orWizardReviewHtml();
+  }
+}
+
+function orWizardNext(){if(orWizardValidate(orWizardStep))orWizardGo(orWizardStep+1,{validate:false});}
+function orWizardPrev(){orWizardGo(orWizardStep-1,{validate:false});}
+
 function orOpenWorkspacePanel(panel,reset=false){
   if(!operatingResourcesCanAdmin())return alert('Diese Verwaltung ist dem Mandanten-Admin vorbehalten.');
   if(reset && panel==='asset')orResetEditor();
@@ -21298,11 +21649,17 @@ function orOpenWorkspacePanel(panel,reset=false){
   const el=orWorkspacePanelElement(panel);
   if(!el)return;
   el.classList.add('is-open');
-  requestAnimationFrame(()=>el.scrollIntoView({behavior:'smooth',block:'start'}));
+  if(panel==='asset'){
+    orWizardBackdrop(true);
+    orWizardGo(1,{validate:false});
+  }else{
+    requestAnimationFrame(()=>el.scrollIntoView({behavior:'smooth',block:'start'}));
+  }
 }
 
 function orCloseWorkspacePanel(panel){
   orWorkspacePanelElement(panel)?.classList.remove('is-open');
+  if(panel==='asset')orWizardBackdrop(false);
   document.getElementById('orInventoryCard')?.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
@@ -21338,6 +21695,7 @@ function orResetEditor(){
   const btn=document.getElementById('orDeactivateBtn');if(btn)btn.classList.add('hidden');
   const del=document.getElementById('orDeleteBtn');if(del)del.classList.add('hidden');
   orUpdateTrackingUI();
+  orWizardStep=1;
 }
 
 function orEditResource(id){
@@ -21356,6 +21714,7 @@ function orEditResource(id){
   if(del)del.classList.toggle('hidden',!!r.deleted_at);
   orUpdateTrackingUI();
   orOpenWorkspacePanel('asset');
+  orWizardGo(1,{validate:false});
 }
 
 async function loadOperatingResources(){
@@ -37572,6 +37931,111 @@ function opsTourServiceChanged(){
   }
   if(btn)btn.disabled=false;
 }
+
+let opsTourWizardStep=1;
+let opsTourDragIndex=null;
+
+function opsTourWizardValidate(step){
+  if(step===1){
+    const name=document.getElementById('opsTourName')?.value.trim()||'';
+    if(!name){alert('Bitte einen Tournamen eingeben.');document.getElementById('opsTourName')?.focus();return false;}
+    const weekdays=[...document.querySelectorAll('.ops-tour-weekday:checked')];
+    if(!weekdays.length){alert('Bitte mindestens einen Wochentag auswählen.');return false;}
+    const from=document.getElementById('opsTourFrom')?.value||'';
+    const until=document.getElementById('opsTourUntil')?.value||'';
+    if(until&&from&&until<from){alert('„Gültig bis“ darf nicht vor „Gültig von“ liegen.');return false;}
+  }
+  if((step===2||step===3) && !opsTourDraftItems.length){
+    alert('Bitte mindestens eine Objektleistung zur Tour hinzufügen.');
+    return false;
+  }
+  return true;
+}
+
+function opsTourWizardReviewHtml(){
+  const name=document.getElementById('opsTourName')?.value.trim()||'—';
+  const start=document.getElementById('opsTourStart')?.value||'—';
+  const interval=document.getElementById('opsTourInterval')?.selectedOptions?.[0]?.textContent||'—';
+  const days=[...document.querySelectorAll('.ops-tour-weekday:checked')].map(x=>({1:'Mo',2:'Di',3:'Mi',4:'Do',5:'Fr',6:'Sa',0:'So'})[Number(x.value)]).join(', ');
+  const total=opsTourDraftItems.reduce((s,x)=>s+Number(x.planned_duration_minutes||60),0);
+  const stops=opsTourDraftItems.map((item,i)=>{
+    const a=opsTourAssignmentById(item.assignment_id);
+    return `<div class="ops-tour-review-stop"><span>${i+1}</span><div><strong>${opsEsc(a?opsObjName(a.object_id):'Objekt')}</strong><div class="muted">${opsEsc(a?opsServiceName(a.service_type_id):'Leistung')} · ${opsEsc(item.planned_duration_minutes||60)} Min.</div></div></div>`;
+  }).join('');
+  return `<div class="ops-tour-review-grid">
+      <div><span>Tour</span><strong>${opsEsc(name)}</strong></div>
+      <div><span>Start</span><strong>${opsEsc(start)}</strong></div>
+      <div><span>Rhythmus</span><strong>${opsEsc(interval)}</strong></div>
+      <div><span>Wochentage</span><strong>${opsEsc(days||'—')}</strong></div>
+      <div><span>Stopps</span><strong>${opsTourDraftItems.length}</strong></div>
+      <div><span>Planzeit</span><strong>${total} Min.</strong></div>
+    </div>
+    <div class="ops-tour-review-route">${stops}</div>`;
+}
+
+function opsTourWizardGo(step,{validate=true}={}){
+  step=Math.max(1,Math.min(4,Number(step)||1));
+  if(validate && step>opsTourWizardStep && !opsTourWizardValidate(opsTourWizardStep))return;
+  opsTourWizardStep=step;
+  document.querySelectorAll('#opsTourTemplateCard [data-ops-tour-wizard-step]').forEach(el=>{
+    el.classList.toggle('hidden',Number(el.dataset.opsTourWizardStep)!==step);
+  });
+  document.querySelectorAll('#opsTourWizardProgress [data-ops-tour-step]').forEach(btn=>{
+    const n=Number(btn.dataset.opsTourStep);
+    btn.classList.toggle('active',n===step);
+    btn.classList.toggle('done',n<step);
+  });
+  const counter=document.getElementById('opsTourWizardCounter');if(counter)counter.textContent=`Schritt ${step} von 4`;
+  const back=document.getElementById('opsTourWizardBackBtn');if(back)back.disabled=step===1;
+  document.getElementById('opsTourWizardNextBtn')?.classList.toggle('hidden',step===4);
+  document.getElementById('opsTourSaveBtn')?.classList.toggle('hidden',step!==4);
+  if(step===4){
+    const review=document.getElementById('opsTourWizardReview');if(review)review.innerHTML=opsTourWizardReviewHtml();
+  }
+  if(step===3)opsRenderTourDraftStops();
+}
+function opsTourWizardNext(){if(opsTourWizardValidate(opsTourWizardStep))opsTourWizardGo(opsTourWizardStep+1,{validate:false});}
+function opsTourWizardPrev(){opsTourWizardGo(opsTourWizardStep-1,{validate:false});}
+
+function opsUpdateTourDraftMeta(){
+  const count=document.getElementById('opsTourDraftCount');
+  if(count)count.textContent=`${opsTourDraftItems.length} ${opsTourDraftItems.length===1?'Stopp':'Stopps'} gewählt`;
+  const total=opsTourDraftItems.reduce((s,x)=>s+Number(x.planned_duration_minutes||60),0);
+  const summary=document.getElementById('opsTourRouteSummary');
+  if(summary)summary.innerHTML=opsTourDraftItems.length
+    ?`<strong>${opsTourDraftItems.length} ${opsTourDraftItems.length===1?'Stopp':'Stopps'}</strong> · geplante Arbeitszeit <strong>${total} Min.</strong>`
+    :'Noch keine Stopps.';
+}
+
+function opsTourDragStart(index,event){
+  opsTourDragIndex=index;
+  event.currentTarget?.classList.add('dragging');
+  if(event.dataTransfer){event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',String(index));}
+}
+function opsTourDragOver(index,event){
+  event.preventDefault();
+  if(event.dataTransfer)event.dataTransfer.dropEffect='move';
+  event.currentTarget?.classList.add('drag-over');
+}
+function opsTourDragLeave(event){event.currentTarget?.classList.remove('drag-over');}
+function opsTourDrop(index,event){
+  event.preventDefault();
+  event.currentTarget?.classList.remove('drag-over');
+  const from=opsTourDragIndex===null?Number(event.dataTransfer?.getData('text/plain')):opsTourDragIndex;
+  if(Number.isInteger(from)&&from>=0&&from<opsTourDraftItems.length&&from!==index){
+    const [item]=opsTourDraftItems.splice(from,1);
+    const target=from<index?index-1:index;
+    opsTourDraftItems.splice(Math.max(0,target),0,item);
+  }
+  opsTourDragIndex=null;
+  opsRenderTourDraftStops();
+}
+function opsTourDragEnd(event){
+  opsTourDragIndex=null;
+  event.currentTarget?.classList.remove('dragging');
+  document.querySelectorAll('.ops-tour-draft-row.drag-over').forEach(x=>x.classList.remove('drag-over'));
+}
+
 function opsRenderTourDraftStops(){
   const host=document.getElementById('opsTourDraftStops');if(!host)return;
   const rows=opsTourDraftItems
@@ -37580,13 +38044,15 @@ function opsRenderTourDraftStops(){
 
   if(!rows.length){
     host.innerHTML='<div class="ops-tour-draft-empty">Noch keine Objektleistung zur Tour hinzugefügt.</div>';
+    opsUpdateTourDraftMeta();
     opsTourObjectChanged(true);
     return;
   }
 
   host.innerHTML=rows.map(({item,a},i)=>{
     const plan=opsTourPlanForAssignment(a);
-    return `<div class="ops-tour-draft-row">
+    return `<div class="ops-tour-draft-row" draggable="true" ondragstart="opsTourDragStart(${i},event)" ondragover="opsTourDragOver(${i},event)" ondragleave="opsTourDragLeave(event)" ondrop="opsTourDrop(${i},event)" ondragend="opsTourDragEnd(event)">
+      <div class="ops-tour-drag-handle" title="Ziehen">⋮⋮</div>
       <div class="ops-tour-draft-index">${i+1}</div>
       <div>
         <div class="ops-tour-draft-title">${opsEsc(opsObjName(a.object_id))} · ${opsEsc(opsServiceName(a.service_type_id))}</div>
@@ -37605,6 +38071,7 @@ function opsRenderTourDraftStops(){
     </div>`;
   }).join('');
 
+  opsUpdateTourDraftMeta();
   opsTourObjectChanged(true);
 }
 function opsTourSetDuration(index,value){
@@ -37671,6 +38138,7 @@ function opsResetTourForm(){
   document.getElementById('opsTourEditInfo')?.classList.add('hidden');
 
   opsRenderTourDraftStops();
+  opsTourWizardGo(1,{validate:false});
 }
 function opsCancelTourEdit(){opsResetTourForm();}
 
@@ -37715,7 +38183,8 @@ function opsEditTour(id){
   const b=document.getElementById('opsTourSaveBtn');if(b)b.textContent='Änderungen speichern';
   document.getElementById('opsTourCancelBtn')?.classList.remove('hidden');
   document.getElementById('opsTourEditInfo')?.classList.remove('hidden');
-  document.getElementById('opsTourName')?.scrollIntoView({behavior:'smooth',block:'center'});
+  opsTourWizardGo(1,{validate:false});
+  document.getElementById('opsTourTemplateCard')?.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 async function opsDeleteTour(id){
