@@ -2,6 +2,14 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.42 · Mobile Einsatzbezug Compact
+     UX:
+     - Einsatzbezug mobil als eine kompakte Zeile statt großem Container.
+     - Lange Leistungsbezeichnungen werden nicht mehr abgeschnitten.
+     - Mehrere Zuordnungen werden kompakt zusammengefasst.
+     - Bestandsampel-Filter mobil volle Breite.
+     - Kartenabstände weiter reduziert.
+     BACKEND: keine SQL-Änderung. -->
 <!-- RELEASE 3.41 · Mobile Compact UI Betriebsmittel
      UX:
      - kompakter Mobile-Header; Benutzertext auf kleinen Displays nur als Avatar.
@@ -369,7 +377,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.41</title>
+<title>Duschl Service – Objektplattform v3.42</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -6802,6 +6810,101 @@ body.role-context-loading #authGate:not(.hidden){
 }
 
 </style>
+<style id="mobile-einsatzbezug-v342">
+
+/* ==========================================================
+   v3.42 · MOBILE EINSATZBEZUG COMPACT
+   ========================================================== */
+@media(max-width:680px){
+
+  #orInventoryCard #orReorderFilter{
+    grid-column:1 / -1!important;
+    width:100%!important;
+    min-width:0!important;
+  }
+
+  #orResourceList .or-resource-card{
+    padding:10px!important;
+    margin-bottom:7px!important;
+  }
+
+  #orResourceList .or-resource-head{
+    align-items:center!important;
+  }
+
+  #orResourceList .or-resource-location{
+    margin-top:3px!important;
+  }
+
+  #orResourceList .or-resource-usage{
+    margin-top:5px!important;
+    padding:5px 7px!important;
+    min-height:34px!important;
+    display:flex!important;
+    align-items:center!important;
+    gap:7px!important;
+    border-radius:9px!important;
+    background:rgba(9,25,36,.55)!important;
+  }
+
+  #orResourceList .or-resource-usage-main{
+    min-width:0!important;
+    flex:1 1 auto!important;
+    display:flex!important;
+    align-items:center!important;
+    gap:6px!important;
+    overflow:hidden!important;
+  }
+
+  #orResourceList .or-resource-usage-label{
+    flex:0 0 auto!important;
+    font-size:11px!important;
+    line-height:1!important;
+    white-space:nowrap!important;
+  }
+
+  #orResourceList .or-resource-usage-summary{
+    min-width:0!important;
+    font-size:12px!important;
+    line-height:1.15!important;
+    white-space:normal!important;
+    overflow:visible!important;
+    text-overflow:clip!important;
+    overflow-wrap:anywhere!important;
+  }
+
+  #orResourceList .or-resource-service-tags{
+    display:none!important;
+  }
+
+  #orResourceList .or-resource-assign-btn{
+    width:30px!important;
+    height:30px!important;
+    min-width:30px!important;
+    min-height:30px!important;
+    flex:0 0 30px!important;
+    padding:0!important;
+    border-radius:8px!important;
+    font-size:18px!important;
+    line-height:1!important;
+    display:grid!important;
+    place-items:center!important;
+  }
+
+  #orResourceList .or-resource-assign-btn::after{
+    content:none!important;
+  }
+
+  #orResourceList .or-resource-actions-mobile{
+    margin-top:6px!important;
+  }
+
+  #orResourceList .or-resource-actions-mobile button{
+    min-height:36px!important;
+  }
+}
+
+</style>
 </head>
 <body class="role-context-loading">
 <div id="roleContextLoader" aria-live="polite" aria-busy="true">
@@ -11822,7 +11925,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.41';
+const APP_VERSION='3.42';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -21183,20 +21286,40 @@ function orServiceTypeName(id){
 }
 function orResourceUsageHtml(resource){
   const links=orResourceRequirements(resource?.id);
+  const canAdmin=operatingResourcesCanAdmin();
+
   if(!links.length){
     return `<div class="or-resource-usage is-unlinked">
-      <div><strong>Einsatzbezug</strong><div class="muted">Noch keine Einsatzart zugeordnet.</div></div>
-      ${operatingResourcesCanAdmin()?`<button type="button" onclick="orStartRequirementForResource('${esc(resource?.id||'')}')">Einsatzart zuordnen</button>`:''}
+      <div class="or-resource-usage-main">
+        <strong class="or-resource-usage-label">Einsatz:</strong>
+        <span class="or-resource-usage-summary muted">nicht zugeordnet</span>
+      </div>
+      ${canAdmin?`<button type="button" class="or-resource-assign-btn" aria-label="Einsatzbezug ergänzen" onclick="orStartRequirementForResource('${esc(resource?.id||'')}')">+</button>`:''}
     </div>`;
   }
-  const labels=[...new Set(links.map(r=>String(orRequirementContextLabel(r)||'').trim()).filter(Boolean))];
+
+  const labels=[...new Set(
+    links.map(r=>String(orRequirementContextLabel(r)||'').trim()).filter(Boolean)
+  )];
+
+  const shortLabels=labels.map(label=>{
+    const cleaned=label.replace(/^Leistung\s*[·:-]\s*/i,'').trim();
+    return cleaned||label;
+  });
+
+  const visible=shortLabels.slice(0,2);
+  const extra=Math.max(shortLabels.length-visible.length,0);
+  const summary=`${visible.map(esc).join(' · ')}${extra?` · +${extra}`:''}`;
+
   return `<div class="or-resource-usage">
-    <div class="or-resource-usage-main"><strong>Einsatzbezug</strong><div class="or-resource-service-tags">${
-      labels.map(label=>`<span class="badge">${esc(label)}</span>`).join('')
-    }</div></div>
-    ${operatingResourcesCanAdmin()?`<button type="button" class="or-resource-assign-btn" onclick="orStartRequirementForResource('${esc(resource?.id||'')}')">Zuordnung ergänzen</button>`:''}
+    <div class="or-resource-usage-main">
+      <strong class="or-resource-usage-label">Einsatz:</strong>
+      <span class="or-resource-usage-summary">${summary}</span>
+    </div>
+    ${canAdmin?`<button type="button" class="or-resource-assign-btn" aria-label="Einsatzbezug ergänzen" onclick="orStartRequirementForResource('${esc(resource?.id||'')}')">+</button>`:''}
   </div>`;
 }
+
 function orStartRequirementForResource(resourceId){
   if(!operatingResourcesCanAdmin())return;
   orResetRequirementEditor();
