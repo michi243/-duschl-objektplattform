@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.45 · Inventarliste Export: PDF/Drucken, Excel (.xls), CSV; filterbar nach Lifecycle, Status, Typ, Kategorie, Standort und Leistungsbezug. Backend unverändert. -->
 <!-- RELEASE 3.44 · Geführte Erfassung & Routenplanung
      UX:
      - Betriebsmittelanlage/-bearbeitung als modaler 4-Schritt-Wizard.
@@ -402,7 +403,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.44</title>
+<title>Duschl Service – Objektplattform v3.45</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -7233,6 +7234,10 @@ body.or-wizard-open{overflow:hidden!important}
 }
 
 </style>
+
+<style id="inventory-export-v345">
+.or-export-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.or-export-actions button{min-width:130px}.or-export-filters select{width:100%}@media(max-width:680px){.or-export-actions{display:grid;grid-template-columns:1fr}.or-export-actions button{width:100%}}
+</style>
 </head>
 <body class="role-context-loading">
 <div id="roleContextLoader" aria-live="polite" aria-busy="true">
@@ -9207,6 +9212,7 @@ WINTERDIENST RÄUMKARTE
     <button class="primary" type="button" onclick="orOpenWorkspacePanel('asset',true)">+ Betriebsmittel</button>
     <button type="button" onclick="orOpenWorkspacePanel('locations')">Standorte verwalten</button>
     <button type="button" onclick="orOpenWorkspacePanel('requirements')">Einsatzbedarf verwalten</button>
+    <button type="button" onclick="orOpenInventoryExport()">Inventarliste exportieren</button>
   </div>
 
   <div class="or-workspace-main-label">
@@ -12323,7 +12329,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.44';
+const APP_VERSION='3.45';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -21715,6 +21721,114 @@ function orEditResource(id){
   orUpdateTrackingUI();
   orOpenWorkspacePanel('asset');
   orWizardGo(1,{validate:false});
+}
+
+
+function orInventoryExportFilters(){
+  return {
+    lifecycle:document.getElementById('orExportLifecycle')?.value||'active',
+    status:document.getElementById('orExportStatus')?.value||'',
+    tracking:document.getElementById('orExportTracking')?.value||'',
+    category:document.getElementById('orExportCategory')?.value||'',
+    location:document.getElementById('orExportLocation')?.value||'',
+    service:document.getElementById('orExportService')?.value||''
+  };
+}
+function orInventoryExportRows(){
+  const f=orInventoryExportFilters();
+  return (operatingResourcesState.resources||[]).filter(r=>{
+    const deleted=!!r.deleted_at, inactive=r.active===false&&!deleted;
+    if(f.lifecycle==='active'&&(deleted||r.active===false))return false;
+    if(f.lifecycle==='inactive'&&!inactive)return false;
+    if(f.lifecycle==='deleted'&&!deleted)return false;
+    if(f.status&&String(r.status)!==f.status)return false;
+    if(f.tracking&&String(r.tracking_mode)!==f.tracking)return false;
+    if(f.category&&String(r.category||'')!==f.category)return false;
+    if(f.location){
+      const loc=String(r.current_location_id||'')===f.location || String(r.current_object_id||'')===f.location;
+      if(!loc)return false;
+    }
+    if(f.service){
+      const reqs=orResourceRequirements(r.id);
+      if(!reqs.some(x=>String(x.service_type_id||'')===f.service))return false;
+    }
+    return true;
+  });
+}
+function orInventoryExportRecord(r){
+  const reqs=orResourceRequirements(r.id);
+  const serviceLabels=[...new Set(reqs.map(x=>orServiceTypeName(x.service_type_id)).filter(Boolean))].join(', ');
+  const savedLoc=(operatingResourcesState.locations||[]).find(x=>String(x.id)===String(r.current_location_id||''));
+  const loc=r.tracking_mode==='quantity'
+    ?((operatingResourcesState.stock||[]).filter(x=>String(x.resource_id||'')===String(r.id)).map(x=>x.location_name||x.location_text||'').filter(Boolean).join(', ')||'—')
+    :(savedLoc?orLocationLabel(savedLoc):orFormatLocation(r));
+  const reorder=orReorderMeta(r);
+  return {
+    'Inventarnummer':r.inventory_number||'',
+    'Bezeichnung':r.name||'',
+    'Kategorie':r.category||'',
+    'Typ':orKindLabel(r.resource_kind),
+    'Erfassung':r.tracking_mode==='quantity'?'Verbrauchsartikel':'Einzelasset',
+    'Hersteller':r.manufacturer||'',
+    'Modell':r.model||'',
+    'Seriennummer':r.serial_number||'',
+    'Standort':loc||'',
+    'Menge':r.tracking_mode==='quantity'?Number(r.quantity||0):1,
+    'Einheit':r.unit||'',
+    'Status':orStatusLabel(r.status),
+    'Kaufdatum':r.purchase_date||'',
+    'Anschaffungswert netto €':r.acquisition_cost_net??'',
+    'Leistungsbezug':serviceLabels||'Allgemeiner Bestand',
+    'Kritischer Bestand':r.tracking_mode==='quantity'?(r.critical_stock??''):'',
+    'Mindestbestand':r.tracking_mode==='quantity'?(r.minimum_stock??''):'',
+    'Sollbestand':r.tracking_mode==='quantity'?(r.target_stock??''):'',
+    'Nachbestellstatus':r.tracking_mode==='quantity'?reorder.label:'',
+    'Nachbestellmenge':r.tracking_mode==='quantity'?reorder.reorderQuantity:'',
+    'Lifecycle':r.deleted_at?'Gelöscht':(r.active===false?'Deaktiviert':'Aktiv')
+  };
+}
+function orInventoryExportData(){return orInventoryExportRows().map(orInventoryExportRecord);}
+function orExportSafeName(){return `Duschl_Service_Inventarliste_${new Date().toISOString().slice(0,10)}`;}
+function orDownloadBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);}
+function orCsvCell(v){const s=String(v??'').replace(/"/g,'""');return `"${s}"`;}
+function orExportInventoryCsv(){
+  const data=orInventoryExportData(); if(!data.length)return alert('Für diese Filter gibt es keine Inventardaten.');
+  const headers=Object.keys(data[0]); const lines=[headers.map(orCsvCell).join(';'),...data.map(r=>headers.map(h=>orCsvCell(r[h])).join(';'))];
+  orDownloadBlob(new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),orExportSafeName()+'.csv');
+}
+function orXmlEsc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function orExportInventoryExcel(){
+  const data=orInventoryExportData(); if(!data.length)return alert('Für diese Filter gibt es keine Inventardaten.');
+  const headers=Object.keys(data[0]);
+  const row=cells=>`<Row>${cells.map(v=>`<Cell><Data ss:Type="String">${orXmlEsc(v)}</Data></Cell>`).join('')}</Row>`;
+  const xml=`<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Inventarliste"><Table>${row(headers)}${data.map(r=>row(headers.map(h=>r[h]))).join('')}</Table></Worksheet></Workbook>`;
+  orDownloadBlob(new Blob([xml],{type:'application/vnd.ms-excel;charset=utf-8'}),orExportSafeName()+'.xls');
+}
+function orInventoryPrintHtml(){
+  const data=orInventoryExportData(); if(!data.length)return '';
+  const headers=Object.keys(data[0]);
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Inventarliste</title><style>body{font-family:Arial,sans-serif;color:#111;padding:24px}h1{font-size:22px;margin:0 0 4px}.meta{color:#555;font-size:11px;margin-bottom:14px}table{width:100%;border-collapse:collapse;font-size:9px}th,td{border:1px solid #bbb;padding:4px;vertical-align:top}th{background:#eee;text-align:left}tr:nth-child(even){background:#fafafa}@page{size:A4 landscape;margin:9mm}</style></head><body><h1>Duschl Service · Inventarliste</h1><div class="meta">Stand ${new Date().toLocaleString('de-DE')} · ${data.length} Positionen</div><table><thead><tr>${headers.map(h=>`<th>${orXmlEsc(h)}</th>`).join('')}</tr></thead><tbody>${data.map(r=>`<tr>${headers.map(h=>`<td>${orXmlEsc(r[h])}</td>`).join('')}</tr>`).join('')}</tbody></table></body></html>`;
+}
+function orExportInventoryPdf(){
+  const html=orInventoryPrintHtml(); if(!html)return alert('Für diese Filter gibt es keine Inventardaten.');
+  const w=window.open('','_blank'); if(!w)return alert('Popup wurde blockiert. Bitte Popups für diese Seite zulassen.');
+  w.document.open();w.document.write(html);w.document.close();w.focus();setTimeout(()=>w.print(),250);
+}
+function orOpenInventoryExport(){
+  const categories=[...new Set((operatingResourcesState.resources||[]).map(x=>String(x.category||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'de'));
+  const locs=(operatingResourcesState.locations||[]).filter(x=>x.active!==false);
+  const services=(operatingResourcesState.serviceTypes||[]).filter(x=>x.active!==false);
+  modal(`<div class="or-export-head"><div><div class="ds-section-eyebrow">EXPORT</div><h2 style="margin:0">Inventarliste exportieren</h2><div class="muted" style="margin-top:5px">Umfang filtern und Ausgabeformat wählen.</div></div></div>
+  <div class="grid2 or-export-filters" style="margin-top:14px">
+    <label>Lifecycle<select id="orExportLifecycle"><option value="active">Aktiv</option><option value="inactive">Deaktiviert</option><option value="deleted">Gelöscht</option><option value="all">Alle</option></select></label>
+    <label>Status<select id="orExportStatus"><option value="">Alle Betriebsstatus</option><option value="available">Verfügbar</option><option value="in_use">Im Einsatz</option><option value="maintenance">Wartung</option><option value="defective">Defekt</option><option value="out_of_service">Außer Betrieb</option></select></label>
+    <label>Typ<select id="orExportTracking"><option value="">Alle Typen</option><option value="individual">Einzelasset</option><option value="quantity">Verbrauchsartikel</option></select></label>
+    <label>Kategorie<select id="orExportCategory"><option value="">Alle Kategorien</option>${categories.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('')}</select></label>
+    <label>Standort<select id="orExportLocation"><option value="">Alle Standorte</option>${locs.map(x=>`<option value="${esc(x.id)}">${esc(orLocationLabel(x))}</option>`).join('')}</select></label>
+    <label>Leistungsbezug<select id="orExportService"><option value="">Alle Leistungsarten</option>${services.map(x=>`<option value="${esc(x.id)}">${esc(x.name||'Leistung')}</option>`).join('')}</select></label>
+  </div>
+  <div class="or-export-actions"><button class="primary" onclick="orExportInventoryExcel()">Excel (.xls)</button><button onclick="orExportInventoryCsv()">CSV</button><button onclick="orExportInventoryPdf()">PDF / Drucken</button></div>
+  <div class="muted" style="margin-top:10px;font-size:11px">PDF nutzt den Druckdialog des Browsers. Dort „Als PDF sichern“ wählen.</div>`);
 }
 
 async function loadOperatingResources(){
