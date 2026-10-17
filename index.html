@@ -2,6 +2,16 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.47 · Saubere Gebinde-/Mengenlogik
+     FACHLICH:
+     - Bestandseinheit und Gebindegröße werden getrennt geführt.
+     - Beispiel: Bestand 5 Sack + Gebindegröße 40 kg = 5 Säcke · 200 kg gesamt.
+     - Bestandsgrenzen bleiben in Gebinden/Bestandseinheiten.
+     UX:
+     - Lagerorte zeigen bei gepflegter Gebindegröße z. B. 3 × 40 kg.
+     - Mindest-/Sollbestand zeigen lesbare Bestandseinheiten.
+     - lange Lagerortbezeichnungen mobil auf zwei Zeilen begrenzt.
+     BACKEND: package_size/package_unit + save_operating_resource_v6. -->
 <!-- RELEASE 3.46 · QR-/Inventaretikett optimiert
      UX:
      - Standort vom physischen Etikett entfernt, da veränderliche Information.
@@ -412,7 +422,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.46</title>
+<title>Duschl Service – Objektplattform v3.47</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -7283,6 +7293,30 @@ body.or-wizard-open{overflow:hidden!important}
 }
 
 </style>
+<style id="packaging-v347">
+
+/* ==========================================================
+   v3.47 · GEBINDE-/MENGENLOGIK
+   ========================================================== */
+.or-package-fields{padding:9px;border:1px solid var(--line-soft);border-radius:10px;background:rgba(255,255,255,.018)}
+@media(max-width:680px){
+  .or-stock-row{align-items:flex-start!important;gap:10px!important}
+  .or-stock-row>span{
+    display:-webkit-box!important;
+    -webkit-line-clamp:2!important;
+    -webkit-box-orient:vertical!important;
+    overflow:hidden!important;
+    line-height:1.25!important;
+    min-width:0!important;
+  }
+  .or-stock-row>strong{
+    flex:0 0 auto!important;
+    white-space:nowrap!important;
+    text-align:right!important;
+  }
+}
+
+</style>
 </head>
 <body class="role-context-loading">
 <div id="roleContextLoader" aria-live="polite" aria-busy="true">
@@ -9352,6 +9386,20 @@ WINTERDIENST RÄUMKARTE
 
       <div id="orStockThresholdFields" class="hidden" style="margin-top:12px">
         <div class="or-stock-threshold-title">Bestandssteuerung</div>
+        <div class="grid3 or-package-fields" style="margin-bottom:10px">
+          <label>Bestandseinheit
+            <input id="orPackageCountUnit" placeholder="z. B. Sack, Kanister, Karton">
+            <span class="muted" style="font-size:11px">Einheit, in der der Bestand gezählt wird.</span>
+          </label>
+          <label>Gebindegröße
+            <input id="orPackageSize" type="number" min="0.001" step="0.001" placeholder="z. B. 40">
+            <span class="muted" style="font-size:11px">Inhalt je Gebinde.</span>
+          </label>
+          <label>Gebindeeinheit
+            <input id="orPackageUnit" placeholder="z. B. kg, l">
+            <span class="muted" style="font-size:11px">Physische Mengen-/Volumeneinheit.</span>
+          </label>
+        </div>
         <div class="grid3">
           <label>Kritischer Bestand
             <input id="orCriticalStock" type="number" min="0" step="0.1" placeholder="0">
@@ -9379,8 +9427,8 @@ WINTERDIENST RÄUMKARTE
         <datalist id="orCategorySuggestions">
           <option value="Winterdienst"></option><option value="Grünpflege"></option><option value="Reinigung"></option><option value="Transport"></option><option value="Haustechnik"></option>
         </datalist>
-        <label>Einheit
-          <input id="orUnit" placeholder="z. B. kg, l, Stk.">
+        <label>Technische Einheit
+          <input id="orUnit" placeholder="für Einzelassets z. B. Stk.">
         </label>
         <label>Kaufdatum
           <input id="orPurchaseDate" type="date">
@@ -12374,7 +12422,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.46';
+const APP_VERSION='3.47';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -21244,6 +21292,51 @@ function orStockLocationLabel(row){
   return bits.filter(Boolean).join(' · ');
 }
 
+
+function orCountUnitSingular(r){
+  return String(r?.unit||'Einheit').trim()||'Einheit';
+}
+function orCountUnitPlural(r,count){
+  const u=orCountUnitSingular(r);
+  if(Number(count)===1)return u;
+  const key=u.toLowerCase();
+  const known={
+    'sack':'Säcke','sacke':'Säcke','säcke':'Säcke',
+    'kanister':'Kanister','karton':'Kartons','flasche':'Flaschen',
+    'eimer':'Eimer','rolle':'Rollen','stück':'Stück','stk.':'Stk.',
+    'gebinde':'Gebinde','palette':'Paletten','packung':'Packungen'
+  };
+  return known[key]||u;
+}
+function orCountDisplay(r,count){
+  const n=Number(count||0);
+  return `${n.toLocaleString('de-DE',{maximumFractionDigits:3})} ${orCountUnitPlural(r,n)}`;
+}
+function orPackageConfigured(r){
+  return r?.tracking_mode==='quantity' && Number(r?.package_size)>0 && String(r?.package_unit||'').trim();
+}
+function orPackageBaseAmount(r,count){
+  if(!orPackageConfigured(r))return null;
+  return Number(count||0)*Number(r.package_size);
+}
+function orPackagePerUnitDisplay(r){
+  if(!orPackageConfigured(r))return '';
+  return `${Number(r.package_size).toLocaleString('de-DE',{maximumFractionDigits:3})} ${String(r.package_unit).trim()}`;
+}
+function orQuantitySummary(r,count=r?.quantity){
+  if(r?.tracking_mode!=='quantity')return '';
+  const base=orPackageBaseAmount(r,count);
+  return orPackageConfigured(r)
+    ?`${orCountDisplay(r,count)} · ${Number(base).toLocaleString('de-DE',{maximumFractionDigits:3})} ${esc(String(r.package_unit).trim())} gesamt`
+    :orCountDisplay(r,count);
+}
+function orStockRowQuantityDisplay(r,count){
+  if(orPackageConfigured(r)){
+    return `${Number(count||0).toLocaleString('de-DE',{maximumFractionDigits:3})} × ${orPackagePerUnitDisplay(r)}`;
+  }
+  return orCountDisplay(r,count);
+}
+
 function orStockOverviewHtml(resource){
   if(resource?.tracking_mode!=='quantity')return '';
   const rows=orStockRowsForResource(resource.id);
@@ -21260,15 +21353,14 @@ function orStockOverviewHtml(resource){
     </div>
     ${rows.map(x=>`<div class="or-stock-row">
       <span>${esc(orStockLocationLabel(x))}</span>
-      <strong>${Number(x.quantity||0).toLocaleString('de-DE',{maximumFractionDigits:3})}${x.unit?' '+esc(x.unit):''}</strong>
+      <strong>${esc(orStockRowQuantityDisplay(resource,x.quantity||0))}</strong>
     </div>`).join('')}
   </div>`;
 }
 
 function orFmtQty(r){
   if(r?.tracking_mode!=='quantity')return '';
-  const q=r?.quantity;
-  return `${q===null||q===undefined?'—':Number(q).toLocaleString('de-DE',{maximumFractionDigits:3})}${r?.unit?' '+r.unit:''}`;
+  return orQuantitySummary(r,r?.quantity);
 }
 
 function orFillObjectSelects(){
@@ -21569,6 +21661,9 @@ function orUpdateTrackingUI(){
   const mode=document.getElementById('orTrackingMode')?.value||'individual';
   const q=document.getElementById('orQuantity');
   const unit=document.getElementById('orUnit');
+  const countUnit=document.getElementById('orPackageCountUnit');
+  const packageSize=document.getElementById('orPackageSize');
+  const packageUnit=document.getElementById('orPackageUnit');
   const hint=document.getElementById('orQuantityHint');
   const threshold=document.getElementById('orStockThresholdFields');
   const isQuantity=mode==='quantity';
@@ -21581,8 +21676,10 @@ function orUpdateTrackingUI(){
     if(isQuantity && document.getElementById('orEditId')?.value==='')q.value='0';
   }
   if(unit){
-    if(!unit.value)unit.placeholder=isQuantity?'z. B. kg, l, Sack':'z. B. Stk.';
+    if(!unit.value)unit.placeholder=isQuantity?'wird aus Bestandseinheit übernommen':'z. B. Stk.';
+    if(isQuantity && countUnit?.value)unit.value=countUnit.value;
   }
+  [countUnit,packageSize,packageUnit].forEach(el=>{if(el)el.disabled=!isQuantity;});
   if(hint){
     hint.textContent=isQuantity
       ?'Gesamtbestand wird automatisch aus den Lagerorten berechnet. Bestände über „Standort / Bestand ändern“ buchen.'
@@ -21645,6 +21742,11 @@ function orWizardValidate(step){
       }
       if(minimum!==null && critical>minimum){alert('Kritischer Bestand darf nicht über dem Mindestbestand liegen.');return false;}
       if(target!==null && minimum!==null && minimum>target){alert('Mindestbestand darf nicht über dem Sollbestand liegen.');return false;}
+      const psRaw=document.getElementById('orPackageSize')?.value||'';
+      const pu=String(document.getElementById('orPackageUnit')?.value||'').trim();
+      const ps=psRaw===''?null:Number(psRaw);
+      if(ps!==null && (!Number.isFinite(ps)||ps<=0)){alert('Gebindegröße muss größer als 0 sein.');return false;}
+      if((ps===null)!==(pu==='')){alert('Gebindegröße und Gebindeeinheit bitte gemeinsam pflegen.');return false;}
     }
   }
   return true;
@@ -21662,7 +21764,10 @@ function orWizardReviewHtml(){
     ['Standort',document.getElementById('orSavedLocationId')?.selectedOptions?.[0]?.textContent||val('orLocationText')||'—']
   ];
   if(mode==='quantity'){
-    rows.push(['Bestandsgrenzen',`kritisch ${val('orCriticalStock')||'0'} · Mindest ${val('orMinimumStock')||'—'} · Soll ${val('orTargetStock')||'—'}`]);
+    const cu=val('orPackageCountUnit')||val('orUnit')||'Einheit';
+    const ps=val('orPackageSize'), pu=val('orPackageUnit');
+    if(ps&&pu)rows.push(['Gebinde',`1 ${cu} = ${ps} ${pu}`]);
+    rows.push(['Bestandsgrenzen',`kritisch ${val('orCriticalStock')||'0'} ${cu} · Mindest ${val('orMinimumStock')||'—'} ${cu} · Soll ${val('orTargetStock')||'—'} ${cu}`]);
   }
   return rows.map(([k,v])=>`<div class="or-wizard-review-row"><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join('');
 }
@@ -21739,7 +21844,7 @@ function orInitWorkspace(){
 
 function orResetEditor(){
   operatingResourcesState.selected=null;
-  const vals={orEditId:'',orSavedLocationId:'',orName:'',orKind:'equipment',orCategory:'',orTrackingMode:'individual',orInventoryNumber:'',orSerialNumber:'',orManufacturer:'',orModel:'',orPurchaseDate:'',orAcquisitionCostNet:'',orQuantity:'1',orUnit:'',orStatus:'available',orLocationType:'warehouse',orObjectId:'',orLocationText:'',orNotes:'',orLabelNote:'',orCriticalStock:'0',orMinimumStock:'',orTargetStock:''};
+  const vals={orEditId:'',orSavedLocationId:'',orName:'',orKind:'equipment',orCategory:'',orTrackingMode:'individual',orInventoryNumber:'',orSerialNumber:'',orManufacturer:'',orModel:'',orPurchaseDate:'',orAcquisitionCostNet:'',orQuantity:'1',orUnit:'',orStatus:'available',orLocationType:'warehouse',orObjectId:'',orLocationText:'',orNotes:'',orLabelNote:'',orCriticalStock:'0',orMinimumStock:'',orTargetStock:'',orPackageCountUnit:'',orPackageSize:'',orPackageUnit:''};
   Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
   const pr=document.getElementById('orPlanningRelevant');if(pr)pr.checked=true;
   const title=document.getElementById('orEditorTitle');if(title)title.textContent='Betriebsmittel anlegen';
@@ -21755,7 +21860,7 @@ function orEditResource(id){
   if(!r)return;
   operatingResourcesState.selected=r;
   const quantityMode=r.tracking_mode==='quantity';
-  const vals={orEditId:r.id||'',orSavedLocationId:quantityMode?'':(r.current_location_id||''),orName:r.name||'',orKind:r.resource_kind||'equipment',orCategory:r.category||'',orTrackingMode:r.tracking_mode||'individual',orInventoryNumber:r.inventory_number||'',orSerialNumber:r.serial_number||'',orManufacturer:r.manufacturer||'',orModel:r.model||'',orPurchaseDate:r.purchase_date||'',orAcquisitionCostNet:r.acquisition_cost_net??'',orQuantity:r.quantity??0,orUnit:r.unit||'',orStatus:r.status||'available',orLocationType:quantityMode?'warehouse':(r.current_location_type||'free_text'),orObjectId:quantityMode?'':(r.current_object_id||''),orLocationText:quantityMode?'':(r.current_location_text||''),orNotes:r.notes||'',orLabelNote:r.label_note||'',orCriticalStock:r.critical_stock??0,orMinimumStock:r.minimum_stock??'',orTargetStock:r.target_stock??''};
+  const vals={orEditId:r.id||'',orSavedLocationId:quantityMode?'':(r.current_location_id||''),orName:r.name||'',orKind:r.resource_kind||'equipment',orCategory:r.category||'',orTrackingMode:r.tracking_mode||'individual',orInventoryNumber:r.inventory_number||'',orSerialNumber:r.serial_number||'',orManufacturer:r.manufacturer||'',orModel:r.model||'',orPurchaseDate:r.purchase_date||'',orAcquisitionCostNet:r.acquisition_cost_net??'',orQuantity:r.quantity??0,orUnit:r.unit||'',orStatus:r.status||'available',orLocationType:quantityMode?'warehouse':(r.current_location_type||'free_text'),orObjectId:quantityMode?'':(r.current_object_id||''),orLocationText:quantityMode?'':(r.current_location_text||''),orNotes:r.notes||'',orLabelNote:r.label_note||'',orCriticalStock:r.critical_stock??0,orMinimumStock:r.minimum_stock??'',orTargetStock:r.target_stock??'',orPackageCountUnit:r.unit||'',orPackageSize:r.package_size??'',orPackageUnit:r.package_unit||''};
   Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
   const pr=document.getElementById('orPlanningRelevant');if(pr)pr.checked=r.planning_relevant!==false;
   const title=document.getElementById('orEditorTitle');if(title)title.textContent='Betriebsmittel bearbeiten';
@@ -21819,7 +21924,10 @@ function orInventoryExportRecord(r){
     'Seriennummer':r.serial_number||'',
     'Standort':loc||'',
     'Menge':r.tracking_mode==='quantity'?Number(r.quantity||0):1,
-    'Einheit':r.unit||'',
+    'Bestandseinheit':r.unit||'',
+    'Gebindegröße':r.tracking_mode==='quantity'?(r.package_size??''):'',
+    'Gebindeeinheit':r.tracking_mode==='quantity'?(r.package_unit||''):'',
+    'Gesamtmenge physisch':r.tracking_mode==='quantity'&&orPackageConfigured(r)?orPackageBaseAmount(r,r.quantity):'',
     'Status':orStatusLabel(r.status),
     'Kaufdatum':r.purchase_date||'',
     'Anschaffungswert netto €':r.acquisition_cost_net??'',
@@ -22024,7 +22132,7 @@ function orReorderMeta(resource){
 function orReorderHtml(resource){
   if(resource?.tracking_mode!=='quantity')return '';
   const m=orReorderMeta(resource);
-  const unit=resource.unit?` ${esc(resource.unit)}`:'';
+  const formatCount=v=>orCountDisplay(resource,v);
 
   if(m.state==='unconfigured'){
     return `<div class="or-reorder-status unconfigured">
@@ -22034,8 +22142,8 @@ function orReorderHtml(resource){
   }
 
   const detail=[
-    m.minimum!==null?`Mindestbestand ${Number(m.minimum).toLocaleString('de-DE',{maximumFractionDigits:3})}${unit}`:'',
-    m.target!==null?`Sollbestand ${Number(m.target).toLocaleString('de-DE',{maximumFractionDigits:3})}${unit}`:''
+    m.minimum!==null?`Mindestbestand ${formatCount(m.minimum)}`:'',
+    m.target!==null?`Sollbestand ${formatCount(m.target)}`:''
   ].filter(Boolean).join(' · ');
 
   return `<div class="or-reorder-status ${m.state}">
@@ -22043,7 +22151,7 @@ function orReorderHtml(resource){
     <div style="min-width:0;flex:1">
       <strong>${esc(m.label)}</strong>
       ${detail?`<div class="muted">${detail}</div>`:''}
-      ${m.reorderQuantity>0?`<div class="or-reorder-qty">Nachbestellbedarf: <strong>${Number(m.reorderQuantity).toLocaleString('de-DE',{maximumFractionDigits:3})}${unit}</strong></div>`:''}
+      ${m.reorderQuantity>0?`<div class="or-reorder-qty">Nachbestellbedarf: <strong>${esc(formatCount(m.reorderQuantity))}</strong></div>`:''}
     </div>
   </div>`;
 }
@@ -22161,7 +22269,7 @@ async function orSaveResource(){
   if(!name)return alert('Bezeichnung eingeben.');
   const mode=document.getElementById('orTrackingMode')?.value||'individual';
   try{
-    const saved=await cloudRequest('rpc/save_operating_resource_v5',{method:'POST',body:JSON.stringify({
+    const saved=await cloudRequest('rpc/save_operating_resource_v6',{method:'POST',body:JSON.stringify({
       p_organization_id:currentOrganizationId(),
       p_resource_id:document.getElementById('orEditId')?.value||null,
       p_name:name,
@@ -22170,7 +22278,9 @@ async function orSaveResource(){
       p_tracking_mode:mode,
       p_inventory_number:String(document.getElementById('orInventoryNumber')?.value||'').trim()||null,
       p_serial_number:String(document.getElementById('orSerialNumber')?.value||'').trim()||null,
-      p_unit:String(document.getElementById('orUnit')?.value||'').trim()||null,
+      p_unit:mode==='quantity'
+        ?(String(document.getElementById('orPackageCountUnit')?.value||'').trim()||'Gebinde')
+        :(String(document.getElementById('orUnit')?.value||'').trim()||null),
       p_status:document.getElementById('orStatus')?.value||'available',
       p_planning_relevant:document.getElementById('orPlanningRelevant')?.checked!==false,
       p_location_id:document.getElementById('orSavedLocationId')?.value||null,
@@ -22185,7 +22295,9 @@ async function orSaveResource(){
       p_label_note:String(document.getElementById('orLabelNote')?.value||'').trim()||null,
       p_critical_stock:mode==='quantity'?(String(document.getElementById('orCriticalStock')?.value||'').trim()===''?0:Number(document.getElementById('orCriticalStock')?.value)):null,
       p_minimum_stock:mode==='quantity'?(String(document.getElementById('orMinimumStock')?.value||'').trim()===''?null:Number(document.getElementById('orMinimumStock')?.value)):null,
-      p_target_stock:mode==='quantity'?(String(document.getElementById('orTargetStock')?.value||'').trim()===''?null:Number(document.getElementById('orTargetStock')?.value)):null
+      p_target_stock:mode==='quantity'?(String(document.getElementById('orTargetStock')?.value||'').trim()===''?null:Number(document.getElementById('orTargetStock')?.value)):null,
+      p_package_size:mode==='quantity'?(String(document.getElementById('orPackageSize')?.value||'').trim()===''?null:Number(document.getElementById('orPackageSize')?.value)):null,
+      p_package_unit:mode==='quantity'?(String(document.getElementById('orPackageUnit')?.value||'').trim()||null):null
     })});
     const savedRow=Array.isArray(saved)?saved[0]:saved;
     orResetEditor();
@@ -39886,181 +39998,3 @@ function psApplyAccess(){
   if(n){n.classList.toggle('hidden',admin);n.style.display=admin?'none':'block';}
   return admin;
 }
-function psMarkDirty(){psState.dirty=true;const b=document.getElementById('psDirtyBadge');if(b)b.style.display='';}
-function psClearDirty(){psState.dirty=false;const b=document.getElementById('psDirtyBadge');if(b)b.style.display='none';}
-async function psLoad(){
-  if(!psApplyAccess())return;
-  const org=psOrg();if(!org)return;
-  const msg=document.getElementById('psStatusMsg');if(msg)msg.textContent='Lade Prozesse & Standards …';
-  try{
-    const [standards,items,services]=await Promise.all([
-      cloudRequest(`process_standards?select=*&organization_id=eq.${encodeURIComponent(org)}&order=standard_type.asc,code.asc`),
-      cloudRequest(`process_standard_items?select=*&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=standard_id.asc,sort_order.asc`),
-      cloudRequest(`service_types?select=id,name,active&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=name.asc`)
-    ]);
-    psState.standards=standards||[];psState.items=items||[];psState.services=services||[];
-    const st=document.getElementById('psServiceType');
-    if(st)st.innerHTML='<option value="">Keine feste Zuordnung</option>'+psState.services.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('');
-    psRenderParents();psRenderList();
-    if(psState.selectedId&&psState.standards.some(x=>String(x.id)===String(psState.selectedId)))psEdit(psState.selectedId,false);else if(!psState.selectedId)psNew(false);
-    if(msg)msg.textContent=`${psState.standards.filter(x=>x.active!==false).length} aktive Standards geladen.`;
-  }catch(e){if(msg)msg.innerHTML=`<span class="bad">Konnte nicht geladen werden: ${esc(e.message||e)}</span>`;}
-}
-function psRenderParents(){
-  const sel=document.getElementById('psParent');if(!sel)return;const keep=sel.value||'';
-  sel.innerHTML='<option value="">Keine</option>'+psState.standards.filter(x=>x.active!==false&&x.standard_type==='sop'&&String(x.id)!==String(psState.selectedId||'')).map(x=>`<option value="${esc(x.id)}">${esc(x.code)} · ${esc(x.title)}</option>`).join('');
-  if([...sel.options].some(o=>String(o.value)===String(keep)))sel.value=keep;
-}
-function psRenderList(){
-  const host=document.getElementById('psList');if(!host)return;
-  const type=document.getElementById('psFilterType')?.value||'';const area=(document.getElementById('psFilterArea')?.value||'').trim().toLowerCase();
-  const rows=psState.standards.filter(x=>(!type||x.standard_type===type)&&(!area||String(x.service_area||'').toLowerCase().includes(area)||String(x.title||'').toLowerCase().includes(area)));
-  if(!rows.length){host.innerHTML='<div class="muted">Keine Standards vorhanden.</div>';return;}
-  host.innerHTML=rows.map(x=>{const svc=psState.services.find(s=>String(s.id)===String(x.service_type_id||''));const active=x.active!==false;return `<button type="button" onclick="psEdit('${esc(x.id)}')" style="display:block;width:100%;text-align:left;margin:0 0 8px;padding:10px;border-radius:10px;${String(psState.selectedId)===String(x.id)?'border-color:var(--accent);':''}"><div class="row space" style="gap:8px"><strong>${esc(x.code)} · ${esc(x.title)}</strong><span class="badge">${esc(psTypeLabels[x.standard_type]||x.standard_type)}</span></div><div class="muted" style="margin-top:4px">${esc(x.service_area||svc?.name||'Übergreifend')} · Version ${esc(x.version||'1.0')} · ${x.status==='released'?'Freigegeben':'Entwurf'}${active?'':' · deaktiviert'}</div></button>`;}).join('');
-}
-function psNew(type='sop',mark=true){
-  // Rückwärtskompatibilität für alte interne Aufrufe psNew(false)
-  if(typeof type==='boolean'){mark=type;type='sop';}
-  if(!['sop','work_instruction','checklist'].includes(type))type='sop';
-  psState.selectedId=null;const set=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v??'';};
-  set('psId','');set('psType',type);set('psCode','');set('psTitle','');set('psServiceType','');set('psServiceArea','');set('psParent','');set('psVersion','1.0');set('psStatus','draft');set('psPurpose','');set('psScope','');set('psResponsibility','');set('psNotes','');
-  const items=document.getElementById('psItems');if(items)items.innerHTML='';
-  const labels={sop:'SOP anlegen',work_instruction:'Arbeitsanweisung anlegen',checklist:'Checkliste anlegen'};
-  const t=document.getElementById('psEditorTitle');if(t)t.textContent=labels[type]||'Standard anlegen';
-  const d=document.getElementById('psDeactivateBtn');if(d)d.style.display='none';
-  psTypeChanged();psRenderParents();psRenderList();if(mark)psMarkDirty();else psClearDirty();
-  if(mark){document.getElementById('psEditorCard')?.scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>document.getElementById('psCode')?.focus(),250);}
-}
-
-function psTypeChanged(){const type=document.getElementById('psType')?.value||'sop';const wrap=document.getElementById('psParentWrap');if(wrap)wrap.style.display=type==='sop'?'none':'';}
-function psEdit(id,rerender=true){
-  if(psState.dirty&&rerender&&psState.selectedId&&String(psState.selectedId)!==String(id)&&!confirm('Ungespeicherte Änderungen verwerfen?'))return;
-  const x=psState.standards.find(s=>String(s.id)===String(id));if(!x)return;psState.selectedId=x.id;const set=(eid,v)=>{const e=document.getElementById(eid);if(e)e.value=v??'';};
-  set('psId',x.id);set('psType',x.standard_type);set('psCode',x.code);set('psTitle',x.title);set('psServiceType',x.service_type_id||'');set('psServiceArea',x.service_area||'');set('psParent',x.parent_standard_id||'');set('psVersion',x.version||'1.0');set('psStatus',x.status||'draft');set('psPurpose',x.purpose||'');set('psScope',x.scope||'');set('psResponsibility',x.responsibility||'');set('psNotes',x.notes||'');
-  const t=document.getElementById('psEditorTitle');if(t)t.textContent=`${x.code} · ${x.title}`;const d=document.getElementById('psDeactivateBtn');if(d){d.style.display='';d.textContent=x.active===false?'Reaktivieren':'Deaktivieren';}
-  const host=document.getElementById('psItems');if(host)host.innerHTML='';psState.items.filter(i=>String(i.standard_id)===String(x.id)&&i.active!==false).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0)).forEach(i=>psAddItem(i.item_type,i.item_text,i.required,false));
-  psTypeChanged();psRenderParents();if(document.getElementById('psParent'))document.getElementById('psParent').value=x.parent_standard_id||'';psClearDirty();if(rerender)psRenderList();
-}
-function psAddItem(type='step',text='',required=false,mark=true){
-  const host=document.getElementById('psItems');if(!host)return;const row=document.createElement('div');row.className='card ps-item-row';row.style.cssText='padding:10px;margin:8px 0';
-  row.innerHTML=`<div class="row" style="gap:8px;align-items:flex-start;flex-wrap:wrap"><select class="ps-item-type" onchange="psMarkDirty()" style="max-width:160px"><option value="heading">Abschnitt</option><option value="step">Schritt</option><option value="check">Prüfpunkt</option><option value="note">Hinweis</option><option value="warning">Warnhinweis</option></select><textarea class="ps-item-text" rows="2" style="flex:1;min-width:220px" oninput="psMarkDirty()" placeholder="Inhalt …">${esc(text)}</textarea><label class="ps-required-wrap" style="display:flex;align-items:center;gap:6px;white-space:nowrap"><input class="ps-item-required" type="checkbox" ${required?'checked':''} onchange="psMarkDirty()"> Pflicht</label><div class="row" style="gap:4px"><button type="button" title="nach oben" onclick="psMoveItem(this,-1)">↑</button><button type="button" title="nach unten" onclick="psMoveItem(this,1)">↓</button><button type="button" class="danger" onclick="this.closest('.ps-item-row').remove();psMarkDirty()">×</button></div></div>`;
-  host.appendChild(row);row.querySelector('.ps-item-type').value=type;const rw=row.querySelector('.ps-required-wrap');if(rw)rw.style.display=type==='check'?'flex':'none';row.querySelector('.ps-item-type').addEventListener('change',e=>{if(rw)rw.style.display=e.target.value==='check'?'flex':'none';});if(mark)psMarkDirty();
-}
-function psMoveItem(btn,dir){const row=btn.closest('.ps-item-row'),host=row?.parentElement;if(!row||!host)return;if(dir<0&&row.previousElementSibling)host.insertBefore(row,row.previousElementSibling);if(dir>0&&row.nextElementSibling)host.insertBefore(row.nextElementSibling,row);psMarkDirty();}
-function psCollectItems(){return [...document.querySelectorAll('#psItems .ps-item-row')].map((r,i)=>({item_type:r.querySelector('.ps-item-type')?.value||'step',item_text:String(r.querySelector('.ps-item-text')?.value||'').trim(),required:!!r.querySelector('.ps-item-required')?.checked,sort_order:i+1})).filter(x=>x.item_text);}
-async function psSave(){
-  if(!processStandardsCanAdmin())return requireAdminUI('Prozesse & Standards');const code=String(document.getElementById('psCode')?.value||'').trim();const title=String(document.getElementById('psTitle')?.value||'').trim();if(!code||!title)return alert('Kennung und Titel sind Pflicht.');
-  const body={p_organization_id:psOrg(),p_standard_id:document.getElementById('psId')?.value||null,p_standard_type:document.getElementById('psType')?.value||'sop',p_code:code,p_title:title,p_service_type_id:document.getElementById('psServiceType')?.value||null,p_service_area:String(document.getElementById('psServiceArea')?.value||'').trim()||null,p_parent_standard_id:document.getElementById('psParent')?.value||null,p_version:String(document.getElementById('psVersion')?.value||'1.0').trim()||'1.0',p_status:document.getElementById('psStatus')?.value||'draft',p_purpose:String(document.getElementById('psPurpose')?.value||'').trim()||null,p_scope:String(document.getElementById('psScope')?.value||'').trim()||null,p_responsibility:String(document.getElementById('psResponsibility')?.value||'').trim()||null,p_notes:String(document.getElementById('psNotes')?.value||'').trim()||null,p_items:psCollectItems()};
-  const msg=document.getElementById('psStatusMsg');if(msg)msg.textContent='Speichere …';try{const rows=await cloudRequest('rpc/save_process_standard_v1',{method:'POST',body:JSON.stringify(body)});const saved=Array.isArray(rows)?rows[0]:rows;psState.selectedId=saved?.id||psState.selectedId;psClearDirty();await psLoad();if(msg)msg.textContent='Gespeichert.';}catch(e){if(msg)msg.innerHTML=`<span class="bad">Speichern fehlgeschlagen: ${esc(e.message||e)}</span>`;}
-}
-function psDuplicate(){if(!psState.selectedId)return alert('Zuerst einen bestehenden Standard auswählen.');const oldCode=document.getElementById('psCode').value,oldTitle=document.getElementById('psTitle').value;document.getElementById('psId').value='';psState.selectedId=null;document.getElementById('psCode').value=oldCode+'-KOPIE';document.getElementById('psTitle').value=oldTitle+' – Kopie';document.getElementById('psStatus').value='draft';const d=document.getElementById('psDeactivateBtn');if(d)d.style.display='none';psRenderParents();psMarkDirty();}
-async function psToggleActive(){const id=document.getElementById('psId')?.value;if(!id)return;const x=psState.standards.find(s=>String(s.id)===String(id));if(!x)return;const target=x.active===false;if(!target&&!confirm('Standard deaktivieren? Historische Daten bleiben erhalten.'))return;try{await cloudRequest('rpc/set_process_standard_active_v1',{method:'POST',body:JSON.stringify({p_organization_id:psOrg(),p_standard_id:id,p_active:target})});await psLoad();}catch(e){alert('Status konnte nicht geändert werden: '+(e.message||e));}}
-
-/* Dokumentenmanagement bei Navigation laden */
-(function(){
- const oldShowSection=window.showSection;
- if(typeof oldShowSection==='function'){
-  window.showSection=function(id){
-   const r=oldShowSection.apply(this,arguments);
-   if(id==='documentManagement') setTimeout(()=>dmLoad(),0);
-   return r;
-  };
- }
-})();
-
-</script>
-
-<script id="property-manager-dashboard-sync-v266">
-(function(){
-  function dsSyncPropertyManagerDashboardV266(){
-    const dashboard=document.getElementById('operationalDashboard');
-    if(!dashboard)return;
-
-    let isPropertyManager=false;
-    try{
-      isPropertyManager=
-        typeof effectiveOrganizationRole==='function' &&
-        effectiveOrganizationRole()==='property_manager' &&
-        !(typeof isPlatformTenantMode==='function' && isPlatformTenantMode()) &&
-        !(typeof isPlatformOperatorRole==='function' && isPlatformOperatorRole());
-    }catch(_e){
-      isPropertyManager=false;
-    }
-
-    dashboard.classList.toggle('property-manager-dashboard-v266',isPropertyManager);
-  }
-
-  function dsObserveRoleV266(){
-    dsSyncPropertyManagerDashboardV266();
-
-    const roleBadge=document.getElementById('roleBadge');
-    const menuIdentity=document.getElementById('menuUserIdentity');
-
-    const observer=new MutationObserver(function(){
-      dsSyncPropertyManagerDashboardV266();
-    });
-
-    if(roleBadge)observer.observe(roleBadge,{childList:true,subtree:true,attributes:true});
-    if(menuIdentity)observer.observe(menuIdentity,{childList:true,subtree:true,attributes:true});
-  }
-
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',dsObserveRoleV266,{once:true});
-  }else{
-    dsObserveRoleV266();
-  }
-
-  window.addEventListener('pageshow',dsSyncPropertyManagerDashboardV266);
-})();
-</script>
-
-
-<script id="neutral-role-label-sync-v274">
-(function(){
-  function desiredNeutralHeaderRoleV274(){
-    try{
-      const role=typeof effectiveUserRole==='function'
-        ? String(effectiveUserRole()||'')
-        : '';
-      if(typeof isPropertyManagerRole==='function' && isPropertyManagerRole())return 'Verwaltung';
-      if(role==='object_manager' || role==='staff')return 'Objektbetreuung';
-      return '';
-    }catch(_e){
-      return '';
-    }
-  }
-
-  function syncNeutralHeaderRoleV274(){
-    const desired=desiredNeutralHeaderRoleV274();
-    if(!desired)return;
-    const host=document.getElementById('roleBadge');
-    const name=host?.querySelector?.('.topbar-user-name');
-    if(name && name.textContent!==desired)name.textContent=desired;
-  }
-
-  function bootNeutralRoleLabelSyncV274(){
-    syncNeutralHeaderRoleV274();
-    const host=document.getElementById('roleBadge');
-    if(!host)return;
-    const observer=new MutationObserver(function(){
-      syncNeutralHeaderRoleV274();
-    });
-    observer.observe(host,{childList:true,subtree:true});
-  }
-
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',bootNeutralRoleLabelSyncV274,{once:true});
-  }else{
-    bootNeutralRoleLabelSyncV274();
-  }
-
-  window.addEventListener('pageshow',syncNeutralHeaderRoleV274);
-})();
-</script>
-
-</body>
-</html>
-</html>
-</html>
-</html>
-</html>
