@@ -2,6 +2,22 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.43 · Aufgabenturnus je Objektleistung
+     FACHLICH:
+     - Turnus liegt auf Objekt × Leistung × Checklistenaufgabe, nicht in der SOP selbst.
+     - Unterstützt: bei jedem Einsatz, wöchentlich, 14-täglich, monatlich,
+       quartalsweise, halbjährlich, jährlich, bei Bedarf.
+     - Periodische Aufgaben bleiben innerhalb ihres Zeitraums fällig, bis sie einmal bestätigt wurden.
+     - Ohne objektspezifische Konfiguration gilt rückwärtskompatibel: bei jedem Einsatz.
+     UX:
+     - In der Übersicht planbarer Objektleistungen gibt es „Aufgabenturnus“.
+     - Eigener kompakter Editor für Checklistenaufgaben.
+     BACKEND:
+     - object_service_task_schedules
+     - get/save_object_service_task_schedules_v1
+     - is_object_service_task_due_v1
+     - get_or_create_checklists_for_context_v2
+-->
 <!-- RELEASE 3.42 · Mobile Einsatzbezug Compact
      UX:
      - Einsatzbezug mobil als eine kompakte Zeile statt großem Container.
@@ -377,7 +393,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.42</title>
+<title>Duschl Service – Objektplattform v3.43</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -6905,6 +6921,97 @@ body.role-context-loading #authGate:not(.hidden){
 }
 
 </style>
+<style id="task-cadence-v343">
+
+/* ==========================================================
+   v3.43 · AUFGABENTURNUS
+   ========================================================== */
+.ops-task-cadence-card{
+  grid-column:1/-1;
+  border-color:rgba(88,168,255,.32)!important;
+}
+.ops-task-cadence-principle{
+  margin-top:10px;
+  padding:9px 11px;
+  border:1px solid var(--line-soft);
+  border-radius:10px;
+  background:rgba(47,143,255,.07);
+  font-size:12px;
+  line-height:1.4;
+}
+.ops-task-cadence-standard{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:8px;
+  padding:8px 2px 5px;
+  border-bottom:1px solid var(--line-soft);
+}
+.ops-task-cadence-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(170px,220px);
+  gap:12px;
+  align-items:center;
+  padding:9px 2px;
+  border-bottom:1px solid rgba(255,255,255,.055);
+}
+.ops-task-cadence-task{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  min-width:0;
+}
+.ops-task-cadence-no{
+  min-width:24px;
+  color:var(--muted);
+  font-size:11px;
+  padding-top:2px;
+}
+.ops-task-cadence-select>span{
+  display:block;
+  color:var(--muted);
+  font-size:10px;
+  margin-bottom:3px;
+}
+.ops-assignment-action-stack{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+}
+
+@media(max-width:680px){
+  .ops-task-cadence-card{
+    grid-column:1/-1!important;
+    padding:10px!important;
+  }
+  .ops-task-cadence-principle{
+    padding:8px!important;
+    font-size:11px!important;
+  }
+  .ops-task-cadence-row{
+    grid-template-columns:1fr!important;
+    gap:6px!important;
+    padding:8px 0!important;
+  }
+  .ops-task-cadence-select{
+    display:grid!important;
+    grid-template-columns:58px minmax(0,1fr)!important;
+    gap:7px!important;
+    align-items:center!important;
+  }
+  .ops-task-cadence-select>span{
+    margin:0!important;
+  }
+  .ops-task-cadence-select select{
+    min-width:0!important;
+  }
+  .ops-assignment-action-stack{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+  }
+}
+
+</style>
 </head>
 <body class="role-context-loading">
 <div id="roleContextLoader" aria-live="polite" aria-busy="true">
@@ -8511,6 +8618,31 @@ WINTERDIENST RÄUMKARTE
         <input id="opsAssignmentSearch" type="search" placeholder="Objekt oder Leistung suchen …" style="margin-top:10px" oninput="opsRenderAssignmentManagement()">
         <div id="opsAssignmentList" style="margin-top:10px"></div>
       </details>
+    </div>
+
+    <div class="card ops-task-cadence-card hidden" id="opsTaskCadenceCard">
+      <div class="row space" style="gap:10px;align-items:flex-start;flex-wrap:wrap">
+        <div>
+          <div class="ds-section-eyebrow">AUFGABENSTEUERUNG</div>
+          <h3 style="margin:0">Aufgabenturnus</h3>
+          <div id="opsTaskCadenceTitle" class="muted" style="margin-top:5px">Objektleistung auswählen.</div>
+        </div>
+        <button type="button" onclick="opsCloseTaskSchedule()">Schließen</button>
+      </div>
+
+      <div class="ops-task-cadence-principle">
+        <strong>Prinzip:</strong> Die SOP beschreibt <em>wie</em> gearbeitet wird. Hier wird je Objekt festgelegt, <em>wie oft</em> eine Checklistenaufgabe fällig ist.
+        Periodische Aufgaben bleiben im jeweiligen Zeitraum fällig, bis sie einmal bestätigt wurden.
+      </div>
+
+      <div id="opsTaskCadenceList" class="ops-task-cadence-list" style="margin-top:10px">
+        <div class="muted">Noch keine Objektleistung gewählt.</div>
+      </div>
+
+      <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:12px">
+        <button class="primary" type="button" id="opsTaskCadenceSaveBtn" onclick="opsSaveTaskSchedule()" disabled>Turnus speichern</button>
+        <button type="button" onclick="opsCloseTaskSchedule()">Abbrechen</button>
+      </div>
     </div>
 
     <div class="card ops-planning-section-card" id="opsSinglePlanCard">
@@ -11925,7 +12057,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.42';
+const APP_VERSION='3.43';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -35456,7 +35588,7 @@ async function wsCompleteExecution(id){
 }
 
 
-let opsState={services:[],plans:[],tours:[],stops:[],runs:[],runStops:[],assignments:[],documents:[],versions:[],tenantUsers:[],resourceReadiness:{},resourceReservations:{}};
+let opsState={services:[],plans:[],tours:[],stops:[],runs:[],runStops:[],assignments:[],documents:[],versions:[],tenantUsers:[],resourceReadiness:{},resourceReservations:{},taskCadenceAssignmentId:null,taskCadenceRows:[]};
 let opsEditingPlanId=null;
 let opsFocusRunId='';
 let opsEditingTourId=null;
@@ -36632,6 +36764,142 @@ function opsPlanAssignmentChanged(){
     if(u&&!u.value&&a.valid_until)u.value=a.valid_until;
   }
 }
+
+function opsTaskCadenceLabel(type){
+  return ({
+    every_run:'Bei jedem Einsatz',
+    weekly:'Wöchentlich',
+    biweekly:'Alle 2 Wochen',
+    monthly:'Monatlich',
+    quarterly:'Quartalsweise',
+    semiannual:'Halbjährlich',
+    annual:'Jährlich',
+    on_demand:'Bei Bedarf'
+  })[String(type||'every_run')]||'Bei jedem Einsatz';
+}
+
+function opsTaskCadenceOptions(selected){
+  const values=['every_run','weekly','biweekly','monthly','quarterly','semiannual','annual','on_demand'];
+  return values.map(v=>`<option value="${opsEsc(v)}" ${String(selected||'every_run')===v?'selected':''}>${opsEsc(opsTaskCadenceLabel(v))}</option>`).join('');
+}
+
+async function opsOpenTaskSchedule(assignmentId){
+  const a=opsState.assignments.find(x=>String(x.id)===String(assignmentId));
+  if(!a)return;
+
+  const card=document.getElementById('opsTaskCadenceCard');
+  const title=document.getElementById('opsTaskCadenceTitle');
+  const host=document.getElementById('opsTaskCadenceList');
+  const save=document.getElementById('opsTaskCadenceSaveBtn');
+
+  opsState.taskCadenceAssignmentId=a.id;
+  opsState.taskCadenceRows=[];
+
+  card?.classList.remove('hidden');
+  if(title)title.textContent=`${opsObjName(a.object_id)} · ${opsServiceName(a.service_type_id)}`;
+  if(host)host.innerHTML='<div class="muted">Aufgabenturnus wird geladen …</div>';
+  if(save)save.disabled=true;
+  card?.scrollIntoView({behavior:'smooth',block:'start'});
+
+  try{
+    const rows=await cloudRequest('rpc/get_object_service_task_schedules_v1',{
+      method:'POST',
+      body:JSON.stringify({
+        p_organization_id:opsOrg(),
+        p_object_service_assignment_id:a.id
+      })
+    });
+    opsState.taskCadenceRows=Array.isArray(rows)?rows:[];
+    opsRenderTaskSchedule();
+  }catch(e){
+    if(host)host.innerHTML=`<div class="bad">Aufgabenturnus konnte nicht geladen werden: ${opsEsc(e.message||e)}</div>`;
+  }
+}
+
+function opsRenderTaskSchedule(){
+  const host=document.getElementById('opsTaskCadenceList');
+  const save=document.getElementById('opsTaskCadenceSaveBtn');
+  if(!host)return;
+
+  const rows=opsState.taskCadenceRows||[];
+  if(!rows.length){
+    host.innerHTML='<div class="muted">Für diese Leistung ist keine freigegebene Checkliste mit Aufgaben hinterlegt.</div>';
+    if(save)save.disabled=true;
+    return;
+  }
+
+  let lastStandard='';
+  host.innerHTML=rows.map((r,idx)=>{
+    const std=String(r.standard_id||'');
+    const head=std!==lastStandard
+      ?`<div class="ops-task-cadence-standard"><strong>${opsEsc(r.standard_title||r.standard_code||'Checkliste')}</strong>${r.standard_code?`<span class="muted">${opsEsc(r.standard_code)}</span>`:''}</div>`
+      :'';
+    lastStandard=std;
+    return `${head}<div class="ops-task-cadence-row">
+      <div class="ops-task-cadence-task">
+        <span class="ops-task-cadence-no">${opsEsc(r.item_sort_order||idx+1)}.</span>
+        <div>
+          <strong>${opsEsc(r.item_text||'Aufgabe')}</strong>
+          ${r.item_required?'<div class="muted">Pflichtaufgabe</div>':''}
+        </div>
+      </div>
+      <label class="ops-task-cadence-select">
+        <span>Turnus</span>
+        <select data-task-cadence-item="${opsEsc(r.standard_item_id)}" onchange="opsTaskCadenceChanged(this)">
+          ${opsTaskCadenceOptions(r.cadence_type)}
+        </select>
+      </label>
+    </div>`;
+  }).join('');
+
+  if(save)save.disabled=false;
+}
+
+function opsTaskCadenceChanged(select){
+  const itemId=select?.dataset?.taskCadenceItem||'';
+  const row=(opsState.taskCadenceRows||[]).find(x=>String(x.standard_item_id)===String(itemId));
+  if(row)row.cadence_type=select.value||'every_run';
+}
+
+async function opsSaveTaskSchedule(){
+  const assignmentId=opsState.taskCadenceAssignmentId;
+  if(!assignmentId)return alert('Keine Objektleistung ausgewählt.');
+
+  const rows=opsState.taskCadenceRows||[];
+  if(!rows.length)return;
+
+  const btn=document.getElementById('opsTaskCadenceSaveBtn');
+  if(btn)btn.disabled=true;
+
+  try{
+    const schedules=rows.map(r=>({
+      standard_item_id:r.standard_item_id,
+      cadence_type:r.cadence_type||'every_run',
+      anchor_date:(r.cadence_type==='biweekly' ? new Date().toISOString().slice(0,10) : null)
+    }));
+
+    await cloudRequest('rpc/save_object_service_task_schedules_v1',{
+      method:'POST',
+      body:JSON.stringify({
+        p_organization_id:opsOrg(),
+        p_object_service_assignment_id:assignmentId,
+        p_schedules:schedules
+      })
+    });
+
+    await opsOpenTaskSchedule(assignmentId);
+  }catch(e){
+    alert('Aufgabenturnus konnte nicht gespeichert werden: '+(e.message||e));
+    if(btn)btn.disabled=false;
+  }
+}
+
+function opsCloseTaskSchedule(){
+  opsState.taskCadenceAssignmentId=null;
+  opsState.taskCadenceRows=[];
+  document.getElementById('opsTaskCadenceCard')?.classList.add('hidden');
+}
+
 function opsRenderAssignmentManagement(){
   const host=document.getElementById('opsAssignmentList');if(!host)return;
   const q=String(document.getElementById('opsAssignmentSearch')?.value||'').trim().toLowerCase();
@@ -36639,7 +36907,7 @@ function opsRenderAssignmentManagement(){
   if(!rows.length){host.innerHTML='<div class="muted">Keine passenden planbaren Objektleistungen.</div>';return;}
   host.innerHTML=`<div class="ops-assignment-table"><div class="ops-assignment-table-head"><span>Objekt</span><span>Leistung</span><span>Rhythmus</span><span>Nächster Termin</span><span>Status</span><span>Aktion</span></div>${rows.map(a=>{
     const p=opsActivePlanForAssignment(a);
-    return `<div class="ops-assignment-table-row"><div class="ops-col-object"><strong>${opsEsc(opsObjName(a.object_id))}</strong><div class="muted">${opsEsc(opsObjectAddress(a.object_id))}</div></div><div class="ops-col-service"><strong>${opsEsc(opsServiceName(a.service_type_id))}</strong><div class="muted">${opsEsc(opsSopLabel(a))}</div></div><div class="ops-col-rhythm">${p?opsEsc(opsIntervalLabel(p.interval_weeks)):'—'}</div><div class="ops-col-next">${p?opsEsc(opsNextPlanDate(p)):'—'}</div><div class="ops-col-status"><span class="ops-assignment-status ${p?'planned':'open'}">${p?'geplant':'ungeplant'}</span></div><div class="ops-col-action">${p?`<button class="ops-assignment-action" type="button" onclick="opsEditPlan('${opsEsc(p.id)}')">Bearbeiten</button>`:`<button class="ops-assignment-action primary" type="button" onclick="opsStartPlanForAssignment('${opsEsc(a.id)}')">Planen</button>`}</div></div>`;
+    return `<div class="ops-assignment-table-row"><div class="ops-col-object"><strong>${opsEsc(opsObjName(a.object_id))}</strong><div class="muted">${opsEsc(opsObjectAddress(a.object_id))}</div></div><div class="ops-col-service"><strong>${opsEsc(opsServiceName(a.service_type_id))}</strong><div class="muted">${opsEsc(opsSopLabel(a))}</div></div><div class="ops-col-rhythm">${p?opsEsc(opsIntervalLabel(p.interval_weeks)):'—'}</div><div class="ops-col-next">${p?opsEsc(opsNextPlanDate(p)):'—'}</div><div class="ops-col-status"><span class="ops-assignment-status ${p?'planned':'open'}">${p?'geplant':'ungeplant'}</span></div><div class="ops-col-action"><div class="ops-assignment-action-stack">${p?`<button class="ops-assignment-action" type="button" onclick="opsEditPlan('${opsEsc(p.id)}')">Bearbeiten</button>`:`<button class="ops-assignment-action primary" type="button" onclick="opsStartPlanForAssignment('${opsEsc(a.id)}')">Planen</button>`}<button class="ops-assignment-action" type="button" onclick="opsOpenTaskSchedule('${opsEsc(a.id)}')">Aufgabenturnus</button></div></div></div>`;
   }).join('')}</div>`;
 }
 function opsStartPlanForAssignment(assignmentId){
@@ -38609,7 +38877,7 @@ async function dsChecklistLoadContext(contextType,contextId,{force=false}={}){
   const key=dsChecklistKey(contextType,contextId);if(!contextType||!contextId)return [];
   if(!force&&Object.prototype.hasOwnProperty.call(dsChecklistState.contexts,key))return dsChecklistState.contexts[key]||[];
   try{
-    const rows=await cloudRequest('rpc/get_or_create_checklists_for_context_v1',{
+    const rows=await cloudRequest('rpc/get_or_create_checklists_for_context_v2',{
       method:'POST',body:JSON.stringify({p_organization_id:currentOrganizationId(),p_context_type:contextType,p_context_id:contextId})
     });
     const normalized=dsChecklistNormalize(rows);
