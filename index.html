@@ -2,6 +2,15 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.46 · QR-/Inventaretikett optimiert
+     UX:
+     - Standort vom physischen Etikett entfernt, da veränderliche Information.
+     - DUSCHL SERVICE als feste Kennzeichnung ergänzt.
+     - Inventarnummer bleibt primäre visuelle Kennung.
+     - Seriennummer optional auf dem Etikett.
+     - QR-Code im Ausdruck kompakter für bessere Informationshierarchie.
+     - Hinweis: Scannen für Standort/Status/Dokumentation bzw. Bestand/Standorte.
+     BACKEND: keine Änderung. -->
 <!-- RELEASE 3.45 · Inventarliste Export: PDF/Drucken, Excel (.xls), CSV; filterbar nach Lifecycle, Status, Typ, Kategorie, Standort und Leistungsbezug. Backend unverändert. -->
 <!-- RELEASE 3.44 · Geführte Erfassung & Routenplanung
      UX:
@@ -403,7 +412,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.45</title>
+<title>Duschl Service – Objektplattform v3.46</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -7238,6 +7247,42 @@ body.or-wizard-open{overflow:hidden!important}
 <style id="inventory-export-v345">
 .or-export-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.or-export-actions button{min-width:130px}.or-export-filters select{width:100%}@media(max-width:680px){.or-export-actions{display:grid;grid-template-columns:1fr}.or-export-actions button{width:100%}}
 </style>
+<style id="qr-label-v346">
+
+/* ==========================================================
+   v3.46 · QR-/INVENTARETIKETT
+   ========================================================== */
+.or-label-preview .qr-modal-canvas{
+  width:min(240px,72vw)!important;
+  height:auto!important;
+}
+.or-label-brand{
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:1.5px;
+  margin-bottom:10px;
+}
+.or-label-name{
+  font-weight:850;
+  margin-top:5px;
+}
+.or-label-model{
+  margin-top:3px;
+}
+.or-label-serial{
+  font-size:12px;
+  font-weight:750;
+  margin-top:5px;
+}
+.or-label-hint{
+  margin-top:9px;
+  padding-top:8px;
+  border-top:1px solid var(--line-soft);
+  font-size:11px;
+  color:var(--muted);
+}
+
+</style>
 </head>
 <body class="role-context-loading">
 <div id="roleContextLoader" aria-live="polite" aria-busy="true">
@@ -12329,7 +12374,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.45';
+const APP_VERSION='3.46';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -22188,13 +22233,14 @@ async function orOpenAssetQr(id){
   const material=r.tracking_mode==='quantity';
 
   modal(`<div class="qr-modal-head"><h2>${material?'Lageretikett':'Betriebsmittel-Etikett'}</h2></div>
-    <div class="card qr-modal-card" style="text-align:center">
-      <canvas id="orAssetQrCanvas" width="280" height="280" class="qr-modal-canvas"></canvas>
+    <div class="card qr-modal-card or-label-preview" style="text-align:center">
+      <div class="or-label-brand">DUSCHL SERVICE</div>
+      <canvas id="orAssetQrCanvas" width="240" height="240" class="qr-modal-canvas"></canvas>
       <div class="qr-modal-object">${esc(number)}</div>
-      <div style="font-weight:800;margin-top:5px">${esc(r.name||'Betriebsmittel')}</div>
-      ${(r.manufacturer||r.model)?`<div class="muted">${esc([r.manufacturer,r.model].filter(Boolean).join(' '))}</div>`:''}
-      <div class="muted" style="margin-top:5px">${esc(location)}</div>
-      ${r.label_note?`<div style="margin-top:6px">${esc(r.label_note)}</div>`:''}
+      <div class="or-label-name">${esc(r.name||'Betriebsmittel')}</div>
+      ${(r.manufacturer||r.model)?`<div class="muted or-label-model">${esc([r.manufacturer,r.model].filter(Boolean).join(' '))}</div>`:''}
+      ${r.serial_number?`<div class="or-label-serial">S/N ${esc(r.serial_number)}</div>`:''}
+      <div class="or-label-hint">${material?'Scannen für Bestand, Standorte & Dokumentation':'Scannen für Standort, Status & Dokumentation'}</div>
     </div>
     <div class="qr-modal-actions">
       <button class="primary" type="button" onclick="orPrintAssetLabel('${esc(r.id)}')">Etikett drucken</button>
@@ -22203,7 +22249,7 @@ async function orOpenAssetQr(id){
     </div>`);
   const canvas=document.getElementById('orAssetQrCanvas');
   try{
-    await QRCode.toCanvas(canvas,url,{width:280,margin:2,errorCorrectionLevel:'M',color:{dark:'#000000',light:'#ffffff'}});
+    await QRCode.toCanvas(canvas,url,{width:240,margin:2,errorCorrectionLevel:'M',color:{dark:'#000000',light:'#ffffff'}});
   }catch(e){
     console.error('Betriebsmittel-QR konnte nicht erzeugt werden',e);
     alert('QR-Code konnte nicht erzeugt werden.');
@@ -22225,32 +22271,83 @@ function orPrintAssetLabel(id){
   const r=(operatingResourcesState.resources||[]).find(x=>String(x.id)===String(id));
   const canvas=document.getElementById('orAssetQrCanvas');
   if(!r||!canvas)return alert('QR-Code zuerst öffnen.');
-  const loc=(operatingResourcesState.locations||[]).find(x=>String(x.id)===String(r.current_location_id||''));
-  const location=loc?orLocationLabel(loc):orFormatLocation(r);
+
   let img='';
   try{img=canvas.toDataURL('image/png');}catch(_e){return alert('Etikett konnte nicht vorbereitet werden.');}
+
+  const material=r.tracking_mode==='quantity';
   const number=esc(r.inventory_number||'—');
   const title=esc(r.name||'Betriebsmittel');
   const sub=esc([r.manufacturer,r.model].filter(Boolean).join(' '));
-  const note=esc(r.label_note||'');
+  const serial=esc(r.serial_number||'');
+  const hint=material
+    ?'Scannen für Bestand, Standorte & Dokumentation'
+    :'Scannen für Standort, Status & Dokumentation';
+
   const html=`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>${number}</title><style>
     @page{size:70mm 35mm;margin:2mm}
     *{box-sizing:border-box}
     body{margin:0;background:#fff;color:#111;font-family:Arial,sans-serif}
-    .label{width:66mm;height:31mm;display:grid;grid-template-columns:27mm 1fr;gap:2.5mm;align-items:center;overflow:hidden}
-    img{width:27mm;height:27mm;object-fit:contain}
-    .num{font-size:15pt;font-weight:900;line-height:1.05}
-    .name{font-size:10pt;font-weight:800;margin-top:1.5mm;line-height:1.1}
-    .sub,.loc,.note{font-size:7pt;line-height:1.15;margin-top:1mm}
-    .loc{font-weight:700}
+    .label{
+      width:66mm;height:31mm;
+      display:grid;
+      grid-template-columns:24mm minmax(0,1fr);
+      gap:2.5mm;
+      align-items:center;
+      overflow:hidden
+    }
+    .qr{width:24mm;height:24mm;object-fit:contain}
+    .content{min-width:0}
+    .brand{
+      font-size:6.4pt;
+      font-weight:900;
+      letter-spacing:.7pt;
+      line-height:1;
+      margin-bottom:1.6mm
+    }
+    .num{
+      font-size:15pt;
+      font-weight:900;
+      line-height:1;
+      letter-spacing:.15pt
+    }
+    .name{
+      font-size:9.5pt;
+      font-weight:800;
+      margin-top:1.3mm;
+      line-height:1.05;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis
+    }
+    .sub,.serial{
+      font-size:6.5pt;
+      line-height:1.1;
+      margin-top:.8mm;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis
+    }
+    .serial{font-weight:700}
+    .hint{
+      font-size:5.7pt;
+      line-height:1.15;
+      margin-top:1.25mm;
+      color:#333
+    }
     @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-  </style></head><body><div class="label"><img src="${img}"><div>
-    <div class="num">${number}</div>
-    <div class="name">${title}</div>
-    ${sub?`<div class="sub">${sub}</div>`:''}
-    <div class="loc">${esc(location)}</div>
-    ${note?`<div class="note">${note}</div>`:''}
-  </div></div><script>window.onload=()=>{window.print();setTimeout(()=>window.close(),400)}<\/script></body></html>`;
+  </style></head><body><div class="label">
+    <img class="qr" src="${img}">
+    <div class="content">
+      <div class="brand">DUSCHL SERVICE</div>
+      <div class="num">${number}</div>
+      <div class="name">${title}</div>
+      ${sub?`<div class="sub">${sub}</div>`:''}
+      ${serial?`<div class="serial">S/N ${serial}</div>`:''}
+      <div class="hint">${hint}</div>
+    </div>
+  </div><script>window.onload=()=>{window.print();setTimeout(()=>window.close(),400)}<\/script></body></html>`;
+
   const w=window.open('','_blank','width=720,height=480');
   if(!w)return alert('Druckfenster wurde blockiert.');
   w.document.open();w.document.write(html);w.document.close();
@@ -39962,4 +40059,8 @@ async function psToggleActive(){const id=document.getElementById('psId')?.value;
 </script>
 
 </body>
+</html>
+</html>
+</html>
+</html>
 </html>
