@@ -403,7 +403,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.45</title>
+<title>Duschl Service – Objektplattform v3.46.1</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -7237,6 +7237,39 @@ body.or-wizard-open{overflow:hidden!important}
 
 <style id="inventory-export-v345">
 .or-export-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.or-export-actions button{min-width:130px}.or-export-filters select{width:100%}@media(max-width:680px){.or-export-actions{display:grid;grid-template-columns:1fr}.or-export-actions button{width:100%}}
+</style>
+
+<style id="or-stock-mobile-v3461">
+/* v3.46.1: narrow stock cards remain legible on phones. */
+#operatingResources .or-stock-row,
+#operatingResources .or-stock-current-row {
+  display:grid;grid-template-columns:minmax(0,1fr) max-content;
+  align-items:start;column-gap:12px;row-gap:3px;
+}
+#operatingResources .or-stock-location-name,
+#operatingResources .or-stock-row>span:first-child,
+#operatingResources .or-stock-current-row>span:first-child {
+  min-width:0;overflow-wrap:anywhere;line-height:1.35;
+}
+#operatingResources .or-stock-quantity,
+#operatingResources .or-stock-current-row>strong:last-child {
+  white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums;
+}
+#operatingResources .or-stock-quick-actions{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:9px 0 4px;
+}
+#operatingResources .or-stock-quick-actions button{
+  min-width:0;min-height:38px;font-size:12px;padding:7px 4px!important;
+}
+@media(max-width:450px){
+  #operatingResources .or-stock-overview{padding:9px!important}
+  #operatingResources .or-stock-row{font-size:13px;gap:8px}
+  #operatingResources .or-stock-quantity{font-size:13px}
+  #operatingResources .or-stock-quick-actions{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  #operatingResources .or-stock-quick-actions button{min-height:42px}
+}
 </style>
 </head>
 <body class="role-context-loading">
@@ -21214,8 +21247,8 @@ function orStockOverviewHtml(resource){
       <span class="badge">${rows.length}</span>
     </div>
     ${rows.map(x=>`<div class="or-stock-row">
-      <span>${esc(orStockLocationLabel(x))}</span>
-      <strong>${Number(x.quantity||0).toLocaleString('de-DE',{maximumFractionDigits:3})}${x.unit?' '+esc(x.unit):''}</strong>
+      <span class="or-stock-location-name" title="${esc(orStockLocationLabel(x))}">${esc(orStockLocationLabel(x))}</span>
+      <strong class="or-stock-quantity">${Number(x.quantity||0).toLocaleString('de-DE',{maximumFractionDigits:3})} ${esc(x.unit||resource.unit||'')}</strong>
     </div>`).join('')}
   </div>`;
 }
@@ -21947,33 +21980,29 @@ function orReorderMeta(resource){
   if(resource?.tracking_mode!=='quantity'){
     return {state:'not_applicable',label:'',reorderQuantity:0,configured:false};
   }
-
-  const current=Number(resource.quantity||0);
-  const critical=resource.critical_stock===null||resource.critical_stock===undefined||resource.critical_stock===''?0:Number(resource.critical_stock);
-  const minimum=resource.minimum_stock===null||resource.minimum_stock===undefined||resource.minimum_stock===''?null:Number(resource.minimum_stock);
-  const target=resource.target_stock===null||resource.target_stock===undefined||resource.target_stock===''?null:Number(resource.target_stock);
-  const configured=minimum!==null || target!==null;
-
-  if(!configured){
-    return {state:'unconfigured',label:'Bestandsgrenzen nicht konfiguriert',reorderQuantity:0,configured:false,current,critical,minimum,target};
+  // Authoritative stock is the sum of warehouse stock rows, not a free-text asset field.
+  const current=orStockTotalForResource(resource.id);
+  const critical=resource.critical_stock==null||resource.critical_stock===''?null:Number(resource.critical_stock);
+  const minimum=resource.minimum_stock==null||resource.minimum_stock===''?null:Number(resource.minimum_stock);
+  const target=resource.target_stock==null||resource.target_stock===''?null:Number(resource.target_stock);
+  const configured=minimum!==null||critical!==null||target!==null;
+  if(!configured)return {state:'unconfigured',label:'Bestandsgrenzen nicht konfiguriert',
+    reorderQuantity:0,configured:false,current,critical,minimum,target};
+  // Early warning: at least one unit or 25% of minimum above the minimum.
+  // Existing critical threshold retains priority; falling below minimum is always red.
+  const buffer=minimum===null?0:Math.max(1,Math.ceil(minimum*0.25));
+  const warning=minimum===null?null:minimum+buffer;
+  let state='green',label='Bestand ausreichend';
+  if((minimum!==null&&current<minimum)||(critical!==null&&current<=critical)){
+    state='red';label='Kritischer Bestand';
+  }else if(warning!==null&&current<=warning){
+    state='yellow';label='Nachbestellen';
+  }else if(minimum===null&&target!==null&&current<target){
+    state='yellow';label='Nachbestellen';
   }
-
-  let state='green';
-  let label='Bestand ausreichend';
-
-  if(current<=critical){
-    state='red';
-    label='Kritischer Bestand';
-  }else if(minimum!==null && current<=minimum){
-    state='yellow';
-    label='Mindestbestand erreicht';
-  }
-
-  const reorderQuantity=(state==='yellow'||state==='red') && target!==null
-    ?Math.max(target-current,0)
-    :0;
-
-  return {state,label,reorderQuantity,configured:true,current,critical,minimum,target};
+  const reorderQuantity=(state==='yellow'||state==='red')&&target!==null
+    ?Math.max(target-current,0):0;
+  return {state,label,reorderQuantity,configured:true,current,critical,minimum,target,warning};
 }
 
 function orReorderHtml(resource){
@@ -21990,6 +22019,7 @@ function orReorderHtml(resource){
 
   const detail=[
     m.minimum!==null?`Mindestbestand ${Number(m.minimum).toLocaleString('de-DE',{maximumFractionDigits:3})}${unit}`:'',
+    m.warning!==null?`Warnschwelle ${Number(m.warning).toLocaleString('de-DE',{maximumFractionDigits:3})}${unit}`:'',
     m.target!==null?`Sollbestand ${Number(m.target).toLocaleString('de-DE',{maximumFractionDigits:3})}${unit}`:''
   ].filter(Boolean).join(' · ');
 
@@ -22079,6 +22109,12 @@ function orRenderList(){
         }</div>
 
         ${r.tracking_mode==='quantity'?orStockOverviewHtml(r):''}
+        ${r.tracking_mode==='quantity'&&!deleted&&r.active!==false?`<div class="or-stock-quick-actions">
+          <button type="button" onclick="orOpenMovement('${esc(r.id)}','receipt')">Zugang</button>
+          <button type="button" onclick="orOpenMovement('${esc(r.id)}','consumption')">Entnahme</button>
+          <button type="button" onclick="orOpenMovement('${esc(r.id)}','transfer')">Umlagern</button>
+          <button type="button" onclick="orOpenMovement('${esc(r.id)}','history')">Historie</button>
+        </div>`:''}
         ${r.tracking_mode==='quantity'?orReorderHtml(r):''}
         ${deletedMeta}
         ${r.notes?`<div class="or-resource-notes">${esc(r.notes)}</div>`:''}
@@ -22365,7 +22401,7 @@ async function orRestoreResource(id){
   }
 }
 
-async function orOpenMovement(id){
+async function orOpenMovement(id, bookingType){
   const r=operatingResourcesState.resources.find(x=>String(x.id)===String(id));if(!r)return;
   operatingResourcesState.selected=r;
   const card=document.getElementById('orMovementCard');if(card)card.classList.remove('hidden');
@@ -22390,11 +22426,12 @@ async function orOpenMovement(id){
   if(r.tracking_mode==='quantity'){
     orRenderStockCurrent(r.id);
     orFillStockLocationSelects(r.id);
-    const type=document.getElementById('orStockMovementType');if(type)type.value='transfer';
+    const type=document.getElementById('orStockMovementType');if(type)type.value=bookingType||'transfer';
     const qty=document.getElementById('orStockMoveQuantity');if(qty)qty.value='';
     const note=document.getElementById('orStockMoveNote');if(note)note.value='';
     orFillSavedLocationSelects();
     orStockBookingTypeChanged();
+    if(stock)stock.classList.toggle('hidden',bookingType==='history');
   }else{
     const sl=document.getElementById('orMoveSavedLocationId');if(sl)sl.value=r.current_location_id||'';
     const lt=document.getElementById('orMoveLocationType');if(lt)lt.value=r.current_location_type||'free_text';
@@ -22441,7 +22478,7 @@ function orRenderStockCurrent(resourceId){
   host.innerHTML=`<div class="or-stock-current-head"><strong>Bestand je Lagerort</strong><span>Gesamt ${esc(orFmtQty(r))}</span></div>
     ${rows.map(x=>`<div class="or-stock-current-row">
       <span>${esc(orStockLocationLabel(x))}</span>
-      <strong>${Number(x.quantity||0).toLocaleString('de-DE',{maximumFractionDigits:3})}${x.unit?' '+esc(x.unit):''}</strong>
+      <strong class="or-stock-quantity">${Number(x.quantity||0).toLocaleString('de-DE',{maximumFractionDigits:3})} ${esc(x.unit||r?.unit||'')}</strong>
     </div>`).join('')}`;
 }
 
@@ -22467,6 +22504,8 @@ async function orBookStock(){
   const needTo=['receipt','transfer','correction_plus'].includes(type);
   if(needFrom&&!from)return alert('Quellstandort wählen.');
   if(needTo&&!to)return alert('Zielstandort wählen.');
+  if(type==='transfer'&&from===to)return alert('Quell- und Zielstandort müssen verschieden sein.');
+  if(needFrom&&q>orStockRowsForResource(r.id).filter(x=>String(x.location_id||'')===String(from)).reduce((a,x)=>a+Number(x.quantity||0),0))return alert('Am Quellstandort ist nicht genügend Bestand verfügbar.');
 
   try{
     await cloudRequest('rpc/book_operating_resource_stock_v1',{
