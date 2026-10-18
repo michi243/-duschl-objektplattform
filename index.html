@@ -403,7 +403,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.48.0</title>
+<title>Duschl Service – Objektplattform v3.48.1</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -8874,9 +8874,9 @@ WINTERDIENST RÄUMKARTE
   </div>
   <div class="card ops-planning-only ops-advanced-planning" style="margin-top:14px">
     <details>
-      <summary>Sonderfall: regelmäßige Einzelleistung</summary>
+      <summary>Objektleistungspläne (Verwaltung)</summary>
       <div class="muted" style="margin-top:7px">
-        Nur öffnen, wenn eine Leistung regelmäßig ausgeführt wird, aber bewusst keiner wiederkehrenden Tour zugeordnet ist. Für normale Tourstopps ist kein zusätzlicher Leistungsplan erforderlich.
+        Der Turnus gehört zur Objektleistung. Bitte bevorzugt über Objekte → Leistungen & Standards bearbeiten. Bestehende Tourvorlagen verwenden in dieser Übergangsversion noch ihren eigenen Rhythmus.
       </div>
       <div class="grid g2" style="margin-top:12px">
     <div class="card ops-assignment-management">
@@ -8918,13 +8918,13 @@ WINTERDIENST RÄUMKARTE
         <div class="ops-planning-section-head" style="margin-bottom:0">
           <div class="ops-planning-step">S</div>
           <div class="ops-planning-section-title">
-            <h3>Sonderfall: regelmäßige Einzelleistung</h3>
+            <h3>Turnus & Zeitfenster der Objektleistung</h3>
             <div class="muted">Eine einzelne Objektleistung bekommt ihren eigenen Rhythmus.</div>
           </div>
         </div>
         <span id="opsPlanEditBadge" class="badge hidden">Bearbeitung</span>
       </div>
-      <div class="ops-when-use"><strong>Nur für Sonderfälle:</strong> Diese Maske ist nur erforderlich, wenn eine Leistung regelmäßig ausgeführt wird, aber nicht Teil einer wiederkehrenden Tour ist.</div>
+      <div class="ops-when-use"><strong>Objektbezogene Planung:</strong> Der Turnus wird unabhängig von der Tourzuordnung gespeichert. Die Freigabe des ausführbaren Einsatzes und der erforderlichen SOP ist separat zu prüfen.</div>
 
       <div class="grid2 ops-plan-selection" style="margin-top:12px">
         <label>1. Objekt
@@ -8962,7 +8962,7 @@ WINTERDIENST RÄUMKARTE
       </label>
 
       <div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">
-        <button id="opsPlanSaveBtn" class="primary" onclick="opsSavePlan()">Regelmäßige Einzelleistung speichern</button>
+        <button id="opsPlanSaveBtn" class="primary" onclick="opsSavePlan()">Leistungsplan speichern</button>
         <button id="opsPlanCancelBtn" class="hidden" onclick="opsCancelPlanEdit()">Bearbeitung abbrechen</button>
       </div>
       <div id="opsPlanList" style="display:none"></div>
@@ -12373,7 +12373,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.48.0';
+const APP_VERSION='3.48.1';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -33260,6 +33260,7 @@ async function openObjectServicesModal(objectId){
             </div>
           </div>
           ${hasStandards?`<button type="button" onclick="osaOpenInheritedStandards('${esc(a.service_type_id)}','${esc(st?.name||'Leistung')} · Prozesse & Standards','${canEdit?'':esc(objectId)}')">Standards anzeigen</button>`:''}
+          ${canEdit&&a.process_type!=='winter_service'?`<div class="muted" style="width:100%;font-size:11px;margin-top:5px">Turnus unabhängig von der Tour erfassen. SOP-Freigabe für die Einsatzdurchführung separat prüfen.</div>`:''}
           ${canEdit&&a.process_type!=='winter_service'?`<button type="button" class="primary" onclick="osaOpenServicePlanEditor('${esc(a.id)}','plan')">Turnus & Zeitfenster</button><button type="button" onclick="osaOpenServicePlanEditor('${esc(a.id)}','tasks')">Aufgabenturnus</button>`:''}
         </div>
         <div class="osa-v283-stats">
@@ -37869,6 +37870,7 @@ async function opsSavePlan(){
     if(!opsEditingPlanId&&existingPlan)throw new Error('Für diese Objektleistung besteht bereits ein aktiver Leistungsplan. Bitte den vorhandenen Plan bearbeiten.');
     if(opsEditingPlanId)await cloudRequest(`recurring_service_plans?id=eq.${encodeURIComponent(opsEditingPlanId)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(payload)});
     else{payload.created_by=currentUserId();await cloudRequest('recurring_service_plans',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify(payload)});}
+    if(document.getElementById('osaServicePlanEditor'))osaCloseServicePlanEditor();
     opsResetPlanForm();await opsLoad();
   }catch(e){alert('Leistungsplan konnte nicht gespeichert werden: '+(e.message||e));}
 }
