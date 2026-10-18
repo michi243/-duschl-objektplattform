@@ -403,7 +403,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.47.1</title>
+<title>Duschl Service – Objektplattform v3.48.0</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -7274,6 +7274,12 @@ body.or-wizard-open{overflow:hidden!important}
 <style id="ops-coverage-worklist-v347">
 .ops-coverage-dashboard{margin:14px 0}.ops-coverage-panel{border:1px solid #31536d;border-radius:14px;background:#0b1e2c;padding:12px}.ops-coverage-alert{margin-top:10px;padding:10px;border:1px solid #8d6332;border-radius:10px;background:rgba(200,144,40,.09)}.ops-coverage-list{display:grid;gap:5px;margin-top:8px}.ops-coverage-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:8px 0;border-top:1px solid rgba(255,255,255,.08);align-items:center;font-size:13px}.ops-coverage-row>span:first-child{overflow-wrap:anywhere}.ops-coverage-status{color:#f2c872;font-size:11px;text-align:right}.ops-coverage-ok{margin-top:9px;color:#a3e8bd;font-size:13px}@media(max-width:480px){.ops-coverage-row{grid-template-columns:minmax(0,1fr)}.ops-coverage-status{text-align:left}}
 </style>
+<style id="osa-plan-editor-v348">
+#osaServicePlanEditor{z-index:11000!important;padding:12px;overflow:auto;align-items:center}
+#osaServicePlanEditor .osa-plan-dialog{width:min(740px,100%);max-height:calc(100dvh - 24px);overflow:auto;background:#0b1b29;border:1px solid #3b566a;border-radius:15px;padding:16px;color:#f2f6f9}
+#osaServicePlanEditor .ops-planning-section-card,#osaServicePlanEditor .ops-task-cadence-card{display:block!important;width:100%;margin-top:8px}
+@media(max-width:640px){#osaServicePlanEditor{padding:0;align-items:flex-end}#osaServicePlanEditor .osa-plan-dialog{max-height:94dvh;border-radius:18px 18px 0 0;padding:12px 12px calc(24px + env(safe-area-inset-bottom))}}
+</style>
 </head>
 <body class="role-context-loading">
 <div id="roleContextLoader" aria-live="polite" aria-busy="true">
@@ -12367,7 +12373,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.47.1';
+const APP_VERSION='3.48.0';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -33166,6 +33172,49 @@ async function wsLoadClearanceMapForExecution(objectId){
   return {row,imageUrl};
 }
 
+// Objektbezogener Leistungsplan-Editor (v3.48 UI-Brücke).
+// Benutzt bestehende RPCs, Form-IDs und Speicherfunktionen, keine neue Datenquelle.
+let osaPlanEditorMoved=[];
+function osaCloseServicePlanEditor(){
+  for(const entry of osaPlanEditorMoved){
+    if(entry.node&&entry.parent)entry.parent.insertBefore(entry.node,entry.next?.parentNode===entry.parent?entry.next:null);
+  }
+  osaPlanEditorMoved=[];
+  document.getElementById('osaServicePlanEditor')?.remove();
+}
+async function osaOpenServicePlanEditor(assignmentId,mode='plan'){
+  if(!opsIsPlanningRole())return alert('Keine Berechtigung zur Leistungsplanung.');
+  // Load the same live Supabase context used by Touren & Einsätze.
+  if(!opsState.assignments?.some(a=>String(a.id)===String(assignmentId))){
+    await opsLoad();
+  }
+  const a=opsState.assignments?.find(x=>String(x.id)===String(assignmentId));
+  if(!a||a.active===false||String(a.process_type||'generic')!=='generic')return alert('Aktive Objektleistung für die Planung nicht verfügbar.');
+  if(!canEditObjectServicesUI(a.object_id))return alert('Keine Berechtigung für diese Objektleistung.');
+  osaCloseServicePlanEditor();
+  const node=document.getElementById(mode==='tasks'?'opsTaskCadenceCard':'opsSinglePlanCard');
+  if(!node)return alert('Planungseditor konnte nicht geladen werden.');
+  const overlay=document.createElement('div');
+  overlay.id='osaServicePlanEditor';
+  overlay.className='modal-backdrop';
+  overlay.innerHTML=`<div class="osa-plan-dialog" role="dialog" aria-modal="true" aria-label="Objektleistung planen">
+    <div class="row space" style="gap:10px"><strong>Objektleistung · ${esc(opsObjName(a.object_id))}</strong><button type="button" onclick="osaCloseServicePlanEditor()">Schließen</button></div>
+    <div class="muted" style="margin:6px 0 12px">${esc(opsServiceName(a.service_type_id))} · Änderungen gelten für die Objektleistung, nicht für die Tourvorlage.</div>
+    <div id="osaPlanEditorSlot"></div>
+  </div>`;
+  document.body.appendChild(overlay);
+  osaPlanEditorMoved.push({node,parent:node.parentNode,next:node.nextSibling});
+  overlay.querySelector('#osaPlanEditorSlot').appendChild(node);
+  node.classList.remove('hidden');
+  if(mode==='tasks'){
+    try{await opsOpenTaskSchedule(assignmentId)}catch(e){alert('Aufgabenturnus konnte nicht geöffnet werden: '+(e.message||e))}
+  }else{
+    const plan=opsActivePlanForAssignment(a);
+    if(plan)opsEditPlan(plan.id);
+    else opsStartPlanForAssignment(assignmentId);
+  }
+  overlay.querySelector('.osa-plan-dialog').scrollTop=0;
+}
 async function openObjectServicesModal(objectId){
   try{
     const canView=canViewObjectStandardsUI(objectId);
@@ -33211,6 +33260,7 @@ async function openObjectServicesModal(objectId){
             </div>
           </div>
           ${hasStandards?`<button type="button" onclick="osaOpenInheritedStandards('${esc(a.service_type_id)}','${esc(st?.name||'Leistung')} · Prozesse & Standards','${canEdit?'':esc(objectId)}')">Standards anzeigen</button>`:''}
+          ${canEdit&&a.process_type!=='winter_service'?`<button type="button" class="primary" onclick="osaOpenServicePlanEditor('${esc(a.id)}','plan')">Turnus & Zeitfenster</button><button type="button" onclick="osaOpenServicePlanEditor('${esc(a.id)}','tasks')">Aufgabenturnus</button>`:''}
         </div>
         <div class="osa-v283-stats">
           <div class="osa-v283-stat"><strong>${c.sop}</strong><span>SOP</span></div>
