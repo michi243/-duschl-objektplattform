@@ -403,7 +403,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.46.1</title>
+<title>Duschl Service – Objektplattform v3.47.1</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -7271,6 +7271,9 @@ body.or-wizard-open{overflow:hidden!important}
   #operatingResources .or-stock-quick-actions button{min-height:42px}
 }
 </style>
+<style id="ops-coverage-worklist-v347">
+.ops-coverage-dashboard{margin:14px 0}.ops-coverage-panel{border:1px solid #31536d;border-radius:14px;background:#0b1e2c;padding:12px}.ops-coverage-alert{margin-top:10px;padding:10px;border:1px solid #8d6332;border-radius:10px;background:rgba(200,144,40,.09)}.ops-coverage-list{display:grid;gap:5px;margin-top:8px}.ops-coverage-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:8px 0;border-top:1px solid rgba(255,255,255,.08);align-items:center;font-size:13px}.ops-coverage-row>span:first-child{overflow-wrap:anywhere}.ops-coverage-status{color:#f2c872;font-size:11px;text-align:right}.ops-coverage-ok{margin-top:9px;color:#a3e8bd;font-size:13px}@media(max-width:480px){.ops-coverage-row{grid-template-columns:minmax(0,1fr)}.ops-coverage-status{text-align:left}}
+</style>
 </head>
 <body class="role-context-loading">
 <div id="roleContextLoader" aria-live="polite" aria-busy="true">
@@ -8980,7 +8983,7 @@ WINTERDIENST RÄUMKARTE
       <div class="ops-tour-wizard-counter" id="opsTourWizardCounter">Schritt 1 von 4</div>
 
       <div class="ops-tour-wizard-step" data-ops-tour-wizard-step="1">
-        <div class="ops-when-use"><strong>Rahmen festlegen:</strong> Name, Rhythmus, Wochentage und Gültigkeit gelten für die komplette Tour.</div>
+        <div class="ops-when-use"><strong>Übergangsmodus:</strong> Der Tourrhythmus wird bis zur Umstellung der serverseitigen Einsatzgenerierung noch separat geführt. Die Abdeckungsanzeige prüft nur die Vorlagenzuordnung – keine Termine.</div>
         <div class="grid2" style="margin-top:12px">
           <label>Tourname<input id="opsTourName" placeholder="z. B. Dienstag Nord"></label>
           <label>Startzeit<input id="opsTourStart" type="time" value="07:00"></label>
@@ -9031,6 +9034,7 @@ WINTERDIENST RÄUMKARTE
           <div id="opsTourSelectionInfo" class="muted" style="margin-top:8px">Objekt auswählen, danach eine aktive Leistung dieses Objekts.</div>
           <div class="row" style="margin-top:8px;align-items:center;gap:8px;flex-wrap:wrap">
             <button id="opsTourAddBtn" type="button" class="primary" onclick="opsTourAddObjectService()" disabled>+ Zur Tour hinzufügen</button>
+            <button type="button" onclick="opsTourAddAllForObject()">Alle Leistungen des Objekts übernehmen</button>
             <span id="opsTourDraftCount" class="muted">0 Stopps gewählt</span>
           </div>
         </div>
@@ -9055,6 +9059,7 @@ WINTERDIENST RÄUMKARTE
         <button id="opsTourCancelBtn" class="hidden" type="button" onclick="opsCancelTourEdit()">Abbrechen</button>
       </div>
 
+      <div id="opsCoverageDashboard" class="ops-coverage-dashboard" aria-live="polite"></div>
       <div id="opsTourList" style="margin-top:12px"></div>
     </div>
     <div class="card"><h3>Automatisch erzeugte Tourtermine</h3><div class="muted">Aus der wiederkehrenden Tour entstehen konkrete Einsätze. Änderungen an einem einzelnen Termin verändern die Tourvorlage nicht.</div><div id="opsRunList" style="margin-top:12px"></div></div>
@@ -37606,7 +37611,27 @@ async function opsAssignRun(runId,userId){
   }
 }
 
+// Planungsabgleich: bewusst kein Erledigungsnachweis und keine Fälligkeitsgarantie.
+// Der endgültige Soll-Ist-Abgleich erfordert eine persistierte Fälligkeits-ID im Backend.
+function opsRenderCoverageDashboard(){
+  const host=document.getElementById('opsCoverageDashboard');if(!host)return;
+  const assignments=opsPlanableAssignments();
+  const liveStops=(opsState.stops||[]).filter(s=>s.active!==false);
+  const liveTourIds=new Set((opsState.tours||[]).filter(t=>t.active!==false).map(t=>String(t.id)));
+  const plannedIds=new Set(liveStops.filter(s=>liveTourIds.has(String(s.tour_template_id))).map(s=>String(s.object_service_assignment_id||'')));
+  const covered=assignments.filter(a=>plannedIds.has(String(a.id)));
+  const missing=assignments.filter(a=>!plannedIds.has(String(a.id)));
+  host.innerHTML=`<section class="ops-coverage-panel">
+    <div class="row space"><strong>Abgleich Objektleistungen / Tourvorlagen</strong><span class="badge">${covered.length} / ${assignments.length} zugeordnet</span></div>
+    <div class="muted" style="margin-top:6px">Vorprüfung der Tourzuordnung, keine terminbezogene Planungsabdeckung. Eine Vorlage bestätigt noch keinen erzeugten Einsatz.</div>
+    ${missing.length?`<div class="ops-coverage-alert"><strong>${missing.length} aktive Objektleistung${missing.length===1?'':'en'} ohne aktive Tourvorlage</strong><div class="muted">Diese Leistungen auf Fälligkeit und Einzelplanung prüfen.</div></div>
+      <div class="ops-coverage-list">${missing.map(a=>`<div class="ops-coverage-row"><span>${opsEsc(opsObjName(a.object_id))} · ${opsEsc(opsServiceName(a.service_type_id))}</span><span class="ops-coverage-status">Nicht in Tourvorlage</span></div>`).join('')}</div>`:
+      '<div class="ops-coverage-ok">Alle aktiven generischen Objektleistungen sind einer Tourvorlage zugeordnet. Konkrete Termine weiterhin prüfen.</div>'}
+  </section>`;
+}
+
 function opsRender(){
+  opsRenderCoverageDashboard();
   let e=document.getElementById('opsAssignmentList');
   if(e)opsRenderAssignmentManagement();
   e=document.getElementById('opsPlanList');if(e)e.innerHTML='';
@@ -38249,6 +38274,21 @@ function opsTourAddObjectService(){
 
   const serviceSel=document.getElementById('opsTourServiceAdd');if(serviceSel)serviceSel.value='';
   opsRenderTourDraftStops();
+}
+
+function opsTourAddAllForObject(){
+  const objectId=document.getElementById('opsTourObjectAdd')?.value||'';
+  if(!objectId)return alert('Bitte zuerst ein Objekt auswählen.');
+  const candidates=opsPlanableAssignments().filter(a=>String(a.object_id)===String(objectId));
+  let added=0;
+  for(const a of candidates){
+    if(opsTourDraftHasAssignment(a.id))continue;
+    const p=opsTourPlanForAssignment(a);
+    opsTourDraftItems.push({assignment_id:String(a.id),recurring_plan_id:p?.id||null,planned_duration_minutes:Number(p?.planned_duration_minutes||60)});
+    added++;
+  }
+  opsRenderTourDraftStops();
+  if(!added)alert('Alle planbaren Leistungen dieses Objekts befinden sich bereits in der Tour.');
 }
 
 function opsTourRemovePlan(index){
