@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<!-- CURRENT RELEASE 3.54.8 · Anzeige betroffener Bewohner je Meldung in Adminübersicht und Details. -->
 <!-- CURRENT RELEASE 3.54.7 · Einheitliche Badge-Typografie; schneller, vorab geladener Privatanfragen-Zähler. -->
 <!-- CURRENT RELEASE 3.54.6 · Zählergröße und Typografie an Meldungen angeglichen. -->
 <!-- CURRENT RELEASE 3.54.5 · Mobile Angebotsformular, Preissumme und Kleinunternehmerregelung §19 UStG. -->
@@ -12547,7 +12548,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.54.7';
+const APP_VERSION='3.54.8';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -16134,6 +16135,15 @@ async function cloudLoadResidentReports(){
     body:JSON.stringify({p_organization_id:orgId})
   });
   cloudResidentReports=Array.isArray(rows)?rows:[];
+  try{
+    const ids=cloudResidentReports.map(r=>r.id).filter(Boolean);
+    const counts=ids.length?await cloudRequest('rpc/get_resident_report_support_counts_v1',{
+      method:'POST',body:JSON.stringify({p_report_ids:ids})
+    }):[];
+    const byId=new Map((Array.isArray(counts)?counts:[]).map(c=>[c.report_id,Number(c.supporter_count)||0]));
+    cloudResidentReports.forEach(r=>{r.supporter_count=byId.get(r.id)||0;});
+  }catch(e){console.warn('Mitbetroffene konnten nicht geladen werden',e);}
+
   try{renderDashboard();}catch(e){}
 
   try{
@@ -29238,6 +29248,7 @@ function renderResidentReports(){
         ${r.resident_email?' · <strong>E-Mail:</strong> '+esc(r.resident_email):''}
         ${when?' · '+esc(fmt(when)):''}
       </div>
+      ${r.supporter_count>0?`<div class="badge" style="margin-top:10px;background:rgba(231,184,60,.16);color:#f2d36d">${r.supporter_count+1} Betroffene insgesamt · davon ${r.supporter_count} weitere Bewohner</div>`:""}
       ${residentReportMediaFor(r.id).length?`<div style="margin-top:10px"><strong>Fotos der Meldung</strong><div class="photo-grid">${residentReportMediaFor(r.id).map((m,i)=>residentReportMediaImg(m,`Meldungsfoto ${i+1}`,'thumb')).join('')}</div></div>`:''}
       ${r.internal_assessment?`<div class="card" style="margin-top:10px"><strong>Interne Dokumentation</strong><div style="margin-top:5px">${esc(r.internal_assessment)}</div></div>`:''}
       ${r.converted_to_finding_id?'<div class="muted" style="margin-top:8px">Mit offizieller Dokumentation verknüpft.</div>':''}
@@ -29272,6 +29283,7 @@ function openResidentReportDetails(id){
       <p><strong>Kategorie</strong><br>${esc(r.category||'—')}</p>
       <p><strong>Bereich</strong><br>${esc(r.area_name||'—')}</p>${r.location_detail?`<p><strong>Genauer Ort / Zusatz</strong><br>${esc(r.location_detail)}</p>`:''}
       <p><strong>Beschreibung</strong><br>${esc(r.description||'—')}</p>
+      <p><strong>Betroffenheit</strong><br>${1+(Number(r.supporter_count)||0)} Personen insgesamt · ${Number(r.supporter_count)||0} weitere Bewohner haben „Betrifft mich auch“ gewählt.</p>
       <p><strong>Melder</strong><br>${esc(r.resident_name||'—')}${r.resident_email?'<br>'+esc(r.resident_email):''}</p>
       <p><strong>Eingang</strong><br>${esc(fmt(r.received_at||r.created_at))}</p>
       ${residentReportMediaFor(r.id).length?`<p><strong>Fotos der Meldung</strong></p><div class="photo-grid">${residentReportMediaFor(r.id).map((m,i)=>residentReportMediaImg(m,`Meldungsfoto ${i+1}`,'thumb')).join('')}</div>`:''}
