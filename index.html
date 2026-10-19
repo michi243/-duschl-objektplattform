@@ -12500,7 +12500,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.52.0';
+const APP_VERSION='3.52.1';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -13187,7 +13187,7 @@ function cancelPublicDuplicateSupport(){publicDupId='';const el=document.getElem
 async function submitPublicDuplicateSupport(){
  const out=document.getElementById('prDupFeedback'),name=String(document.getElementById('prDupName')?.value||'').trim(),email=String(document.getElementById('prDupEmail')?.value||'').trim(),consent=!!document.getElementById('prDupConsent')?.checked;
  if(!publicDupId||name.length<2||!consent){out.textContent='Bitte Name und Zustimmung angeben.';return;}
- if(email&&!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)){out.textContent='E-Mail-Adresse ungültig.';return;}
+ if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){out.textContent='E-Mail-Adresse ungültig.';return;}
  out.textContent='Wird gespeichert …';
  try{
   const res=await fetch(SUPABASE_URL+'/rest/v1/rpc/support_public_report_v1',{method:'POST',headers:{apikey:SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_object_id:publicResidentObjectId,p_report_id:publicDupId,p_name:name,p_email:email||null,p_consent:true})});
