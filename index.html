@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<!-- CURRENT RELEASE 3.55.10 · Ein Asset darf mehreren Leistungen, derselben Leistung nur einmal zugeordnet sein. UI-Prüfung plus Datenbank-Eindeutigkeit. -->
 <!-- CURRENT RELEASE 3.55.9 · Betriebsmittel-Kategorie: Select statt filterndem Datalist, freie und historische Kategorieeinträge bleiben erhalten. -->
 <!-- CURRENT RELEASE 3.55.8 · Objektbetreuer: separate Meldungen-KPI im Dashboard ausgeblendet; Meldungen weiterhin per Menü und priorisierter Hauptaktion erreichbar. -->
 <!-- CURRENT RELEASE 3.55.7 · Objektbetreuer erhalten keine zusätzliche Meldungs-Schnellkachel; Meldungen bleiben über Hauptaktion und Menü erreichbar. -->
@@ -9773,7 +9774,7 @@ WINTERDIENST RÄUMKARTE
       <label>Vorhandenes Betriebsmittel (optional)<select id="orRequirementResource" onchange="orRequirementResourceChanged()"><option value="">Freier Bedarf / kein konkretes Asset</option></select></label>
 
       <label id="orRequirementServiceWrap">Leistungsart *
-        <select id="orRequirementServiceType"><option value="">Leistungsart wählen …</option></select>
+        <select id="orRequirementServiceType" onchange="orRequirementDuplicateFeedback()"><option value="">Leistungsart wählen …</option></select>
       </label>
       <label id="orRequirementObjectWrap" class="hidden">Objekt *
         <select id="orRequirementObject"><option value="">Objekt wählen …</option></select>
@@ -9787,9 +9788,13 @@ WINTERDIENST RÄUMKARTE
     <div id="orRequirementScopeHint" class="or-scope-hint">
       Leistungsbezogen: wird bei Tourstopps dieser Leistungsart automatisch auf Einsatzbereitschaft geprüft.
     </div>
+    <div id="orRequirementDuplicateNotice" class="or-scope-hint hidden" role="status"
+      style="margin-top:10px;border:1px solid rgba(226,109,100,.5);background:rgba(226,109,100,.1);color:#ffccc5">
+      Dieses Asset ist dieser Leistungsart bereits zugeordnet. Bitte den bestehenden Eintrag bearbeiten oder eine andere Leistungsart auswählen.
+    </div>
     <label style="margin-top:10px">Hinweis / Ausnahme<textarea id="orRequirementNote" rows="2" placeholder="Optional, z. B. nur bei stärkerem Bewuchs oder Schneehöhe &gt; 5 cm"></textarea></label>
     <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">
-      <button class="primary" type="button" onclick="orSaveRequirement()">Zuordnung speichern</button>
+      <button class="primary" id="orRequirementSaveBtn" type="button" onclick="orSaveRequirement()">Zuordnung speichern</button>
       <button type="button" id="orRequirementDeactivateBtn" class="hidden" onclick="orDeactivateRequirement()">Deaktivieren</button>
     </div>
     <div id="orRequirementList" style="margin-top:12px"></div>
@@ -12660,7 +12665,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.55.9';
+const APP_VERSION='3.55.10';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='20:10'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -21876,6 +21881,31 @@ function orRequirementScopeLabel(scope){
   if(scope==='general')return 'Allgemein';
   return 'Leistungsbezogen';
 }
+function orFindDuplicateServiceAssetRequirement(){
+  if(document.getElementById('orRequirementScopeType')?.value!=='service')return null;
+  const serviceId=String(document.getElementById('orRequirementServiceType')?.value||'');
+  const resourceId=String(document.getElementById('orRequirementResource')?.value||'');
+  const editingId=String(document.getElementById('orRequirementEditId')?.value||'');
+  if(!serviceId||!resourceId)return null;
+  return (operatingResourcesState.requirements||[]).find(r=>
+    r.active!==false && String(r.scope_type||'service')==='service'
+    && String(r.service_type_id||'')===serviceId
+    && String(r.resource_id||'')===resourceId
+    && String(r.id||'')!==editingId
+  )||null;
+}
+
+function orRequirementDuplicateFeedback(){
+  const duplicate=orFindDuplicateServiceAssetRequirement();
+  document.getElementById('orRequirementDuplicateNotice')?.classList.toggle('hidden',!duplicate);
+  const button=document.getElementById('orRequirementSaveBtn');
+  if(button){
+    button.disabled=!!duplicate;
+    button.title=duplicate?'Dieses Asset ist dieser Leistungsart bereits zugeordnet.':'';
+  }
+  return duplicate;
+}
+
 function orRequirementScopeChanged(){
   const scope=document.getElementById('orRequirementScopeType')?.value||'service';
   const serviceWrap=document.getElementById('orRequirementServiceWrap');
@@ -21891,11 +21921,12 @@ function orRequirementScopeChanged(){
   if(hint){
     hint.textContent=
       scope==='service'
-        ?'Leistungsbezogen: wird bei Tourstopps dieser Leistungsart automatisch auf Einsatzbereitschaft geprüft.'
+        ?'Leistungsbezogen: wird bei passenden Tourstopps auf Einsatzbereitschaft geprüft. Dasselbe Asset darf mehreren Leistungsarten, jeder Leistungsart aber nur einmal zugeordnet werden.'
         :scope==='object'
           ?'Objektbezogen: gehört dauerhaft bzw. überwiegend zu diesem Objekt. Keine zusätzliche Leistungsart erforderlich.'
           :'Allgemein: steht leistungsübergreifend zur Verfügung, z. B. Transporter, Anhänger, Leiter oder Werkzeugkoffer.';
   }
+  orRequirementDuplicateFeedback();
 }
 function orRequirementContextLabel(r){
   const scope=String(r?.scope_type||'service');
@@ -21907,9 +21938,11 @@ function orRequirementContextLabel(r){
 function orRequirementResourceChanged(){
   const id=document.getElementById('orRequirementResource')?.value||'';
   const r=(operatingResourcesState.resources||[]).find(x=>String(x.id)===String(id));
-  if(!r)return;
-  const n=document.getElementById('orRequirementName');if(n&&!String(n.value||'').trim())n.value=r.name||'';
-  const u=document.getElementById('orRequirementUnit');if(u&&!String(u.value||'').trim())u.value=r.unit||(r.tracking_mode==='individual'?'Stk.':'');
+  if(r){
+    const n=document.getElementById('orRequirementName');if(n&&!String(n.value||'').trim())n.value=r.name||'';
+    const u=document.getElementById('orRequirementUnit');if(u&&!String(u.value||'').trim())u.value=r.unit||(r.tracking_mode==='individual'?'Stk.':'');
+  }
+  orRequirementDuplicateFeedback();
 }
 
 function orResetRequirementEditor(){
@@ -21984,6 +22017,7 @@ async function orSaveRequirement(){
 
   if(scope==='service'&&!service)return alert('Leistungsart wählen.');
   if(scope==='object'&&!objectId)return alert('Objekt wählen.');
+  if(orRequirementDuplicateFeedback())return alert('Dieses Asset ist der ausgewählten Leistungsart bereits zugeordnet. Bitte vorhandene Zuordnung bearbeiten oder eine andere Leistungsart wählen.');
   if(!name)return alert('Bedarf / Bezeichnung eingeben.');
 
   const qRaw=String(document.getElementById('orRequirementQuantity')?.value||'').trim();
@@ -22007,7 +22041,13 @@ async function orSaveRequirement(){
     orResetRequirementEditor();
     await loadOperatingResources();
   }catch(e){
-    alert('Einsatzzuordnung konnte nicht gespeichert werden: '+(e.message||e));
+    const errorText=String(e?.message||e||'');
+    if(String(e?.code||'')==='23505'||errorText.includes('ux_operating_resource_requirements_active_service_asset')){
+      alert('Dieses Asset ist der ausgewählten Leistungsart bereits zugeordnet. Bitte den vorhandenen Eintrag bearbeiten.');
+      await loadOperatingResources();
+    }else{
+      alert('Einsatzzuordnung konnte nicht gespeichert werden: '+errorText);
+    }
   }
 }
 
