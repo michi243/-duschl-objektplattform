@@ -403,7 +403,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.48.2</title>
+<title>Duschl Service – Objektplattform v3.48.3</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -2776,6 +2776,10 @@ body.platform-menu-mode #organizationList{
   font-size:12px;
 }
 
+ .userObjectMailGroup{padding:8px 0;border-top:1px solid rgba(255,255,255,.08)}
+ .userObjectMailGroup:first-of-type{border-top:0}
+ .userObjectMailGroup>strong{font-size:12px;display:block;margin-bottom:7px}
+ .userObjectMailGroup .userObjectMailChips{display:flex;flex-wrap:wrap;gap:5px}
 </style>
 <style>
 .object-file{border:1px solid #dfe5e8;border-radius:14px;background:#fff;margin-bottom:14px;overflow:hidden}
@@ -12373,7 +12377,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.48.2';
+const APP_VERSION='3.48.3';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -24269,40 +24273,39 @@ function dsManagementMailStateForObject({uid,tenantRole,assignment,contact}){
   return {eligible:false,reason,items:[]};
 }
 
-function dsObjectMailSummaryHtml({uid,tenantRole,assignment,contact}){
+function dsObjectMailSummaryHtml({uid,tenantRole,assignment,contact,objectId}){
   const mgmt=dsManagementMailStateForObject({uid,tenantRole,assignment,contact});
-  const baudokuEligible=!!contact && contact.active!==false && contact.notify_documentation!==false;
-  const baudoku=baudokuEligible && dsUserMailPreference(uid,'email_object_documentation');
-
-  const chips=[];
-
-  if(mgmt.eligible){
-    const labels=[
-      ['Nicht routbar','Nicht routbare Meldung'],
-      ['Geroutet','Geroutete Meldung'],
-      ['Entscheidung','Entscheidung erforderlich'],
-      ['Rückgabe','Auftrag zurückgegeben']
-    ];
-    labels.forEach(([shortLabel,longLabel])=>{
-      if(mgmt.items.includes(longLabel)){
-        chips.push(`<span class="userObjectMailChip on">✓ ${esc(shortLabel)}</span>`);
-      }
-    });
-  }
-
-  chips.push(
-    `<span class="userObjectMailChip ${baudoku?'on':''}">${baudoku?'✓':'–'} Baudoku</span>`
-  );
-
-  let hint='';
-  if(!mgmt.eligible)hint=mgmt.reason;
-  else if(!mgmt.items.length)hint='Management-Mails individuell deaktiviert.';
-
-  return `<div class="userObjectMailSummary">
-    <div class="userObjectMailTitle">E-Mail-Benachrichtigungen</div>
-    <div class="userObjectMailChips">${chips.join('')}</div>
-    ${hint?`<div class="userObjectMailHint">${esc(hint)}</div>`:''}
+  const contactEnabled=!!contact && contact.active!==false && !!String(contact.contact_type||'');
+  const docsOn=contactEnabled && contact.notify_documentation===true && dsUserMailPreference(uid,'email_object_documentation');
+  const hasObjectRole=assignment?.active!==false && !!String(assignment?.object_role||'');
+  const operational=hasObjectRole && ['object_operator','object_deputy','object_responsible'].includes(String(assignment.object_role));
+  const chip=(label,on,description)=>`<span class="userObjectMailChip ${on?'on':''}" title="${esc(description)}">${on?'✓':'–'} ${esc(label)}</span>`;
+  const mgmtNames=[['Nicht routbar','Nicht routbare Meldung'],['Geroutet','Geroutete Meldung'],['Entscheidung','Entscheidung erforderlich'],['Rückgabe','Auftrag zurückgegeben']];
+  const mgmtHtml=mgmtNames.map(([shortName,longName])=>chip(shortName,mgmt.items.includes(longName),mgmt.eligible?'Rollenberechtigung und persönliche E-Mail-Einstellung':'Keine Management-Empfangsberechtigung')).join('');
+  const docsReason=!contactEnabled?'Keine Kontaktfunktion hinterlegt':contact.notify_documentation!==true?'Baudoku-E-Mails nicht aktiviert':!dsUserMailPreference(uid,'email_object_documentation')?'Persönliche Einstellung deaktiviert':'Kontaktfunktion und E-Mail-Einstellung aktiv';
+  const tourState=operational?'Bei persönlicher Zuweisung':'Nur bei persönlicher Zuweisung';
+  return `<div class="userObjectMailSummary" data-mail-object-id="${esc(objectId||assignment?.object_id||contact?.object_id||'')}">
+    <div class="userObjectMailTitle">E-Mail-Transparenz · Vorschau der Empfangsregeln</div>
+    <div class="userObjectMailGroup"><strong>Operative Einsätze</strong><div class="userObjectMailChips">${['Tour zugewiesen','Tour geändert','Zuweisung entzogen','Tour-Erinnerung'].map(l=>`<span class="userObjectMailChip">${esc(l)} · ${esc(tourState)}</span>`).join('')}</div><div class="userObjectMailHint">Tour-E-Mails entstehen nur für den konkret zugewiesenen Mitarbeiter. Diese Ansicht bestätigt keinen erfolgten Versand.</div></div>
+    <div class="userObjectMailGroup"><strong>Managementkommunikation</strong><div class="userObjectMailChips">${mgmtHtml}</div><div class="userObjectMailHint">${esc(mgmt.eligible?(mgmt.items.length?mgmt.reason:'Individuelle E-Mail-Einstellungen deaktiviert'):mgmt.reason)}</div></div>
+    <div class="userObjectMailGroup"><strong>Baudokumentation</strong><div class="userObjectMailChips">${chip('Baudoku-E-Mails',docsOn,docsReason)}</div><div class="userObjectMailHint">${esc(docsReason)}</div></div>
+    <div class="userObjectMailHint">Vorschau aus gespeicherten Einstellungen. Änderungen werden erst mit „Berechtigungen speichern“ wirksam. Für den tatsächlichen Versand gilt die Versandhistorie.</div>
   </div>`;
+}
+function dsRefreshMailRulePreviews(){
+  const uid=document.getElementById('userAdminSelect')?.value||'';
+  const tenantRole=document.getElementById('userAdminRole')?.value||'';
+  document.querySelectorAll('.userObjectMailSummary[data-mail-object-id]').forEach(box=>{
+    const id=String(box.dataset.mailObjectId||'');if(!id)return;
+    const role=document.querySelector(`.userObjectRole[data-object-id="${CSS.escape(id)}"]`)?.value||'';
+    const deputy=document.querySelector(`.userDeputyNotifications[data-object-id="${CSS.escape(id)}"]`)?.checked===true;
+    const contactType=document.querySelector(`.userObjectContactType[data-object-id="${CSS.escape(id)}"]`)?.value||'';
+    const notify=document.querySelector(`.userObjectContactNotify[data-object-id="${CSS.escape(id)}"]`)?.checked===true;
+    const next=dsObjectMailSummaryHtml({uid,tenantRole,
+      assignment:{object_id:id,object_role:role,active:!!role,management_notifications_enabled:deputy},
+      contact:contactType?{object_id:id,active:true,contact_type:contactType,notify_documentation:notify}:null,objectId:id});
+    box.outerHTML=next;
+  });
 }
 
 function dsRefreshDeputyMailControls(){
@@ -24478,6 +24481,7 @@ function loadUserAdminEditor(){
       </div>
       ${dsObjectMailSummaryHtml({
         uid,
+        objectId:o.id,
         tenantRole:membership?.role||'',
         assignment:currentAssignment,
         contact:currentContact
@@ -24519,13 +24523,14 @@ function loadUserAdminEditor(){
   setTimeout(()=>{
     dsRefreshDeputyMailControls();
     dsRefreshObjectContactNotifyControls();
-    document.getElementById('userAdminRole')?.addEventListener('change',dsRefreshDeputyMailControls);
+    document.getElementById('userAdminRole')?.addEventListener('change',()=>{dsRefreshDeputyMailControls();dsRefreshMailRulePreviews();});
     document.querySelectorAll('.userObjectRole').forEach(el=>{
-      el.addEventListener('change',dsRefreshDeputyMailControls);
+      el.addEventListener('change',()=>{dsRefreshDeputyMailControls();dsRefreshMailRulePreviews();});
     });
     document.querySelectorAll('.userObjectContactType').forEach(el=>{
-      el.addEventListener('change',dsRefreshObjectContactNotifyControls);
+      el.addEventListener('change',()=>{dsRefreshObjectContactNotifyControls();dsRefreshMailRulePreviews();});
     });
+    document.querySelectorAll('.userObjectContactNotify,.userDeputyNotifications').forEach(el=>el.addEventListener('change',dsRefreshMailRulePreviews));
   },0);
 }
 
