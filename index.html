@@ -12500,7 +12500,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.51.4';
+const APP_VERSION='3.51.5';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -22935,16 +22935,31 @@ function statusBadge(s){return `<span class="badge">${esc(s)}</span>`}
 let taskAcceptanceRows=[];
 let taskAcceptanceLoadedAt=0;
 let taskAcceptanceLoading=false;
+let taskAcceptanceOrganizationId='';
+function activeAcceptanceCount(){
+  return taskAcceptanceOrganizationId===String(currentOrganizationId()||'')
+    ?taskAcceptanceRows.filter(r=>r && r.id).length:0;
+}
+function refreshAcceptanceCounters(){
+  // Both surfaces use the same already server-authorized dataset.
+  const count=activeAcceptanceCount();
+  const el=document.getElementById('taskAcceptanceCount');
+  if(el)el.textContent=String(count);
+  // Dashboard uses its own aggregate source; refresh after the RPC resolves.
+  if(typeof renderDashboard==='function')renderDashboard();
+}
+
 async function loadTaskAcceptances(force=false){
   if(taskAcceptanceLoading)return;
-  if(!force && Date.now()-taskAcceptanceLoadedAt<20000){renderTaskAcceptances();return;}
+  if(!force && taskAcceptanceOrganizationId===String(currentOrganizationId()||'') && Date.now()-taskAcceptanceLoadedAt<20000){renderTaskAcceptances();return;}
   taskAcceptanceLoading=true;
   try{
     const result=await cloudRequest('rpc/get_pending_task_acceptances_v2',{method:'POST',body:JSON.stringify({p_organization_id:currentOrganizationId()})});
     taskAcceptanceRows=Array.isArray(result)?result:[];
+    taskAcceptanceOrganizationId=String(currentOrganizationId()||'');
     taskAcceptanceLoadedAt=Date.now();
-  }catch(err){console.warn('Abnahmen derzeit nicht verfügbar',err); taskAcceptanceRows=[];}
-  finally{taskAcceptanceLoading=false;renderTaskAcceptances();}
+  }catch(err){console.warn('Abnahmen derzeit nicht verfügbar',err); taskAcceptanceRows=[];taskAcceptanceOrganizationId=String(currentOrganizationId()||'');taskAcceptanceLoadedAt=Date.now();}
+  finally{taskAcceptanceLoading=false;renderTaskAcceptances();refreshAcceptanceCounters();}
 }
 function renderTaskAcceptances(){
   const panel=document.getElementById('taskAcceptancePanel');
@@ -22953,9 +22968,9 @@ function renderTaskAcceptances(){
   // Sichtbarkeit ausschließlich über die serverseitig berechtigt gelieferten Abnahmen.
   // Rollen-/Mandantenmodus-Prüfungen im Frontend sind hier nicht maßgeblich.
   const objectFilter=document.getElementById('decisionObjectFilter')?.value||'';
-  const rows=taskAcceptanceRows.filter(r=>!objectFilter||String(r.object_id)===String(objectFilter));
-  panel.style.display=taskAcceptanceRows.length?'':'none';
-  const count=document.getElementById('taskAcceptanceCount');if(count)count.textContent=rows.length;
+  const rows=(taskAcceptanceOrganizationId===String(currentOrganizationId()||'')?taskAcceptanceRows:[]).filter(r=>!objectFilter||String(r.object_id)===String(objectFilter));
+  panel.style.display='';
+  const count=document.getElementById('taskAcceptanceCount');if(count)count.textContent=String(rows.length);
   list.innerHTML=rows.length?rows.map(r=>`<article class="card" style="margin:8px 0;padding:13px;border-color:rgba(100,180,230,.22)">
     <div class="row space" style="gap:8px;flex-wrap:wrap"><strong>${esc(r.task_title||'Ausgeführte Arbeit')}</strong><span class="badge">Wartet auf Abnahme</span></div>
     <div class="muted" style="margin:5px 0">${esc(r.object_name||'Objekt')} · Ausführung: ${esc(r.worker_name||'Mitarbeiter')} · ${r.submitted_at?esc(new Date(r.submitted_at).toLocaleString('de-DE')):''}</div>
@@ -23027,12 +23042,12 @@ function renderDecisions(){
   const openEl=document.getElementById('decisionOpenCount');
   const immediateEl=document.getElementById('decisionImmediateCount');
   const urgentEl=document.getElementById('decisionUrgentCount');
-  if(openEl)openEl.textContent=findingScope.length+reviewScope.length+incomingDecisionScope.length+returnedDecisionScope.length;
+  if(openEl)openEl.textContent=findingScope.length+reviewScope.length+incomingDecisionScope.length+returnedDecisionScope.length+taskAcceptanceRows.filter(r=>!obj.value||String(r.object_id)===String(obj.value)).length;
   if(immediateEl)immediateEl.textContent=findingScope.filter(f=>f.priority==='P1').length+reviewScope.filter(x=>x.priority==='P1').length+incomingDecisionScope.filter(x=>x.priority==='P1').length+returnedDecisionScope.filter(x=>x.priority==='P1').length;
   if(urgentEl)urgentEl.textContent=findingScope.filter(f=>f.priority==='P2').length+reviewScope.filter(x=>x.priority==='P2').length+incomingDecisionScope.filter(x=>x.priority==='P2').length+returnedDecisionScope.filter(x=>x.priority==='P2').length;
   const navCount=document.getElementById('decisionNavCount');
   if(navCount){
-    const totalOpenDecisions=pending.length+reviews.length+incomingOrderDecisions.length+returnedOrderDecisions.length;
+    const totalOpenDecisions=pending.length+reviews.length+incomingOrderDecisions.length+returnedOrderDecisions.length+activeAcceptanceCount();
     navCount.textContent=totalOpenDecisions;
     navCount.classList.toggle('ds-count-active',totalOpenDecisions>0);
   }
@@ -27601,6 +27616,7 @@ function syncAppReleaseMeta(){
 
 function renderDashboard(){
   syncAppReleaseMeta();
+  if(!taskAcceptanceLoading && (taskAcceptanceOrganizationId!==String(currentOrganizationId()||'') || Date.now()-taskAcceptanceLoadedAt>60000))void loadTaskAcceptances();
 
   const operationalDashboard=document.getElementById('operationalDashboard');
   const customerDashboard=isCustomerRole();
@@ -27682,7 +27698,7 @@ function renderDashboard(){
     .filter(f=>f.decisionRequired!==false)
     .filter(f=>decisionIsOpen(f.decisionStatus||f.decision_status))
     .length;
-  const openDecisionCount=openFindingDecisionCount+pendingExternalReviewOrders().length+pendingIncomingExternalOrderDecisions().length+returnedExternalOrderDecisions().length;
+  const openDecisionCount=openFindingDecisionCount+pendingExternalReviewOrders().length+pendingIncomingExternalOrderDecisions().length+returnedExternalOrderDecisions().length+activeAcceptanceCount();
   const decisionKpi=document.getElementById('kpiDecisions');
   if(decisionKpi)decisionKpi.textContent=openDecisionCount;
   const decisionNavCount=document.getElementById('decisionNavCount');
