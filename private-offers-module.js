@@ -98,7 +98,7 @@ export function mountPrivateOffers({root, supabase, organizationId}) {
     notify('Lade Privatanfragen…');
     cached=await api('list_resident_private_inquiries_v1',{p_organization_id:organizationId})||[];
     const outstanding=cached.filter(q=>!['closed','completed','rejected','cancelled'].includes(String(q.status||'new').toLowerCase())).length;
-    const count=document.getElementById('privateOffersNavCount');if(count){count.textContent=String(outstanding);count.style.display='';count.classList.toggle('warn',outstanding>0);count.classList.toggle('neutral',outstanding===0);}
+    if(typeof window.dsPrivateBadgeSet==='function'){window.dsPrivateBadgeSet(outstanding);}else{const count=document.getElementById('privateOffersNavCount');if(count)count.textContent=String(outstanding);}
     renderList();
   }
   load().catch(err=>notify('Zugriff oder Laden fehlgeschlagen: '+err.message));
