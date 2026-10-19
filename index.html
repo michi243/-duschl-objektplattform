@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<!-- CURRENT RELEASE 3.55.0 · Öffentliche Duplikatliste ohne Bildplatzhalter und ohne Bildübertragung; Adminfotos bleiben unverändert. -->
 <!-- CURRENT RELEASE 3.54.9 · Bei „Betrifft mich auch“ entfällt der Weiter-Button; Abbrechen stellt ihn wieder her. -->
 <!-- CURRENT RELEASE 3.54.8 · Anzeige betroffener Bewohner je Meldung in Adminübersicht und Details. -->
 <!-- CURRENT RELEASE 3.54.7 · Einheitliche Badge-Typografie; schneller, vorab geladener Privatanfragen-Zähler. -->
@@ -12549,7 +12550,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.54.9';
+const APP_VERSION='3.55.0';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -13229,7 +13230,7 @@ async function refreshPublicDuplicateReports(){
   const res=await fetch(SUPABASE_URL+'/rest/v1/rpc/list_public_open_reports_v2',{method:'POST',headers:{apikey:SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_object_id:publicResidentObjectId,p_category:category,p_area_id:areaId||null})});
   if(!res.ok)throw Error('Abfrage fehlgeschlagen');
   const rows=await res.json();if(serial!==publicDupSerial)return;
-  list.innerHTML=rows.length?rows.map(r=>`<article class="card" style="margin:8px 0;padding:12px"><div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">${r.preview_url&&/^https:\/\//.test(r.preview_url)?`<img src="${esc(r.preview_url)}" alt="Freigegebenes Foto des gemeldeten Problems" loading="lazy" referrerpolicy="no-referrer" style="width:116px;height:100px;object-fit:cover;border-radius:10px" onerror="this.style.display='none'">`:'<div class="muted" style="width:116px;height:100px;display:flex;align-items:center;justify-content:center;border:1px solid #456;border-radius:10px;text-align:center;font-size:12px">Kein freigegebenes Foto</div>'}<div style="flex:1;min-width:170px"><strong>${esc(r.problem_type||r.category)}</strong><div class="muted" style="margin:6px 0">Bereich: ${esc(r.area_name||'Unbekannt')} · ${esc(r.public_status||'Offen')}</div><button type="button" onclick="openPublicDuplicateSupport('${esc(r.report_id)}')">Betrifft mich auch</button></div></div></article>`).join(''):'<div class="muted">Keine offenen Meldungen in dieser Kategorie.</div>';
+  list.innerHTML=rows.length?rows.map(r=>`<article class="card" style="margin:8px 0;padding:12px"><div><strong>${esc(r.problem_type||r.category)}</strong><div class="muted" style="margin:6px 0">Bereich: ${esc(r.area_name||'Unbekannt')} · ${esc(r.public_status||'Offen')}</div><button type="button" onclick="openPublicDuplicateSupport('${esc(r.report_id)}')">Betrifft mich auch</button></div></article>`).join(''):'<div class="muted">Keine offenen Meldungen in dieser Kategorie.</div>';
  }catch(e){if(serial===publicDupSerial)list.textContent='Abfrage gerade nicht verfügbar. Eine eigene Meldung bleibt möglich.';}
 }
 function openPublicDuplicateSupport(id){if(!validUuid(id))return;publicDupId=id;document.getElementById('prDuplicateJoin').style.display='block';const next=document.getElementById('prStepOneNextActions');if(next)next.style.display='none';}
