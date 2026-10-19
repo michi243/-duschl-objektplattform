@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<!-- CURRENT RELEASE 3.55.1 · Transparente Datenschutzhinweise bei „Betrifft mich auch“ und Privatanfragen; Pflichtfeld-Legende ergänzt. -->
 <!-- CURRENT RELEASE 3.55.0 · Öffentliche Duplikatliste ohne Bildplatzhalter und ohne Bildübertragung; Adminfotos bleiben unverändert. -->
 <!-- CURRENT RELEASE 3.54.9 · Bei „Betrifft mich auch“ entfällt der Weiter-Button; Abbrechen stellt ihn wieder her. -->
 <!-- CURRENT RELEASE 3.54.8 · Anzeige betroffener Bewohner je Meldung in Adminübersicht und Details. -->
@@ -3118,6 +3119,16 @@ border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--sh
 .public-report-consent{display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:start;margin-top:18px}
 .public-report-consent input{width:20px;height:20px;margin:2px 0 0}
 .public-report-consent label{margin:0;font-weight:500;line-height:1.4}
+/* 3.55.1 · Einwilligung verständlich und mobil lesbar */
+.public-report-privacy-info{margin:14px 0 10px;padding:13px 15px;border:1px solid var(--line);border-radius:12px;background:#0a1722;color:var(--muted);font-size:14px;line-height:1.55}
+.public-report-privacy-info strong{display:block;margin-bottom:5px;color:var(--text);font-size:15px}
+.public-report-privacy-check{display:grid!important;grid-template-columns:24px minmax(0,1fr);gap:11px;align-items:start;margin:12px 0 6px!important;font-size:14px;font-weight:500!important;line-height:1.5!important;cursor:pointer}
+.public-report-privacy-check input[type="checkbox"]{width:20px!important;height:20px!important;margin:2px 0 0!important;flex-shrink:0}
+.public-report-privacy-check a,.public-report-consent a{text-decoration:underline;text-underline-offset:3px}
+.public-report-mandatory{margin:8px 0 14px;font-size:13px;line-height:1.45;color:var(--muted)}
+.public-report-privacy-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.public-report-privacy-actions button{max-width:100%}
+
 .public-report-submit{width:100%;min-height:50px;margin-top:18px;font-size:16px!important}
 .public-report-note{margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#0a1722;color:var(--muted);font-size:13px;line-height:1.45}
 .public-report-message{margin-top:14px;padding:12px;border-radius:12px;display:none;line-height:1.45}
@@ -7461,7 +7472,12 @@ body.or-wizard-open{overflow:hidden!important}
 <label for="rpiEmail">E-Mail</label><input id="rpiEmail" type="email" maxlength="254" autocomplete="email">
 <label for="rpiPhone">Telefon</label><input id="rpiPhone" type="tel" maxlength="80" autocomplete="tel">
 <p class="muted">Mindestens eine Kontaktmöglichkeit ist erforderlich.</p>
-<label style="display:flex;gap:10px;align-items:start"><input id="rpiConsent" type="checkbox" style="width:auto;margin-top:5px"><span>Ich stimme der Verarbeitung meiner Angaben zur Bearbeitung dieser Anfrage zu. *</span></label>
+<div class="public-report-privacy-info" id="rpiPrivacyInfo">
+<strong>Was geschieht mit Ihren Daten?</strong>
+Ihr Name, Ihre Kontaktangaben und die Angaben zu Ihrer gewünschten Leistung werden zur Prüfung und Bearbeitung Ihrer privaten Serviceanfrage sowie zur Kontaktaufnahme verwendet. Die Anfrage wird nicht in der öffentlichen Übersicht der Gemeinschaftsmeldungen angezeigt.
+</div>
+<label class="public-report-privacy-check" for="rpiConsent"><input id="rpiConsent" type="checkbox" required aria-required="true" aria-describedby="rpiPrivacyInfo rpiRequiredHint"><span>Ich habe die <a href="https://www.duschl-service.de/datenschutzerklarung" target="_blank" rel="noopener noreferrer">Datenschutzhinweise</a> zur Kenntnis genommen und willige in die oben beschriebene Verarbeitung meiner Angaben ein. <span aria-hidden="true">*</span></span></label>
+<p class="public-report-mandatory" id="rpiRequiredHint">* Pflichtfeld – zur Bearbeitung der privaten Anfrage erforderlich.</p>
 <div id="rpiFeedback" role="status" style="margin:12px 0"></div>
 <button class="primary" type="button" onclick="submitResidentPrivateInquiry()">Unverbindliche Anfrage senden</button>
 </div><div id="publicReportFormWrap" style="display:none">
@@ -7521,7 +7537,24 @@ body.or-wizard-open{overflow:hidden!important}
       <button type="button" class="public-report-category-btn" data-category="Schaden / Defekt" onclick="selectPublicReportCategory(this)">Sonstiger Schaden / Defekt</button>
     </div>
   </div>
-  <section id="prDuplicates" style="display:none;margin:16px 0;padding:14px;border:1px solid #abc;border-radius:12px" aria-live="polite"><strong>Bereits gemeldete Probleme in dieser Kategorie</strong><p class="muted">Prüfen Sie, ob Ihr Problem bekannt ist. Sie können sich anschließen oder eine eigene Meldung erstellen.</p><div id="prDuplicateList"></div><div id="prDuplicateJoin" style="display:none"><strong>Dieses Problem betrifft mich auch</strong><label for="prDupName">Ihr Name *</label><input id="prDupName" maxlength="120"><label for="prDupEmail">E-Mail für Abschlussnachricht (optional)</label><input id="prDupEmail" type="email"><label style="display:flex;gap:8px"><input id="prDupConsent" type="checkbox" style="width:auto"> Ich stimme der Verarbeitung meiner Angaben zu. *</label><button type="button" class="primary" onclick="submitPublicDuplicateSupport()">Als betroffen melden</button><button type="button" onclick="cancelPublicDuplicateSupport()">Abbrechen</button><div id="prDupFeedback" role="status"></div></div></section>
+  <section id="prDuplicates" style="display:none;margin:16px 0;padding:14px;border:1px solid #abc;border-radius:12px" aria-live="polite"><strong>Bereits gemeldete Probleme in dieser Kategorie</strong><p class="muted">Prüfen Sie, ob Ihr Problem bekannt ist. Sie können sich anschließen oder eine eigene Meldung erstellen.</p><div id="prDuplicateList"></div><div id="prDuplicateJoin" style="display:none">
+<strong>Dieses Problem betrifft mich auch</strong>
+<label for="prDupName">Ihr Name *</label><input id="prDupName" maxlength="120" autocomplete="name" required aria-required="true">
+<label for="prDupEmail">E-Mail für Informationen zum Abschluss (optional)</label><input id="prDupEmail" type="email" maxlength="254" autocomplete="email">
+<div class="public-report-privacy-info" id="prDupPrivacyInfo">
+<strong>Was geschieht mit Ihren Daten?</strong>
+Ihr Name und Ihre freiwillig angegebene E-Mail-Adresse werden mit der bereits bestehenden Meldung verknüpft. Dadurch können die zuständigen Objektverantwortlichen erkennen, wie viele Personen betroffen sind, und die Bearbeitung koordinieren. Wenn Sie eine E-Mail-Adresse angeben, kann diese für Nachrichten zum Bearbeitungsstand und Abschluss verwendet werden. Andere Bewohner sehen Ihre Kontaktdaten nicht.
+</div>
+<label class="public-report-privacy-check" for="prDupConsent">
+<input id="prDupConsent" type="checkbox" required aria-required="true" aria-describedby="prDupPrivacyInfo prDupRequiredHint">
+<span>Ich habe die <a href="https://www.duschl-service.de/datenschutzerklarung" target="_blank" rel="noopener noreferrer">Datenschutzhinweise</a> zur Kenntnis genommen und willige in die oben beschriebene Verarbeitung meiner Angaben ein. <span aria-hidden="true">*</span></span>
+</label>
+<p class="public-report-mandatory" id="prDupRequiredHint">* Pflichtfeld – die Zuordnung zu einer bestehenden Meldung erfolgt erst nach Ihrer Bestätigung.</p>
+<div class="public-report-privacy-actions">
+<button type="button" class="primary" onclick="submitPublicDuplicateSupport()">Als betroffen melden</button>
+<button type="button" onclick="cancelPublicDuplicateSupport()">Abbrechen</button>
+</div>
+<div id="prDupFeedback" role="status" aria-live="polite"></div></div></section>
   <div class="public-report-actions one" id="prStepOneNextActions">
     <button class="primary" type="button" onclick="publicReportNextStep()">Weiter</button>
   </div>
@@ -7584,8 +7617,9 @@ body.or-wizard-open{overflow:hidden!important}
 
   <div class="public-report-consent">
     <input id="prConsent" type="checkbox"/>
-    <label for="prConsent">Ich habe die <a href="https://www.duschl-service.de/datenschutzerklarung" rel="noopener noreferrer" target="_blank">Datenschutzhinweise</a> zur Kenntnis genommen. *</label>
+    <label for="prConsent">Ich habe die <a href="https://www.duschl-service.de/datenschutzerklarung" rel="noopener noreferrer" target="_blank">Datenschutzhinweise</a> zur Kenntnis genommen. <span aria-hidden="true">*</span></label>
   </div>
+  <p class="public-report-mandatory">* Pflichtfeld – die Meldung kann nur mit den erforderlichen Angaben abgesendet werden.</p>
   <div class="public-report-required-note">Die interne Zuständigkeit, Weiterleitung und Bearbeitung wird automatisch durch die Objektplattform gesteuert.</div>
 
   <div class="public-report-actions">
@@ -13237,7 +13271,10 @@ function openPublicDuplicateSupport(id){if(!validUuid(id))return;publicDupId=id;
 function cancelPublicDuplicateSupport(){publicDupId='';const el=document.getElementById('prDuplicateJoin');if(el)el.style.display='none';const next=document.getElementById('prStepOneNextActions');if(next)next.style.display='';}
 async function submitPublicDuplicateSupport(){
  const out=document.getElementById('prDupFeedback'),name=String(document.getElementById('prDupName')?.value||'').trim(),email=String(document.getElementById('prDupEmail')?.value||'').trim(),consent=!!document.getElementById('prDupConsent')?.checked;
- if(!publicDupId||name.length<2||!consent){out.textContent='Bitte Name und Zustimmung angeben.';return;}
+ if(!publicDupId){out.textContent='Bitte wählen Sie eine bestehende Meldung aus.';return;}
+ const nameField=document.getElementById('prDupName'),consentField=document.getElementById('prDupConsent');
+ if(name.length<2){out.textContent='Bitte geben Sie Ihren Namen an (Pflichtfeld).';nameField?.focus();return;}
+ if(!consent){out.textContent='Bitte bestätigen Sie die Datenschutzhinweise (Pflichtfeld).';consentField?.focus();return;}
  if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){out.textContent='E-Mail-Adresse ungültig.';return;}
  out.textContent='Wird gespeichert …';
  try{
