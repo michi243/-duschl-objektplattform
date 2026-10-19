@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<!-- CURRENT RELEASE 3.54.9 · Bei „Betrifft mich auch“ entfällt der Weiter-Button; Abbrechen stellt ihn wieder her. -->
 <!-- CURRENT RELEASE 3.54.8 · Anzeige betroffener Bewohner je Meldung in Adminübersicht und Details. -->
 <!-- CURRENT RELEASE 3.54.7 · Einheitliche Badge-Typografie; schneller, vorab geladener Privatanfragen-Zähler. -->
 <!-- CURRENT RELEASE 3.54.6 · Zählergröße und Typografie an Meldungen angeglichen. -->
@@ -7520,7 +7521,7 @@ body.or-wizard-open{overflow:hidden!important}
     </div>
   </div>
   <section id="prDuplicates" style="display:none;margin:16px 0;padding:14px;border:1px solid #abc;border-radius:12px" aria-live="polite"><strong>Bereits gemeldete Probleme in dieser Kategorie</strong><p class="muted">Prüfen Sie, ob Ihr Problem bekannt ist. Sie können sich anschließen oder eine eigene Meldung erstellen.</p><div id="prDuplicateList"></div><div id="prDuplicateJoin" style="display:none"><strong>Dieses Problem betrifft mich auch</strong><label for="prDupName">Ihr Name *</label><input id="prDupName" maxlength="120"><label for="prDupEmail">E-Mail für Abschlussnachricht (optional)</label><input id="prDupEmail" type="email"><label style="display:flex;gap:8px"><input id="prDupConsent" type="checkbox" style="width:auto"> Ich stimme der Verarbeitung meiner Angaben zu. *</label><button type="button" class="primary" onclick="submitPublicDuplicateSupport()">Als betroffen melden</button><button type="button" onclick="cancelPublicDuplicateSupport()">Abbrechen</button><div id="prDupFeedback" role="status"></div></div></section>
-  <div class="public-report-actions one">
+  <div class="public-report-actions one" id="prStepOneNextActions">
     <button class="primary" type="button" onclick="publicReportNextStep()">Weiter</button>
   </div>
 </div>
@@ -12548,7 +12549,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.54.8';
+const APP_VERSION='3.54.9';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -13231,8 +13232,8 @@ async function refreshPublicDuplicateReports(){
   list.innerHTML=rows.length?rows.map(r=>`<article class="card" style="margin:8px 0;padding:12px"><div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">${r.preview_url&&/^https:\/\//.test(r.preview_url)?`<img src="${esc(r.preview_url)}" alt="Freigegebenes Foto des gemeldeten Problems" loading="lazy" referrerpolicy="no-referrer" style="width:116px;height:100px;object-fit:cover;border-radius:10px" onerror="this.style.display='none'">`:'<div class="muted" style="width:116px;height:100px;display:flex;align-items:center;justify-content:center;border:1px solid #456;border-radius:10px;text-align:center;font-size:12px">Kein freigegebenes Foto</div>'}<div style="flex:1;min-width:170px"><strong>${esc(r.problem_type||r.category)}</strong><div class="muted" style="margin:6px 0">Bereich: ${esc(r.area_name||'Unbekannt')} · ${esc(r.public_status||'Offen')}</div><button type="button" onclick="openPublicDuplicateSupport('${esc(r.report_id)}')">Betrifft mich auch</button></div></div></article>`).join(''):'<div class="muted">Keine offenen Meldungen in dieser Kategorie.</div>';
  }catch(e){if(serial===publicDupSerial)list.textContent='Abfrage gerade nicht verfügbar. Eine eigene Meldung bleibt möglich.';}
 }
-function openPublicDuplicateSupport(id){if(!validUuid(id))return;publicDupId=id;document.getElementById('prDuplicateJoin').style.display='block';}
-function cancelPublicDuplicateSupport(){publicDupId='';const el=document.getElementById('prDuplicateJoin');if(el)el.style.display='none';}
+function openPublicDuplicateSupport(id){if(!validUuid(id))return;publicDupId=id;document.getElementById('prDuplicateJoin').style.display='block';const next=document.getElementById('prStepOneNextActions');if(next)next.style.display='none';}
+function cancelPublicDuplicateSupport(){publicDupId='';const el=document.getElementById('prDuplicateJoin');if(el)el.style.display='none';const next=document.getElementById('prStepOneNextActions');if(next)next.style.display='';}
 async function submitPublicDuplicateSupport(){
  const out=document.getElementById('prDupFeedback'),name=String(document.getElementById('prDupName')?.value||'').trim(),email=String(document.getElementById('prDupEmail')?.value||'').trim(),consent=!!document.getElementById('prDupConsent')?.checked;
  if(!publicDupId||name.length<2||!consent){out.textContent='Bitte Name und Zustimmung angeben.';return;}
