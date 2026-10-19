@@ -10,12 +10,13 @@ export function mountPrivateOffers({root, supabase, organizationId}) {
   const el=(name,text='',attrs={})=>{const e=document.createElement(name);e.textContent=text;for(const [k,v] of Object.entries(attrs)) e.setAttribute(k,v);return e;};
   const message=el('p'); message.setAttribute('role','status');
   const heading=el('h2','Private Bewohneranfragen');
-  const filters=el('div');const search=input('Suche');const status=el('select');[['all','Alle'],['new','Neu'],['in_progress','In Bearbeitung'],['closed','Abgeschlossen']].forEach(([v,t])=>status.append(el('option',t,{value:v})));filters.append(search.wrap,status);const list=el('div');const editor=el('div');root.replaceChildren(heading,message,filters,list,editor);let cached=[];
+  const list=el('div');const editor=el('div');let cached=[];
   const notify=(m)=>{message.textContent=m;};
   const api=async(name,args)=>{const {data,error}=await supabase.rpc(name,args); if(error)throw error;return data;};
   const action=(label,fn)=>{const b=el('button',label,{type:'button'});b.addEventListener('click',async()=>{b.disabled=true;try{await fn();}catch(err){notify('Fehler: '+(err.message||err));}finally{b.disabled=false;}});return b;};
   const input=(label,value='',type='text')=>{const wrap=el('label',label+' '), e=el('input','',{type});e.value=value;wrap.append(e);return {wrap,e};};
   const textArea=(label,value='')=>{const wrap=el('label',label+' '),e=el('textarea');e.value=value;wrap.append(e);return {wrap,e};};
+  const filters=el('div');const search=input('Suche');const status=el('select');[['all','Alle'],['new','Neu'],['in_progress','In Bearbeitung'],['closed','Abgeschlossen']].forEach(([v,t])=>status.append(el('option',t,{value:v})));filters.append(search.wrap,status);root.replaceChildren(heading,message,filters,list,editor);
   async function showMessages(inquiry){
     editor.replaceChildren(el('h3','Nachrichten · '+inquiry.resident_name));
     const messages=await api('list_resident_private_messages_v1',{p_inquiry_id:inquiry.id});
