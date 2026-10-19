@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<!-- CURRENT RELEASE 3.54.4 · Farbstatus Privatanfragen-Zähler analog Meldungen und Entscheidungen. -->
 <!-- CURRENT RELEASE 3.54.3 · Private Anfragen: Menüzähler, Suche, Statusfilter und geschützte Nachrichten. Bewohner-E-Mail-Versand noch nicht aktiv. -->
 <!-- CURRENT RELEASE 3.54.2 · Private Bewohneranfragen und Angebotsverwaltung im Adminbereich integriert. -->
 <!-- RELEASE 3.45 · Inventarliste Export: PDF/Drucken, Excel (.xls), CSV; filterbar nach Lifecycle, Status, Typ, Kategorie, Standort und Leistungsbezug. Backend unverändert. -->
@@ -7404,6 +7405,11 @@ body.or-wizard-open{overflow:hidden!important}
 .gf-work-group-heading{font-size:17px;margin:24px 0 10px;color:#f0f7fc;border-bottom:1px solid #2d495b;padding-bottom:8px}.gf-operator-stat b{font-size:15px;color:#eef5f9}.gf-operator-stat strong{font-size:27px;color:#fff}.gf-operator-stat small{color:#a9bac7;line-height:1.35}
 @media(max-width:720px){.gf-operator-overview{grid-template-columns:1fr}.gf-operator-stat{padding:12px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center}.gf-operator-stat small{grid-column:1/-1}}
 </style>
+<style id="private-inquiry-counter-status-v3544">
+#privateOffersNavCount {display:inline-flex;align-items:center;justify-content:center;border-radius:999px;min-width:29px;min-height:29px;font-weight:700;}
+#privateOffersNavCount.warn {background:rgba(231,184,60,.19)!important;color:#f2d36d!important;border:1px solid rgba(231,184,60,.4)!important;}
+#privateOffersNavCount.neutral {background:rgba(121,145,164,.19)!important;color:#aebdca!important;border:1px solid rgba(121,145,164,.3)!important;}
+</style>
 </head>
 <body class="role-context-loading">
 <div id="roleContextLoader" aria-live="polite" aria-busy="true">
@@ -12524,7 +12530,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.54.3';
+const APP_VERSION='3.54.4';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
