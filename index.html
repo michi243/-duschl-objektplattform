@@ -403,7 +403,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.49.1</title>
+<title>Duschl Service – Objektplattform v3.49.2</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -12415,7 +12415,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.49.1';
+const APP_VERSION='3.49.2';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='09:30'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -37664,8 +37664,17 @@ function showTourEmailConfirmation(data={}){
   return opsShowEmailConfirmation(data);
 }
 
+function opsIsInsideAnnouncementWindow(runId){
+  const run=(opsState.runs||[]).find(r=>String(r.id)===String(runId));
+  if(!run?.service_date)return true; // Serverseitige Prüfung bleibt maßgeblich.
+  const today=new Date().toLocaleDateString('en-CA',{timeZone:'Europe/Berlin'});
+  const due=new Date(run.service_date+'T00:00:00Z');
+  const now=new Date(today+'T00:00:00Z');
+  return (due-now)/86400000<=2;
+}
 async function opsQueueRunAssignmentNotification(runId,{silent=true,changeReason=null,showConfirmation=true}={}){
   if(!runId||!opsIsPlanningRole())return null;
+  if(!opsIsInsideAnnouncementWindow(runId))return {delivery_created:false,message:'Tour ist langfristig geplant; Ankündigung folgt zwei Kalendertage vor Einsatzbeginn.'};
   try{
     const rows=await cloudRequest('rpc/queue_operation_run_assignment_notification_v4',{
       method:'POST',
@@ -39736,20 +39745,35 @@ async function dsChecklistOpen(contextType,contextId){
   await dsChecklistLoadContext(contextType,contextId,{force:true});
   modal(dsChecklistModalHtml(contextType,contextId));
 }
+// Merkt sich den bearbeiteten Prüfpunkt relativ zum sichtbaren Modalbereich.
+function dsChecklistKeepViewport(contextType,contextId,itemId){
+  const root=document.querySelector('#modalRoot .ds-modal-dialog');
+  const box=document.getElementById('dsChecklistNote_'+itemId)?.closest('.ds-checklist-item');
+  const top=box?.getBoundingClientRect().top;
+  const scroll=root?.scrollTop||0;
+  return ()=>{
+    modal(dsChecklistModalHtml(contextType,contextId));
+    const nextRoot=document.querySelector('#modalRoot .ds-modal-dialog');
+    const nextBox=document.getElementById('dsChecklistNote_'+itemId)?.closest('.ds-checklist-item');
+    if(nextRoot){nextRoot.scrollTop=scroll;if(nextBox&&Number.isFinite(top))nextRoot.scrollTop+=nextBox.getBoundingClientRect().top-top;}
+  };
+}
 async function dsChecklistToggleItem(contextType,contextId,checklistId,itemId,checked){
+  const restore=dsChecklistKeepViewport(contextType,contextId,itemId);
   try{
     const note=document.getElementById(`dsChecklistNote_${itemId}`)?.value||null;
     await cloudRequest('rpc/set_checklist_execution_item_v1',{method:'POST',body:JSON.stringify({p_checklist_execution_id:checklistId,p_item_execution_id:itemId,p_checked:!!checked,p_note:String(note||'').trim()||null})});
     await dsChecklistLoadContext(contextType,contextId,{force:true});
-    modal(dsChecklistModalHtml(contextType,contextId));
-  }catch(e){alert('Prüfpunkt konnte nicht gespeichert werden: '+(e.message||e));await dsChecklistLoadContext(contextType,contextId,{force:true});modal(dsChecklistModalHtml(contextType,contextId));}
+    restore();
+  }catch(e){alert('Prüfpunkt konnte nicht gespeichert werden: '+(e.message||e));await dsChecklistLoadContext(contextType,contextId,{force:true});restore();}
 }
 async function dsChecklistSaveNote(contextType,contextId,checklistId,itemId){
+  const restore=dsChecklistKeepViewport(contextType,contextId,itemId);
   try{
     const note=document.getElementById(`dsChecklistNote_${itemId}`)?.value||'';
     const c=dsChecklistRows(contextType,contextId).find(x=>String(x.id)===String(checklistId));const i=c?.items?.find(x=>String(x.id)===String(itemId));
     await cloudRequest('rpc/set_checklist_execution_item_v1',{method:'POST',body:JSON.stringify({p_checklist_execution_id:checklistId,p_item_execution_id:itemId,p_checked:!!i?.checked,p_note:String(note).trim()||null})});
-    await dsChecklistLoadContext(contextType,contextId,{force:true});modal(dsChecklistModalHtml(contextType,contextId));
+    await dsChecklistLoadContext(contextType,contextId,{force:true});restore();
   }catch(e){alert('Notiz konnte nicht gespeichert werden: '+(e.message||e));}
 }
 async function dsChecklistComplete(contextType,contextId,checklistId){
