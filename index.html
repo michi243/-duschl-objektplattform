@@ -403,7 +403,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.50.2</title>
+<title>Duschl Service – Objektplattform v3.50.3</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -12488,7 +12488,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.50.2';
+const APP_VERSION='3.50.3';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -23651,6 +23651,10 @@ function gfWorkNextStepInfo(t,f,outgoingOrder=null){
     if(status==='completed')return {tone:'stable',label:'Nächster Schritt',text:'Abschlussprüfung durch Auftraggeber abwarten.'};
     return {tone:'neutral',label:'Nächster Schritt',text:'Vorgang öffnen und aktuellen Status prüfen.'};
   }
+  if(t?.hasTask && String(t.status||'').toLowerCase()==='completed'){
+    if(t.findingStatus==='Erledigt')return {tone:'stable',label:'Abgeschlossen',text:'Aufgabe und Feststellung erledigt. Kein weiterer Schritt erforderlich.'};
+    return {tone:'attention',label:'Ausführung erledigt',text:'Die Aufgabe ist abgeschlossen. Die zugehörige Feststellung bzw. Dokumentation muss noch geprüft und geschlossen werden.'};
+  }
   if(t?.hasTask && gfTaskDerivedBucket(t)==='overdue'){
     return {tone:'critical',label:'Nächster Schritt',text:'Überfälligen Vorgang sofort prüfen und Termin bzw. Ausführung aktualisieren.'};
   }
@@ -23813,6 +23817,8 @@ function renderWorkQueue(){
     }));
 
   const allWorkItems=[...workItems,...directTaskOnly];
+  // Abgeschlossene Aufgaben standardmäßig ausblenden; auf Wunsch sichtbar.
+  const showDone=window.gfShowCompletedWork===true;
   const k=gfTaskKpis(allWorkItems);
   const incomingExternal=incomingExternalWorkOrders();
   const consolidatedOpenCount=k.open+incomingExternal.length;
@@ -23823,6 +23829,7 @@ function renderWorkQueue(){
   const openDecisionStates=new Set(['pending','quote_requested','quote_sent','approved','deferred','question']);
 
   let filtered=allWorkItems.filter(t=>{
+    if(!showDone && t.hasTask && ['completed','cancelled'].includes(String(t.status||'').toLowerCase()))return false;
     if(current.object && t.objectId!==current.object)return false;
 
     // Arbeitsstatus filtert ausschließlich echte Aufgaben.
@@ -23860,6 +23867,7 @@ function renderWorkQueue(){
   });
 
   root.innerHTML=`
+    <div class="gf-completed-toggle" style="display:flex;justify-content:flex-end;margin:0 0 12px"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" ${showDone?'checked':''} onchange="window.gfShowCompletedWork=this.checked;renderWorkQueue()"> Erledigte anzeigen</label></div>
     <div class="gf-kpis">
       <div class="gf-kpi ${k.open?'is-action':'is-disabled'}" role="button" tabindex="${k.open?'0':'-1'}" onclick="applyGFWorkKpiFilter('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();applyGFWorkKpiFilter('open');}"><span class="kpi-chevron">›</span><span>Offene Vorgänge</span><strong>${consolidatedOpenCount}</strong></div>
       <div class="gf-kpi ${k.overdue?'is-action':'is-disabled'}" role="button" tabindex="${k.overdue?'0':'-1'}" onclick="applyGFWorkKpiFilter('overdue')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();applyGFWorkKpiFilter('overdue');}"><span class="kpi-chevron">›</span><span>Überfällig</span><strong>${k.overdue}</strong></div>
@@ -23954,7 +23962,7 @@ function renderWorkQueue(){
               </div>
             </div>
             <div class="gf-meta">
-              ${taskOnly?'':`<div><b>Dokumentation:</b> ${esc(documentationStatusForFinding(f))}</div>`}
+              ${taskOnly?'':`<div><b>${t.hasTask&&t.status==='completed'?'Feststellung / Dokumentation':'Dokumentation'}:</b> ${esc(documentationStatusForFinding(f))}${t.hasTask&&t.status==='completed'&&t.findingStatus!=='Erledigt'?' · Aufgabe erledigt, Feststellung noch offen':''}</div>`}
               ${t.hasTask&&t.status==='completed'?`<div><b>Ausführung bestätigt durch:</b> ${esc(t.completedByName||'Nicht dokumentiert')}</div>`:''}
               ${t.hasTask&&t.status==='completed'&&t.completedAt?`<div><b>Erledigt am:</b> ${esc(new Date(t.completedAt).toLocaleString('de-DE'))}</div>`:''}
               ${t.hasTask&&!routedExternally?`<div><b>Fällig:</b> ${esc(due)}</div>`:''}
@@ -23970,7 +23978,7 @@ function renderWorkQueue(){
               ${internalTask&&t.ownerId?`<span class="gf-status">${String(t.ownerId)===String(cloudSession?.user?.id)?'Von mir übernommen':'Bereits zugewiesen'}</span>`:''}
               ${taskOnly
                 ? `<button type="button" class="primary" onclick="openTourTaskOnly('${esc(t.taskId)}')">Aufgabe öffnen</button>`
-                : `${t.hasTask&&!routedExternally?`<button type="button" onclick="openWorkItem('${f.id}')">Aufgabe bearbeiten</button>`:''}
+                : `${t.hasTask&&!routedExternally?`<button type="button" onclick="${t.status==='completed'?`openFindingModal('${f.objectId||''}','${f.inspectionId||''}','${f.id}')`:`openWorkItem('${f.id}')`}">${t.status==='completed'?'Feststellung prüfen':'Aufgabe bearbeiten'}</button>`:''}
                    ${canPlan?`<button type="button" class="primary" onclick="openWorkItem('${f.id}')">Aufgabe planen</button>`:''}
                    <button type="button" onclick="openFindingModal('${f.objectId||''}','${f.inspectionId||''}','${f.id}')">Dokumentation öffnen</button>`}
             </div>
