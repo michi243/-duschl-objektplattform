@@ -403,7 +403,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.49.0</title>
+<title>Duschl Service – Objektplattform v3.49.1</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -7303,6 +7303,25 @@ body.or-wizard-open{overflow:hidden!important}
 .ds-mail-info summary{cursor:pointer;font-weight:700}.ds-mail-info>div{margin-top:6px;line-height:1.4}
 @media(max-width:680px){.ds-mail-row{grid-template-columns:1fr;gap:4px}.ds-mail-compact .ds-mail-head{align-items:start}.ds-mail-chip{font-size:10px!important}.ds-mail-legend{font-size:9px}}
 </style>
+<style id="duschl-tour-list-wide-v3491">
+/* The existing .grid2 layout constrains the execution card to one narrow column. */
+.grid.g2.ops-planning-only:has(> .card #opsRunList){display:block!important;min-width:0!important}
+.grid.g2.ops-planning-only:has(> .card #opsRunList)> .card{width:100%!important;max-width:none!important;margin:12px 0!important}
+#opsRunList,#opsRunList .ops-admin-run-group,#opsRunList .ops-admin-run-future{width:100%;min-width:0;max-width:none}
+#opsRunList .ops-admin-run-card,#opsRunList .ops-admin-run-card.is-compact{display:block!important;min-width:0;max-width:none;width:100%;overflow:hidden;padding:13px!important}
+#opsRunList .ops-admin-run-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+#opsRunList .ops-admin-run-head .muted{overflow-wrap:anywhere}
+#opsRunList .ops-run-admin-actions{display:flex;gap:7px;flex-wrap:wrap}
+#opsRunList .ops-run-plan-details{margin-top:9px;padding:9px 11px;border:1px solid rgba(255,255,255,.12);border-radius:10px;max-width:100%}
+#opsRunList .ops-run-plan-details>summary{cursor:pointer;font-size:13px;font-weight:700;color:#d4e5f1}
+#opsRunList .ops-admin-run-controls{margin-top:10px;max-width:100%;min-width:0}
+#opsRunList .ops-admin-run-controls select{max-width:100%;width:100%;min-width:0;white-space:normal}
+#opsRunList .ops-run-stop-row{grid-template-columns:25px minmax(0,1fr);min-width:0}
+#opsRunList .ops-run-stop-row>div{min-width:0;overflow-wrap:anywhere}
+#opsRunList .ops-run-stop-sop,#opsRunList .ops-admin-run-stop-list{max-width:100%;min-width:0}
+#opsRunList .ops-admin-run-group-title{font-size:12px}
+@media(min-width:800px){#opsRunList .ops-admin-run-card{display:grid!important;grid-template-columns:minmax(0,1fr) auto;gap:8px 16px}#opsRunList .ops-admin-run-head{grid-column:1}#opsRunList .ops-run-admin-actions{grid-column:2;justify-content:flex-end;margin-top:0!important}#opsRunList .ops-run-plan-details{grid-column:1/-1}}
+</style>
 </head>
 <body class="role-context-loading">
 <div id="roleContextLoader" aria-live="polite" aria-busy="true">
@@ -9091,7 +9110,7 @@ WINTERDIENST RÄUMKARTE
       <div id="opsCoverageDashboard" class="ops-coverage-dashboard" aria-live="polite"></div>
       <div id="opsTourList" style="margin-top:12px"></div>
     </div>
-    <div class="card"><h3>Automatisch erzeugte Tourtermine</h3><div class="muted">Aus der wiederkehrenden Tour entstehen konkrete Einsätze. Änderungen an einem einzelnen Termin verändern die Tourvorlage nicht.</div><div id="opsRunList" style="margin-top:12px"></div></div>
+    <div class="card"><h3>Automatisch erzeugte Tourtermine</h3><div class="muted">Aus der wiederkehrenden Tour entstehen konkrete Einsätze. Änderungen an einem einzelnen Termin verändern die Tourvorlage nicht.</div><div id="opsRunList" class="ops-runs-fullwidth" style="margin-top:12px"></div></div>
   </div>
 
   <div id="opsOperativeView" class="hidden" style="margin-top:14px">
@@ -12396,7 +12415,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.49.0';
+const APP_VERSION='3.49.1';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='09:30'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -37768,13 +37787,10 @@ function opsRender(){
       });
 
     const todayRuns=futureRuns.filter(r=>String(r.service_date||'')===today);
-    const futureOnly=futureRuns.filter(r=>String(r.service_date||'')>today);
-    const primary=[
-      ...todayRuns,
-      ...(futureOnly.length?[futureOnly[0]]:[])
-    ].filter((r,i,a)=>a.findIndex(x=>String(x.id)===String(r.id))===i);
-    const primaryIds=new Set(primary.map(r=>String(r.id)));
-    const later=futureRuns.filter(r=>!primaryIds.has(String(r.id)));
+    const sevenDayEnd=new Date(today+'T12:00:00');sevenDayEnd.setDate(sevenDayEnd.getDate()+7);
+    const weekLimit=[sevenDayEnd.getFullYear(),String(sevenDayEnd.getMonth()+1).padStart(2,'0'),String(sevenDayEnd.getDate()).padStart(2,'0')].join('-');
+    const weekRuns=futureRuns.filter(r=>String(r.service_date||'')>today&&String(r.service_date||'')<=weekLimit);
+    const later=futureRuns.filter(r=>String(r.service_date||'')>weekLimit);
 
     const runCard=(r,compact=false)=>{
       const xs=(opsState.runStops||[])
@@ -37857,13 +37873,12 @@ function opsRender(){
           <div class="muted">${opsEsc(meta)}</div>
         </div>
 
-        ${opsResourceReadinessHtml(opsReadinessRowsForRun(r.id),{compact:true})}
-
         <div class="ops-run-admin-actions" style="margin-top:8px">
           <button class="ops-small-action" type="button" onclick="opsEditRun('${opsEsc(r.id)}')">Bearbeiten</button>
           <button class="ops-small-action danger" type="button" onclick="opsDeleteRun('${opsEsc(r.id)}')">Löschen</button>
         </div>
 
+        <details class="ops-run-plan-details"><summary>Disposition &amp; Details</summary>
         <div class="ops-admin-run-controls">
           <label>
             <span>Ausgeführt von</span>
@@ -37880,9 +37895,11 @@ function opsRender(){
           <div class="ops-admin-assignment-hint">${opsEsc(assignmentHint)}</div>
         </div>
 
-        <details class="ops-admin-run-stops" ${compact?'':'open'}>
+        ${opsResourceReadinessHtml(opsReadinessRowsForRun(r.id),{compact:true})}
+        <details class="ops-admin-run-stops">
           <summary>${xs.length} ${xs.length===1?'Stopp':'Stopps'} anzeigen</summary>
           <div class="ops-admin-run-stop-list">${stopsHtml}</div>
+        </details>
         </details>
       </div>`;
     };
@@ -37894,11 +37911,10 @@ function opsRender(){
         </div>`
       : '';
 
-    const nextRun=futureOnly[0]||null;
-    const nextHtml=nextRun
+    const nextHtml=weekRuns.length
       ? `<div class="ops-admin-run-group">
-          <div class="ops-admin-run-group-title">Nächster Einsatz</div>
-          ${runCard(nextRun,false)}
+          <div class="ops-admin-run-group-title">Nächste 7 Tage · ${weekRuns.length} Einsätze</div>
+          ${weekRuns.map(r=>runCard(r,true)).join('')}
         </div>`
       : '';
 
