@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<!-- CURRENT RELEASE 3.55.3 · Mitbetroffenheit jederzeit erkennbar: autorisierte Zähler v2, zusätzlicher Betroffenheits-Hinweis auch bei ausgefilterter intern übernommener Meldung, Filter, automatische Aktualisierung. -->
 <!-- CURRENT RELEASE 3.55.2 · Betroffenheit mit Anzahl der Mitbetroffenen dauerhaft sichtbar in der Hauptkarte der Bewohnermeldungen; auch 0 und Ladefehler klar ausgewiesen. -->
 <!-- CURRENT RELEASE 3.55.1 · Transparente Datenschutzhinweise bei „Betrifft mich auch“ und Privatanfragen; Pflichtfeld-Legende ergänzt. -->
 <!-- CURRENT RELEASE 3.55.0 · Öffentliche Duplikatliste ohne Bildplatzhalter und ohne Bildübertragung; Adminfotos bleiben unverändert. -->
@@ -3134,6 +3135,11 @@ border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--sh
 .resident-report-impact strong{color:var(--text);font-size:15px}
 .resident-report-impact.has-supporters{background:rgba(231,184,60,.12);border-color:rgba(231,184,60,.38)}
 .resident-report-impact.has-supporters strong{color:#f2d36d}
+.resident-report-extra-notice{border:1px solid rgba(231,184,60,.4)!important;background:rgba(231,184,60,.08)!important}
+.resident-report-extra-notice .resident-report-extra-entry{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 0;border-top:1px solid rgba(231,184,60,.18)}
+.resident-report-extra-notice .resident-report-extra-entry:first-of-type{margin-top:10px}
+.resident-report-extra-notice button{white-space:normal;min-height:40px}
+
 
 
 .public-report-submit{width:100%;min-height:50px;margin-top:18px;font-size:16px!important}
@@ -8257,12 +8263,14 @@ Ihr Name und Ihre freiwillig angegebene E-Mail-Adresse werden mit der bereits be
 <option value="decision_required">Entscheidung erforderlich</option>
 <option value="review_required">Erledigt gemeldet / Abnahme offen</option>
 <option value="internal">Intern dokumentiert / übernommen</option>
+<option value="supporters">Meldungen mit weiteren Betroffenen</option>
 <option value="active">Alle offenen Vorgänge</option>
 <option value="completed">Abgeschlossen / geschlossen</option>
 <option value="">Alle Meldungen</option>
 </select>
 </div>
 </div>
+<div id="residentReportSupportHighlights" style="display:none;margin-top:14px"></div>
 <div class="grid" id="residentReportList" style="margin-top:14px"></div>
 </section>
 <section class="section" id="reports">
@@ -12591,7 +12599,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.55.0';
+const APP_VERSION='3.55.3';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -16181,14 +16189,9 @@ async function cloudLoadResidentReports(){
     body:JSON.stringify({p_organization_id:orgId})
   });
   cloudResidentReports=Array.isArray(rows)?rows:[];
-  try{
-    const ids=cloudResidentReports.map(r=>r.id).filter(Boolean);
-    const counts=ids.length?await cloudRequest('rpc/get_resident_report_support_counts_v1',{
-      method:'POST',body:JSON.stringify({p_report_ids:ids})
-    }):[];
-    const byId=new Map((Array.isArray(counts)?counts:[]).map(c=>[c.report_id,Number(c.supporter_count)||0]));
-    cloudResidentReports.forEach(r=>{r.supporter_count=byId.get(r.id)||0;});
-  }catch(e){console.warn('Mitbetroffene konnten nicht geladen werden',e);}
+  // Ermittelter Zähler je sichtbar autorisierter Meldung – fehlender Datensatz ist KEINE 0.
+  cloudResidentReports.forEach(r=>{r.supporter_count=null;});
+  await cloudRefreshResidentReportSupportCounts();
 
   try{renderDashboard();}catch(e){}
 
@@ -29203,11 +29206,63 @@ function residentReportWorkflowState(report){
   return {key:'active',label:residentReportStatusLabel(status)};
 }
 
+// Aktualisierung auch dann, wenn sich ein zweiter Bewohner in einem anderen Browser meldet.
+let residentReportSupportRefreshPending=false;
+async function cloudRefreshResidentReportSupportCounts(){
+  if(residentReportSupportRefreshPending||!cloudSession?.access_token||isCustomerRole())return;
+  const rows=cloudResidentReports;
+  const orgId=currentOrganizationId();
+  const ids=rows.map(r=>r.id).filter(Boolean);
+  if(!orgId||!ids.length)return;
+  residentReportSupportRefreshPending=true;
+  try{
+    const counts=await cloudRequest('rpc/get_resident_report_support_counts_v2',{
+      method:'POST',body:JSON.stringify({p_report_ids:ids})
+    });
+    if(rows!==cloudResidentReports||orgId!==currentOrganizationId())return;
+    if(!Array.isArray(counts))throw new Error('Ungültige Zählerantwort.');
+    const byId=new Map(counts.map(c=>[String(c.report_id),Number(c.supporter_count)]));
+    rows.forEach(r=>{
+      const value=byId.get(String(r.id));
+      r.supporter_count=(Number.isFinite(value)&&value>=0)?value:null;
+    });
+  }catch(e){
+    if(rows===cloudResidentReports&&orgId===currentOrganizationId()){
+      rows.forEach(r=>{r.supporter_count=null;});
+    }
+    console.warn('Betroffenen-Zähler nicht abrufbar:',e);
+  }finally{
+    residentReportSupportRefreshPending=false;
+    if(rows===cloudResidentReports&&orgId===currentOrganizationId()&&document.getElementById('residentReports')?.classList.contains('active')){
+      renderResidentReports();
+    }
+  }
+}
+// Wiederkehrende, ressourcenschonende Aktualisierung ausschließlich bei geöffneter Meldungsübersicht.
+setInterval(()=>{
+  if(document.visibilityState!=='visible')return;
+  if(!document.getElementById('residentReports')?.classList.contains('active'))return;
+  void cloudRefreshResidentReportSupportCounts();
+},45000);
+
+function showResidentSupportReport(id){
+  const r=(cloudResidentReports||[]).find(x=>x.id===id&&canUseResidentReportUI(x));
+  if(!r)return;
+  const status=document.getElementById('residentReportStatusFilter');
+  if(status)status.value='supporters';
+  renderResidentReports();
+  requestAnimationFrame(()=>{
+    const card=document.querySelector('#residentReportList [data-resident-report-id="'+CSS.escape(String(id))+'"]');
+    card?.scrollIntoView({behavior:'smooth',block:'center'});
+  });
+}
+
 function residentReportMatchesWorkflowFilter(report,filter){
   const workflow=residentReportWorkflowState(report);
   if(!filter)return true;
   if(filter==='active')return isOpenResidentReport(report);
   if(filter==='completed')return workflow.key==='completed';
+  if(filter==='supporters')return Number(report?.supporter_count)>0;
   return workflow.key===filter;
 }
 
@@ -29279,6 +29334,31 @@ function renderResidentReports(){
 
   const navCount=document.getElementById('residentReportNavCount');
   if(navCount)navCount.textContent=newCount;
+
+  // Betroffene auf bereits intern übernommener Meldung bleiben sichtbar,
+  // auch wenn der Arbeitsfilter standardmäßig nur neue Meldungen zeigt.
+  const highlightsBox=document.getElementById('residentReportSupportHighlights');
+  if(highlightsBox){
+    const visibleIds=new Set(rows.map(r=>r.id));
+    const hiddenWithSupport=(cloudResidentReports||[])
+      .filter(r=>canUseResidentReportUI(r))
+      .filter(r=>!objectId||r.object_id===objectId)
+      .filter(r=>!['closed','completed','rejected'].includes(String(r.status||'')))
+      .filter(r=>Number(r.supporter_count)>0&&!visibleIds.has(r.id));
+    highlightsBox.style.display=hiddenWithSupport.length?'block':'none';
+    highlightsBox.innerHTML=hiddenWithSupport.length?`<div class="card resident-report-extra-notice">
+      <strong>Weitere betroffene Bewohner</strong>
+      <div class="muted" style="margin-top:5px">Diese Meldungen haben zusätzliche Betroffene, sind aber durch den aktuellen Arbeitsstatus ausgefiltert.</div>
+      ${hiddenWithSupport.map(r=>{
+        const object=(db.objects||[]).find(o=>o.id===r.object_id);
+        const impact=residentReportSupportInfo(r);
+        return `<div class="resident-report-extra-entry">
+          <div><strong>${esc(r.category||'Meldung')}</strong><div class="muted">${esc(object?.name||'Objekt')} · ${esc(r.report_no||'')}</div><div>${esc(impact.title)} · ${esc(impact.subtitle)}</div></div>
+          <button type="button" onclick="showResidentSupportReport('${esc(r.id)}')">Meldung anzeigen</button>
+        </div>`;
+      }).join('')}
+    </div>`:'';
+  }
 
   const mediaLoadError=list.dataset.mediaLoadError||'';
   if(mediaLoadError){
