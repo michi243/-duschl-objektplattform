@@ -7624,6 +7624,7 @@ body.or-wizard-open{overflow:hidden!important}
 <button class="primary" id="navDashboard" onclick="showSection('dashboard')"><span class="nav-icon">⌂</span><span>Dashboard</span></button>
 
 <div class="ds-menu-group-label">Arbeit</div>
+<button id="navPrivateOffers" style="display:none" onclick="showSection('privateOffers')"><span class="nav-icon">▤</span><span>Privatanfragen & Angebote</span></button>
 <button id="navResidentReports" onclick="showSection('residentReports')"><span class="nav-icon">◯</span><span>Meldungen</span><span class="badge nav-count" id="residentReportNavCount">0</span></button>
 <button id="navDecisions" onclick="showSection('decisions')"><span class="nav-icon">✓</span><span>Entscheidungen</span><span class="badge nav-count" id="decisionNavCount">0</span></button>
 <button id="navWorkqueue" onclick="showSection('workqueue')"><span class="nav-icon">⌁</span><span>Arbeitsvorrat</span><span class="badge nav-count" id="workqueueNavCount">0</span></button>
@@ -10024,6 +10025,7 @@ WINTERDIENST RÄUMKARTE
   <div class="card" style="margin-top:14px"><div class="row space"><div><strong>Dauerhafte Objektbetreuung</strong><div class="muted" style="margin-top:4px">Dienstleister je Objekt anbinden und mehrere Leistungsumfänge pro Beziehung definieren.</div><div id="myTenantPublicCode" class="muted" style="margin-top:7px"></div></div><button id="shareObjectCareBtn" type="button" onclick="openObjectCollaborationModal()">Betreuung vergeben</button></div><div id="objectCollaborationsList" style="margin-top:12px"><span class="muted">Noch keine Betreuungsbeziehungen geladen.</span></div></div>
   <div class="card" style="margin-top:14px"><div class="row space"><strong>Aufträge</strong><button type="button" onclick="cloudLoadExternalOrders()">↻ Aktualisieren</button></div><div id="externalOrdersList" style="margin-top:12px"><span class="muted">Noch keine Daten geladen.</span></div></div>
 </section>
+<section class="section" id="privateOffers"><div class="row space"><div><div class="ds-section-eyebrow">VERTRAULICH · PRIVATKUNDEN</div><h2>Privatanfragen & Angebote</h2><div class="muted">Nur für berechtigte Administratoren. Nicht Bestandteil von Objekt- und Verwaltungsberichten.</div></div></div><div class="card" id="privateOffersRoot" style="margin-top:16px">Lade Angebotsverwaltung …</div></section>
 </main>
 <div id="modalRoot"></div>
 <script id="duschl-qr-local-v2183">
@@ -14963,6 +14965,8 @@ async function copyTenantPublicCode(){
 }
 
 function applyRoleUI(){
+  {const n=document.getElementById('navPrivateOffers');if(n)n.style.display=(isAdminRole()||isTenantAdminRole()||isAdminDelegate()||(isPlatformAdminDelegateRole()&&!!currentOrganizationId()))?'':'none';}
+
   const role=effectiveUserRole();
 
   // v2.19.42: Im operativen Mandantenkontext zeigt der Header immer
@@ -22905,6 +22909,13 @@ async function loadAndRenderDocumentationOverview(){
 }
 
 function showSection(id){
+  if(id==='privateOffers'){
+    const permitted=isAdminRole()||isTenantAdminRole()||isAdminDelegate()|| (isPlatformAdminDelegateRole()&&!!currentOrganizationId());
+    if(!permitted)return requireAdminUI('Private Angebote');
+    if(!currentOrganizationId()){alert('Bitte zuerst einen Mandanten auswählen.');return;}
+    setTimeout(()=>dsPrivateOffersMount(),0);
+  }
+  
  if(id==='sopServices'){setTimeout(()=>slLoad(),0);}
 
  if(id==='operations'){setTimeout(()=>opsLoad(),0);}
@@ -40622,6 +40633,20 @@ async function dsIntakeSubmit(){
  }catch(e){dsIntakeFeedback('Speichern fehlgeschlagen: '+(e.message||e));if(b)b.disabled=false;}
  finally{dsIntakeState.busy=false;}
 }
+</script>
+<script type="module">
+import {mountPrivateOffers} from './private-offers-module.js';
+window.dsPrivateOffersMount=()=>{
+ const organizationId=currentOrganizationId();
+ const root=document.getElementById('privateOffersRoot');
+ if(!root||!organizationId)return;
+ const rpc=async(name,args)=>{
+   try{return {data:await cloudRequest('rpc/'+name,{method:'POST',body:JSON.stringify(args)}),error:null};}
+   catch(error){return {data:null,error};}
+ };
+ try{window.dsPrivateOffersInstance?.destroy();window.dsPrivateOffersInstance=mountPrivateOffers({root,supabase:{rpc},organizationId});}
+ catch(error){root.textContent='Angebotsverwaltung konnte nicht gestartet werden: '+error.message;}
+};
 </script>
 </body>
 </html>
