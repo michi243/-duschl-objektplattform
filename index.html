@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<!-- CURRENT RELEASE 3.55.4 · Mitbetroffenheit im Arbeitsfilter als kontrastreiches, barrierearm gestaltetes Aufmerksamkeitspanel mit sofort erkennbarer Personenzahl. -->
 <!-- CURRENT RELEASE 3.55.3 · Mitbetroffenheit jederzeit erkennbar: autorisierte Zähler v2, zusätzlicher Betroffenheits-Hinweis auch bei ausgefilterter intern übernommener Meldung, Filter, automatische Aktualisierung. -->
 <!-- CURRENT RELEASE 3.55.2 · Betroffenheit mit Anzahl der Mitbetroffenen dauerhaft sichtbar in der Hauptkarte der Bewohnermeldungen; auch 0 und Ladefehler klar ausgewiesen. -->
 <!-- CURRENT RELEASE 3.55.1 · Transparente Datenschutzhinweise bei „Betrifft mich auch“ und Privatanfragen; Pflichtfeld-Legende ergänzt. -->
@@ -3135,10 +3136,35 @@ border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--sh
 .resident-report-impact strong{color:var(--text);font-size:15px}
 .resident-report-impact.has-supporters{background:rgba(231,184,60,.12);border-color:rgba(231,184,60,.38)}
 .resident-report-impact.has-supporters strong{color:#f2d36d}
-.resident-report-extra-notice{border:1px solid rgba(231,184,60,.4)!important;background:rgba(231,184,60,.08)!important}
-.resident-report-extra-notice .resident-report-extra-entry{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 0;border-top:1px solid rgba(231,184,60,.18)}
-.resident-report-extra-notice .resident-report-extra-entry:first-of-type{margin-top:10px}
-.resident-report-extra-notice button{white-space:normal;min-height:40px}
+/* 3.55.4: Wahrnehmbarer Signalbereich – Aufmerksamkeit ohne automatische Dringlichkeit */
+.resident-report-extra-notice{
+  border:1px solid rgba(240,204,115,.68)!important;
+  border-left:5px solid #F0CC73!important;
+  background:linear-gradient(120deg,rgba(240,204,115,.16),rgba(240,204,115,.075) 42%,#0d2331 100%)!important;
+  box-shadow:0 6px 22px rgba(0,0,0,.16),0 0 0 1px rgba(240,204,115,.08)!important;
+  padding:18px 20px!important;
+}
+.resident-report-extra-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.resident-report-extra-title{display:flex;align-items:center;gap:11px;color:#FFDF91;font-size:21px;font-weight:850;line-height:1.25}
+.resident-report-extra-title-marker{display:grid;place-items:center;flex:none;width:30px;height:30px;border-radius:9px;background:#E7B83C;color:#101D29;font-size:18px;font-weight:900}
+.resident-report-extra-summary{margin:7px 0 0;color:#C8D5DC;line-height:1.45;font-size:14px}
+.resident-report-extra-counter{flex:none;align-self:center;border:1px solid rgba(240,204,115,.42);background:rgba(240,204,115,.14);color:#FFDF91;padding:7px 11px;border-radius:999px;font-size:13px;font-weight:750}
+.resident-report-extra-notice .resident-report-extra-entry{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:13px 0;border-top:1px solid rgba(240,204,115,.28)}
+.resident-report-extra-notice .resident-report-extra-entry:first-of-type{margin-top:13px}
+.resident-report-extra-name{flex:1 1 220px;min-width:170px}
+.resident-report-extra-name>strong{display:block;font-size:17px;margin-bottom:3px}
+.resident-report-extra-impact{display:flex;flex-direction:column;gap:2px;align-items:flex-start;min-width:175px;color:#DCE3EA;font-size:14px}
+.resident-report-extra-impact strong{color:#FFE4A0;font-size:18px;line-height:1.2}
+.resident-report-extra-notice button{white-space:normal;min-height:42px;border:1px solid #F0CC73!important;background:rgba(240,204,115,.14)!important;color:#FFE4A0!important;font-weight:800!important}
+.resident-report-extra-notice button:hover,.resident-report-extra-notice button:focus-visible{background:rgba(240,204,115,.26)!important;outline-offset:2px}
+@media(max-width:620px){
+ .resident-report-extra-notice{padding:15px!important}
+ .resident-report-extra-title{font-size:18px}
+ .resident-report-extra-counter{align-self:flex-start}
+ .resident-report-extra-name{flex-basis:100%}
+ .resident-report-extra-impact{flex:1}
+ .resident-report-extra-notice button{flex:1 1 100%}
+}
 
 
 
@@ -12599,7 +12625,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.55.3';
+const APP_VERSION='3.55.4';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -29346,18 +29372,24 @@ function renderResidentReports(){
       .filter(r=>!['closed','completed','rejected'].includes(String(r.status||'')))
       .filter(r=>Number(r.supporter_count)>0&&!visibleIds.has(r.id));
     highlightsBox.style.display=hiddenWithSupport.length?'block':'none';
-    highlightsBox.innerHTML=hiddenWithSupport.length?`<div class="card resident-report-extra-notice">
-      <strong>Weitere betroffene Bewohner</strong>
-      <div class="muted" style="margin-top:5px">Diese Meldungen haben zusätzliche Betroffene, sind aber durch den aktuellen Arbeitsstatus ausgefiltert.</div>
+    highlightsBox.innerHTML=hiddenWithSupport.length?`<section class="card resident-report-extra-notice" role="region" aria-label="Meldungen mit weiteren betroffenen Bewohnern">
+      <div class="resident-report-extra-header">
+        <div>
+          <div class="resident-report-extra-title"><span class="resident-report-extra-title-marker" aria-hidden="true">!</span><span>Weitere betroffene Bewohner</span></div>
+          <div class="resident-report-extra-summary">Bei diesen Vorgängen haben sich weitere Bewohner angeschlossen. Die Meldungen sind im aktuellen Arbeitsstatus ausgeblendet.</div>
+        </div>
+        <span class="resident-report-extra-counter">${hiddenWithSupport.length} ${hiddenWithSupport.length===1?'Meldung':'Meldungen'} mit zusätzlichen Betroffenen</span>
+      </div>
       ${hiddenWithSupport.map(r=>{
         const object=(db.objects||[]).find(o=>o.id===r.object_id);
         const impact=residentReportSupportInfo(r);
         return `<div class="resident-report-extra-entry">
-          <div><strong>${esc(r.category||'Meldung')}</strong><div class="muted">${esc(object?.name||'Objekt')} · ${esc(r.report_no||'')}</div><div>${esc(impact.title)} · ${esc(impact.subtitle)}</div></div>
-          <button type="button" onclick="showResidentSupportReport('${esc(r.id)}')">Meldung anzeigen</button>
+          <div class="resident-report-extra-name"><strong>${esc(r.category||'Meldung')}</strong><div class="muted">${esc(object?.name||'Objekt')} · ${esc(r.report_no||'')}</div></div>
+          <div class="resident-report-extra-impact"><strong>${esc(impact.title)}</strong><span>${esc(impact.subtitle)}</span></div>
+          <button type="button" onclick="showResidentSupportReport('${esc(r.id)}')">Meldung anzeigen →</button>
         </div>`;
       }).join('')}
-    </div>`:'';
+    </section>`:'';
   }
 
   const mediaLoadError=list.dataset.mediaLoadError||'';
