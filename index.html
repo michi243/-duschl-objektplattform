@@ -403,7 +403,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.48.1</title>
+<title>Duschl Service – Objektplattform v3.48.2</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -12373,7 +12373,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.48.1';
+const APP_VERSION='3.48.2';
 const APP_RELEASE_DATE='07.10.2026';
 const APP_RELEASE_TIME='19:12'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -37576,11 +37576,60 @@ function opsShowEmailConfirmation({recipient='',reason='',message=''}={}){
   modal.style.display='flex';
 }
 
+function opsNotificationDeliveryLabel(row){
+  if(!row)return 'Kein Versandnachweis gefunden';
+  const state=String(row.delivery_status||'').toLowerCase();
+  if(state==='sent')return 'Versendet'+(row.sent_at?' · '+new Date(row.sent_at).toLocaleString('de-DE'):'');
+  if(['failed','error','dead','cancelled'].includes(state))return 'Fehlgeschlagen'+(row.detail?' · '+row.detail:'');
+  return 'In Bearbeitung ('+(state||'eingereiht')+')';
+}
+function opsShowReassignmentConfirmation({previous='',next='',previousRow=null,nextRow=null,reason='',error=''}={}){
+  let modal=document.getElementById('opsEmailConfirmModal');
+  if(!modal){modal=document.createElement('div');modal.id='opsEmailConfirmModal';modal.className='modal ops-email-confirm-modal';document.body.appendChild(modal);}
+  const status=(row,expected)=>!expected?'Nicht erforderlich':opsNotificationDeliveryLabel(row);
+  const failed=!!error||[previousRow,nextRow].some(r=>r&&['failed','error','dead','cancelled'].includes(String(r.delivery_status||'').toLowerCase()));
+  modal.innerHTML=`<div class="ops-email-confirm-card" role="dialog" aria-modal="true" aria-label="Tourbenachrichtigungen">
+    <div class="ops-email-confirm-icon" style="background:${failed?'#5a3224':'#183c50'}">${failed?'!':'i'}</div>
+    <h3>Benachrichtigungen zum Verantwortlichenwechsel</h3>
+    <div class="muted">Die Statuswerte stammen aus der Versandhistorie. „Eingereiht“ bedeutet nicht „zugestellt“.</div>
+    <div class="ops-email-confirm-meta">
+      <div><strong>Bisheriger Mitarbeiter – Entzug:</strong><div>${opsEsc(previous||'Kein bisheriger Verantwortlicher')}</div><div>${opsEsc(status(previousRow,!!previous))}</div></div>
+      <div style="margin-top:12px"><strong>Neuer Mitarbeiter – Zuweisung:</strong><div>${opsEsc(next||'Kein neuer Verantwortlicher')}</div><div>${opsEsc(status(nextRow,!!next))}</div></div>
+      <div style="margin-top:12px"><strong>Anlass:</strong> ${opsEsc(reason||'Verantwortlicher geändert')}</div>
+      <div><strong>Prüfung:</strong> ${opsEsc(new Date().toLocaleString('de-DE'))}</div>
+      ${error?`<div style="color:#ffb3ad"><strong>Hinweis:</strong> ${opsEsc(error)}</div>`:''}
+    </div><div class="row" style="justify-content:flex-end;margin-top:12px"><button class="primary" type="button" onclick="document.getElementById('opsEmailConfirmModal').style.display='none'">Schließen</button></div>
+  </div>`;
+  modal.style.display='flex';
+}
+async function opsShowReassignmentDeliveryResult(runId,previousUserId,newUserId,reason,queueResult){
+  const userName=(id)=>{
+    if(!id)return '';
+    const u=(opsState.users||[]).find(x=>String(x.id)===String(id));
+    return u?.full_name||u?.name||u?.email||'Benutzer '+String(id).slice(0,8);
+  };
+  let rows=[],error='';
+  try{
+    rows=await cloudRequest('rpc/get_operation_run_reassignment_delivery_status_v1',{
+      method:'POST',body:JSON.stringify({p_run_id:runId,p_previous_user_id:previousUserId||null,p_new_user_id:newUserId||null})
+    });
+  }catch(e){error='Versandstatus derzeit nicht abrufbar: '+(e.message||e);}
+  rows=Array.isArray(rows)?rows:[];
+  const previousRow=rows.find(x=>x.recipient_role==='previous')||null;
+  const nextRow=rows.find(x=>x.recipient_role==='new')||null;
+  if(newUserId&&!queueResult?.delivery_created&&!nextRow)error+=(error?' · ':'')+'Neue Zuweisungs-E-Mail nicht bestätigt.';
+  opsShowReassignmentConfirmation({
+    previous:previousRow?.recipient_email||userName(previousUserId),
+    next:nextRow?.recipient_email||queueResult?.recipient_email||userName(newUserId),
+    previousRow,nextRow,reason,error
+  });
+}
+
 function showTourEmailConfirmation(data={}){
   return opsShowEmailConfirmation(data);
 }
 
-async function opsQueueRunAssignmentNotification(runId,{silent=true,changeReason=null}={}){
+async function opsQueueRunAssignmentNotification(runId,{silent=true,changeReason=null,showConfirmation=true}={}){
   if(!runId||!opsIsPlanningRole())return null;
   try{
     const rows=await cloudRequest('rpc/queue_operation_run_assignment_notification_v4',{
@@ -37598,7 +37647,7 @@ async function opsQueueRunAssignmentNotification(runId,{silent=true,changeReason
 
       // Nutzeranforderung: Bei JEDER erfolgreich eingeplanten Mail
       // sichtbar ein Bestätigungsfeld öffnen.
-      opsShowEmailConfirmation({
+      if(showConfirmation)opsShowEmailConfirmation({
         recipient:result.recipient_email||'',
         reason:result.change_reason||changeReason||'Tour aktualisiert',
         message:result.message||''
@@ -37649,13 +37698,14 @@ async function opsAssignRun(runId,userId){
     opsRender();
     objectManagerTourDashboardState.loaded=false;
 
-    if(userId && String(userId)!==previousAssignee){
-      await opsQueueRunAssignmentNotification(runId,{
-        silent:false,
-        changeReason:temporaryGrant
-          ? 'Verantwortlicher geändert · temporäre Einsatzberechtigung durch Tour'
-          : 'Verantwortlicher geändert'
-      });
+    if(String(userId||'')!==previousAssignee){
+      const reason=temporaryGrant
+        ? 'Verantwortlicher geändert · temporäre Einsatzberechtigung durch Tour'
+        : userId ? 'Verantwortlicher geändert' : 'Zuweisung aufgehoben';
+      const queueResult=userId?await opsQueueRunAssignmentNotification(runId,{
+        silent:true,changeReason:reason,showConfirmation:false
+      }):null;
+      await opsShowReassignmentDeliveryResult(runId,previousAssignee,userId||null,reason,queueResult);
     }
   }catch(e){
     alert('Tour konnte nicht zugewiesen werden: '+(e.message||e));
