@@ -7430,7 +7430,7 @@ body.or-wizard-open{overflow:hidden!important}
   <h2 class="public-report-step-title">Was möchten Sie melden?</h2>
   <div class="public-report-step-copy">Wählen Sie zuerst den passenden Themenbereich. So gelangt Ihre Meldung schneller an die richtige Stelle.</div>
   <div id="prContext" class="public-report-object-chip" style="display:none"></div>
-  <input id="prCategory" type="hidden" value="">
+  <input id="prCategory" type="hidden" value=""><section id="prDuplicates" style="display:none;margin:16px 0;padding:14px;border:1px solid #abc;border-radius:12px" aria-live="polite"><strong>Bereits gemeldete Probleme in dieser Kategorie</strong><p class="muted">Prüfen Sie, ob Ihr Problem bekannt ist. Sie können sich anschließen oder eine eigene Meldung erstellen.</p><div id="prDuplicateList"></div><div id="prDuplicateJoin" style="display:none"><strong>Dieses Problem betrifft mich auch</strong><label for="prDupName">Ihr Name *</label><input id="prDupName" maxlength="120"><label for="prDupEmail">E-Mail für Abschlussnachricht (optional)</label><input id="prDupEmail" type="email"><label style="display:flex;gap:8px"><input id="prDupConsent" type="checkbox" style="width:auto"> Ich stimme der Verarbeitung meiner Angaben zu. *</label><button type="button" class="primary" onclick="submitPublicDuplicateSupport()">Als betroffen melden</button><button type="button" onclick="cancelPublicDuplicateSupport()">Abbrechen</button><div id="prDupFeedback" role="status"></div></div></section>
 
   <div class="public-report-main-category-grid" id="prCategoryGrid">
     <button type="button" class="public-report-main-category" aria-pressed="false" data-group="technical" onclick="selectPublicReportMainCategory(this)">
@@ -12500,7 +12500,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.51.5';
+const APP_VERSION='3.52.0';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -13166,6 +13166,35 @@ async function sendUserMessage(){
   }
 }
 
+
+let publicDupId='',publicDupSerial=0;
+async function refreshPublicDuplicateReports(){
+ const category=String(document.getElementById('prCategory')?.value||'').trim();
+ const panel=document.getElementById('prDuplicates'),list=document.getElementById('prDuplicateList');
+ if(!panel||!list)return;
+ const serial=++publicDupSerial;cancelPublicDuplicateSupport();
+ if(!category||!publicResidentObjectId){panel.style.display='none';return;}
+ panel.style.display='block';list.textContent='Offene Meldungen werden geprüft …';
+ try{
+  const res=await fetch(SUPABASE_URL+'/rest/v1/rpc/list_public_open_reports_v1',{method:'POST',headers:{apikey:SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_object_id:publicResidentObjectId,p_category:category})});
+  if(!res.ok)throw Error('Abfrage fehlgeschlagen');
+  const rows=await res.json();if(serial!==publicDupSerial)return;
+  list.innerHTML=rows.length?rows.map(r=>`<article class="card" style="margin:8px 0;padding:10px"><strong>${esc(r.problem_type||r.category)}</strong><div class="muted">Bereich: ${esc(r.area_name||'Unbekannt')} · ${esc(r.public_status||'Offen')}</div><button type="button" onclick="openPublicDuplicateSupport('${esc(r.report_id)}')">Betrifft mich auch</button></article>`).join(''):'<div class="muted">Keine offenen Meldungen in dieser Kategorie.</div>';
+ }catch(e){if(serial===publicDupSerial)list.textContent='Abfrage gerade nicht verfügbar. Eine eigene Meldung bleibt möglich.';}
+}
+function openPublicDuplicateSupport(id){if(!validUuid(id))return;publicDupId=id;document.getElementById('prDuplicateJoin').style.display='block';}
+function cancelPublicDuplicateSupport(){publicDupId='';const el=document.getElementById('prDuplicateJoin');if(el)el.style.display='none';}
+async function submitPublicDuplicateSupport(){
+ const out=document.getElementById('prDupFeedback'),name=String(document.getElementById('prDupName')?.value||'').trim(),email=String(document.getElementById('prDupEmail')?.value||'').trim(),consent=!!document.getElementById('prDupConsent')?.checked;
+ if(!publicDupId||name.length<2||!consent){out.textContent='Bitte Name und Zustimmung angeben.';return;}
+ if(email&&!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)){out.textContent='E-Mail-Adresse ungültig.';return;}
+ out.textContent='Wird gespeichert …';
+ try{
+  const res=await fetch(SUPABASE_URL+'/rest/v1/rpc/support_public_report_v1',{method:'POST',headers:{apikey:SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_object_id:publicResidentObjectId,p_report_id:publicDupId,p_name:name,p_email:email||null,p_consent:true})});
+  if(!res.ok)throw Error('Zuordnung fehlgeschlagen.');await res.json();
+  document.getElementById('publicReportFormWrap').innerHTML='<div class="public-report-success"><strong>Vielen Dank!</strong><p>Sie wurden zur bestehenden Meldung als betroffen hinzugefügt. Eine zweite Meldung wurde nicht erzeugt.</p><button type="button" onclick="startAnotherPublicResidentReport()">Anderes Problem melden</button></div>';
+ }catch(e){out.textContent=e.message||'Bitte erneut versuchen.';}
+}
 let publicResidentReportMode=false;
 let publicResidentObjectId='';
 let publicResidentAreaId='';
@@ -13271,6 +13300,7 @@ function selectPublicReportMainCategory(btn){
 
   publicReportMessage('');
   refreshPublicReportSummary();
+  void refreshPublicDuplicateReports();
 }
 
 function selectPublicReportCategory(btn){
@@ -13291,6 +13321,7 @@ function selectPublicReportCategory(btn){
 
   publicReportMessage('');
   refreshPublicReportSummary();
+  void refreshPublicDuplicateReports();
 }
 
 function publicReportAreaName(){
