@@ -403,7 +403,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.50.3</title>
+<title>Duschl Service – Objektplattform v3.50.4</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -7395,6 +7395,13 @@ body.or-wizard-open{overflow:hidden!important}
 #appMenu .ds-menu-identity-role-key{color:#a9becd;}
 #appMenu .ds-menu-identity-platform{color:#a9becd;font-size:11px;overflow-wrap:anywhere;}
 </style>
+
+<style id="gf-shared-work-v3504">
+.gf-operator-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0 18px}
+.gf-operator-stat{min-width:0;padding:16px;border:1px solid #385164;border-radius:14px;background:#10293b;display:flex;flex-direction:column;gap:6px}
+.gf-work-group-heading{font-size:17px;margin:24px 0 10px;color:#f0f7fc;border-bottom:1px solid #2d495b;padding-bottom:8px}.gf-operator-stat b{font-size:15px;color:#eef5f9}.gf-operator-stat strong{font-size:27px;color:#fff}.gf-operator-stat small{color:#a9bac7;line-height:1.35}
+@media(max-width:720px){.gf-operator-overview{grid-template-columns:1fr}.gf-operator-stat{padding:12px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center}.gf-operator-stat small{grid-column:1/-1}}
+</style>
 </head>
 <body class="role-context-loading">
 <div id="roleContextLoader" aria-live="polite" aria-busy="true">
@@ -12488,7 +12495,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.50.3';
+const APP_VERSION='3.50.4';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -23415,8 +23422,7 @@ function internalFindingIsConcreteWork(f,task){
 
 function gfTaskKpis(items){
   const open=(items||[]).filter(t=>{
-    if(t.findingStatus==='Erledigt')return false;
-    if(t.hasTask)return !['completed','cancelled'].includes(String(t.status||''));
+    if(t.hasTask)return !['completed','cancelled'].includes(String(t.status||'').toLowerCase());
     return t.concreteWork===true;
   });
   const activeTasks=open.filter(t=>t.hasTask && !['completed','cancelled'].includes(String(t.status||'')));
@@ -23742,20 +23748,11 @@ function externalWorkQueueItemHtml(x){
     </div>
   </div>`;
 }
-function renderWorkQueue(){
+// Gemeinsame Quelle für Dashboard und Arbeitsvorrat – identische Sichtbarkeits- und Statusregeln.
+function gfCollectOperationalWorkItems(){
   const externalFindingIds=externallyRoutedFindingIdsForCurrentTenant();
   const thirdPartyFindingIds=thirdPartyFindingIdsForCurrentTenant();
   const pendingReviewFindingIds=pendingExternalReviewFindingIds();
-  if(!canUseWorkQueueUI()){
-    const host=document.getElementById('workqueueList')||document.getElementById('gfWorkQueue');
-    if(host)host.innerHTML='<div class="empty">Für diese Rolle nicht freigegeben.</div>';
-    return;
-  }
-  const root=document.getElementById('workQueue')||document.getElementById('workQueueList');
-  if(!root)return;
-
-  const current=gfWorkFilters();
-  const quick=gfWorkQuickFilter;
   const tasks=(db.tasks||[]).map(t=>({...t}));
   const taskByFinding=new Map(tasks.filter(t=>t.findingId).map(t=>[t.findingId,t]));
 
@@ -23773,6 +23770,7 @@ function renderWorkQueue(){
         objectId:f.objectId,
         title:task?.title||f.title||'Dokumentation',
         status:task?.status||'',
+        ownerId:task?.ownerId||null,
         decisionStatus:f.decisionStatus||(f.decisionRequired===false?'not_required':'pending'),
         implementationResponsibility:f.decisionImplementation||'',
         dueDate:task?.dueDate||f.workDueDate||'',
@@ -23789,7 +23787,7 @@ function renderWorkQueue(){
       };
     });
 
-  const workItems=items.filter(t=>t.concreteWork===true || (t.hasTask && !['completed','cancelled'].includes(String(t.status||''))));
+  const workItems=items.filter(t=>t.concreteWork===true || (t.hasTask && !['completed','cancelled'].includes(String(t.status||'').toLowerCase())));
 
   // Sichtbare Tasks dürfen nicht verschwinden, nur weil die zugrunde liegende
   // Feststellung für den operativen Benutzer nicht Teil der Dokumentationssicht ist.
@@ -23817,6 +23815,30 @@ function renderWorkQueue(){
     }));
 
   const allWorkItems=[...workItems,...directTaskOnly];
+  return allWorkItems;
+}
+function gfOperationalOpenWorkItems(){
+  return gfCollectOperationalWorkItems().filter(t=>{
+    const activeTask=t.hasTask&&!['completed','cancelled'].includes(String(t.status||'').toLowerCase());
+    return activeTask || (!t.hasTask && t.concreteWork===true);
+  });
+}
+
+function renderWorkQueue(){
+  const externalFindingIds=externallyRoutedFindingIdsForCurrentTenant();
+  const thirdPartyFindingIds=thirdPartyFindingIdsForCurrentTenant();
+  const pendingReviewFindingIds=pendingExternalReviewFindingIds();
+  if(!canUseWorkQueueUI()){
+    const host=document.getElementById('workqueueList')||document.getElementById('gfWorkQueue');
+    if(host)host.innerHTML='<div class="empty">Für diese Rolle nicht freigegeben.</div>';
+    return;
+  }
+  const root=document.getElementById('workQueue')||document.getElementById('workQueueList');
+  if(!root)return;
+
+  const current=gfWorkFilters();
+  const quick=gfWorkQuickFilter;
+  const allWorkItems=gfCollectOperationalWorkItems();
   // Abgeschlossene Aufgaben standardmäßig ausblenden; auf Wunsch sichtbar.
   const showDone=window.gfShowCompletedWork===true;
   const k=gfTaskKpis(allWorkItems);
@@ -23852,8 +23874,8 @@ function renderWorkQueue(){
     // Ohne explizite Filter ausschließlich konkrete Arbeit.
     // Offene Entscheidungen bleiben unter „Offene Punkte“ / „Entscheidungen“.
     if(!current.status && !current.decision){
-      if(t.findingStatus==='Erledigt')return false;
-      const activeTask=t.hasTask && !['completed','cancelled'].includes(String(t.status||''));
+      const activeTask=t.hasTask && !['completed','cancelled'].includes(String(t.status||'').toLowerCase());
+      if(t.findingStatus==='Erledigt' && !activeTask)return false;
       if(!activeTask && t.concreteWork!==true)return false;
     }
 
@@ -23866,6 +23888,16 @@ function renderWorkQueue(){
     );
   });
 
+  // Drei Arbeitsbereiche; Anordnung ändert keine Berechtigung oder Übernahmefreigabe.
+  const myUserId=String(cloudSession?.user?.id||'');
+  const workGroup=t=>{
+    if(myUserId&&String(t.ownerId||'')===myUserId)return 0;
+    if(!t.ownerId && ((t.source==='internal' && t.hasTask && ['planned','open'].includes(String(t.status||'').toLowerCase())) ||
+      (!t.hasTask && ['approved','not_required'].includes(String(t.decisionStatus||'')))))return 1;
+    return 2;
+  };
+  filtered.sort((a,b)=>workGroup(a)-workGroup(b));
+  const groupTitles=['Meine Aufgaben','Zur Übernahme verfügbar','Weitere offene Vorgänge meiner Objekte'];
   root.innerHTML=`
     <div class="gf-completed-toggle" style="display:flex;justify-content:flex-end;margin:0 0 12px"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" ${showDone?'checked':''} onchange="window.gfShowCompletedWork=this.checked;renderWorkQueue()"> Erledigte anzeigen</label></div>
     <div class="gf-kpis">
@@ -23910,9 +23942,14 @@ function renderWorkQueue(){
       <button type="button" class="secondary" onclick="resetGFWorkFilters()">Filter zurücksetzen</button>
     </div>
 
+    <div class="gf-operator-overview" aria-label="Operative Aufgabenübersicht">
+      <div class="gf-operator-stat"><b>Meine Aufgaben</b><strong>${gfOperationalOpenWorkItems().filter(t=>String(t.ownerId||'')===String(cloudSession?.user?.id||'')).length}</strong><small>Persönlich zugewiesen oder übernommen</small></div>
+      <div class="gf-operator-stat"><b>Offene Vorgänge meiner Objekte</b><strong>${consolidatedOpenCount}</strong><small>Alle sichtbaren offenen Arbeiten</small></div>
+      <div class="gf-operator-stat"><b>Zur Übernahme verfügbar</b><strong>${gfOperationalOpenWorkItems().filter(t=>!t.ownerId&&!t.hasTask&&['approved','not_required'].includes(t.decisionStatus)).length+gfOperationalOpenWorkItems().filter(t=>t.source==='internal'&&!t.ownerId&&['planned','open'].includes(t.status)).length}</strong><small>Nur unzugewiesene, vorbehaltlich Freigabeprüfung</small></div>
+    </div>
     <div class="gf-worklist">
       ${incomingExternal.map(externalWorkQueueItemHtml).join('')}
-      ${filtered.length ? filtered.map(t=>{
+      ${filtered.length ? filtered.map((t,index)=>{
         const f=(db.findings||[]).find(x=>x.id===t.findingId)||{};
         const o=(db.objects||[]).find(x=>x.id===t.objectId)||{};
         const taskOnly=t.sourceType==='task_only';
@@ -23949,6 +23986,7 @@ function renderWorkQueue(){
         );
 
         return `
+          ${index===0 || workGroup(filtered[index-1])!==workGroup(t) ? `<h3 class="gf-work-group-heading">${groupTitles[workGroup(t)]}</h3>` : ''}
           <div class="gf-workitem ${overdue?'is-overdue is-critical':(t.hasTask?'is-action':'is-attention')}">
             <div class="gf-workhead">
               <div>
@@ -27612,14 +27650,7 @@ function renderDashboard(){
   const thirdPartyFindingIdsForKpi=thirdPartyFindingIdsForCurrentTenant();
   const taskMapForKpi=new Map((db.tasks||[]).filter(t=>t.findingId).map(t=>[t.findingId,t]));
   const pendingReviewFindingIdsForKpi=pendingExternalReviewFindingIds();
-  const internalOpenWorkCount=(db.findings||[])
-    .filter(f=>!externalFindingIdsForKpi.has(String(f.id||'')))
-    .filter(f=>!thirdPartyFindingIdsForKpi.has(String(f.id||'')))
-    .filter(f=>!pendingReviewFindingIdsForKpi.has(String(f.id||'')))
-    .filter(f=>(f.type||'Feststellung')==='Feststellung')
-    .filter(f=>hasOperationalAdminAccess()||currentUserOwnsOperationalObject(f.objectId))
-    .filter(f=>internalFindingIsConcreteWork(f,taskMapForKpi.get(f.id)))
-    .length;
+  const internalOpenWorkCount=gfOperationalOpenWorkItems().length;
   const openWorkCount=internalOpenWorkCount+incomingExternalWorkOrders().length;
   const workKpi=document.getElementById('kpiWorkQueue');
   if(workKpi)workKpi.textContent=openWorkCount;
