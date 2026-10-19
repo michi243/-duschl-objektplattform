@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<!-- CURRENT RELEASE 3.55.9 · Betriebsmittel-Kategorie: Select statt filterndem Datalist, freie und historische Kategorieeinträge bleiben erhalten. -->
 <!-- CURRENT RELEASE 3.55.8 · Objektbetreuer: separate Meldungen-KPI im Dashboard ausgeblendet; Meldungen weiterhin per Menü und priorisierter Hauptaktion erreichbar. -->
 <!-- CURRENT RELEASE 3.55.7 · Objektbetreuer erhalten keine zusätzliche Meldungs-Schnellkachel; Meldungen bleiben über Hauptaktion und Menü erreichbar. -->
 <!-- CURRENT RELEASE 3.55.6 · Objektbetreuer-Dashboard ohne doppelte Meldungs-Schnellaktion; Privatanfragen-/Angebotsmenü ausschließlich für administrative Rollen sichtbar. -->
@@ -9650,11 +9651,19 @@ WINTERDIENST RÄUMKARTE
       <summary>Weitere Angaben</summary>
       <div class="grid2" style="margin-top:12px">
         <label>Kategorie
-          <input id="orCategory" list="orCategorySuggestions" placeholder="z. B. Winterdienst, Grünpflege">
+          <select id="orCategory" onchange="orCategorySelectionChanged()">
+            <option value="">Keine Kategorie</option>
+            <option value="Winterdienst">Winterdienst</option>
+            <option value="Grünpflege">Grünpflege</option>
+            <option value="Reinigung">Reinigung</option>
+            <option value="Transport">Transport</option>
+            <option value="Haustechnik">Haustechnik</option>
+            <option value="__custom__">Andere Kategorie eingeben …</option>
+          </select>
         </label>
-        <datalist id="orCategorySuggestions">
-          <option value="Winterdienst"></option><option value="Grünpflege"></option><option value="Reinigung"></option><option value="Transport"></option><option value="Haustechnik"></option>
-        </datalist>
+        <label id="orCategoryCustomWrap" class="hidden">Eigene Kategorie
+          <input id="orCategoryCustom" type="text" maxlength="80" placeholder="Kategorie frei eingeben">
+        </label>
         <label>Einheit
           <input id="orUnit" placeholder="z. B. kg, l, Stk.">
         </label>
@@ -12651,7 +12660,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.55.8';
+const APP_VERSION='3.55.9';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='20:10'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -22054,6 +22063,34 @@ function orCloseAllWorkspacePanels(){
 }
 
 
+/* 3.55.9: Ein Select zeigt stets alle Kategorien unabhängig von der aktuellen Wahl.
+   Bestehende freie Kategorien werden beim Bearbeiten unverändert übernommen. */
+function orCategorySelectionChanged(){
+  const select=document.getElementById('orCategory');
+  const custom=document.getElementById('orCategoryCustom');
+  const wrap=document.getElementById('orCategoryCustomWrap');
+  const isCustom=select?.value==='__custom__';
+  wrap?.classList.toggle('hidden',!isCustom);
+  if(!isCustom && custom)custom.value='';
+  if(isCustom)custom?.focus();
+}
+function orSetCategoryValue(value){
+  const select=document.getElementById('orCategory');
+  const custom=document.getElementById('orCategoryCustom');
+  const wrap=document.getElementById('orCategoryCustomWrap');
+  if(!select)return;
+  const v=String(value||'').trim();
+  const preset=Array.from(select.options).some(o=>o.value===v && v!=='__custom__');
+  select.value=preset?v:'__custom__';
+  if(custom)custom.value=preset?'':v;
+  wrap?.classList.toggle('hidden',preset);
+}
+function orGetCategoryValue(){
+  const select=document.getElementById('orCategory');
+  if(select?.value==='__custom__')return String(document.getElementById('orCategoryCustom')?.value||'').trim();
+  return String(select?.value||'').trim();
+}
+
 let orWizardStep=1;
 
 function orWizardBackdrop(open){
@@ -22102,6 +22139,7 @@ function orWizardReviewHtml(){
   const mode=val('orTrackingMode');
   const rows=[
     ['Bezeichnung',val('orName')||'—'],
+    ['Kategorie',orGetCategoryValue()||'—'],
     ['Art',document.getElementById('orKind')?.selectedOptions?.[0]?.textContent||'—'],
     ['Hersteller / Modell',[val('orManufacturer'),val('orModel')].filter(Boolean).join(' ')||'—'],
     ['Erfassung',document.getElementById('orTrackingMode')?.selectedOptions?.[0]?.textContent||'—'],
@@ -22188,6 +22226,7 @@ function orResetEditor(){
   operatingResourcesState.selected=null;
   const vals={orEditId:'',orSavedLocationId:'',orName:'',orKind:'equipment',orCategory:'',orTrackingMode:'individual',orInventoryNumber:'',orSerialNumber:'',orManufacturer:'',orModel:'',orPurchaseDate:'',orAcquisitionCostNet:'',orQuantity:'1',orUnit:'',orStatus:'available',orLocationType:'warehouse',orObjectId:'',orLocationText:'',orNotes:'',orLabelNote:'',orCriticalStock:'0',orMinimumStock:'',orTargetStock:''};
   Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
+  orSetCategoryValue('');
   const pr=document.getElementById('orPlanningRelevant');if(pr)pr.checked=true;
   const title=document.getElementById('orEditorTitle');if(title)title.textContent='Betriebsmittel anlegen';
   const btn=document.getElementById('orDeactivateBtn');if(btn)btn.classList.add('hidden');
@@ -22204,6 +22243,7 @@ function orEditResource(id){
   const quantityMode=r.tracking_mode==='quantity';
   const vals={orEditId:r.id||'',orSavedLocationId:quantityMode?'':(r.current_location_id||''),orName:r.name||'',orKind:r.resource_kind||'equipment',orCategory:r.category||'',orTrackingMode:r.tracking_mode||'individual',orInventoryNumber:r.inventory_number||'',orSerialNumber:r.serial_number||'',orManufacturer:r.manufacturer||'',orModel:r.model||'',orPurchaseDate:r.purchase_date||'',orAcquisitionCostNet:r.acquisition_cost_net??'',orQuantity:r.quantity??0,orUnit:r.unit||'',orStatus:r.status||'available',orLocationType:quantityMode?'warehouse':(r.current_location_type||'free_text'),orObjectId:quantityMode?'':(r.current_object_id||''),orLocationText:quantityMode?'':(r.current_location_text||''),orNotes:r.notes||'',orLabelNote:r.label_note||'',orCriticalStock:r.critical_stock??0,orMinimumStock:r.minimum_stock??'',orTargetStock:r.target_stock??''};
   Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
+  orSetCategoryValue(r.category||'');
   const pr=document.getElementById('orPlanningRelevant');if(pr)pr.checked=r.planning_relevant!==false;
   const title=document.getElementById('orEditorTitle');if(title)title.textContent='Betriebsmittel bearbeiten';
   const btn=document.getElementById('orDeactivateBtn');
@@ -22616,7 +22656,7 @@ async function orSaveResource(){
       p_resource_id:document.getElementById('orEditId')?.value||null,
       p_name:name,
       p_resource_kind:document.getElementById('orKind')?.value||'equipment',
-      p_category:String(document.getElementById('orCategory')?.value||'').trim()||null,
+      p_category:orGetCategoryValue()||null,
       p_tracking_mode:mode,
       p_inventory_number:String(document.getElementById('orInventoryNumber')?.value||'').trim()||null,
       p_serial_number:String(document.getElementById('orSerialNumber')?.value||'').trim()||null,
