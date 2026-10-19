@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<!-- CURRENT RELEASE 3.55.5 · Private Bewohneranfragen mit offenen Themenbereichen, dynamischen Beispielen statt enger Leistungsliste und klarem Prüfungsvorbehalt. -->
 <!-- CURRENT RELEASE 3.55.4 · Mitbetroffenheit im Arbeitsfilter als kontrastreiches, barrierearm gestaltetes Aufmerksamkeitspanel mit sofort erkennbarer Personenzahl. -->
 <!-- CURRENT RELEASE 3.55.3 · Mitbetroffenheit jederzeit erkennbar: autorisierte Zähler v2, zusätzlicher Betroffenheits-Hinweis auch bei ausgefilterter intern übernommener Meldung, Filter, automatische Aktualisierung. -->
 <!-- CURRENT RELEASE 3.55.2 · Betroffenheit mit Anzahl der Mitbetroffenen dauerhaft sichtbar in der Hauptkarte der Bewohnermeldungen; auch 0 und Ladefehler klar ausgewiesen. -->
@@ -7505,8 +7506,22 @@ body.or-wizard-open{overflow:hidden!important}
 <div id="residentPrivateInquiry" style="display:none;padding:16px 0">
 <button type="button" onclick="resetResidentInquiryType()">← Zurück zur Auswahl</button>
 <h2>Private Dienstleistungsanfrage</h2><p class="muted">Unverbindliche Anfrage. Es entsteht kein kostenpflichtiger Auftrag. Ein Angebot und Ihre ausdrückliche Annahme sind vor einer Beauftragung erforderlich.</p>
-<label for="rpiCategory">Gewünschte Leistung *</label><select id="rpiCategory"><option value="">Bitte auswählen</option><option>Möbelmontage</option><option>Kleinreparatur</option><option>Garten- oder Terrassenpflege</option><option>Sonstige Dienstleistung</option><option>Unklarer Schaden in der Wohnung</option></select>
-<label for="rpiDescription">Was soll erledigt werden? *</label><textarea id="rpiDescription" maxlength="2000" rows="4" placeholder="Aufgabe, gewünschter Termin und gegebenenfalls besondere Hinweise"></textarea>
+<label for="rpiCategory">Themenbereich *</label>
+<select id="rpiCategory" required aria-required="true" aria-describedby="rpiCategoryHelp" onchange="updateResidentPrivateExamples()">
+<option value="">Bitte auswählen</option>
+<option value="Montage & Einrichtung">Montage & Einrichtung</option>
+<option value="Reparatur & Instandhaltung">Reparatur & Instandhaltung</option>
+<option value="Bad & Sanitär">Bad & Sanitär</option>
+<option value="Garten, Balkon & Terrasse">Garten, Balkon & Terrasse</option>
+<option value="Transport & Entrümpelung">Transport & Entrümpelung</option>
+<option value="Wohnungsbetreuung & Haushalt">Wohnungsbetreuung & Haushalt</option>
+<option value="Schaden & Klärungsbedarf">Schaden & Klärungsbedarf</option>
+<option value="Sonstiges Anliegen">Sonstiges Anliegen</option>
+</select>
+<div id="rpiCategoryHelp" class="public-report-required-note" aria-live="polite" style="margin-top:8px">Wählen Sie einen Themenbereich. Anschließend sehen Sie typische Beispiele.</div>
+<label for="rpiDescription">Was möchten Sie erledigen lassen? *</label>
+<textarea id="rpiDescription" maxlength="2000" rows="4" placeholder="Beschreiben Sie Ihr Anliegen möglichst genau – gewünschte Leistung, Umfang und gegebenenfalls Termin." aria-describedby="rpiRequestScopeNote"></textarea>
+<p class="public-report-required-note" id="rpiRequestScopeNote">Die Beispiele sind unverbindlich und nicht abschließend. Wir prüfen Ihre Anfrage und klären vor einer Beauftragung, ob die Ausführung durch uns oder einen berechtigten Fachbetrieb möglich ist. Mit der Anfrage entsteht kein Auftrag.</p>
 <label for="rpiName">Name *</label><input id="rpiName" maxlength="120" autocomplete="name">
 <label for="rpiEmail">E-Mail</label><input id="rpiEmail" type="email" maxlength="254" autocomplete="email">
 <label for="rpiPhone">Telefon</label><input id="rpiPhone" type="tel" maxlength="80" autocomplete="tel">
@@ -12625,7 +12640,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.55.4';
+const APP_VERSION='3.55.5';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -13325,6 +13340,21 @@ async function submitPublicDuplicateSupport(){
  }catch(e){out.textContent=e.message||'Bitte erneut versuchen.';}
 }
 let residentInquirySending=false;
+const RESIDENT_PRIVATE_EXAMPLES={
+ 'Montage & Einrichtung':'Beispiele: Möbel, Küche, Regale, Gardinenstangen, Duschwand montieren.',
+ 'Reparatur & Instandhaltung':'Beispiele: Türgriffe, Scharniere, klemmende Türen, kleine Beschädigungen.',
+ 'Bad & Sanitär':'Beispiele: Wasserhahn entkalken oder austauschen, Spülkasten reinigen oder prüfen, Duschkopf wechseln.',
+ 'Garten, Balkon & Terrasse':'Beispiele: Rasenpflege, Heckenschnitt, Unkraut, Terrassenreinigung.',
+ 'Transport & Entrümpelung':'Beispiele: Möbel umstellen, Tragehilfe, Keller räumen, Entsorgung.',
+ 'Wohnungsbetreuung & Haushalt':'Beispiele: Briefkasten, Pflanzenpflege, Sichtkontrolle bei Abwesenheit.',
+ 'Schaden & Klärungsbedarf':'Beispiele: Defekt oder Schaden in der Wohnung, Ursache unklar, Prüfung vor Ort.',
+ 'Sonstiges Anliegen':'Beispiele: Individuelle Aufgabe oder mehrere zusammenhängende Arbeiten.'
+};
+function updateResidentPrivateExamples(){
+ const category=document.getElementById('rpiCategory')?.value||'';
+ const help=document.getElementById('rpiCategoryHelp');
+ if(help)help.textContent=RESIDENT_PRIVATE_EXAMPLES[category]||'Wählen Sie einen Themenbereich. Anschließend sehen Sie typische Beispiele.';
+}
 function chooseResidentInquiryType(type){
  const gate=document.getElementById('residentEntryGate'),publicForm=document.getElementById('publicReportFormWrap'),privateForm=document.getElementById('residentPrivateInquiry');
  if(gate)gate.style.display='none';
@@ -13342,7 +13372,7 @@ async function submitResidentPrivateInquiry(){
  const feedback=document.getElementById('rpiFeedback');
  const category=val('rpiCategory'),description=val('rpiDescription'),name=val('rpiName'),email=val('rpiEmail'),phone=val('rpiPhone');
  if(!category||description.length<10||name.length<2||(!email&&!phone)||!document.getElementById('rpiConsent')?.checked){
-  feedback.textContent='Bitte Leistung, Beschreibung (mindestens 10 Zeichen), Namen, Kontakt und Datenschutzzustimmung angeben.';return;
+  feedback.textContent='Bitte Themenbereich, Beschreibung (mindestens 10 Zeichen), Namen, Kontakt und Datenschutzzustimmung angeben.';return;
  }
  if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){feedback.textContent='E-Mail-Adresse ungültig.';return;}
  residentInquirySending=true;feedback.textContent='Ihre Anfrage wird gesendet …';
