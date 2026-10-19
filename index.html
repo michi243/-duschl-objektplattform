@@ -403,7 +403,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.50.1</title>
+<title>Duschl Service – Objektplattform v3.50.2</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -12488,7 +12488,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.50.1';
+const APP_VERSION='3.50.2';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -23966,7 +23966,7 @@ function renderWorkQueue(){
             ${routedExternally?ticketTimelineForExternalOrder(outgoingOrder):ticketTimelineForFinding(f,t.hasTask?(db.tasks||[]).find(q=>q.id===t.taskId)||null:null)}
             <div class="row">
               ${canSelfClaim?`<button type="button" class="primary" onclick="claimInternalWorkItem('${esc(t.taskId)}')">Arbeit übernehmen</button>`:''}
-              ${canPlan && !taskOnly && t.decisionStatus==='approved' ? `<button type="button" class="primary" onclick="claimApprovedFindingWork('${esc(f.id)}')">Freigegebene Arbeit übernehmen</button>`:''}
+              ${canPlan && !taskOnly && ['approved','not_required'].includes(t.decisionStatus) ? `<button type="button" class="primary" onclick="claimApprovedFindingWork('${esc(f.id)}')">Arbeit selbst übernehmen</button>`:''}
               ${internalTask&&t.ownerId?`<span class="gf-status">${String(t.ownerId)===String(cloudSession?.user?.id)?'Von mir übernommen':'Bereits zugewiesen'}</span>`:''}
               ${taskOnly
                 ? `<button type="button" class="primary" onclick="openTourTaskOnly('${esc(t.taskId)}')">Aufgabe öffnen</button>`
@@ -23980,14 +23980,14 @@ function renderWorkQueue(){
 }
 async function claimApprovedFindingWork(findingId){
   if(!findingId || !currentOrganizationId())return;
-  if(!confirm('Die freigegebene Feststellung verbindlich übernehmen und eine persönliche Aufgabe anlegen? Bereits beauftragte oder kostenpflichtige Arbeiten sind ausgeschlossen.'))return;
+  if(!confirm('Diese Feststellung selbst übernehmen und eine persönliche Aufgabe anlegen? Bestätige nur, wenn die Tätigkeit zu deinem vereinbarten Leistungsumfang und deiner Qualifikation gehört, ohne Zusatzkosten möglich ist und keine Fremdbeauftragung besteht.'))return;
   try{
     const result=await cloudRequest('rpc/claim_approved_finding_task_v1',{
       method:'POST',body:JSON.stringify({p_finding_id:findingId})
     });
     await cloudLoadTasks();
     renderWorkQueue();
-    alert('Freigegebene Arbeit übernommen. Die persönliche Aufgabe wurde angelegt. Bitte Durchführung und Ergebnis dokumentieren.');
+    alert('Arbeit übernommen. Die persönliche Aufgabe wurde angelegt. Bitte Durchführung und Ergebnis dokumentieren.');
   }catch(err){
     alert('Übernahme nicht möglich: '+(err?.message||err));
   }
