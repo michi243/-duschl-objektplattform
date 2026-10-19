@@ -403,7 +403,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.48.3</title>
+<title>Duschl Service – Objektplattform v3.48.4</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -7284,6 +7284,25 @@ body.or-wizard-open{overflow:hidden!important}
 #osaServicePlanEditor .ops-planning-section-card,#osaServicePlanEditor .ops-task-cadence-card{display:block!important;width:100%;margin-top:8px}
 @media(max-width:640px){#osaServicePlanEditor{padding:0;align-items:flex-end}#osaServicePlanEditor .osa-plan-dialog{max-height:94dvh;border-radius:18px 18px 0 0;padding:12px 12px calc(24px + env(safe-area-inset-bottom))}}
 </style>
+<style id="ds-mail-matrix-compact-v3484">
+.userObjectMailSummary.ds-mail-compact{margin:12px 0 0;padding:11px 12px;border-top:1px solid var(--line-soft);background:rgba(6,21,32,.32);border-radius:10px}
+.ds-mail-compact .ds-mail-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:7px}
+.ds-mail-compact .ds-mail-head>strong{font-size:13px!important}
+.ds-mail-legend{color:#a6b9c7;font-size:10px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.ds-mail-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-left:6px;background:#637380}
+.ds-mail-dot.is-on{background:#52cd8a}.ds-mail-dot.is-conditional{background:#60aaff}.ds-mail-dot.is-off{background:#637380}
+.ds-mail-row{display:grid;grid-template-columns:150px minmax(0,1fr);gap:9px;padding:8px 0;border-top:1px solid rgba(255,255,255,.08)}
+.ds-mail-row-label{font-size:12px;font-weight:800;color:#e9f3f9}.ds-mail-row-body{min-width:0}
+.ds-mail-chips{display:flex;flex-wrap:wrap;gap:5px}
+.ds-mail-chip{display:inline-flex!important;align-items:center;gap:5px;padding:4px 8px!important;border-radius:8px!important;font-size:11px!important;line-height:1.35!important;max-width:100%;overflow-wrap:anywhere}
+.ds-mail-chip.ds-mail-on{color:#9ce9bc!important;border:1px solid #27774f!important;background:rgba(34,139,83,.19)!important}
+.ds-mail-chip.ds-mail-conditional{color:#a9d1ff!important;border:1px solid #34658f!important;background:rgba(34,104,179,.18)!important}
+.ds-mail-chip.ds-mail-off{color:#a4b1ba!important;border:1px solid #354654!important;background:rgba(88,105,118,.10)!important}
+.ds-mail-row-body small{display:block;color:#8fa7b6;margin-top:4px;font-size:10px;line-height:1.3}
+.ds-mail-info{font-size:11px;color:#9eb4c1;padding-top:7px;border-top:1px solid rgba(255,255,255,.08)}
+.ds-mail-info summary{cursor:pointer;font-weight:700}.ds-mail-info>div{margin-top:6px;line-height:1.4}
+@media(max-width:680px){.ds-mail-row{grid-template-columns:1fr;gap:4px}.ds-mail-compact .ds-mail-head{align-items:start}.ds-mail-chip{font-size:10px!important}.ds-mail-legend{font-size:9px}}
+</style>
 </head>
 <body class="role-context-loading">
 <div id="roleContextLoader" aria-live="polite" aria-busy="true">
@@ -12377,7 +12396,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.48.3';
+const APP_VERSION='3.48.4';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='08:23'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -24277,19 +24296,18 @@ function dsObjectMailSummaryHtml({uid,tenantRole,assignment,contact,objectId}){
   const mgmt=dsManagementMailStateForObject({uid,tenantRole,assignment,contact});
   const contactEnabled=!!contact && contact.active!==false && !!String(contact.contact_type||'');
   const docsOn=contactEnabled && contact.notify_documentation===true && dsUserMailPreference(uid,'email_object_documentation');
-  const hasObjectRole=assignment?.active!==false && !!String(assignment?.object_role||'');
-  const operational=hasObjectRole && ['object_operator','object_deputy','object_responsible'].includes(String(assignment.object_role));
-  const chip=(label,on,description)=>`<span class="userObjectMailChip ${on?'on':''}" title="${esc(description)}">${on?'✓':'–'} ${esc(label)}</span>`;
-  const mgmtNames=[['Nicht routbar','Nicht routbare Meldung'],['Geroutet','Geroutete Meldung'],['Entscheidung','Entscheidung erforderlich'],['Rückgabe','Auftrag zurückgegeben']];
-  const mgmtHtml=mgmtNames.map(([shortName,longName])=>chip(shortName,mgmt.items.includes(longName),mgmt.eligible?'Rollenberechtigung und persönliche E-Mail-Einstellung':'Keine Management-Empfangsberechtigung')).join('');
   const docsReason=!contactEnabled?'Keine Kontaktfunktion hinterlegt':contact.notify_documentation!==true?'Baudoku-E-Mails nicht aktiviert':!dsUserMailPreference(uid,'email_object_documentation')?'Persönliche Einstellung deaktiviert':'Kontaktfunktion und E-Mail-Einstellung aktiv';
-  const tourState=operational?'Bei persönlicher Zuweisung':'Nur bei persönlicher Zuweisung';
-  return `<div class="userObjectMailSummary" data-mail-object-id="${esc(objectId||assignment?.object_id||contact?.object_id||'')}">
-    <div class="userObjectMailTitle">E-Mail-Transparenz · Vorschau der Empfangsregeln</div>
-    <div class="userObjectMailGroup"><strong>Operative Einsätze</strong><div class="userObjectMailChips">${['Tour zugewiesen','Tour geändert','Zuweisung entzogen','Tour-Erinnerung'].map(l=>`<span class="userObjectMailChip">${esc(l)} · ${esc(tourState)}</span>`).join('')}</div><div class="userObjectMailHint">Tour-E-Mails entstehen nur für den konkret zugewiesenen Mitarbeiter. Diese Ansicht bestätigt keinen erfolgten Versand.</div></div>
-    <div class="userObjectMailGroup"><strong>Managementkommunikation</strong><div class="userObjectMailChips">${mgmtHtml}</div><div class="userObjectMailHint">${esc(mgmt.eligible?(mgmt.items.length?mgmt.reason:'Individuelle E-Mail-Einstellungen deaktiviert'):mgmt.reason)}</div></div>
-    <div class="userObjectMailGroup"><strong>Baudokumentation</strong><div class="userObjectMailChips">${chip('Baudoku-E-Mails',docsOn,docsReason)}</div><div class="userObjectMailHint">${esc(docsReason)}</div></div>
-    <div class="userObjectMailHint">Vorschau aus gespeicherten Einstellungen. Änderungen werden erst mit „Berechtigungen speichern“ wirksam. Für den tatsächlichen Versand gilt die Versandhistorie.</div>
+  const mgmtNames=[['Nicht routbar','Nicht routbare Meldung'],['Geroutet','Geroutete Meldung'],['Entscheidung','Entscheidung erforderlich'],['Rückgabe','Auftrag zurückgegeben']];
+  const chip=(label,state,description)=>`<span class="userObjectMailChip ds-mail-chip ds-mail-${state}" title="${esc(description)}"><span aria-hidden="true">${state==='on'?'✓':state==='conditional'?'◷':'–'}</span> ${esc(label)}</span>`;
+  const mgmtHtml=mgmtNames.map(([shortName,longName])=>chip(shortName,mgmt.items.includes(longName)?'on':'off',mgmt.eligible?'Rollenberechtigung und persönliche Einstellung':'Kein Managementempfang aufgrund der Rolle')).join('');
+  // Eine Objektrolle allein erzeugt keine Tourmail. Erst die konkrete Einsatzzuweisung führt zum Empfängerstatus.
+  const opsHtml=chip('Tour zugewiesen / geändert / entzogen / Erinnerung','conditional','Benachrichtigung nur für konkret zugewiesene Mitarbeiter; bei Entzug den bisherigen Mitarbeiter');
+  return `<div class="userObjectMailSummary ds-mail-compact" data-mail-object-id="${esc(objectId||assignment?.object_id||contact?.object_id||'')}">
+    <div class="ds-mail-head"><strong>E-Mail-Empfang</strong><span class="ds-mail-legend"><i class="ds-mail-dot is-on"></i> aktiv · <i class="ds-mail-dot is-conditional"></i> bei Zuweisung · <i class="ds-mail-dot is-off"></i> inaktiv</span></div>
+    <div class="ds-mail-row"><div class="ds-mail-row-label">Operative Einsätze</div><div class="ds-mail-row-body">${opsHtml}<small>Persönliche Einsatzzuweisung erforderlich, unabhängig von der Objektrolle.</small></div></div>
+    <div class="ds-mail-row"><div class="ds-mail-row-label">Management</div><div class="ds-mail-row-body"><div class="ds-mail-chips">${mgmtHtml}</div><small>${esc(mgmt.eligible?(mgmt.items.length?mgmt.reason:'Individuelle E-Mail-Einstellungen deaktiviert'):mgmt.reason)}</small></div></div>
+    <div class="ds-mail-row"><div class="ds-mail-row-label">Baudokumentation</div><div class="ds-mail-row-body">${chip('Baudoku-E-Mails',docsOn?'on':'off',docsReason)}<small>${esc(docsReason)}</small></div></div>
+    <details class="ds-mail-info"><summary>Hinweise zu den Empfangsregeln</summary><div>Vorschau der gespeicherten bzw. gerade gewählten Berechtigungen. Änderungen gelten erst nach „Berechtigungen speichern“. Die Farben zeigen keine erfolgreich versendeten E-Mails; maßgeblich ist die Versandhistorie.</div></details>
   </div>`;
 }
 function dsRefreshMailRulePreviews(){
