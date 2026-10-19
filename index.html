@@ -12501,7 +12501,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.53.1';
+const APP_VERSION='3.53.2';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -13244,6 +13244,7 @@ async function loadPublicResidentReportContext(){
     if(sel){
       sel.innerHTML='<option value="">Bitte auswählen</option>'+publicResidentAreas.map(a=>`<option value="${esc(a.id)}">${esc(a.name||'Bereich')}</option>`).join('');
     }
+    filterPublicReportAreasByCategory();
     if(!publicResidentAreas.length)throw new Error('Für dieses Objekt sind keine aktiven Bereiche hinterlegt.');
   }catch(e){
     console.error('Öffentlicher Objektkontext konnte nicht vollständig geladen werden',e);
@@ -13275,6 +13276,27 @@ function publicReportSetStep(step){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
+function filterPublicReportAreasByCategory(){
+ const category=String(document.getElementById('prCategory')?.value||'').trim().toLowerCase();
+ const select=document.getElementById('prArea');
+ if(!select)return;
+ const permitted=(name)=>{
+  const n=String(name||'').toLowerCase();
+  if(category==='außenanlage')return /außen|aussen|garten|grün|gruen|spielplatz|spielbereich|hof|müllplatz|muellplatz|wege|weg|eingang/.test(n);
+  if(category==='aufzug defekt')return /aufzug|lift/.test(n);
+  if(category==='heizung \/ wärme')return /heiz|technik|keller|wohnung|treppenhaus/.test(n);
+  if(category==='winterdienst')return /außen|aussen|hof|weg|eingang|müllplatz|muellplatz|zufahrt|parkplatz|tiefgarage/.test(n);
+  return true;
+ };
+ const all=publicResidentAreas||[];
+ const matching=all.filter(a=>permitted(a.name));
+ const available=matching.length?matching:all;
+ const previous=select.value;
+ select.innerHTML='<option value="">Bitte auswählen</option>'+available.map(a=>`<option value="${esc(a.id)}">${esc(a.name||'Bereich')}</option>`).join('');
+ if(available.some(a=>String(a.id)===previous))select.value=previous;
+ else{select.value='';document.getElementById('prLocation')?.setAttribute('placeholder','z. B. genauer Standort oder Orientierungspunkt');}
+ refreshPublicReportSummary();
+}
 function selectPublicReportMainCategory(btn){
   const category=String(btn?.dataset?.category||'').trim();
   const group=String(btn?.dataset?.group||'').trim();
@@ -13301,7 +13323,7 @@ function selectPublicReportMainCategory(btn){
   }
 
   publicReportMessage('');
-  refreshPublicReportSummary();
+  filterPublicReportAreasByCategory();
   void refreshPublicDuplicateReports();
 }
 
@@ -13322,7 +13344,7 @@ function selectPublicReportCategory(btn){
     });
 
   publicReportMessage('');
-  refreshPublicReportSummary();
+  filterPublicReportAreasByCategory();
   void refreshPublicDuplicateReports();
 }
 
