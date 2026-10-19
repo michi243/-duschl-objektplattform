@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<!-- CURRENT RELEASE 3.54.3 · Private Anfragen: Menüzähler, Suche, Statusfilter und geschützte Nachrichten. Bewohner-E-Mail-Versand noch nicht aktiv. -->
 <!-- CURRENT RELEASE 3.54.2 · Private Bewohneranfragen und Angebotsverwaltung im Adminbereich integriert. -->
 <!-- RELEASE 3.45 · Inventarliste Export: PDF/Drucken, Excel (.xls), CSV; filterbar nach Lifecycle, Status, Typ, Kategorie, Standort und Leistungsbezug. Backend unverändert. -->
 <!-- RELEASE 3.44 · Geführte Erfassung & Routenplanung
@@ -7625,7 +7626,7 @@ body.or-wizard-open{overflow:hidden!important}
 <button class="primary" id="navDashboard" onclick="showSection('dashboard')"><span class="nav-icon">⌂</span><span>Dashboard</span></button>
 
 <div class="ds-menu-group-label">Arbeit</div>
-<button id="navPrivateOffers" style="display:none" onclick="showSection('privateOffers')"><span class="nav-icon">▤</span><span>Privatanfragen & Angebote</span></button>
+<button id="navPrivateOffers" style="display:none" onclick="showSection('privateOffers')"><span class="nav-icon">▤</span><span>Privatanfragen & Angebote</span><span class="badge nav-count" id="privateOffersNavCount">–</span></button>
 <button id="navResidentReports" onclick="showSection('residentReports')"><span class="nav-icon">◯</span><span>Meldungen</span><span class="badge nav-count" id="residentReportNavCount">0</span></button>
 <button id="navDecisions" onclick="showSection('decisions')"><span class="nav-icon">✓</span><span>Entscheidungen</span><span class="badge nav-count" id="decisionNavCount">0</span></button>
 <button id="navWorkqueue" onclick="showSection('workqueue')"><span class="nav-icon">⌁</span><span>Arbeitsvorrat</span><span class="badge nav-count" id="workqueueNavCount">0</span></button>
@@ -12523,7 +12524,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.54.2';
+const APP_VERSION='3.54.3';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
