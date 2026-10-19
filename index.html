@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<!-- CURRENT RELEASE 3.55.6 · Objektbetreuer-Dashboard ohne doppelte Meldungs-Schnellaktion; Privatanfragen-/Angebotsmenü ausschließlich für administrative Rollen sichtbar. -->
 <!-- CURRENT RELEASE 3.55.5 · Private Bewohneranfragen mit offenen Themenbereichen, dynamischen Beispielen statt enger Leistungsliste und klarem Prüfungsvorbehalt. -->
 <!-- CURRENT RELEASE 3.55.4 · Mitbetroffenheit im Arbeitsfilter als kontrastreiches, barrierearm gestaltetes Aufmerksamkeitspanel mit sofort erkennbarer Personenzahl. -->
 <!-- CURRENT RELEASE 3.55.3 · Mitbetroffenheit jederzeit erkennbar: autorisierte Zähler v2, zusätzlicher Betroffenheits-Hinweis auch bei ausgefilterter intern übernommener Meldung, Filter, automatische Aktualisierung. -->
@@ -12640,7 +12641,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.55.5';
+const APP_VERSION='3.55.6';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -15100,9 +15101,21 @@ async function copyTenantPublicCode(){
   if(!copied)alert(`Mandanten-ID: ${code}`);
 }
 
+function canUsePrivateOffersUI(){
+  // Privatanfragen/Angebote sind ein administrativer Prozess, keine operative Objektbetreuung.
+  return (isAdminRole()||isTenantAdminRole()||isAdminDelegate()||(isPlatformAdminDelegateRole()&&!!currentOrganizationId()))
+    && !isObjectManagerDashboardRole();
+}
 function applyRoleUI(){
-  {const n=document.getElementById('navPrivateOffers');if(n)n.style.display=(isAdminRole()||isTenantAdminRole()||isAdminDelegate()||(isPlatformAdminDelegateRole()&&!!currentOrganizationId()))?'':'none';}
-  setTimeout(()=>{if(cloudSession?.access_token)void dsPrivateBadgeRefresh();},0);
+  const privateOffersNav=document.getElementById('navPrivateOffers');
+  if(privateOffersNav){
+    // CSS nutzt display:grid!important. Inline display:none ohne important war wirkungslos.
+    const allowed=canUsePrivateOffersUI();
+    privateOffersNav.classList.toggle('hidden',!allowed);
+    privateOffersNav.hidden=!allowed;
+    privateOffersNav.style.removeProperty('display');
+  }
+  if(canUsePrivateOffersUI())setTimeout(()=>{if(cloudSession?.access_token)void dsPrivateBadgeRefresh();},0);
 
   const role=effectiveUserRole();
 
@@ -23090,8 +23103,7 @@ async function loadAndRenderDocumentationOverview(){
 
 function showSection(id){
   if(id==='privateOffers'){
-    const permitted=isAdminRole()||isTenantAdminRole()||isAdminDelegate()|| (isPlatformAdminDelegateRole()&&!!currentOrganizationId());
-    if(!permitted)return requireAdminUI('Private Angebote');
+    if(!canUsePrivateOffersUI())return requireAdminUI('Private Angebote');
     if(!currentOrganizationId()){alert('Bitte zuerst einen Mandanten auswählen.');return;}
     setTimeout(()=>dsPrivateOffersMount(),0);
   }
@@ -27856,6 +27868,7 @@ function renderObjectManagerDashboardFocus(){
   const urgent=Number(document.getElementById('kpiCritical')?.textContent||0);
   const docs=Number(document.getElementById('kpiOpenDocs')?.textContent||0);
 
+  let primaryTarget='';
   let primary={
     title:'Keine dringende Aufgabe',
     text:'Aktuell ist keine priorisierte operative Aufgabe offen.',
@@ -27864,6 +27877,7 @@ function renderObjectManagerDashboardFocus(){
   };
 
   if(work>0){
+    primaryTarget='work';
     primary={
       title:`${work} offene ${work===1?'Aufgabe':'Aufgaben'} im Arbeitsvorrat`,
       text:'Bearbeite zuerst die offenen operativen Aufträge deiner zugewiesenen Objekte.',
@@ -27871,6 +27885,7 @@ function renderObjectManagerDashboardFocus(){
       action:()=>openDashboardWorkQueue()
     };
   }else if(reports>0){
+    primaryTarget='reports';
     primary={
       title:`${reports} neue ${reports===1?'Meldung':'Meldungen'}`,
       text:'Neue Meldungen prüfen und den nächsten Bearbeitungsschritt festlegen.',
@@ -27878,6 +27893,7 @@ function renderObjectManagerDashboardFocus(){
       action:()=>openDashboardResidentReports()
     };
   }else if(urgent>0){
+    primaryTarget='urgent';
     primary={
       title:`${urgent} dringende ${urgent===1?'Feststellung':'Feststellungen'}`,
       text:'Sofort- und dringende Vorgänge in der Dokumentation prüfen.',
@@ -27897,11 +27913,16 @@ function renderObjectManagerDashboardFocus(){
   if(copy)copy.textContent=primary.text;
   if(action){action.textContent=primary.label;action.onclick=primary.action;}
 
+  // Die primäre Aktion ist im großen Feld bereits vorhanden.
+  // Keine zweite Schaltfläche für dieselbe Meldung/Aufgabe anzeigen.
   const chips=[];
-  if(work>0)chips.push(`<button class="om-quick-action ${work>2?'is-alert':''}" type="button" onclick="openDashboardWorkQueue()">☰ Arbeitsvorrat <strong>${work}</strong></button>`);
-  if(reports>0)chips.push(`<button class="om-quick-action is-alert" type="button" onclick="openDashboardResidentReports()">✉ Meldungen <strong>${reports}</strong></button>`);
-  if(urgent>0)chips.push(`<button class="om-quick-action is-critical" type="button" onclick="openCriticalFindings()">! Dringend <strong>${urgent}</strong></button>`);
-  if(quick)quick.innerHTML=chips.join('');
+  if(work>0&&primaryTarget!=='work')chips.push(`<button class="om-quick-action ${work>2?'is-alert':''}" type="button" onclick="openDashboardWorkQueue()">☰ Arbeitsvorrat <strong>${work}</strong></button>`);
+  if(reports>0&&primaryTarget!=='reports')chips.push(`<button class="om-quick-action is-alert" type="button" onclick="openDashboardResidentReports()">✉ Meldungen <strong>${reports}</strong></button>`);
+  if(urgent>0&&primaryTarget!=='urgent')chips.push(`<button class="om-quick-action is-critical" type="button" onclick="openCriticalFindings()">! Dringend <strong>${urgent}</strong></button>`);
+  if(quick){
+    quick.innerHTML=chips.join('');
+    quick.classList.toggle('hidden',chips.length===0);
+  }
 }
 
 
