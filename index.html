@@ -12520,7 +12520,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.54.0';
+const APP_VERSION='3.54.1';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -13236,7 +13236,7 @@ async function submitResidentPrivateInquiry(){
  if(!category||description.length<10||name.length<2||(!email&&!phone)||!document.getElementById('rpiConsent')?.checked){
   feedback.textContent='Bitte Leistung, Beschreibung (mindestens 10 Zeichen), Namen, Kontakt und Datenschutzzustimmung angeben.';return;
  }
- if(email&&!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)){feedback.textContent='E-Mail-Adresse ungültig.';return;}
+ if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){feedback.textContent='E-Mail-Adresse ungültig.';return;}
  residentInquirySending=true;feedback.textContent='Ihre Anfrage wird gesendet …';
  try{
   const response=await fetch(SUPABASE_URL+'/rest/v1/rpc/create_resident_private_inquiry_v1',{
