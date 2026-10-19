@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<!-- CURRENT RELEASE 3.55.7 · Objektbetreuer erhalten keine zusätzliche Meldungs-Schnellkachel; Meldungen bleiben über Hauptaktion und Menü erreichbar. -->
 <!-- CURRENT RELEASE 3.55.6 · Objektbetreuer-Dashboard ohne doppelte Meldungs-Schnellaktion; Privatanfragen-/Angebotsmenü ausschließlich für administrative Rollen sichtbar. -->
 <!-- CURRENT RELEASE 3.55.5 · Private Bewohneranfragen mit offenen Themenbereichen, dynamischen Beispielen statt enger Leistungsliste und klarem Prüfungsvorbehalt. -->
 <!-- CURRENT RELEASE 3.55.4 · Mitbetroffenheit im Arbeitsfilter als kontrastreiches, barrierearm gestaltetes Aufmerksamkeitspanel mit sofort erkennbarer Personenzahl. -->
@@ -12641,7 +12642,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.55.6';
+const APP_VERSION='3.55.7';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -27917,7 +27918,7 @@ function renderObjectManagerDashboardFocus(){
   // Keine zweite Schaltfläche für dieselbe Meldung/Aufgabe anzeigen.
   const chips=[];
   if(work>0&&primaryTarget!=='work')chips.push(`<button class="om-quick-action ${work>2?'is-alert':''}" type="button" onclick="openDashboardWorkQueue()">☰ Arbeitsvorrat <strong>${work}</strong></button>`);
-  if(reports>0&&primaryTarget!=='reports')chips.push(`<button class="om-quick-action is-alert" type="button" onclick="openDashboardResidentReports()">✉ Meldungen <strong>${reports}</strong></button>`);
+  // Keine zusätzliche Meldungs-Kachel: Meldungen stehen im Menü und ggf. als Hauptaktion bereit.
   if(urgent>0&&primaryTarget!=='urgent')chips.push(`<button class="om-quick-action is-critical" type="button" onclick="openCriticalFindings()">! Dringend <strong>${urgent}</strong></button>`);
   if(quick){
     quick.innerHTML=chips.join('');
