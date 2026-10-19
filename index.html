@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<!-- CURRENT RELEASE 3.54.7 · Einheitliche Badge-Typografie; schneller, vorab geladener Privatanfragen-Zähler. -->
 <!-- CURRENT RELEASE 3.54.6 · Zählergröße und Typografie an Meldungen angeglichen. -->
 <!-- CURRENT RELEASE 3.54.5 · Mobile Angebotsformular, Preissumme und Kleinunternehmerregelung §19 UStG. -->
 <!-- CURRENT RELEASE 3.54.4 · Farbstatus Privatanfragen-Zähler analog Meldungen und Entscheidungen. -->
@@ -7408,7 +7409,7 @@ body.or-wizard-open{overflow:hidden!important}
 @media(max-width:720px){.gf-operator-overview{grid-template-columns:1fr}.gf-operator-stat{padding:12px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center}.gf-operator-stat small{grid-column:1/-1}}
 </style>
 <style id="private-inquiry-counter-status-v3544">
-#privateOffersNavCount {font-size:inherit!important;font-weight:inherit!important;min-width:26px!important;min-height:0!important;padding:3px 7px!important;line-height:inherit!important;box-sizing:border-box!important;}
+#privateOffersNavCount {box-sizing:border-box!important;}
 #privateOffersNavCount.warn {background:rgba(231,184,60,.19)!important;color:#f2d36d!important;border:1px solid rgba(231,184,60,.4)!important;}
 #privateOffersNavCount.neutral {background:rgba(121,145,164,.19)!important;color:#aebdca!important;border:1px solid rgba(121,145,164,.3)!important;}
 </style>
@@ -12546,7 +12547,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.54.6';
+const APP_VERSION='3.54.7';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -14990,6 +14991,7 @@ async function copyTenantPublicCode(){
 
 function applyRoleUI(){
   {const n=document.getElementById('navPrivateOffers');if(n)n.style.display=(isAdminRole()||isTenantAdminRole()||isAdminDelegate()||(isPlatformAdminDelegateRole()&&!!currentOrganizationId()))?'':'none';}
+  setTimeout(()=>{if(cloudSession?.access_token)void dsPrivateBadgeRefresh();},0);
 
   const role=effectiveUserRole();
 
@@ -20558,7 +20560,46 @@ function save(){
   renderAll();hydrateMediaImages();
 }
 function uid(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)}
+let dsPrivateCountCache={org:'',value:null,at:0,pending:null};
+function dsPrivateBadgeSet(value){
+ const badge=document.getElementById('privateOffersNavCount');
+ if(!badge)return;
+ badge.textContent=String(value);
+ badge.classList.toggle('warn',value>0);
+ badge.classList.toggle('neutral',value===0);
+ // Copy exact dimensions and typography of the existing notification counter.
+ const reference=document.getElementById('residentReportNavCount');
+ if(reference){
+   const css=getComputedStyle(reference);
+   for(const key of ['fontSize','fontWeight','lineHeight','padding','minWidth','minHeight','width','height','letterSpacing','borderRadius','boxSizing','display','alignItems','justifyContent']){
+     badge.style[key]=css[key];
+   }
+ }
+}
+async function dsPrivateBadgeRefresh(force=false){
+ if(!cloudSession?.access_token)return;
+ if(!(isAdminRole()||isTenantAdminRole()||isAdminDelegate()||(isPlatformAdminDelegateRole()&&!!currentOrganizationId())))return;
+ const org=currentOrganizationId();if(!org)return;
+ const cache=dsPrivateCountCache;
+ if(cache.org===org&&cache.value!==null)dsPrivateBadgeSet(cache.value);
+ if(cache.pending&&cache.org===org)return cache.pending;
+ if(!force&&cache.org===org&&Date.now()-cache.at<30000)return;
+ cache.org=org;
+ cache.pending=(async()=>{
+ try{
+   const count=await cloudRequest('rpc/count_open_resident_private_inquiries_v1',{method:'POST',body:JSON.stringify({p_organization_id:org})});
+   if(dsPrivateCountCache.org===org){
+     dsPrivateCountCache.value=Math.max(0,Number(count)||0);
+     dsPrivateCountCache.at=Date.now();
+     dsPrivateBadgeSet(dsPrivateCountCache.value);
+   }
+ }catch(err){console.warn('Privatanfragen-Zähler konnte nicht geladen werden',err);}
+ finally{if(dsPrivateCountCache.org===org)dsPrivateCountCache.pending=null;}
+ })();
+ return cache.pending;
+}
 function openAppMenu(){
+  void dsPrivateBadgeRefresh();
   if(typeof dsRefreshDataMenuButton==='function') dsRefreshDataMenuButton();
   const menu=document.getElementById('appMenu');
   const backdrop=document.getElementById('appMenuBackdrop');
