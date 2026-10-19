@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<!-- CURRENT RELEASE 3.55.2 · Betroffenheit mit Anzahl der Mitbetroffenen dauerhaft sichtbar in der Hauptkarte der Bewohnermeldungen; auch 0 und Ladefehler klar ausgewiesen. -->
 <!-- CURRENT RELEASE 3.55.1 · Transparente Datenschutzhinweise bei „Betrifft mich auch“ und Privatanfragen; Pflichtfeld-Legende ergänzt. -->
 <!-- CURRENT RELEASE 3.55.0 · Öffentliche Duplikatliste ohne Bildplatzhalter und ohne Bildübertragung; Adminfotos bleiben unverändert. -->
 <!-- CURRENT RELEASE 3.54.9 · Bei „Betrifft mich auch“ entfällt der Weiter-Button; Abbrechen stellt ihn wieder her. -->
@@ -3128,6 +3129,12 @@ border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--sh
 .public-report-mandatory{margin:8px 0 14px;font-size:13px;line-height:1.45;color:var(--muted)}
 .public-report-privacy-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
 .public-report-privacy-actions button{max-width:100%}
+/* v3.55.2 · Zentrale Betroffenheitsanzeige direkt im Meldungseingang */
+.resident-report-impact{display:flex;align-items:baseline;flex-wrap:wrap;gap:5px 12px;margin-top:10px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.025);font-size:14px;line-height:1.4;color:var(--muted)}
+.resident-report-impact strong{color:var(--text);font-size:15px}
+.resident-report-impact.has-supporters{background:rgba(231,184,60,.12);border-color:rgba(231,184,60,.38)}
+.resident-report-impact.has-supporters strong{color:#f2d36d}
+
 
 .public-report-submit{width:100%;min-height:50px;margin-top:18px;font-size:16px!important}
 .public-report-note{margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#0a1722;color:var(--muted);font-size:13px;line-height:1.45}
@@ -29213,6 +29220,25 @@ function isOpenResidentReport(report){
   return !['internal_action','completed','closed','rejected'].includes(status);
 }
 
+function residentReportSupportInfo(report){
+  // Eine ursprüngliche Meldung zählt als eine betroffene Person.
+  // Fehlende/fehlerhafte Abfrage niemals stillschweigend als null Mitbetroffene ausgeben.
+  const raw=report?.supporter_count;
+  const count=Number(raw);
+  if(raw===null||raw===undefined||!Number.isFinite(count)||count<0){
+    return {known:false,extras:null,title:'Betroffenheit nicht verfügbar',subtitle:'Anzahl der weiteren Bewohner konnte nicht geladen werden.'};
+  }
+  const extras=Math.trunc(count);
+  const total=1+extras;
+  return {
+    known:true,extras,
+    title:`${total} ${total===1?'Person':'Personen'} betroffen`,
+    subtitle:extras===0
+      ?'Noch keine weiteren Bewohner haben „Betrifft mich auch“ gewählt.'
+      :`${extras} ${extras===1?'weitere Person hat':'weitere Personen haben'} „Betrifft mich auch“ gewählt.`
+  };
+}
+
 function renderResidentReports(){
   if(isCustomerRole()){
     const list=document.getElementById('residentReportList');
@@ -29270,6 +29296,7 @@ function renderResidentReports(){
     const finalState=['closed','rejected','completed'].includes(r.status||'');
     const workflow=residentReportWorkflowState(r);
     const workflowContext=workflow.partner?`${workflow.label} · ${workflow.partner}`:workflow.label;
+    const supportInfo=residentReportSupportInfo(r);
     return `<div class="card" data-resident-report-id="${esc(r.id)}">
       <div class="row space">
         <div>
@@ -29282,12 +29309,15 @@ function renderResidentReports(){
         </div>
       </div>
       <div style="margin-top:10px">${esc(r.description||'')}</div>
+      <div class="resident-report-impact${supportInfo.known&&supportInfo.extras>0?' has-supporters':''}" aria-label="${esc(supportInfo.title+'; '+supportInfo.subtitle)}">
+        <strong>${esc(supportInfo.title)}</strong>
+        <span>${esc(supportInfo.subtitle)}</span>
+      </div>
       <div class="muted" style="margin-top:10px">
         <strong>Gemeldet von:</strong> ${esc(r.resident_name||'—')}
         ${r.resident_email?' · <strong>E-Mail:</strong> '+esc(r.resident_email):''}
         ${when?' · '+esc(fmt(when)):''}
       </div>
-      ${r.supporter_count>0?`<div class="badge" style="margin-top:10px;background:rgba(231,184,60,.16);color:#f2d36d">${r.supporter_count+1} Betroffene insgesamt · davon ${r.supporter_count} weitere Bewohner</div>`:""}
       ${residentReportMediaFor(r.id).length?`<div style="margin-top:10px"><strong>Fotos der Meldung</strong><div class="photo-grid">${residentReportMediaFor(r.id).map((m,i)=>residentReportMediaImg(m,`Meldungsfoto ${i+1}`,'thumb')).join('')}</div></div>`:''}
       ${r.internal_assessment?`<div class="card" style="margin-top:10px"><strong>Interne Dokumentation</strong><div style="margin-top:5px">${esc(r.internal_assessment)}</div></div>`:''}
       ${r.converted_to_finding_id?'<div class="muted" style="margin-top:8px">Mit offizieller Dokumentation verknüpft.</div>':''}
@@ -29313,6 +29343,7 @@ function openResidentReportDetails(id){
   const r=getResidentReportById(id); if(!r)return;
   if(!canUseResidentReportUI(r))return alert('Kein Zugriff auf diese Bewohnermeldung.');
   const obj=(db.objects||[]).find(o=>o.id===r.object_id);
+  const supportInfo=residentReportSupportInfo(r);
   modal(`<div class="row space">
       <div><h2>Meldung prüfen</h2><div class="muted">${esc(obj?.name||'Objekt')} · ${esc(r.report_no||'')}</div></div>
       <button onclick="closeModal()">✕</button>
@@ -29322,7 +29353,7 @@ function openResidentReportDetails(id){
       <p><strong>Kategorie</strong><br>${esc(r.category||'—')}</p>
       <p><strong>Bereich</strong><br>${esc(r.area_name||'—')}</p>${r.location_detail?`<p><strong>Genauer Ort / Zusatz</strong><br>${esc(r.location_detail)}</p>`:''}
       <p><strong>Beschreibung</strong><br>${esc(r.description||'—')}</p>
-      <p><strong>Betroffenheit</strong><br>${1+(Number(r.supporter_count)||0)} Personen insgesamt · ${Number(r.supporter_count)||0} weitere Bewohner haben „Betrifft mich auch“ gewählt.</p>
+      <p><strong>Betroffenheit</strong><br>${esc(supportInfo.title)} · ${esc(supportInfo.subtitle)}</p>
       <p><strong>Melder</strong><br>${esc(r.resident_name||'—')}${r.resident_email?'<br>'+esc(r.resident_email):''}</p>
       <p><strong>Eingang</strong><br>${esc(fmt(r.received_at||r.created_at))}</p>
       ${residentReportMediaFor(r.id).length?`<p><strong>Fotos der Meldung</strong></p><div class="photo-grid">${residentReportMediaFor(r.id).map((m,i)=>residentReportMediaImg(m,`Meldungsfoto ${i+1}`,'thumb')).join('')}</div>`:''}
