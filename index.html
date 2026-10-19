@@ -403,7 +403,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#12324a" name="theme-color"/>
-<title>Duschl Service – Objektplattform v3.48.4</title>
+<title>Duschl Service – Objektplattform v3.49.0</title>
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#17212b;--muted:#687581;--blue:#12324a;--line:#dce3e8;--ok:#1c7c54;--warn:#b87900;--bad:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -8043,7 +8043,7 @@ body.or-wizard-open{overflow:hidden!important}
 <section class="section ds-work-section" id="residentReports">
 <div class="row space">
 <div>
-<div class="ds-section-eyebrow">EINGANG</div><h2>Meldungen</h2>
+<div class="ds-section-eyebrow">EINGANG</div><h2>Meldungen</h2><button type="button" class="primary ds-report-intake-entry" onclick="dsIntakeOpen()">+ Meldung stellvertretend aufnehmen</button>
 <div class="muted">Meldungen nach Handlungsbedarf steuern: neu prüfen, Dienstleisterstatus verfolgen, Entscheidungen treffen und Abnahmen durchführen</div>
 </div>
 </div>
@@ -12396,9 +12396,9 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.48.4';
+const APP_VERSION='3.49.0';
 const APP_RELEASE_DATE='19.10.2026';
-const APP_RELEASE_TIME='08:23'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+const APP_RELEASE_TIME='09:30'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -24305,9 +24305,18 @@ function dsObjectMailSummaryHtml({uid,tenantRole,assignment,contact,objectId}){
   return `<div class="userObjectMailSummary ds-mail-compact" data-mail-object-id="${esc(objectId||assignment?.object_id||contact?.object_id||'')}">
     <div class="ds-mail-head"><strong>E-Mail-Empfang</strong><span class="ds-mail-legend"><i class="ds-mail-dot is-on"></i> aktiv · <i class="ds-mail-dot is-conditional"></i> bei Zuweisung · <i class="ds-mail-dot is-off"></i> inaktiv</span></div>
     <div class="ds-mail-row"><div class="ds-mail-row-label">Operative Einsätze</div><div class="ds-mail-row-body">${opsHtml}<small>Persönliche Einsatzzuweisung erforderlich, unabhängig von der Objektrolle.</small></div></div>
+    <div class="ds-mail-row"><div class="ds-mail-row-label">Meldungen &amp; Aufträge</div><div class="ds-mail-row-body"><div class="ds-mail-chips">
+      ${chip('Bewohnermeldung: neu','off','Ereignis resident_report.created ist in der Outbox vorhanden, aber im aktuellen Mail-Template nicht nachgewiesen. Nicht als aktiver Empfang ausgewiesen.')}
+      ${chip('Bewohnermeldung: geroutet / nicht routbar',mgmt.items.includes('Geroutete Meldung')||mgmt.items.includes('Nicht routbare Meldung')?'on':'off','Empfang nach objektbezogener Managementregel; Details siehe Management.')}
+      ${chip('Neuer Auftrag','conditional','work_order.created: Empfänger werden anhand ausführender Organisation und konkreter Zuweisung ermittelt.')}
+      ${chip('Auftrag zurückgegeben',mgmt.items.includes('Auftrag zurückgegeben')?'on':'off','work_order.returned: Empfang gemäß Quellverwaltung und Rollenregel.')}
+      ${chip('Aufgabe angelegt','off','task.created wurde in der Outbox beobachtet, aber kein spezifischer Template-Zweig im aktuellen Versandprozessor nachgewiesen.')}
+    </div><small>Blau zeigt nur eine mögliche ereignisabhängige Zuständigkeit; die konkrete Empfängerliste wird beim jeweiligen Vorgang ermittelt.</small></div></div>
+    <div class="ds-mail-row"><div class="ds-mail-row-label">Winterdienst</div><div class="ds-mail-row-body"><div class="ds-mail-chips">${chip('Tour / Ausrückauftrag / Erinnerung','conditional','Winterdienst-Mails gehen an den tatsächlich zugewiesenen Mitarbeiter.')} ${chip('Wetterlage','conditional','Wetterupdate abhängig von zugewiesenem Winterdiensteinsatz und Wetterereignis.')}</div></div></div>
+    <div class="ds-mail-row"><div class="ds-mail-row-label">Persönliche Mitteilungen</div><div class="ds-mail-row-body">${chip('Neue Mitteilung',dsUserMailPreference(uid,'email_user_message')?'conditional':'off','Empfang nur bei direkter Adressierung und aktivierter persönlicher Benachrichtigungseinstellung.')}<small>Die persönliche Einstellung und tatsächliche Adressierung entscheiden über den Empfang.</small></div></div>
     <div class="ds-mail-row"><div class="ds-mail-row-label">Management</div><div class="ds-mail-row-body"><div class="ds-mail-chips">${mgmtHtml}</div><small>${esc(mgmt.eligible?(mgmt.items.length?mgmt.reason:'Individuelle E-Mail-Einstellungen deaktiviert'):mgmt.reason)}</small></div></div>
     <div class="ds-mail-row"><div class="ds-mail-row-label">Baudokumentation</div><div class="ds-mail-row-body">${chip('Baudoku-E-Mails',docsOn?'on':'off',docsReason)}<small>${esc(docsReason)}</small></div></div>
-    <details class="ds-mail-info"><summary>Hinweise zu den Empfangsregeln</summary><div>Vorschau der gespeicherten bzw. gerade gewählten Berechtigungen. Änderungen gelten erst nach „Berechtigungen speichern“. Die Farben zeigen keine erfolgreich versendeten E-Mails; maßgeblich ist die Versandhistorie.</div></details>
+    <details class="ds-mail-info"><summary>Hinweise zu den Empfangsregeln</summary><div>Vorschau der gespeicherten bzw. gerade gewählten Berechtigungen. Änderungen gelten erst nach „Berechtigungen speichern“. Blau bedeutet bedingten Empfang, nicht eine aktuelle Zuweisung. Grau bei „Aufgabe angelegt“/„Meldung neu“ markiert eine nicht nachgewiesene spezifische Mail-Verarbeitung. Die Farben zeigen keine erfolgreich versendeten E-Mails; maßgeblich ist die Versandhistorie.</div></details>
   </div>`;
 }
 function dsRefreshMailRulePreviews(){
@@ -36979,54 +36988,38 @@ async function opsLoadResourceReadinessForRuns(runs){
   opsState.resourceReservations=reservationNext;
 }
 
+function dsStopTaskPreview(stop){
+  const lists=dsChecklistRows('operation_run_stop',stop.id);
+  if(!lists.length)return '<div class="muted">Keine konkrete Checkliste hinterlegt. Die Arbeitsvorgaben unter „Standards“ prüfen.</div>';
+  const checks=lists.flatMap(c=>(c.items||[]).filter(i=>i.item_type==='check').map(i=>({...i,locked:c.status==='completed'})));
+  const checked=checks.filter(i=>i.checked).length;
+  return `<div class="ds-work-progress">${checked} von ${checks.length} Prüfpunkten bestätigt</div>
+   <div class="ds-work-task-list">${checks.map(i=>`<div class="ds-work-task ${i.checked?'done':''}"><span aria-hidden="true">${i.checked?'✓':'○'}</span><span>${opsEsc(i.item_text||'Prüfpunkt')}${i.required?' <small>Pflicht</small>':''}</span></div>`).join('')}</div>`;
+}
 function opsRunStopWorkHtml(stop,index){
   const duration=opsRunStopDuration(stop);
   const instruction=opsRunStopInstruction(stop);
-  const sopHtml=operationSopLinkHtml(stop.id,opsEsc);
-
-  return `<div class="ops-work-stop">
-    <div class="ops-work-stop-head">
-      <div>
-        <div class="ops-work-stop-kicker">Stopp ${index+1}</div>
-        <div class="ops-work-stop-object">${opsEsc(opsRunStopObjectLabel(stop))}</div>
-        <div class="ops-work-stop-service">${opsEsc(opsRunStopServiceLabel(stop))}</div>
-      </div>
-      <span class="badge">${opsEsc(opsRunStopStatusLabel(stop))}</span>
-    </div>
-    <div class="ops-work-stop-meta">
-      <span><strong>Zeit:</strong> ${opsEsc(opsRunStopTimeLabel(stop))}</span>
-      ${duration?`<span><strong>Dauer:</strong> ${duration} Min.</span>`:''}
-    </div>
-
-    <div class="ops-work-sop-row">
-      <div class="ops-work-order-title">SOP-Datei</div>
-      <div>${sopHtml}</div>
-    </div>
-
-    ${psRuntimeCardHtml(psRuntimeRowsForService(opsOrg(),stop.service_type_id),{serviceLabel:opsServiceName(stop.service_type_id),openJs:`psRuntimeOpenService('${opsEsc(opsOrg())}','${opsEsc(stop.service_type_id)}','${opsEsc(opsRunStopServiceLabel(stop))}')`})}
-
-    ${dsChecklistCardHtml('operation_run_stop',stop.id,{title:'Digitale Checklisten'})}
-
-    <div class="ops-work-order">
-      <div class="ops-work-order-title">Was ist zu tun?</div>
-      <div>${opsEsc(instruction)}</div>
-    </div>
-
-    ${opsResourceReadinessHtml(opsReadinessRowsForStop(stop.id),{compact:false,contextType:'operation_run',contextId:stop.run_id})}
-
-    ${String(stop.status||'planned').toLowerCase()==='cancelled'&&stop.closure_reason_code?`
-      <div class="card ops-stop-closure-info" style="margin-top:12px">
-        <strong>Nicht ausgeführt</strong>
-        <div class="muted" style="margin-top:4px">${opsEsc(stop.closure_reason_text||stop.closure_reason_code)}</div>
-      </div>`:''}
-
-    ${tourObjectWorkQueueHtml(stop.object_id,{compact:false})}
-
-    ${!['completed','cancelled'].includes(String(stop.status||'planned').toLowerCase())?`
-      <div class="row" style="margin-top:14px">
-        <button type="button" class="primary" onclick="opsCompleteRunStop('${opsEsc(stop.id)}')">Stopp erledigt</button>
-      </div>`:''}
-  </div>`;
+  const standards=psRuntimeRowsForService(opsOrg(),stop.service_type_id);
+  const checks=dsChecklistRows('operation_run_stop',stop.id);
+  const isDone=['completed','cancelled'].includes(String(stop.status||'planned').toLowerCase());
+  const defaultInstruction=/^(Kein zusätzlicher Objekthinweis|Verbindliche Ausführung gemäß SOP)/.test(instruction);
+  const stopObject=opsEsc(opsRunStopObjectLabel(stop));
+  return `<article class="ops-work-stop ds-operative-stop">
+    <header class="ds-op-head"><div><div class="ds-op-kicker">Stopp ${index+1} · ${opsEsc(opsRunStopServiceLabel(stop))}</div><h3>${stopObject}</h3></div><span class="badge">${opsEsc(opsRunStopStatusLabel(stop))}</span></header>
+    <div class="ds-op-meta">${duration?`<span>${duration} Min. geplant</span>`:''}${opsRunStopTimeLabel(stop)!=='kein festes Zeitfenster'?`<span>${opsEsc(opsRunStopTimeLabel(stop))}</span>`:''}</div>
+    <section class="ds-op-primary" aria-label="Heute zu erledigen"><h4>Heute zu erledigen</h4>
+      ${dsStopTaskPreview(stop)}
+      ${checks.length?`<button type="button" class="primary" onclick="dsChecklistOpen('operation_run_stop','${opsEsc(stop.id)}')">${dsChecklistStats('operation_run_stop',stop.id).allComplete?'Checklisten anzeigen':'Prüfpunkte bearbeiten'}</button>`:''}
+    </section>
+    ${!defaultInstruction?`<section class="ds-op-notice"><strong>Besonderheiten am Objekt</strong><div>${opsEsc(instruction)}</div></section>`:''}
+    <div class="ds-op-actions"><button type="button" onclick="dsIntakeOpen('${opsEsc(stop.object_id||'')}')">+ Bewohnermeldung aufnehmen</button></div>
+    ${tourObjectWorkQueueHtml(stop.object_id,{compact:true})}
+    <details class="ds-op-secondary"><summary>Arbeitsstandards und Betriebsmittel</summary>
+      ${psRuntimeCardHtml(standards,{serviceLabel:opsServiceName(stop.service_type_id),openJs:`psRuntimeOpenService('${opsEsc(opsOrg())}','${opsEsc(stop.service_type_id)}','${opsEsc(opsRunStopServiceLabel(stop))}')`})}
+      ${opsReadinessRowsForStop(stop.id).length?opsResourceReadinessHtml(opsReadinessRowsForStop(stop.id),{compact:true,contextType:'operation_run',contextId:stop.run_id}):''}
+    </details>
+    ${isDone?'':`<button type="button" class="primary ds-op-finish" onclick="opsCompleteRunStop('${opsEsc(stop.id)}')">Stopp abschließen</button>`}
+  </article>`;
 }
 
 async function opsOpenRunWorkOrder(runId){
@@ -40165,5 +40158,99 @@ async function psToggleActive(){const id=document.getElementById('psId')?.value;
 })();
 </script>
 
+
+<style id="ds-employee-work-v349">
+.ds-operative-stop{padding:12px!important;border:1px solid #294b62;border-radius:16px;margin:12px 0;background:#0a1a27}
+.ds-op-head{position:static!important;background:transparent!important;box-shadow:none!important;display:flex;gap:12px;justify-content:space-between;align-items:flex-start;padding:0!important}
+.ds-op-head h3{margin:4px 0!important;font-size:22px!important;overflow-wrap:anywhere}.ds-op-kicker{color:#a2c3dc;font-size:12px;font-weight:750}
+.ds-op-meta{color:#b2c5d2;font-size:12px;display:flex;gap:12px;margin:5px 0 12px}
+.ds-op-primary{border:1px solid #316e9a;background:#0b2437;border-radius:13px;padding:14px;margin:10px 0}
+.ds-op-primary h4{font-size:18px!important;margin:0 0 10px}.ds-work-progress{color:#a9cadc;font-size:13px;margin:8px 0}
+.ds-work-task-list{display:grid;gap:7px;margin-bottom:12px}.ds-work-task{display:flex;gap:9px;padding:10px 9px;border:1px solid #274456;border-radius:9px;background:#091b29;align-items:flex-start}
+.ds-work-task>span:first-child{color:#8ecbff;font-size:21px;min-width:22px}.ds-work-task.done{border-color:#286a4e}.ds-work-task.done>span:first-child{color:#58d096}.ds-work-task small{color:#e6c67e}
+.ds-op-notice{padding:12px;margin:12px 0;border-left:3px solid #9bb5c7;background:#132938;border-radius:8px}.ds-op-notice div{margin-top:4px}
+.ds-op-actions{margin:12px 0}.ds-op-secondary{border:1px solid #2a4659;border-radius:10px;margin:14px 0;padding:10px}
+.ds-op-secondary summary{font-weight:700;cursor:pointer}.ds-op-secondary[open] summary{margin-bottom:10px}.ds-op-finish{min-height:48px!important;width:100%;font-size:16px!important}
+.ds-intake-shell{position:fixed;inset:0;z-index:10500;background:rgba(0,6,12,.86);display:flex;align-items:flex-end;justify-content:center}
+.ds-intake-dialog{width:min(650px,100%);background:#0e2130;border:1px solid #355c75;border-radius:18px 18px 0 0;max-height:94dvh;overflow-y:auto;padding:18px;color:#fff}
+.ds-intake-top{display:flex;justify-content:space-between;gap:8px;align-items:center}.ds-intake-top h2{font-size:20px;margin:0!important}.ds-intake-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.ds-intake-dialog label{display:block}.ds-intake-dialog label>input,.ds-intake-dialog label>select{margin-top:4px}.ds-intake-dialog .primary{min-height:48px}.ds-intake-tip{padding:9px;border:1px solid #34546a;border-radius:10px;color:#c3d3df;margin:10px 0}
+@media(max-width:580px){.ds-intake-grid{grid-template-columns:1fr}.ds-intake-dialog{padding:12px}.ds-op-head{gap:8px}}
+</style>
+<script id="ds-staff-intake-v349">
+const dsIntakeState={objects:[],areas:[],busy:false};
+async function dsIntakeOpen(preselectedObjectId=''){
+  if(!cloudSession?.access_token){alert('Bitte zuerst anmelden.');return;}
+  const existing=document.getElementById('dsIntakeModal');if(existing)existing.remove();
+  const holder=document.createElement('div');holder.id='dsIntakeModal';holder.className='ds-intake-shell';
+  holder.innerHTML=`<div class="ds-intake-dialog" role="dialog" aria-modal="true" aria-label="Bewohnermeldung stellvertretend erfassen">
+    <div class="ds-intake-top"><h2>Bewohnermeldung aufnehmen</h2><button type="button" onclick="dsIntakeClose()">Schließen</button></div>
+    <div class="ds-intake-tip">Für Telefon, persönliche Gespräche und Papier. Ein Anliegen pro Meldung. Es wird kein Auftrag automatisch freigegeben.</div>
+    <label>Objekt<select id="dsIntakeObject" onchange="dsIntakeLoadAreas()"><option value="">Wird geladen …</option></select></label>
+    <div class="ds-intake-grid"><label>Meldeweg<select id="dsIntakeChannel"><option value="in_person">Persönlich</option><option value="telephone">Telefonisch</option><option value="paper">Papier / Briefkasten</option></select></label><label>Gewünschte Rückmeldung<select id="dsIntakeContact"><option value="none">Keine</option><option value="telephone">Telefonisch</option><option value="paper">Schriftlich</option><option value="email">E-Mail</option></select></label></div>
+    <div class="ds-intake-grid"><label>Bewohnername *<input id="dsIntakeName" maxlength="180" placeholder="Name der meldenden Person"></label><label>Telefon / Kontaktvermerk (optional)<input id="dsIntakeCallback" maxlength="250" placeholder="Nur für Rückmeldung"></label></div>
+    <label>E-Mail (optional)<input id="dsIntakeEmail" type="email" maxlength="200" placeholder="Keine E-Mail erforderlich"></label>
+    <div class="ds-intake-grid"><label>Bereich *<select id="dsIntakeArea" onchange="dsIntakeDuplicateCheck()"><option value="">Bereich auswählen</option></select></label><label>Kategorie *<select id="dsIntakeCategory" onchange="dsIntakeDuplicateCheck()"><option value="">Auswählen</option><option value="Beleuchtung">Beleuchtung</option><option value="Tür / Tor / Zugang">Tür / Tor / Zugang</option><option value="Aufzug defekt">Aufzug defekt</option><option value="Heizung / Wärme">Heizung / Wärme</option><option value="Schaden / Defekt">Schaden / Defekt</option><option value="Wasser / Feuchtigkeit">Wasser / Feuchtigkeit</option><option value="Sauberkeit">Sauberkeit</option><option value="Außenanlage">Außenanlage</option><option value="Winterdienst">Winterdienst</option><option value="Sonstiges">Sonstiges</option></select></label></div>
+    <label>Genauer Ort / Wohnung (optional)<input id="dsIntakeLocation" maxlength="250"></label>
+    <label>Anliegen *<textarea id="dsIntakeDescription" placeholder="Worum geht es konkret? Keine unnötigen personenbezogenen Daten erfassen."></textarea></label>
+    <div id="dsIntakeDuplicate" class="ds-intake-tip" hidden></div>
+    <label style="display:flex;gap:8px;align-items:flex-start"><input id="dsIntakeConsent" type="checkbox" style="width:22px;flex:0 0 22px"><span>Ich habe den Datenschutzhinweis erläutert und die Bestätigung der meldenden Person erhalten. *</span></label>
+    <div id="dsIntakeFeedback" aria-live="polite" class="muted" style="margin:8px 0"></div>
+    <button id="dsIntakeSubmit" type="button" class="primary" onclick="dsIntakeSubmit()">Meldung verbindlich aufnehmen</button>
+  </div>`;
+  document.body.appendChild(holder);
+  document.body.style.overflow='hidden';
+  try{
+    const org=currentOrganizationId();
+    const objects=await cloudRequest(`objects?select=id,name&organization_id=eq.${encodeURIComponent(org)}&active=eq.true&order=name.asc`);
+    dsIntakeState.objects=Array.isArray(objects)?objects:[];
+    const select=document.getElementById('dsIntakeObject');
+    if(!select)return;
+    select.innerHTML='<option value="">Objekt wählen</option>'+dsIntakeState.objects.map(x=>`<option value="${opsEsc(x.id)}">${opsEsc(x.name)}</option>`).join('');
+    if(preselectedObjectId && dsIntakeState.objects.some(x=>String(x.id)===String(preselectedObjectId)))select.value=preselectedObjectId;
+    await dsIntakeLoadAreas();
+  }catch(e){dsIntakeFeedback('Objekte konnten nicht geladen werden: '+(e.message||e));}
+}
+function dsIntakeClose(){document.getElementById('dsIntakeModal')?.remove();document.body.style.overflow='';}
+function dsIntakeFeedback(text){const x=document.getElementById('dsIntakeFeedback');if(x)x.textContent=text||'';}
+async function dsIntakeLoadAreas(){
+  const oid=document.getElementById('dsIntakeObject')?.value||'';
+  const sel=document.getElementById('dsIntakeArea');if(!sel)return;
+  sel.innerHTML='<option value="">Bereich wählen</option>';dsIntakeState.areas=[];
+  if(!oid)return;
+  try{
+    const rows=await cloudRequest('rpc/get_public_report_areas',{method:'POST',body:JSON.stringify({p_object_id:oid})});
+    dsIntakeState.areas=Array.isArray(rows)?rows:[];
+    sel.innerHTML='<option value="">Bereich wählen</option>'+dsIntakeState.areas.map(a=>`<option value="${opsEsc(a.id)}">${opsEsc(a.name)}</option>`).join('');
+  }catch(e){dsIntakeFeedback('Bereiche nicht verfügbar: '+(e.message||e));}
+}
+async function dsIntakeDuplicateCheck(){
+  const oid=document.getElementById('dsIntakeObject')?.value, aid=document.getElementById('dsIntakeArea')?.value,cat=document.getElementById('dsIntakeCategory')?.value;
+  const box=document.getElementById('dsIntakeDuplicate');if(!box)return;box.hidden=true;
+  if(!oid||!aid||!cat)return;
+  try{
+    const n=await cloudRequest('rpc/count_recent_resident_reports_for_intake_v1',{method:'POST',body:JSON.stringify({p_object_id:oid,p_area_id:aid,p_category:cat})});
+    if(Number(n)>0){box.hidden=false;box.textContent=`Achtung: ${Number(n)} ähnliche offene Meldung(en) in den letzten 14 Tagen für diesen Bereich und diese Kategorie. Dublette vor dem Speichern abklären.`;}
+  }catch(e){console.warn('Dublettenhinweis nicht verfügbar',e);}
+}
+async function dsIntakeSubmit(){
+ if(dsIntakeState.busy)return;
+ const val=id=>(document.getElementById(id)?.value||'').trim();
+ const object=val('dsIntakeObject'), area=val('dsIntakeArea'),name=val('dsIntakeName'),category=val('dsIntakeCategory'),description=val('dsIntakeDescription'),email=val('dsIntakeEmail');
+ if(!object||!area||!name||!category||description.length<5){dsIntakeFeedback('Bitte Objekt, Bereich, Name, Kategorie und Anliegen vollständig angeben.');return;}
+ if(!document.getElementById('dsIntakeConsent')?.checked){dsIntakeFeedback('Bestätigung des Datenschutzhinweises fehlt.');return;}
+ if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){dsIntakeFeedback('E-Mail-Adresse ungültig.');return;}
+ dsIntakeState.busy=true;const b=document.getElementById('dsIntakeSubmit');if(b)b.disabled=true;
+ try{
+  const id=await cloudRequest('rpc/create_staff_resident_report_v1',{method:'POST',body:JSON.stringify({
+   p_object_id:object,p_area_id:area,p_resident_name:name,p_resident_email:email||null,p_category:category,
+   p_description:description,p_location_detail:val('dsIntakeLocation')||null,p_intake_channel:val('dsIntakeChannel'),
+   p_contact_preference:val('dsIntakeContact'),p_callback_details:val('dsIntakeCallback')||null,p_consent_confirmed:true})});
+  dsIntakeFeedback('Meldung gespeichert · Referenz: '+String(id).slice(0,8).toUpperCase()+'. Weiterleitung über den bestehenden Meldeprozess.');
+  if(b)b.style.display='none';
+ }catch(e){dsIntakeFeedback('Speichern fehlgeschlagen: '+(e.message||e));if(b)b.disabled=false;}
+ finally{dsIntakeState.busy=false;}
+}
+</script>
 </body>
 </html>
