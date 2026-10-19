@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<!-- CURRENT RELEASE 3.54.5 · Mobile Angebotsformular, Preissumme und Kleinunternehmerregelung §19 UStG. -->
 <!-- CURRENT RELEASE 3.54.4 · Farbstatus Privatanfragen-Zähler analog Meldungen und Entscheidungen. -->
 <!-- CURRENT RELEASE 3.54.3 · Private Anfragen: Menüzähler, Suche, Statusfilter und geschützte Nachrichten. Bewohner-E-Mail-Versand noch nicht aktiv. -->
 <!-- CURRENT RELEASE 3.54.2 · Private Bewohneranfragen und Angebotsverwaltung im Adminbereich integriert. -->
@@ -7410,6 +7411,20 @@ body.or-wizard-open{overflow:hidden!important}
 #privateOffersNavCount.warn {background:rgba(231,184,60,.19)!important;color:#f2d36d!important;border:1px solid rgba(231,184,60,.4)!important;}
 #privateOffersNavCount.neutral {background:rgba(121,145,164,.19)!important;color:#aebdca!important;border:1px solid rgba(121,145,164,.3)!important;}
 </style>
+<style id="private-offers-mobile-v3545">
+#privateOffersRoot{max-width:100%;overflow-x:hidden}
+#privateOffersRoot label{display:flex;flex-direction:column;gap:6px;margin:0 0 13px;font-size:14px;font-weight:600;min-width:0}
+#privateOffersRoot input,#privateOffersRoot select,#privateOffersRoot textarea{width:100%;box-sizing:border-box;max-width:100%;min-width:0;padding:12px 14px;border-radius:11px;font-size:16px}
+#privateOffersRoot textarea{min-height:90px}
+#privateOffersRoot article{border:1px solid var(--line);border-radius:12px;padding:14px;margin:10px 0}
+#privateOffersRoot button{min-height:43px;margin:4px 5px 4px 0;white-space:normal;max-width:100%}
+#privateOffersRoot .po-item{border:1px solid var(--line);border-radius:12px;padding:12px;margin:12px 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+#privateOffersRoot .po-item label:first-child{grid-column:1/-1}
+#privateOffersRoot .po-item label{margin:0}
+#privateOffersRoot .po-item button{grid-column:1/-1;justify-self:start}
+#privateOffersRoot .po-total{padding:16px;border:1px solid var(--line);border-radius:12px;margin:14px 0;font-weight:700;font-size:17px}
+@media(max-width:520px){#privateOffersRoot .po-item{grid-template-columns:repeat(2,minmax(0,1fr))}#privateOffersRoot{padding:12px!important}}
+</style>
 </head>
 <body class="role-context-loading">
 <div id="roleContextLoader" aria-live="polite" aria-busy="true">
@@ -12530,7 +12545,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.54.4';
+const APP_VERSION='3.54.5';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
