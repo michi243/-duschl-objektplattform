@@ -7430,7 +7430,7 @@ body.or-wizard-open{overflow:hidden!important}
   <h2 class="public-report-step-title">Was möchten Sie melden?</h2>
   <div class="public-report-step-copy">Wählen Sie zuerst den passenden Themenbereich. So gelangt Ihre Meldung schneller an die richtige Stelle.</div>
   <div id="prContext" class="public-report-object-chip" style="display:none"></div>
-  <input id="prCategory" type="hidden" value=""><section id="prDuplicates" style="display:none;margin:16px 0;padding:14px;border:1px solid #abc;border-radius:12px" aria-live="polite"><strong>Bereits gemeldete Probleme in dieser Kategorie</strong><p class="muted">Prüfen Sie, ob Ihr Problem bekannt ist. Sie können sich anschließen oder eine eigene Meldung erstellen.</p><div id="prDuplicateList"></div><div id="prDuplicateJoin" style="display:none"><strong>Dieses Problem betrifft mich auch</strong><label for="prDupName">Ihr Name *</label><input id="prDupName" maxlength="120"><label for="prDupEmail">E-Mail für Abschlussnachricht (optional)</label><input id="prDupEmail" type="email"><label style="display:flex;gap:8px"><input id="prDupConsent" type="checkbox" style="width:auto"> Ich stimme der Verarbeitung meiner Angaben zu. *</label><button type="button" class="primary" onclick="submitPublicDuplicateSupport()">Als betroffen melden</button><button type="button" onclick="cancelPublicDuplicateSupport()">Abbrechen</button><div id="prDupFeedback" role="status"></div></div></section>
+  <input id="prCategory" type="hidden" value="">
 
   <div class="public-report-main-category-grid" id="prCategoryGrid">
     <button type="button" class="public-report-main-category" aria-pressed="false" data-group="technical" onclick="selectPublicReportMainCategory(this)">
@@ -7474,6 +7474,7 @@ body.or-wizard-open{overflow:hidden!important}
       <button type="button" class="public-report-category-btn" data-category="Schaden / Defekt" onclick="selectPublicReportCategory(this)">Sonstiger Schaden / Defekt</button>
     </div>
   </div>
+  <section id="prDuplicates" style="display:none;margin:16px 0;padding:14px;border:1px solid #abc;border-radius:12px" aria-live="polite"><strong>Bereits gemeldete Probleme in dieser Kategorie</strong><p class="muted">Prüfen Sie, ob Ihr Problem bekannt ist. Sie können sich anschließen oder eine eigene Meldung erstellen.</p><div id="prDuplicateList"></div><div id="prDuplicateJoin" style="display:none"><strong>Dieses Problem betrifft mich auch</strong><label for="prDupName">Ihr Name *</label><input id="prDupName" maxlength="120"><label for="prDupEmail">E-Mail für Abschlussnachricht (optional)</label><input id="prDupEmail" type="email"><label style="display:flex;gap:8px"><input id="prDupConsent" type="checkbox" style="width:auto"> Ich stimme der Verarbeitung meiner Angaben zu. *</label><button type="button" class="primary" onclick="submitPublicDuplicateSupport()">Als betroffen melden</button><button type="button" onclick="cancelPublicDuplicateSupport()">Abbrechen</button><div id="prDupFeedback" role="status"></div></div></section>
   <div class="public-report-actions one">
     <button class="primary" type="button" onclick="publicReportNextStep()">Weiter</button>
   </div>
@@ -12500,7 +12501,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.53.0';
+const APP_VERSION='3.53.1';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -13177,7 +13178,7 @@ async function refreshPublicDuplicateReports(){
  if(!category||!publicResidentObjectId){panel.style.display='none';return;}
  panel.style.display='block';list.textContent='Offene Meldungen werden geprüft …';
  try{
-  const res=await fetch(SUPABASE_URL+'/rest/v1/rpc/list_public_open_reports_v1',{method:'POST',headers:{apikey:SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_object_id:publicResidentObjectId,p_category:category,p_area_id:areaId||null})});
+  const res=await fetch(SUPABASE_URL+'/rest/v1/rpc/list_public_open_reports_v2',{method:'POST',headers:{apikey:SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({p_object_id:publicResidentObjectId,p_category:category,p_area_id:areaId||null})});
   if(!res.ok)throw Error('Abfrage fehlgeschlagen');
   const rows=await res.json();if(serial!==publicDupSerial)return;
   list.innerHTML=rows.length?rows.map(r=>`<article class="card" style="margin:8px 0;padding:12px"><div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">${r.preview_url&&/^https:\/\//.test(r.preview_url)?`<img src="${esc(r.preview_url)}" alt="Freigegebenes Foto des gemeldeten Problems" loading="lazy" referrerpolicy="no-referrer" style="width:116px;height:100px;object-fit:cover;border-radius:10px" onerror="this.style.display='none'">`:'<div class="muted" style="width:116px;height:100px;display:flex;align-items:center;justify-content:center;border:1px solid #456;border-radius:10px;text-align:center;font-size:12px">Kein freigegebenes Foto</div>'}<div style="flex:1;min-width:170px"><strong>${esc(r.problem_type||r.category)}</strong><div class="muted" style="margin:6px 0">Bereich: ${esc(r.area_name||'Unbekannt')} · ${esc(r.public_status||'Offen')}</div><button type="button" onclick="openPublicDuplicateSupport('${esc(r.report_id)}')">Betrifft mich auch</button></div></div></article>`).join(''):'<div class="muted">Keine offenen Meldungen in dieser Kategorie.</div>';
