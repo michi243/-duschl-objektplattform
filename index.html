@@ -12500,7 +12500,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.51.2';
+const APP_VERSION='3.51.4';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -15683,6 +15683,7 @@ async function cloudSaveTaskForFinding(f,data){
   const completedBy=(data.completedBy||'').trim();
   const completedByName=(data.completedByName||'').trim();
   if(data.status==='completed'&&(!completedBy||!completedByName))throw new Error('Bei erledigten Aufgaben muss „Ausführung bestätigt durch“ dokumentiert werden.');
+  if(data.status==='completed'&&String(data.workNote||'').trim().length<20)throw new Error('Bitte die konkrete Maßnahme und das Ergebnis mit mindestens 20 Zeichen dokumentieren.');
   const payload={
     object_id:f.objectId,
     finding_id:f.id,
@@ -24155,7 +24156,7 @@ async function openWorkItem(id){
       <div class="card" style="margin-top:6px"><b>${esc(confirmerName)}</b><div class="muted">Wird beim Speichern automatisch aus dem aktuell angemeldeten Benutzer protokolliert.</div></div>
     </div>
     <label>Fällig am<input id="wiDue" type="date" value="${esc(due)}"></label>
-    <label>Arbeitsinformation<textarea id="wiNote" placeholder="Hinweise für die Ausführung">${esc(note)}</textarea></label>
+    <label>Durchgeführte Maßnahme / Arbeitsinformation<textarea id="wiNote" placeholder="Konkrete Tätigkeiten, Ergebnis und gegebenenfalls Abweichungen dokumentieren">${esc(note)}</textarea></label>
     <div class="row"><button class="primary" onclick="saveWorkItem('${id}')">Speichern</button><button onclick="closeModal()">Abbrechen</button></div>`);
 }
 function openPlanTask(id){openWorkItem(id);}
@@ -24169,6 +24170,7 @@ async function saveWorkItem(id){
   const completedBy=status==='completed'?(currentUserId()||''):'';
   const completedByName=status==='completed'?(currentUserProfile?.full_name||currentUserProfile?.email||'').trim():'';
   if(status==='completed'&&(!completedBy||!completedByName)){alert('Der aktuell angemeldete Benutzer konnte nicht eindeutig als bestätigende Person ermittelt werden.');return;}
+  if(status==='completed'&&(workNote.length<20||['erledigt','fertig','gemacht','ok'].includes(workNote.toLowerCase()))){alert('Bitte die konkret durchgeführten Arbeiten und das Ergebnis beschreiben (mindestens 20 Zeichen). Ein einfaches „erledigt“ reicht nicht als Leistungsnachweis.');document.getElementById('wiNote')?.focus();return;}
   try{
     if(!cloudSession?.access_token)throw new Error('Nicht angemeldet.');
     cloudSetStatus('Arbeitsvorrat wird zentral gespeichert …','wait');
