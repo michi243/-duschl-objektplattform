@@ -7417,7 +7417,26 @@ body.or-wizard-open{overflow:hidden!important}
 <div class="muted">Meldung zum Objekt</div>
 </div>
 <div class="public-report-card">
-<div id="publicReportFormWrap">
+<div id="residentEntryGate" style="padding:18px 0">
+<h2 style="font-size:1.5rem">Worum geht es bei Ihrem Anliegen?</h2>
+<p class="muted">Bitte wählen Sie zuerst, ob das Anliegen die gemeinschaftlich genutzten Flächen oder Ihren privaten Bereich betrifft.</p>
+<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:18px">
+<button type="button" class="card" style="text-align:left;padding:20px;cursor:pointer;color:inherit" onclick="chooseResidentInquiryType('common')"><strong style="display:block;font-size:1.15rem;margin-bottom:8px">Gemeinschaftsfläche</strong><span class="muted">Treppenhaus, Tiefgarage, Außenanlage, gemeinschaftliche Technik und Schäden am Gemeinschaftseigentum.</span></button>
+<button type="button" class="card" style="text-align:left;padding:20px;cursor:pointer;color:inherit" onclick="chooseResidentInquiryType('private')"><strong style="display:block;font-size:1.15rem;margin-bottom:8px">Privater Bereich</strong><span class="muted">Kleine Reparaturen, Möbelmontage oder sonstige Dienstleistungen in Ihrem privaten Bereich.</span></button>
+</div><p class="muted" style="margin-top:18px">Hinweis: Ein Schaden innerhalb der Wohnung kann dennoch das Gemeinschaftseigentum betreffen (z. B. Zentralheizung oder gemeinschaftliche Leitungen).</p></div>
+<div id="residentPrivateInquiry" style="display:none;padding:16px 0">
+<button type="button" onclick="resetResidentInquiryType()">← Zurück zur Auswahl</button>
+<h2>Private Dienstleistungsanfrage</h2><p class="muted">Unverbindliche Anfrage. Es entsteht kein kostenpflichtiger Auftrag. Ein Angebot und Ihre ausdrückliche Annahme sind vor einer Beauftragung erforderlich.</p>
+<label for="rpiCategory">Gewünschte Leistung *</label><select id="rpiCategory"><option value="">Bitte auswählen</option><option>Möbelmontage</option><option>Kleinreparatur</option><option>Garten- oder Terrassenpflege</option><option>Sonstige Dienstleistung</option><option>Unklarer Schaden in der Wohnung</option></select>
+<label for="rpiDescription">Was soll erledigt werden? *</label><textarea id="rpiDescription" maxlength="2000" rows="4" placeholder="Aufgabe, gewünschter Termin und gegebenenfalls besondere Hinweise"></textarea>
+<label for="rpiName">Name *</label><input id="rpiName" maxlength="120" autocomplete="name">
+<label for="rpiEmail">E-Mail</label><input id="rpiEmail" type="email" maxlength="254" autocomplete="email">
+<label for="rpiPhone">Telefon</label><input id="rpiPhone" type="tel" maxlength="80" autocomplete="tel">
+<p class="muted">Mindestens eine Kontaktmöglichkeit ist erforderlich.</p>
+<label style="display:flex;gap:10px;align-items:start"><input id="rpiConsent" type="checkbox" style="width:auto;margin-top:5px"><span>Ich stimme der Verarbeitung meiner Angaben zur Bearbeitung dieser Anfrage zu. *</span></label>
+<div id="rpiFeedback" role="status" style="margin:12px 0"></div>
+<button class="primary" type="button" onclick="submitResidentPrivateInquiry()">Unverbindliche Anfrage senden</button>
+</div><div id="publicReportFormWrap" style="display:none">
 <div class="public-report-progress" aria-label="Fortschritt">
   <div class="public-report-progress-step is-active" data-pr-progress="1"></div>
   <div class="public-report-progress-step" data-pr-progress="2"></div>
@@ -12501,7 +12520,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.53.2';
+const APP_VERSION='3.54.0';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='10:55'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -13196,6 +13215,38 @@ async function submitPublicDuplicateSupport(){
   if(!res.ok)throw Error('Zuordnung fehlgeschlagen.');await res.json();
   document.getElementById('publicReportFormWrap').innerHTML='<div class="public-report-success"><strong>Vielen Dank!</strong><p>Sie wurden zur bestehenden Meldung als betroffen hinzugefügt. Eine zweite Meldung wurde nicht erzeugt.</p><button type="button" onclick="startAnotherPublicResidentReport()">Anderes Problem melden</button></div>';
  }catch(e){out.textContent=e.message||'Bitte erneut versuchen.';}
+}
+let residentInquirySending=false;
+function chooseResidentInquiryType(type){
+ const gate=document.getElementById('residentEntryGate'),publicForm=document.getElementById('publicReportFormWrap'),privateForm=document.getElementById('residentPrivateInquiry');
+ if(gate)gate.style.display='none';
+ if(publicForm)publicForm.style.display=type==='common'?'block':'none';
+ if(privateForm)privateForm.style.display=type==='private'?'block':'none';
+}
+function resetResidentInquiryType(){
+ document.getElementById('residentEntryGate').style.display='block';
+ document.getElementById('publicReportFormWrap').style.display='none';
+ document.getElementById('residentPrivateInquiry').style.display='none';
+}
+async function submitResidentPrivateInquiry(){
+ if(residentInquirySending)return;
+ const val=id=>String(document.getElementById(id)?.value||'').trim();
+ const feedback=document.getElementById('rpiFeedback');
+ const category=val('rpiCategory'),description=val('rpiDescription'),name=val('rpiName'),email=val('rpiEmail'),phone=val('rpiPhone');
+ if(!category||description.length<10||name.length<2||(!email&&!phone)||!document.getElementById('rpiConsent')?.checked){
+  feedback.textContent='Bitte Leistung, Beschreibung (mindestens 10 Zeichen), Namen, Kontakt und Datenschutzzustimmung angeben.';return;
+ }
+ if(email&&!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)){feedback.textContent='E-Mail-Adresse ungültig.';return;}
+ residentInquirySending=true;feedback.textContent='Ihre Anfrage wird gesendet …';
+ try{
+  const response=await fetch(SUPABASE_URL+'/rest/v1/rpc/create_resident_private_inquiry_v1',{
+   method:'POST',headers:{apikey:SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},
+   body:JSON.stringify({p_object_id:publicResidentObjectId,p_resident_name:name,p_resident_email:email||null,p_resident_phone:phone||null,p_service_category:category,p_description:description,p_consent:true})
+  });
+  if(!response.ok)throw Error('Ihre Anfrage konnte nicht gespeichert werden.');
+  const id=await response.json();
+  document.getElementById('residentPrivateInquiry').innerHTML='<div class="public-report-success"><strong>Anfrage eingegangen</strong><p>Vielen Dank. Ihre unverbindliche private Anfrage wurde erfasst. Es wurde noch kein Auftrag ausgelöst.</p><button type="button" onclick="startAnotherPublicResidentReport()">Weiteres Anliegen</button></div>';
+ }catch(e){feedback.textContent=e.message||'Bitte erneut versuchen.';}finally{residentInquirySending=false;}
 }
 let publicResidentReportMode=false;
 let publicResidentObjectId='';
