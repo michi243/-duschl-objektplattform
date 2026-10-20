@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<!-- CURRENT RELEASE 3.55.11 · Zurück zur Auswahl Privat/Gemeinschaft im ersten Schritt der öffentlichen Bewohnermeldung, ohne Seiten-Reload. -->
 <!-- CURRENT RELEASE 3.55.10 · Ein Asset darf mehreren Leistungen, derselben Leistung nur einmal zugeordnet sein. UI-Prüfung plus Datenbank-Eindeutigkeit. -->
 <!-- CURRENT RELEASE 3.55.9 · Betriebsmittel-Kategorie: Select statt filterndem Datalist, freie und historische Kategorieeinträge bleiben erhalten. -->
 <!-- CURRENT RELEASE 3.55.8 · Objektbetreuer: separate Meldungen-KPI im Dashboard ausgeblendet; Meldungen weiterhin per Menü und priorisierter Hauptaktion erreichbar. -->
@@ -7467,6 +7468,7 @@ body.or-wizard-open{overflow:hidden!important}
 .gf-work-group-heading{font-size:17px;margin:24px 0 10px;color:#f0f7fc;border-bottom:1px solid #2d495b;padding-bottom:8px}.gf-operator-stat b{font-size:15px;color:#eef5f9}.gf-operator-stat strong{font-size:27px;color:#fff}.gf-operator-stat small{color:#a9bac7;line-height:1.35}
 @media(max-width:720px){.gf-operator-overview{grid-template-columns:1fr}.gf-operator-stat{padding:12px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center}.gf-operator-stat small{grid-column:1/-1}}
 </style>
+<style id="resident-category-back-v35511">.public-report-step-back-to-gate{display:inline-flex;align-items:center;gap:8px;margin:0 0 18px;padding:10px 14px;min-height:44px;border:1px solid rgba(158,184,201,.42);border-radius:10px;background:rgba(255,255,255,.045);color:#e5f0f8;font-weight:750;text-align:left}.public-report-step-back-to-gate:hover,.public-report-step-back-to-gate:focus-visible{background:rgba(255,255,255,.12);border-color:#bad3e6}</style>
 <style id="private-inquiry-counter-status-v3544">
 #privateOffersNavCount {box-sizing:border-box!important;}
 #privateOffersNavCount.warn {background:rgba(231,184,60,.19)!important;color:#f2d36d!important;border:1px solid rgba(231,184,60,.4)!important;}
@@ -7556,6 +7558,7 @@ Ihr Name, Ihre Kontaktangaben und die Angaben zu Ihrer gewünschten Leistung wer
 </div>
 
 <div class="public-report-step active" data-pr-step="1">
+  <button type="button" class="public-report-step-back-to-gate" onclick="resetResidentInquiryType()" aria-label="Zurück zur Auswahl Privat oder Gemeinschaftsfläche">← Zurück zur Auswahl: Privat / Gemeinschaftsfläche</button>
   <div class="public-report-step-label">SCHRITT 1 VON 4</div>
   <h2 class="public-report-step-title">Was möchten Sie melden?</h2>
   <div class="public-report-step-copy">Wählen Sie zuerst den passenden Themenbereich. So gelangt Ihre Meldung schneller an die richtige Stelle.</div>
@@ -12665,7 +12668,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.55.10';
+const APP_VERSION='3.55.11';
 const APP_RELEASE_DATE='19.10.2026';
 const APP_RELEASE_TIME='20:10'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -13381,6 +13384,7 @@ function updateResidentPrivateExamples(){
  if(help)help.textContent=RESIDENT_PRIVATE_EXAMPLES[category]||'Wählen Sie einen Themenbereich. Anschließend sehen Sie typische Beispiele.';
 }
 function chooseResidentInquiryType(type){
+ if(type==='common' && typeof publicReportSetStep==='function')publicReportSetStep(1);
  const gate=document.getElementById('residentEntryGate'),publicForm=document.getElementById('publicReportFormWrap'),privateForm=document.getElementById('residentPrivateInquiry');
  if(gate)gate.style.display='none';
  if(publicForm)publicForm.style.display=type==='common'?'block':'none';
@@ -13390,6 +13394,7 @@ function resetResidentInquiryType(){
  document.getElementById('residentEntryGate').style.display='block';
  document.getElementById('publicReportFormWrap').style.display='none';
  document.getElementById('residentPrivateInquiry').style.display='none';
+ window.scrollTo({top:0,behavior:'smooth'});
 }
 async function submitResidentPrivateInquiry(){
  if(residentInquirySending)return;
