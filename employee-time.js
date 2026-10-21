@@ -138,7 +138,7 @@ function notice(msg,error=false){
 }
 function navSync(){
  const nav=el('navEmployeeTime');if(nav)nav.classList.toggle('hidden',!roleTime());
- if(el('dsTimeHub')?.classList.contains('active')&&!roleTime()&&!roleAdmin()){
+ if(el('dsTimeHub')?.classList.contains('active')&&(!cloudSession?.access_token||!org())){
   // Keine Zeiterfassung anzeigen, wenn Mandantenkontext verloren geht.
   if(typeof showSection==='function')showSection('dashboard');
  }
