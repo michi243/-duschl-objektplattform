@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<!-- CURRENT RELEASE 3.56.1 · Mitarbeiter-Zeiterfassung benötigt explizite Freigabe je Mandant. Checkbox im Benutzereditor, serverseitige Zugriffssperre, Zugang aus dem QR-Objektportal. -->
 <!-- CURRENT RELEASE 3.56.0 · QR-Objektportal: rollengebundene Objektakte, Mitarbeiter-Check-in/-out mit Schaltfläche, punktuelle GPS-Auswertung, Stundenliste und Admin-Einsatzübersicht. Bestands-QR für Bewohner bleibt erhalten. -->
 <!-- CURRENT RELEASE 3.55.11 · Zurück zur Auswahl Privat/Gemeinschaft im ersten Schritt der öffentlichen Bewohnermeldung, ohne Seiten-Reload. -->
 <!-- CURRENT RELEASE 3.55.10 · Ein Asset darf mehreren Leistungen, derselben Leistung nur einmal zugeordnet sein. UI-Prüfung plus Datenbank-Eindeutigkeit. -->
@@ -12669,7 +12670,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.56.0';
+const APP_VERSION='3.56.1';
 const APP_RELEASE_DATE='21.10.2026';
 const APP_RELEASE_TIME='20:10'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -41055,6 +41056,6 @@ window.dsPrivateOffersMount=()=>{
  catch(error){root.textContent='Angebotsverwaltung konnte nicht gestartet werden: '+error.message;}
 };
 </script>
-<script src="./employee-time.js?v=3.56.0" defer></script>
+<script src="./employee-time.js?v=3.56.1" defer></script>
 </body>
 </html>
