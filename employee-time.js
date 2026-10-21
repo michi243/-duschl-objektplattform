@@ -6,7 +6,7 @@
 (function(){
 'use strict';
 const VALID_ID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const state={objectId:'',rows:[],busy:false,loadedOrg:'',loadedUser:'',deepHandled:false,permission:{key:'',enabled:false,loading:false,error:''}};
+const state={objectId:'',rows:[],busy:false,loadedOrg:'',loadedUser:'',deepHandled:false,permission:{key:'',enabled:false,loading:false,error:'',checkedAt:0}};
 const h=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const el=id=>document.getElementById(id);
 const fmt=t=>t?new Date(t).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'}):'–';
@@ -156,9 +156,9 @@ function notice(msg,error=false){
 async function loadOwnTimePermission(){
  if(roleAdmin()||!eligibleTimeRole())return;
  const requestedKey=org()+':'+uid();
- if(state.permission.key===requestedKey)return;
+ if(state.permission.loading || (state.permission.key===requestedKey && Date.now()-state.permission.checkedAt<60000))return;
  // Set a scoped loading record immediately; prevent duplicate requests.
- state.permission={key:requestedKey,enabled:false,loading:true,error:''};
+ state.permission={key:requestedKey,enabled:false,loading:true,error:'',checkedAt:0};
  if(el('dsTimeHub')?.classList.contains('active'))renderBookings();
  try{
   const rows=await cloudRequest(
@@ -176,6 +176,7 @@ async function loadOwnTimePermission(){
  }finally{
   if(requestedKey===org()+':'+uid()){
    state.permission.loading=false;
+   state.permission.checkedAt=Date.now();
    if(el('dsTimeHub')?.classList.contains('active'))render();
   }
  }
@@ -237,7 +238,7 @@ async function renderAdminTimePermission(){
    });
    msg.textContent=result===true?'Zeiterfassung freigegeben.':'Zeiterfassung gesperrt.';
    if(person===uid()){
-    state.permission={key:currentOrg+':'+person,enabled:result===true,loading:false,error:''};
+    state.permission={key:currentOrg+':'+person,enabled:result===true,loading:false,error:'',checkedAt:Date.now()};
    }
   }catch(error){
    msg.textContent='Speichern fehlgeschlagen: '+String(error?.message||error);
@@ -264,7 +265,7 @@ function installAdminTimePermissionEditor(){
 }
 
 function navSync(){
- if(eligibleTimeRole()&&!roleAdmin()&&org()&&uid()&&state.permission.key!==org()+':'+uid()){
+ if(eligibleTimeRole()&&!roleAdmin()&&org()&&uid()&& (state.permission.key!==org()+':'+uid() || Date.now()-state.permission.checkedAt>60000)){
    void loadOwnTimePermission();
  }
  if((state.loadedUser&&state.loadedUser!==uid())||(state.loadedOrg&&state.loadedOrg!==org())){
