@@ -1,3 +1,17 @@
+## Korrektur v3.56.4 – Excel-CSV und Testmodus als Startwert
+- Fehlerursache in `employee-time.js`: versehentlich doppelt maskierte Escape-Sequenzen erzeugten den **Literaltext** `\\uFEFF` statt eines UTF-8-BOM und `\\r\\n` statt echter Zeilenumbrüche. Dadurch wurden die Tabellenzeilen zusammengezogen und Umlaute (z. B. Prüfstatus) falsch gelesen.
+- Die CSV beginnt nun mit einem echten UTF-8-BOM, der Excel-Zeile `sep=;` und **CRLF**-Zeilentrennung. Sämtliche 10 Spalten bleiben korrekt getrennt; der Inhalt verwendet die unveränderte deutsche Zeichenkodierung.
+- Ohne gewählten Objekt-QR startet die Zeiterfassungsansicht standardmäßig mit **Testmodus**. Produktive Buchungen erfordern eine bewusste Umstellung oder das Öffnen eines echten Produktivobjekts.
+- Die einzelne versehentlich produktiv gespeicherte Testbuchung „Dienstbeginn“ vom 21.10.2026, 20:51 Uhr wurde unter Erhalt des Originalzeitstempels als Test gekennzeichnet, die administrative Berichtigung ist in `note` dokumentiert.
+- Bereits heruntergeladene defekte CSV-Dateien werden durch die App-Korrektur **nicht nachträglich repariert**. Bitte in v3.56.4 neu exportieren.
+- Export ist weiterhin die **Buchungshistorie**, keine geprüfte Lohnabrechnung.
+
+### Abnahmetest
+1. Mit Testmodus starten, Testbuchungen exportieren. Beim Öffnen in Excel sind 10 Spalten sichtbar, Umlaute stimmen, jede Buchung steht in eigener Zeile.
+2. Erste Bytes der Datei: `EF BB BF` (UTF-8-BOM). Danach `sep=;` und CRLF.
+3. Produktivmodus bewusst auswählen: kein versehentliches Testereignis im Export.
+4. QR eines Produktivobjekts öffnen: Modus wechselt bewusst und nachvollziehbar entsprechend dem Objektkennzeichen.
+
 ## Erweiterung v3.56.2 – Testmodus, GPS-Vorschau und Ausnahmeregelung
 - Objekt **Musterstraße** wurde in der Datenbank als Testobjekt gekennzeichnet; alle anderen Objekte blieben unverändert.
 - Bereits vorliegender Probe-Check-in (139591 m Abweichung) wurde als **Test** und **offene Ausnahme** klassifiziert. Originalwert bleibt erhalten.
