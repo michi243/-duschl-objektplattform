@@ -386,6 +386,8 @@ function getStatus(rows){
  return {latest,shiftOpen,objectOpen,objectId:objectOpen?v.object_id:'',breakOpen};
 }
 function render(){
+ const exportBtn=el('dstExport');
+ if(exportBtn)exportBtn.textContent=state.isTest?'Testbuchungen als CSV (nicht abrechnen)':'Produktivbuchungen als CSV (nur geprüfte)';
  const select=el('dstModeSelect'),banner=el('dstModeBanner');
  if(select&&select.value!==(state.isTest?'test':'live'))select.value=state.isTest?'test':'live';
  if(banner){
@@ -634,18 +636,33 @@ async function commitBooking(type,objectId,gps,exceptionReason){
 }
 
 function downloadCsv(){
- if(!state.rows.length){notice('Keine Zeitbuchungen für den Export vorhanden.',true);return;}
- const safe=v=>{const txt=String(v??'').replace(/^[=+\-@]/,"'$&");return '"'+txt.replace(/"/g,'""')+'"';};
- const header=['Mitarbeiter','Objekt','Ereignis','Zeitstempel','GPS-Status','Abstand m','GPS-Genauigkeit m'];
- const rows=state.rows.slice().reverse().map(x=>[
-  typeof profileDisplayName==='function'?(profileDisplayName(x.user_id)||String(x.user_id).slice(0,8)):String(x.user_id).slice(0,8),
+ const demo=state.isTest;
+ const all=modeRows();
+ const rows=demo?all:all.filter(x=>x.review_status!=='pending_review'||timeReview(x.id)?.decision==='approved');
+ const excluded=all.length-rows.length;
+ if(!rows.length){
+  notice(demo?'Keine Testbuchungen vorhanden.':'Keine geprüften Produktivbuchungen exportierbar.'+
+   (excluded?' '+excluded+' Ausnahmen benötigen noch Freigabe.':''),true);return;
+ }
+ const safe=v=>{
+  const txt=String(v??'').replace(/^[=+@-]/,"'$&");
+  return '"'+txt.replace(/"/g,'""')+'"';
+ };
+ const header=['Modus','Mitarbeiter','Objekt','Ereignis','Zeitstempel','GPS-Status','Abstand m',
+  'GPS-Genauigkeit m','Ausnahme-Prüfstatus','Ausnahme-Begründung'];
+ const values=rows.slice().reverse().map(x=>[
+  demo?'TEST – NICHT ABRECHNEN':'PRODUKTIV (BUCHUNGEN, KEINE LOHNABRECHNUNG)',
+  typeof profileDisplayName==='function'?
+   (profileDisplayName(x.user_id)||String(x.user_id).slice(0,8)):String(x.user_id).slice(0,8),
   x.object_id?objName(x.object_id):'',typeLabel(x.event_type),fmt(x.occurred_at),
-  gpsLabel(x.gps_result),x.gps_distance_m??'',x.gps_accuracy_m??''
+  gpsLabel(x.gps_result),x.gps_distance_m??'',x.gps_accuracy_m??'',reviewLabel(x),x.exception_reason||''
  ]);
- const csv='\uFEFF'+[header,...rows].map(r=>r.map(safe).join(';')).join('\r\n');
+ const csv='\\uFEFF'+[header,...values].map(row=>row.map(safe).join(';')).join('\\r\\n');
  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
- const a=document.createElement('a');a.href=url;a.download='duschl-arbeitszeiten-'+new Date().toISOString().slice(0,10)+'.csv';
+ const a=document.createElement('a');a.href=url;
+ a.download='duschl-'+(demo?'TEST-':'PRODUKTIV-')+'zeitereignisse-'+new Date().toISOString().slice(0,10)+'.csv';
  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
+ if(excluded)notice(excluded+' ungeprüfte/abgelehnte Ausnahmebuchung(en) nicht in Produktiv-CSV enthalten.');
 }
 mount();
 installAdminTimePermissionEditor();
