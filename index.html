@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<!-- CURRENT RELEASE 3.56.0 · QR-Objektportal: rollengebundene Objektakte, Mitarbeiter-Check-in/-out mit Schaltfläche, punktuelle GPS-Auswertung, Stundenliste und Admin-Einsatzübersicht. Bestands-QR für Bewohner bleibt erhalten. -->
 <!-- CURRENT RELEASE 3.55.11 · Zurück zur Auswahl Privat/Gemeinschaft im ersten Schritt der öffentlichen Bewohnermeldung, ohne Seiten-Reload. -->
 <!-- CURRENT RELEASE 3.55.10 · Ein Asset darf mehreren Leistungen, derselben Leistung nur einmal zugeordnet sein. UI-Prüfung plus Datenbank-Eindeutigkeit. -->
 <!-- CURRENT RELEASE 3.55.9 · Betriebsmittel-Kategorie: Select statt filterndem Datalist, freie und historische Kategorieeinträge bleiben erhalten. -->
@@ -12668,8 +12669,8 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.55.11';
-const APP_RELEASE_DATE='19.10.2026';
+const APP_VERSION='3.56.0';
+const APP_RELEASE_DATE='21.10.2026';
 const APP_RELEASE_TIME='20:10'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
@@ -28470,6 +28471,7 @@ function renderObjects(){
           <div class="ds-object-actions">
             <button class="primary ds-object-primary-action" onclick="openFindingModal('${esc(o.id)}','')">+ Dokumentation erfassen</button>
             <div class="ds-object-secondary-actions">
+              <button type="button" onclick="dsTimeOpenObjectFile('${esc(o.id)}')">Digitale Objektakte</button>
               ${meta.open?`<button onclick="openObjectOpenFindings('${esc(o.id)}')">Offene Punkte (${meta.open})</button>`:''}
               ${meta.documentationCount?`<button onclick="openObjectDocumentation('${esc(o.id)}')">Dokumentationen (${meta.documentationCount})</button>`:''}
               ${!o.externalManaged&&!isCustomerRole()?`<button onclick="openObjectQrCode('${esc(o.id)}')">QR-Code</button>`:''}
@@ -30148,7 +30150,7 @@ async function openObjectQrCode(objectId,areaId=''){
     return;
   }
   const url=objectPublicReportUrl(objectId);
-  modal(`<div class="qr-modal-head"><h2>QR-Code Bewohnermeldung</h2></div>
+  modal(`<div class="qr-modal-head"><h2>Objekt-QR · Meldungen &amp; Objektakte</h2></div>
     <div class="card qr-modal-card">
       <canvas id="objectQrCanvas" width="320" height="320" class="qr-modal-canvas"></canvas>
       <div class="qr-modal-object">${esc(o.name||'Objekt')}</div>
@@ -41053,5 +41055,6 @@ window.dsPrivateOffersMount=()=>{
  catch(error){root.textContent='Angebotsverwaltung konnte nicht gestartet werden: '+error.message;}
 };
 </script>
+<script src="./employee-time.js?v=3.56.0" defer></script>
 </body>
 </html>
