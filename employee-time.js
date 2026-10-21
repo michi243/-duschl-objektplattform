@@ -296,7 +296,9 @@ function renderTeam(){
   const label=typeof profileDisplayName==='function'?profileDisplayName(id):'';
   const name=label||((id===uid()&&currentUserProfile?.full_name)||'Mitarbeiter '+String(id).slice(0,8));
   const place=st.objectOpen?objName(st.objectId):(st.shiftOpen?'Kein aktiver Objekt-Check-in':'Außer Dienst');
-  return '<div class="dst-row"><div><strong>'+h(name)+'</strong><div class="dst-muted">'+h(place)+'</div></div>'
+  const lastScan=descending.find(x=>['object_in','object_out'].includes(x.event_type));
+  const gpsText=lastScan?gpsLabel(lastScan.gps_result):'Keine GPS-Buchung';
+  return '<div class="dst-row"><div><strong>'+h(name)+'</strong><div class="dst-muted">'+h(place)+'</div><div class="dst-muted">'+h(gpsText)+'</div></div>'
    +'<span>'+h(st.breakOpen?'Pause':st.objectOpen?'Im Objekt':st.shiftOpen?'Im Dienst':'Dienstende')
    +'<br>'+h(tm(st.latest?.occurred_at))+'</span></div>';
  }).join('');
@@ -360,4 +362,5 @@ function downloadCsv(){
 mount();
 navSync();
 setInterval(navSync,1800);
+setInterval(()=>{if(document.visibilityState==='visible'&&el('dsTimeHub')?.classList.contains('active')&&roleTime()&&!state.busy)void loadRows();},30000);
 })();
