@@ -1,5 +1,17 @@
 # Duschl Service – QR-Objektportal und Arbeitszeiterfassung (Pilot 3.56.0)
 
+## Mitarbeiter freigeben (ab v3.56.1)
+1. Im richtigen Mandanten als Mandanten-Admin oder Admin-Vertretung anmelden.
+2. Menü **Benutzer & Berechtigungen** öffnen.
+3. Bereits angelegten operativen Mitarbeiter auswählen; Rollen **Objektbetreuung** oder **Externer Auftragnehmer** sind vorgesehen.
+4. Direkt unter dem Benutzernamen die Karte **Arbeitszeiterfassung** suchen.
+5. **Mitarbeiter für Arbeitszeiterfassung freigeben** aktivieren und **Zeiterfassungsfreigabe speichern** betätigen.
+6. Für Objekt-QR-Check-in muss der Mitarbeiter zusätzlich dem Objekt zugewiesen sein. Die Freigabe ersetzt keine Objektberechtigung.
+7. Mitarbeiter kann den QR-Code erneut öffnen oder nach spätestens einer Minute die Freigabe sehen; bei Problemen Seite aktualisieren.
+8. Ein Entzug der Freigabe blockiert neue Buchungen serverseitig. Historische Zeitereignisse bleiben erhalten.
+
+Die reine Mandantenrolle erteilt **keine** Zeiterfassungsfreigabe. Die explizite Flagge wird pro Mandant gespeichert und ist standardmäßig deaktiviert. Mandantenadministratoren haben für Pilot-/Testzwecke weiterhin eigenen Zugriff.
+
 ## Architektur
 - Bestehender, bereits gedruckter QR-Code `?meldung=<object_id>` bleibt gültig: Bewohner gelangen ohne Anmeldung zu ihrer Meldung. Der öffentliche Bildschirm bietet zusätzlich **„Mitarbeiter / Verwaltung · zur Objektakte“**.
 - Der interne Link `?objekt=<object_id>` öffnet nach Anmeldung und Mandantenprüfung die digitale Objektakte.

@@ -6,17 +6,22 @@
 (function(){
 'use strict';
 const VALID_ID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const state={objectId:'',rows:[],busy:false,loadedOrg:'',loadedUser:'',deepHandled:false};
+const state={objectId:'',rows:[],busy:false,loadedOrg:'',loadedUser:'',deepHandled:false,permission:{key:'',enabled:false,loading:false,error:'',checkedAt:0}};
 const h=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const el=id=>document.getElementById(id);
 const fmt=t=>t?new Date(t).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'}):'–';
 const tm=t=>t?new Date(t).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):'–';
-const roleTime=()=>{
+const eligibleTimeRole=()=>{
  try{
   const r=String(effectiveOrganizationRole()||'');
   return !!(cloudSession?.access_token&&currentOrganizationId()
       && (hasOperationalAdminAccess()||['object_manager','staff','employee','external_contractor'].includes(r)));
  }catch(_){return false;}
+};
+const roleTime=()=>{
+ if(!eligibleTimeRole())return false;
+ if(roleAdmin())return true;
+ return state.permission.key===org()+':'+uid() && state.permission.enabled===true;
 };
 const roleAdmin=()=>{try{return hasOperationalAdminAccess()}catch(_){return false}};
 const org=()=>{try{return String(currentOrganizationId()||'')}catch(_){return ''}};
@@ -80,7 +85,10 @@ function mount(){
   section.innerHTML=`
   <div class="dst-head"><div><div class="dst-eyebrow">DUSCHL SERVICE · PILOT</div>
   <h2>Arbeitszeit &amp; digitale Objektakte</h2></div>
-  <button id="dstRefresh" type="button">↻ Aktualisieren</button></div>
+  <div class="dst-actions" style="margin:0">
+   <button id="dstManageEmployees" type="button" style="display:none">Mitarbeiter &amp; Freigaben</button>
+   <button id="dstRefresh" type="button">↻ Aktualisieren</button>
+  </div></div>
   <div id="dstNotice" role="status" aria-live="polite"></div>
   <div id="dstObjectBox" class="dst-box">
     <div class="dst-eyebrow">Digitale Objektakte</div>
@@ -107,6 +115,9 @@ function mount(){
   </div>`;
   main.appendChild(section);
   el('dstRefresh').addEventListener('click',()=>loadRows());
+  el('dstManageEmployees').addEventListener('click',()=>{
+   if(roleAdmin()&&typeof showSection==='function')showSection('users');
+  });
   el('dstExport').addEventListener('click',downloadCsv);
   el('dstBookingActions').addEventListener('click',e=>{
    const b=e.target.closest('button[data-dst-event]');if(b)void book(b.dataset.dstEvent);
@@ -141,12 +152,128 @@ function notice(msg,error=false){
  d.textContent=String(msg||'');d.style.display=msg?'block':'none';
  d.classList.toggle('dst-error',!!error);
 }
+
+async function loadOwnTimePermission(){
+ if(roleAdmin()||!eligibleTimeRole())return;
+ const requestedKey=org()+':'+uid();
+ if(state.permission.loading || (state.permission.key===requestedKey && Date.now()-state.permission.checkedAt<60000))return;
+ // Set a scoped loading record immediately; prevent duplicate requests.
+ state.permission={key:requestedKey,enabled:false,loading:true,error:'',checkedAt:0};
+ if(el('dsTimeHub')?.classList.contains('active'))renderBookings();
+ try{
+  const rows=await cloudRequest(
+    'employee_time_permissions?select=enabled&organization_id=eq.'+escParam(org())+
+    '&user_id=eq.'+escParam(uid())+'&limit=1'
+  );
+  if(requestedKey!==org()+':'+uid())return;
+  state.permission.enabled=Array.isArray(rows)&&rows[0]?.enabled===true;
+  state.permission.error='';
+ }catch(error){
+  if(requestedKey===org()+':'+uid()){
+   state.permission.error=String(error?.message||error);
+   console.warn('Zeiterfassungsfreigabe konnte nicht geladen werden',error);
+  }
+ }finally{
+  if(requestedKey===org()+':'+uid()){
+   state.permission.loading=false;
+   state.permission.checkedAt=Date.now();
+   if(el('dsTimeHub')?.classList.contains('active'))render();
+  }
+ }
+}
+async function renderAdminTimePermission(){
+ const editor=el('userAdminEditor');
+ const selection=el('userAdminSelect');
+ if(!editor||!selection||!selection.value||!editor.firstElementChild||!roleAdmin())return;
+ if(editor.querySelector('#dstEmployeeTimePermissionCard'))return;
+ const person=String(selection.value);
+ const currentOrg=org();
+ const membership=(typeof userAdminMemberships!=='undefined'?userAdminMemberships:[])
+    .find(m=>String(m.user_id)===person&&String(m.organization_id)===currentOrg);
+ if(!membership)return;
+ const allowed=['object_manager','staff','employee','external_contractor'].includes(String(membership.role||''));
+ const card=document.createElement('div');
+ card.id='dstEmployeeTimePermissionCard';
+ card.className='card';
+ card.style.marginTop='12px';
+ card.innerHTML='<h3>Arbeitszeiterfassung</h3>'+
+  '<p class="dst-muted">Die Freigabe ist <strong>personenbezogen</strong> und gilt nur für den ausgewählten Mandanten. Die Objektzuweisung erfolgt separat.</p>'+
+  '<label class="row" style="align-items:center;gap:10px;min-height:44px">'+
+  '<input id="dstTimePermissionCheck" type="checkbox" disabled>'+
+  '<span>Mitarbeiter für Arbeitszeiterfassung freigeben</span></label>'+
+  '<div class="dst-actions"><button id="dstSaveTimePermission" type="button" disabled>Zeiterfassungsfreigabe speichern</button></div>'+
+  '<div id="dstTimePermissionFeedback" class="dst-muted" role="status" aria-live="polite"></div>';
+ const editorCard=editor.querySelector(':scope > .card');
+ const nameHeading=editorCard?.querySelector('h3');
+ if(nameHeading)nameHeading.insertAdjacentElement('afterend',card);
+ else editor.appendChild(card);
+ const check=el('dstTimePermissionCheck'), save=el('dstSaveTimePermission'), msg=el('dstTimePermissionFeedback');
+ if(!allowed){
+  msg.textContent='Nur Benutzer mit operativer Mandantenrolle können freigegeben werden. Bei Rollenänderung zuerst die übrigen Berechtigungen speichern.';
+  return;
+ }
+ msg.textContent='Bisherige Freigabe wird geprüft …';
+ try{
+  const rows=await cloudRequest(
+   'employee_time_permissions?select=enabled&organization_id=eq.'+escParam(currentOrg)
+    +'&user_id=eq.'+escParam(person)+'&limit=1'
+  );
+  if(selection.value!==person||org()!==currentOrg||!card.isConnected)return;
+  check.checked=Array.isArray(rows)&&rows[0]?.enabled===true;
+  check.disabled=false;save.disabled=false;
+  msg.textContent=check.checked?'Freigabe: aktiv.':'Freigabe: nicht aktiv.';
+ }catch(error){
+  if(card.isConnected)msg.textContent='Freigabe nicht lesbar: '+String(error?.message||error);
+  return;
+ }
+ save.addEventListener('click',async()=>{
+  if(selection.value!==person||org()!==currentOrg)return;
+  save.disabled=true;check.disabled=true;
+  msg.textContent='Speichern …';
+  try{
+   const result=await cloudRequest('rpc/set_employee_time_permission_v1',{
+    method:'POST',body:JSON.stringify({
+      p_organization_id:currentOrg,p_user_id:person,p_enabled:check.checked
+    })
+   });
+   msg.textContent=result===true?'Zeiterfassung freigegeben.':'Zeiterfassung gesperrt.';
+   if(person===uid()){
+    state.permission={key:currentOrg+':'+person,enabled:result===true,loading:false,error:'',checkedAt:Date.now()};
+   }
+  }catch(error){
+   msg.textContent='Speichern fehlgeschlagen: '+String(error?.message||error);
+  }finally{if(card.isConnected){save.disabled=false;check.disabled=false;}}
+ });
+}
+function installAdminTimePermissionEditor(){
+ const editor=el('userAdminEditor');
+ if(!editor)return;
+ let scheduled=false;
+ const schedule=()=>{
+  if(scheduled)return;
+  scheduled=true;
+  queueMicrotask(()=>{
+   scheduled=false;
+   // Observer also fires on insertion, but the guard in renderAdminTimePermission prevents loops.
+   if(!editor.querySelector('#dstEmployeeTimePermissionCard'))void renderAdminTimePermission();
+  });
+ };
+ const observer=new MutationObserver(schedule);
+ observer.observe(editor,{childList:true});
+ el('userAdminSelect')?.addEventListener('change',schedule);
+ schedule();
+}
+
 function navSync(){
+ if(eligibleTimeRole()&&!roleAdmin()&&org()&&uid()&& (state.permission.key!==org()+':'+uid() || Date.now()-state.permission.checkedAt>60000)){
+   void loadOwnTimePermission();
+ }
  if((state.loadedUser&&state.loadedUser!==uid())||(state.loadedOrg&&state.loadedOrg!==org())){
   state.rows=[];state.objectId='';state.loadedOrg='';state.loadedUser='';
   if(el('dsTimeHub')?.classList.contains('active'))render();
  }
- const nav=el('navEmployeeTime');if(nav)nav.classList.toggle('hidden',!roleTime());
+ const nav=el('navEmployeeTime');if(nav)nav.classList.toggle('hidden',!eligibleTimeRole());
+ const manage=el('dstManageEmployees');if(manage)manage.style.display=roleAdmin()?'':'none';
  if(el('dsTimeHub')?.classList.contains('active')&&(!cloudSession?.access_token||!org())){
   // Keine Zeiterfassung anzeigen, wenn Mandantenkontext verloren geht.
   if(typeof showSection==='function')showSection('dashboard');
@@ -163,6 +290,7 @@ function navSync(){
 function openTime(objectId=''){
  if((state.loadedUser&&state.loadedUser!==uid())||(state.loadedOrg&&state.loadedOrg!==org())){state.rows=[];state.objectId='';state.loadedOrg='';state.loadedUser='';}
  if(!cloudSession?.access_token||!org()){notice('Bitte anmelden und Mandanten auswählen.',true);return;}
+ if(eligibleTimeRole()&&!roleAdmin())void loadOwnTimePermission();
  if(objectId && (!VALID_ID.test(objectId)||!findObject(objectId))){
   alert('Das Objekt ist für diesen Zugang nicht freigegeben.');return;
  }
@@ -262,7 +390,7 @@ function renderBookings(){
  if(!status||!actions||!history)return;
  const rows=myRows(),st=getStatus(rows);
  if(!roleTime()){
-  status.textContent='Für diese Rolle sind keine Arbeitszeitbuchungen vorgesehen.';
+  status.textContent=eligibleTimeRole() ? (state.permission.loading?'Zeiterfassungsfreigabe wird geprüft …':(state.permission.error?'Zeitfreigabe konnte nicht geprüft werden. Bitte Seite aktualisieren.':'Zeiterfassung noch nicht freigegeben. Ein Administrator kann sie unter Benutzer & Berechtigungen aktivieren.')) : 'Für diese Rolle sind keine Arbeitszeitbuchungen vorgesehen.';
   actions.innerHTML='';
  }else{
   const activeObject=st.objectOpen?objName(st.objectId):'Kein Objekt geöffnet';
@@ -366,6 +494,7 @@ function downloadCsv(){
  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
 }
 mount();
+installAdminTimePermissionEditor();
 navSync();
 setInterval(navSync,1800);
 setInterval(()=>{if(document.visibilityState==='visible'&&el('dsTimeHub')?.classList.contains('active')&&roleTime()&&!state.busy)void loadRows();},30000);
