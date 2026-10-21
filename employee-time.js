@@ -6,7 +6,7 @@
 (function(){
 'use strict';
 const VALID_ID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const state={objectId:'',rows:[],busy:false,loadedOrg:'',loadedUser:'',deepHandled:false,isTest:false,reviews:[],pendingScan:null,permission:{key:'',enabled:false,loading:false,error:'',checkedAt:0}};
+const state={objectId:'',rows:[],busy:false,loadedOrg:'',loadedUser:'',deepHandled:false,isTest:true,reviews:[],pendingScan:null,permission:{key:'',enabled:false,loading:false,error:'',checkedAt:0}};
 const h=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const el=id=>document.getElementById(id);
 const fmt=t=>t?new Date(t).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'}):'–';
@@ -98,7 +98,7 @@ function mount(){
    <button id="dstRefresh" type="button">↻ Aktualisieren</button>
   </div></div>
   <div class="dst-mode-label"><label for="dstModeSelect">Arbeitszeitmodus</label>
- <select id="dstModeSelect"><option value="live">Produktiv</option><option value="test">Testmodus · nicht abrechnen</option></select></div>
+ <select id="dstModeSelect"><option value="test" selected>Testmodus · nicht abrechnen</option><option value="live">Produktiv · nur nach bewusster Auswahl</option></select></div>
  <div id="dstModeBanner" class="dst-live-banner">Produktive Arbeitszeiten · Testbuchungen werden ausgeschlossen.</div>
  <div id="dstNotice" role="status" aria-live="polite"></div>
   <div id="dstObjectBox" class="dst-box">
@@ -662,7 +662,12 @@ function downloadCsv(){
   x.object_id?objName(x.object_id):'',typeLabel(x.event_type),fmt(x.occurred_at),
   gpsLabel(x.gps_result),x.gps_distance_m??'',x.gps_accuracy_m??'',reviewLabel(x),x.exception_reason||''
  ]);
- const csv='\\uFEFF'+[header,...values].map(row=>row.map(safe).join(';')).join('\\r\\n');
+ // Excel (German locale): REAL UTF-8 BOM, semicolon separator hint and real CRLF.
+ // Do not escape the backslash twice here: otherwise literal "\\uFEFF" and "\\r\\n"
+ // corrupt the exported file, shifting rows and breaking umlauts.
+ const crlf=String.fromCharCode(13,10);
+ const csv=String.fromCharCode(0xFEFF)+'sep=;'+crlf
+   +[header,...values].map(row=>row.map(safe).join(';')).join(crlf)+crlf;
  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
  const a=document.createElement('a');a.href=url;
  a.download='duschl-'+(demo?'TEST-':'PRODUKTIV-')+'zeitereignisse-'+new Date().toISOString().slice(0,10)+'.csv';
