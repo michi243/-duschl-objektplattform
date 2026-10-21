@@ -522,39 +522,117 @@ async function getGps(){
    ()=>resolve(null),{enableHighAccuracy:true,timeout:11000,maximumAge:0});
  });
 }
+
+function gpsPlausibility(gps,objectId){
+ const o=findObject(objectId);
+ if(!gps)return {status:'unavailable',distance:null,accuracy:null};
+ if(o?.latitude==null||o?.longitude==null)return {status:'no_object_coordinates',distance:null,accuracy:gps.gps_accuracy_m};
+ const lat1=Number(gps.gps_latitude)*Math.PI/180,lat2=Number(o.latitude)*Math.PI/180;
+ const deltaLat=(Number(o.latitude)-Number(gps.gps_latitude))*Math.PI/180;
+ const deltaLon=(Number(o.longitude)-Number(gps.gps_longitude))*Math.PI/180;
+ const hval=Math.sin(deltaLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(deltaLon/2)**2;
+ const distance=6371000*2*Math.asin(Math.min(1,Math.sqrt(Math.max(0,hval))));
+ const accuracy=Number(gps.gps_accuracy_m);
+ return {status:accuracy>100?'uncertain':distance<=150+accuracy?'near':'outside',
+  distance,accuracy};
+}
+function showScanPreview(){
+ const scan=state.pendingScan;if(!scan)return;
+ const p=scan.plausibility;
+ const isGood=p.status==='near';
+ const distance=p.distance==null?'nicht bestimmbar':p.distance>=1000?(p.distance/1000).toFixed(2).replace('.',',')+' km':Math.round(p.distance)+' m';
+ const accuracy=p.accuracy==null?'nicht verfügbar':Math.round(p.accuracy)+' m';
+ const headline=isGood?'Standortprüfung plausibel':'GPS-Prüfung: Ausnahme erforderlich';
+ modal('<h2>Standortprüfung vor Buchung</h2>'+
+  '<p><strong>'+h(objName(scan.objectId))+'</strong> · '+h(typeLabel(scan.type))+'</p>'+
+  (scan.isTest?'<div class="dst-test-banner">TESTMODUS – nicht für die Lohnabrechnung</div>':'')+
+  '<div class="card" style="margin:12px 0"><strong>'+h(headline)+'</strong>'+
+  '<div class="muted" style="margin-top:8px">Entfernung zum Objekt: <strong>'+h(distance)+'</strong></div>'+
+  '<div class="muted">Standortgenauigkeit: '+h(accuracy)+'</div>'+
+  '<div class="muted">Ergebnis: '+h(gpsLabel(p.status))+'</div></div>'+
+  (isGood?'<p class="muted">Du kannst den Check-in beziehungsweise Check-out jetzt bestätigen.</p>':
+   '<p class="muted">Ein regulärer Check-in ist hier nicht möglich. Mit Begründung kannst du eine prüfpflichtige Ausnahmebuchung anlegen. Die Zeit wird dokumentiert, aber nicht automatisch freigegeben.</p>'+
+   '<label style="display:block">Begründung der Ausnahme (mindestens 10 Zeichen)<textarea id="dstGeoExceptionReason" maxlength="500" rows="3" placeholder="z. B. Testbuchung außerhalb des Objekts oder fehlerhafte Objektkoordinaten"></textarea></label>')+
+   '<div id="dstScanFeedback" role="status" aria-live="polite"></div>'+
+   '<div class="row" style="gap:8px;flex-wrap:wrap;margin-top:14px">'+
+   '<button id="dstRetryScan" type="button">Standort erneut prüfen</button>'+
+   (isGood?'<button id="dstConfirmScan" type="button" class="primary">Buchung bestätigen</button>':
+      '<button id="dstConfirmScan" type="button" class="primary">Ausnahmebuchung mit Begründung</button>')+
+   '<button id="dstCancelScan" type="button">Abbrechen</button></div>');
+ el('dstCancelScan')?.addEventListener('click',()=>{state.pendingScan=null;closeModal();});
+ el('dstRetryScan')?.addEventListener('click',()=>{state.pendingScan=null;closeModal();void book(scan.type);});
+ el('dstConfirmScan')?.addEventListener('click',async()=>{
+  const current=state.pendingScan;
+  if(!current||current!==scan||Date.now()-scan.at>60000
+    ||scan.organizationId!==org()||scan.userId!==uid()
+    ||scan.isTest!==state.isTest||scan.objectId!==(scan.type==='object_out'?getStatus(myRows()).objectId:state.objectId)){
+    if(el('dstScanFeedback'))el('dstScanFeedback').textContent='Standortprüfung ist abgelaufen oder der Kontext hat gewechselt. Erneut prüfen.';
+    return;
+  }
+  const reason=isGood?'':String(el('dstGeoExceptionReason')?.value||'').trim();
+  if(!isGood&&(reason.length<10||reason.length>500)){
+    if(el('dstScanFeedback'))el('dstScanFeedback').textContent='Bitte mindestens 10 Zeichen als Begründung eingeben.';
+    return;
+  }
+  el('dstConfirmScan').disabled=true;
+  try{
+   await commitBooking(scan.type,scan.objectId,scan.gps,reason);
+   if(state.pendingScan===scan){state.pendingScan=null;closeModal();}
+  }catch(_){if(el('dstConfirmScan'))el('dstConfirmScan').disabled=false;}
+ });
+}
 async function book(type){
  if(state.busy||!roleTime())return;
  const st=getStatus(myRows());
+ const isObject=['object_in','object_out'].includes(type);
  const obj=type==='object_out'?st.objectId:state.objectId;
- if(['object_in','object_out'].includes(type)&&(!obj||!findObject(obj))){
-  notice('Bitte zuerst den QR-Code des Objekts scannen bzw. die Objektakte öffnen.',true);return;
+ if(isObject&&(!obj||!findObject(obj))){
+  notice('Bitte den Objekt-QR-Code scannen beziehungsweise die Objektakte öffnen.',true);return;
+ }
+ if(isObject&&!!findObject(obj)?.isTest!==state.isTest){
+  notice('Der Zeitmodus passt nicht zum Objekt. Bitte das Test-/Produktiv-Profil korrigieren.',true);return;
  }
  if(type==='object_out'&&!st.objectOpen)return notice('Kein offener Objekteinsatz.',true);
- if(type==='shift_end'&&(st.objectOpen||st.breakOpen))return notice('Bitte vorher Objekteinsatz und Pause beenden.',true);
- const orgId=org(),userId=uid();if(!orgId||!userId)return;
+ if(type==='shift_end'&&(st.objectOpen||st.breakOpen))return notice('Bitte zuerst Objekteinsatz und Pause beenden.',true);
+ if(!isObject){void commitBooking(type,null,null,'');return;}
  state.busy=true;
- notice(['object_in','object_out'].includes(type)?'GPS wird bei der Buchung punktuell abgefragt …':'Buchung wird gespeichert …');
+ notice('GPS wird zur einmaligen Standortprüfung abgefragt …');
  renderBookings();
  try{
-  const gps=['object_in','object_out'].includes(type)?await getGps():null;
-  // GPS may be unavailable; in that case an unverified event is still recorded.
-  const payload={
-   organization_id:orgId,user_id:userId,object_id:['object_in','object_out'].includes(type)?obj:null,
-   event_type:type,...(gps||{})
-  };
-  const response=await cloudRequest('employee_time_events?select=id,event_type,occurred_at,gps_result,gps_distance_m',{
-   method:'POST',headers:{Prefer:'return=representation','Content-Type':'application/json'},
-   body:JSON.stringify(payload)
-  });
-  if(orgId!==org())return;
-  const result=Array.isArray(response)?response[0]:response;
-  state.rows.unshift({...payload,...result});
-  notice(typeLabel(type)+' gespeichert · '+fmt(result?.occurred_at)+
-   (['object_in','object_out'].includes(type)?' · '+gpsLabel(result?.gps_result):''));
-  await loadRows();
- }catch(err){notice('Buchung nicht gespeichert: '+(err.message||err),true);}
- finally{state.busy=false;render();}
+  const gps=await getGps();
+  if(!roleTime()||!org()||!uid())return;
+  state.pendingScan={type,objectId:obj,organizationId:org(),userId:uid(),isTest:state.isTest,
+    gps,plausibility:gpsPlausibility(gps,obj),at:Date.now()};
+  notice('');
+  showScanPreview();
+ }finally{state.busy=false;renderBookings();}
 }
+async function commitBooking(type,objectId,gps,exceptionReason){
+ if(state.busy||!roleTime())throw new Error('Nicht berechtigt oder laufende Buchung.');
+ const orgId=org(),userId=uid(),demo=state.isTest;
+ if(!orgId||!userId)throw new Error('Sitzung nicht verfügbar.');
+ if(objectId && !!findObject(objectId)?.isTest!==demo)throw new Error('Objekt gehört zu einem anderen Modus.');
+ state.busy=true;
+ notice('Zeitbuchung wird gespeichert …');
+ try{
+  const payload={organization_id:orgId,user_id:userId,object_id:objectId||null,
+     event_type:type,is_test:demo,exception_reason:exceptionReason||null,...(gps||{})};
+  const response=await cloudRequest('employee_time_events?select=id,event_type,occurred_at,gps_result,gps_distance_m,review_status,is_test',{
+   method:'POST',headers:{Prefer:'return=representation','Content-Type':'application/json'},body:JSON.stringify(payload)
+  });
+  const result=Array.isArray(response)?response[0]:response;
+  if(orgId!==org()||userId!==uid())return;
+  // GPS raw location is intentionally not put into the local history.
+  state.rows.unshift({...payload,gps_latitude:null,gps_longitude:null,...result});
+  await loadRows();
+  notice(typeLabel(type)+' gespeichert · '+fmt(result?.occurred_at)+
+   (result?.review_status==='pending_review'?' · Ausnahme wartet auf Freigabe.':''));
+ }catch(err){
+  notice('Buchung nicht gespeichert: '+String(err.message||err),true);
+  throw err;
+ }finally{state.busy=false;render();}
+}
+
 function downloadCsv(){
  if(!state.rows.length){notice('Keine Zeitbuchungen für den Export vorhanden.',true);return;}
  const safe=v=>{const txt=String(v??'').replace(/^[=+\-@]/,"'$&");return '"'+txt.replace(/"/g,'""')+'"';};
