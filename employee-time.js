@@ -547,7 +547,9 @@ function showScanPreview(){
  const isGood=p.status==='near';
  const distance=p.distance==null?'nicht bestimmbar':p.distance>=1000?(p.distance/1000).toFixed(2).replace('.',',')+' km':Math.round(p.distance)+' m';
  const accuracy=p.accuracy==null?'nicht verfügbar':Math.round(p.accuracy)+' m';
- const headline=isGood?'Standortprüfung plausibel':'GPS-Prüfung: Ausnahme erforderlich';
+ const checkout=scan.type==='object_out';
+ const minReason=scan.isTest?4:10;
+ const headline=isGood?'Standortprüfung plausibel':checkout?'Auschecken außerhalb des Objekts':'GPS-Prüfung: Ausnahme erforderlich';
  modal('<h2>Standortprüfung vor Buchung</h2>'+
   '<p><strong>'+h(objName(scan.objectId))+'</strong> · '+h(typeLabel(scan.type))+'</p>'+
   (scan.isTest?'<div class="dst-test-banner">TESTMODUS – nicht für die Lohnabrechnung</div>':'')+
@@ -556,8 +558,12 @@ function showScanPreview(){
   '<div class="muted">Standortgenauigkeit: '+h(accuracy)+'</div>'+
   '<div class="muted">Ergebnis: '+h(gpsLabel(p.status))+'</div></div>'+
   (isGood?'<p class="muted">Du kannst den Check-in beziehungsweise Check-out jetzt bestätigen.</p>':
-   '<p class="muted">Ein regulärer Check-in ist hier nicht möglich. Mit Begründung kannst du eine prüfpflichtige Ausnahmebuchung anlegen. Die Zeit wird dokumentiert, aber nicht automatisch freigegeben.</p>'+
-   '<label style="display:block">Begründung der Ausnahme (mindestens 10 Zeichen)<textarea id="dstGeoExceptionReason" maxlength="500" rows="3" placeholder="z. B. Testbuchung außerhalb des Objekts oder fehlerhafte Objektkoordinaten"></textarea></label>')+
+   (checkout
+    ?'<p class="muted">Du kannst auch nach dem Verlassen des Objekts auschecken, z. B. vom geparkten Auto aus. Der tatsächliche Zeitpunkt des Auscheckens wird gespeichert, die Abweichung mit Grund protokolliert und zur Prüfung vorgelegt. Bitte das Smartphone nicht während der Fahrt bedienen.</p>'
+    :'<p class="muted">Ein regulärer Check-in ist hier nicht möglich. Mit Begründung kannst du eine prüfpflichtige Ausnahmebuchung anlegen. Die Zeit wird dokumentiert, aber nicht automatisch freigegeben.</p>')+
+   '<label style="display:block">Begründung der Ausnahme (mindestens '+minReason+' Zeichen)<textarea id="dstGeoExceptionReason" maxlength="500" rows="3" placeholder="'+
+   (checkout?'z. B. Auschecken nach Verlassen des Objekts':'z. B. Testbuchung außerhalb des Objekts')+'"></textarea></label>'+
+   (checkout?'<div class="dst-actions" style="margin-top:10px"><button type="button" id="dstReasonLateCheckout">Grund übernehmen: Auschecken nach Abfahrt</button></div>':'') )+
    '<div id="dstScanFeedback" role="status" aria-live="polite"></div>'+
    '<div class="row" style="gap:8px;flex-wrap:wrap;margin-top:14px">'+
    '<button id="dstRetryScan" type="button">Standort erneut prüfen</button>'+
@@ -565,6 +571,7 @@ function showScanPreview(){
       '<button id="dstConfirmScan" type="button" class="primary">Ausnahmebuchung mit Begründung</button>')+
    '<button id="dstCancelScan" type="button">Abbrechen</button></div>');
  el('dstCancelScan')?.addEventListener('click',()=>{state.pendingScan=null;closeModal();});
+ el('dstReasonLateCheckout')?.addEventListener('click',()=>{const t=el('dstGeoExceptionReason');if(t)t.value='Auschecken nach Abfahrt vom Objekt';});
  el('dstRetryScan')?.addEventListener('click',()=>{state.pendingScan=null;closeModal();void book(scan.type);});
  el('dstConfirmScan')?.addEventListener('click',async()=>{
   const current=state.pendingScan;
@@ -575,8 +582,8 @@ function showScanPreview(){
     return;
   }
   const reason=isGood?'':String(el('dstGeoExceptionReason')?.value||'').trim();
-  if(!isGood&&(reason.length<10||reason.length>500)){
-    if(el('dstScanFeedback'))el('dstScanFeedback').textContent='Bitte mindestens 10 Zeichen als Begründung eingeben.';
+  if(!isGood&&(reason.length<minReason||reason.length>500)){
+    if(el('dstScanFeedback'))el('dstScanFeedback').textContent='Bitte mindestens '+minReason+' Zeichen als Begründung eingeben.';
     return;
   }
   el('dstConfirmScan').disabled=true;
