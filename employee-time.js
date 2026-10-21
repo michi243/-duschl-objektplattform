@@ -85,7 +85,10 @@ function mount(){
   section.innerHTML=`
   <div class="dst-head"><div><div class="dst-eyebrow">DUSCHL SERVICE · PILOT</div>
   <h2>Arbeitszeit &amp; digitale Objektakte</h2></div>
-  <button id="dstRefresh" type="button">↻ Aktualisieren</button></div>
+  <div class="dst-actions" style="margin:0">
+   <button id="dstManageEmployees" type="button" style="display:none">Mitarbeiter &amp; Freigaben</button>
+   <button id="dstRefresh" type="button">↻ Aktualisieren</button>
+  </div></div>
   <div id="dstNotice" role="status" aria-live="polite"></div>
   <div id="dstObjectBox" class="dst-box">
     <div class="dst-eyebrow">Digitale Objektakte</div>
@@ -112,6 +115,9 @@ function mount(){
   </div>`;
   main.appendChild(section);
   el('dstRefresh').addEventListener('click',()=>loadRows());
+  el('dstManageEmployees').addEventListener('click',()=>{
+   if(roleAdmin()&&typeof showSection==='function')showSection('users');
+  });
   el('dstExport').addEventListener('click',downloadCsv);
   el('dstBookingActions').addEventListener('click',e=>{
    const b=e.target.closest('button[data-dst-event]');if(b)void book(b.dataset.dstEvent);
@@ -196,7 +202,10 @@ async function renderAdminTimePermission(){
   '<span>Mitarbeiter für Arbeitszeiterfassung freigeben</span></label>'+
   '<div class="dst-actions"><button id="dstSaveTimePermission" type="button" disabled>Zeiterfassungsfreigabe speichern</button></div>'+
   '<div id="dstTimePermissionFeedback" class="dst-muted" role="status" aria-live="polite"></div>';
- editor.appendChild(card);
+ const editorCard=editor.querySelector(':scope > .card');
+ const nameHeading=editorCard?.querySelector('h3');
+ if(nameHeading)nameHeading.insertAdjacentElement('afterend',card);
+ else editor.appendChild(card);
  const check=el('dstTimePermissionCheck'), save=el('dstSaveTimePermission'), msg=el('dstTimePermissionFeedback');
  if(!allowed){
   msg.textContent='Nur Benutzer mit operativer Mandantenrolle können freigegeben werden. Bei Rollenänderung zuerst die übrigen Berechtigungen speichern.';
@@ -263,6 +272,7 @@ function navSync(){
   if(el('dsTimeHub')?.classList.contains('active'))render();
  }
  const nav=el('navEmployeeTime');if(nav)nav.classList.toggle('hidden',!eligibleTimeRole());
+ const manage=el('dstManageEmployees');if(manage)manage.style.display=roleAdmin()?'':'none';
  if(el('dsTimeHub')?.classList.contains('active')&&(!cloudSession?.access_token||!org())){
   // Keine Zeiterfassung anzeigen, wenn Mandantenkontext verloren geht.
   if(typeof showSection==='function')showSection('dashboard');
