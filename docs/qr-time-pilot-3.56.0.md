@@ -1,3 +1,31 @@
+## Erweiterung v3.56.2 – Testmodus, GPS-Vorschau und Ausnahmeregelung
+- Objekt **Musterstraße** wurde in der Datenbank als Testobjekt gekennzeichnet; alle anderen Objekte blieben unverändert.
+- Bereits vorliegender Probe-Check-in (139591 m Abweichung) wurde als **Test** und **offene Ausnahme** klassifiziert. Originalwert bleibt erhalten.
+- **Arbeitszeit & Objektakte → Arbeitszeitmodus:** Umschaltung zwischen **Produktiv** und **Testmodus**. Beim Öffnen einer Objektakte bestimmt das Objektkennzeichen automatisch den Modus.
+- Testobjekte lassen nur Testbuchungen zu; produktive Objekte ausschließlich Produktivbuchungen. Der Server erzwingt diese Übereinstimmung, auch wenn die App umgangen wird.
+- Zeiten, Pausen und offene Objektbuchungen werden für Test/Produktiv getrennt geführt, einschließlich eigenständigem Verlaufsstatus.
+- Bei Objekt-Check-in und -Check-out wird erst die einmalige GPS-Abfrage durchgeführt und **Distanz, Genauigkeit und Ergebnis vor der Buchung** angezeigt. **Standort erneut prüfen** und **Abbrechen** sind möglich.
+- Bei validierter Nähe ist eine reguläre Buchung möglich. Bei Abweichung/fehlendem Standort ist eine **begründete Ausnahmebuchung** erforderlich (mindestens 10 Zeichen); diese gilt als prüfpflichtig.
+- Für Ausnahmen gibt es unter **Einsatzübersicht → GPS-Ausnahmebuchungen** die Berechtigungen **Genehmigen/Ablehnen**. Entscheidungen werden gesondert und nachvollziehbar gespeichert.
+- **CSV-Export:** jeweils nur der aktuell gewählte Modus; Testbuchungen sind eindeutig mit `TEST – NICHT ABRECHNEN` gekennzeichnet. Produktions-CSV schließt nicht genehmigte Ausnahmebuchungen aus. **Export ist kein finaler Lohnabrechnungsnachweis.**
+- GPS-Rohkoordinaten werden nicht in der Datenbank gespeichert; unbestätigte GPS-Position wird nach spätestens 60 Sekunden aus dem Browserstatus verworfen.
+
+### Testanleitung
+1. QR der Musterstraße scannen, anmelden, Objektakte öffnen: Es muss **TESTMODUS** erscheinen.
+2. Check-in oder vorhandenen offenen Check-out starten; Distanz und Genauigkeit kontrollieren.
+3. Bei falscher Position **Standort erneut prüfen**; alternativ nachvollziehbare Begründung eingeben und Ausnahmebuchung absenden.
+4. Unter Admin → **Arbeitszeit & Objektakte** im Testmodus offene GPS-Ausnahmen öffnen und genehmigen/ablehnen.
+5. **Testbuchungen als CSV** exportieren; alle Zeilen müssen mit `TEST` markiert sein.
+6. Zu einem Nicht-Testobjekt wechseln: Oberfläche wechselt automatisch in den Produktivmodus. Der Testeintrag darf dort weder in Übersicht noch im Export erscheinen.
+7. Serverseitige Tests: Objekt-/Zeitmodus-Mismatch, Ausnahme ohne Grund und unberechtigtes Freigeben müssen abgewiesen werden.
+
+### Grenzen
+- Browser-/Smartphone-End-to-End-Test und unternehmensinterne Datenschutzfreigabe stehen aus.
+- Bestehende produktive Zeiterfassung ist ein Pilot; für endgültige Monatslohndaten fehlen Korrekturen, Freigabe der Gesamtstunden und belastbare Wegzeitverteilung.
+- Die Rolle `platform_admin` und Mandanten-Admins können Testbuchungen verwalten; normaler Mitarbeiter braucht weiterhin ausdrückliche Zeitfreigabe und Objektzuordnung.
+- Die GPS-Prüfung ist nur eine Plausibilisierung, kein sicherer Aufenthaltsnachweis und keine Live-Ortung.
+
+
 # Duschl Service – QR-Objektportal und Arbeitszeiterfassung (Pilot 3.56.0)
 
 ## Mitarbeiter freigeben (ab v3.56.1)
