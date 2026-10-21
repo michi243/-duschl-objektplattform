@@ -6,7 +6,7 @@
 (function(){
 'use strict';
 const VALID_ID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const state={objectId:'',rows:[],busy:false,loadedOrg:'',loadedUser:'',deepHandled:false,permission:{key:'',enabled:false,loading:false,error:'',checkedAt:0}};
+const state={objectId:'',rows:[],busy:false,loadedOrg:'',loadedUser:'',deepHandled:false,isTest:false,reviews:[],pendingScan:null,permission:{key:'',enabled:false,loading:false,error:'',checkedAt:0}};
 const h=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const el=id=>document.getElementById(id);
 const fmt=t=>t?new Date(t).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'}):'–';
@@ -63,6 +63,13 @@ style.textContent=`
 #dsTimeHub #dstHistory{max-height:360px;overflow:auto}
 #dsTimeHub .dst-internal-note{margin:10px 0;border-left:3px solid #d1ad61;padding:6px 10px;color:#d8cab0;font-size:12px}
 #dsTimeHub .dst-onecol{grid-template-columns:1fr}
+#dsTimeHub .dst-test-banner{border:1px solid #a88039;background:rgba(198,145,56,.12);padding:12px;border-radius:10px;margin:10px 0;color:#f0d4a3;font-weight:700}
+#dsTimeHub .dst-live-banner{border:1px solid #446e78;padding:12px;border-radius:10px;margin:10px 0}
+#dsTimeHub .dst-review{border:1px solid #bf8d43;background:rgba(180,125,41,.10);padding:12px;border-radius:12px;margin:10px 0}
+#dsTimeHub .dst-review button{min-height:44px}
+#dsTimeHub .dst-mode-label{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#dsTimeHub #dstModeSelect{min-height:44px;min-width:150px}
+
 @media(max-width:700px){#dsTimeHub .dst-grid{grid-template-columns:1fr}#dsTimeHub .dst-actions button{flex:1 1 150px}}
 `;
 document.head.appendChild(style);
@@ -89,7 +96,10 @@ function mount(){
    <button id="dstManageEmployees" type="button" style="display:none">Mitarbeiter &amp; Freigaben</button>
    <button id="dstRefresh" type="button">↻ Aktualisieren</button>
   </div></div>
-  <div id="dstNotice" role="status" aria-live="polite"></div>
+  <div class="dst-mode-label"><label for="dstModeSelect">Arbeitszeitmodus</label>
+ <select id="dstModeSelect"><option value="live">Produktiv</option><option value="test">Testmodus · nicht abrechnen</option></select></div>
+ <div id="dstModeBanner" class="dst-live-banner">Produktive Arbeitszeiten · Testbuchungen werden ausgeschlossen.</div>
+ <div id="dstNotice" role="status" aria-live="polite"></div>
   <div id="dstObjectBox" class="dst-box">
     <div class="dst-eyebrow">Digitale Objektakte</div>
     <h3 id="dstObjectName">Kein Objekt gewählt</h3>
@@ -112,6 +122,8 @@ function mount(){
    <h3>Einsatzübersicht · letzter bestätigter Buchungsstand</h3>
    <div class="dst-muted">Kein GPS-Live-Tracking. „Im Objekt“ bedeutet: Check-in vorhanden, Check-out noch offen.</div>
    <div id="dstTeamList"></div>
+    <h3>GPS-Ausnahmebuchungen · Freigaben</h3>
+    <div id="dstReviewList"></div>
   </div>`;
   main.appendChild(section);
   el('dstRefresh').addEventListener('click',()=>loadRows());
@@ -119,6 +131,33 @@ function mount(){
    if(roleAdmin()&&typeof showSection==='function')showSection('users');
   });
   el('dstExport').addEventListener('click',downloadCsv);
+  el('dstModeSelect').addEventListener('change',e=>{
+    const next=e.target.value==='test';
+    if(state.objectId&&!!findObject(state.objectId)?.isTest!==next){
+      state.objectId='';notice('Das bisherige Objekt gehört zu einem anderen Modus. Bitte ein Objekt in diesem Modus öffnen.');
+    }
+    state.isTest=next;state.pendingScan=null;render();
+  });
+  el('dstReviewList').addEventListener('click',async e=>{
+    const btn=e.target.closest('button[data-dst-review]');if(!btn||!roleAdmin())return;
+    const eventId=btn.dataset.dstReview,decision=btn.dataset.dstDecision;
+    const row=state.rows.find(x=>x.id===eventId&&x.is_test===state.isTest);
+    if(!row)return;
+    let note='';
+    if(decision==='approved'){
+      if(!confirm('Ausnahmebuchung nach Prüfung genehmigen? GPS-Abweichung bleibt protokolliert.'))return;
+    }else{
+      const input=prompt('Grund für die Ablehnung (mindestens 5 Zeichen):','');
+      if(input===null)return;note=input.trim();if(note.length<5)return alert('Bitte einen Ablehnungsgrund angeben.');
+    }
+    btn.disabled=true;
+    try{
+      await cloudRequest('rpc/review_employee_time_event_v1',{
+        method:'POST',body:JSON.stringify({p_event_id:eventId,p_decision:decision,p_note:note})
+      });
+      await loadRows();
+    }catch(err){alert('Entscheidung nicht gespeichert: '+String(err.message||err));btn.disabled=false;}
+  });
   el('dstBookingActions').addEventListener('click',e=>{
    const b=e.target.closest('button[data-dst-event]');if(b)void book(b.dataset.dstEvent);
   });
@@ -269,7 +308,7 @@ function navSync(){
    void loadOwnTimePermission();
  }
  if((state.loadedUser&&state.loadedUser!==uid())||(state.loadedOrg&&state.loadedOrg!==org())){
-  state.rows=[];state.objectId='';state.loadedOrg='';state.loadedUser='';
+  state.rows=[];state.reviews=[];state.pendingScan=null;state.objectId='';state.loadedOrg='';state.loadedUser='';
   if(el('dsTimeHub')?.classList.contains('active'))render();
  }
  const nav=el('navEmployeeTime');if(nav)nav.classList.toggle('hidden',!eligibleTimeRole());
@@ -288,13 +327,15 @@ function navSync(){
  }
 }
 function openTime(objectId=''){
- if((state.loadedUser&&state.loadedUser!==uid())||(state.loadedOrg&&state.loadedOrg!==org())){state.rows=[];state.objectId='';state.loadedOrg='';state.loadedUser='';}
+ if((state.loadedUser&&state.loadedUser!==uid())||(state.loadedOrg&&state.loadedOrg!==org())){state.rows=[];state.reviews=[];state.pendingScan=null;state.objectId='';state.loadedOrg='';state.loadedUser='';}
  if(!cloudSession?.access_token||!org()){notice('Bitte anmelden und Mandanten auswählen.',true);return;}
  if(eligibleTimeRole()&&!roleAdmin())void loadOwnTimePermission();
  if(objectId && (!VALID_ID.test(objectId)||!findObject(objectId))){
   alert('Das Objekt ist für diesen Zugang nicht freigegeben.');return;
  }
  state.objectId=objectId||'';
+ if(objectId)state.isTest=!!findObject(objectId)?.isTest;
+ state.pendingScan=null;
  if(typeof showSection==='function')showSection('dsTimeHub');
  if(el('navEmployeeTime'))el('navEmployeeTime').classList.add('primary');
  renderObject();
@@ -312,17 +353,28 @@ async function loadRows(){
  notice('Arbeitszeiten werden geladen …');
  try{
   // Server enforces own-user / admin visibility via RLS.
-  const rows=await cloudRequest('employee_time_events?select=id,organization_id,user_id,object_id,event_type,occurred_at,gps_result,gps_distance_m,gps_accuracy_m,note&organization_id=eq.'
+  const rows=await cloudRequest('employee_time_events?select=id,organization_id,user_id,object_id,event_type,occurred_at,gps_result,gps_distance_m,gps_accuracy_m,note,is_test,exception_reason,review_status&organization_id=eq.'
     +escParam(requestedOrg)+'&order=occurred_at.desc&limit=1000');
   if(requestedOrg!==org())return; // Tenant switch while request pending
   state.rows=Array.isArray(rows)?rows:[];
+  const decisions=await cloudRequest('employee_time_event_reviews?select=event_id,decision,note,reviewed_at,reviewed_by&organization_id=eq.'
+    +escParam(requestedOrg)+'&order=reviewed_at.desc&limit=1000');
+  if(requestedOrg!==org())return;
+  state.reviews=Array.isArray(decisions)?decisions:[];
   state.loadedOrg=requestedOrg;
   state.loadedUser=uid();
   notice('');
   render();
  }catch(err){notice('Zeiterfassung konnte nicht geladen werden: '+(err.message||err),true);}
 }
-function myRows(){return state.rows.filter(x=>String(x.user_id)===uid()).slice().reverse()}
+function modeRows(){return state.rows.filter(x=>x.is_test===state.isTest)}
+function myRows(){return modeRows().filter(x=>String(x.user_id)===uid()).slice().reverse()}
+function timeReview(id){return state.reviews.find(r=>String(r.event_id)===String(id))}
+function reviewLabel(row){
+ if(row.review_status!=='pending_review')return row.review_status==='verified'?'GPS bestätigt':'';
+ const r=timeReview(row.id);
+ return r?(r.decision==='approved'?'Ausnahme genehmigt':'Ausnahme abgelehnt'):'Ausnahme offen · Prüfung erforderlich';
+}
 function getStatus(rows){
  const latest=rows.at(-1)||null;
  const shiftOpen=!!(latest&&latest.event_type!=='shift_end');
@@ -334,6 +386,12 @@ function getStatus(rows){
  return {latest,shiftOpen,objectOpen,objectId:objectOpen?v.object_id:'',breakOpen};
 }
 function render(){
+ const select=el('dstModeSelect'),banner=el('dstModeBanner');
+ if(select&&select.value!==(state.isTest?'test':'live'))select.value=state.isTest?'test':'live';
+ if(banner){
+  banner.className=state.isTest?'dst-test-banner':'dst-live-banner';
+  banner.textContent=state.isTest?'TESTMODUS – keine Lohnabrechnung. Testbuchungen werden separat geführt.':'PRODUKTIV – Testbuchungen sind ausgeblendet und werden nicht exportiert.';
+ }
  renderObject();renderBookings();renderTeam();
 }
 
@@ -378,6 +436,7 @@ function renderObject(){
  if(visible('navReports'))buttons.push('<button type="button" data-dst-page="reports_object">Objektbericht</button>');
  buttons.push('<button type="button" data-dst-page="report">Bewohnermeldung</button>');
  actions.innerHTML=buttons.join('');
+ if(o.isTest)contents.insertAdjacentHTML('afterbegin','<div class="dst-test-banner">TESTOBJEKT – Buchungen nur im Testmodus.</div>');
  const inBtn=actions.querySelector('[data-dst-event="object_in"]');
  if(inBtn){
    const st=getStatus(myRows());
@@ -412,7 +471,9 @@ function renderBookings(){
   ?rows.slice(-40).reverse().map(x=>'<div class="dst-row"><div><strong>'+h(typeLabel(x.event_type))+'</strong>'
     +(x.object_id?'<div class="dst-muted">'+h(objName(x.object_id))+'</div>':'')
     +(['object_in','object_out'].includes(x.event_type)?'<div class="dst-muted">'+h(gpsLabel(x.gps_result))+(x.gps_distance_m!==null?' · '+Math.round(Number(x.gps_distance_m))+' m':'')+'</div>':'')
-    +'</div><span>'+h(fmt(x.occurred_at))+'</span></div>').join('')
+    +(x.review_status==='pending_review'?'<div class="dst-muted">'+h(reviewLabel(x))+
+      (x.exception_reason?': '+h(x.exception_reason):'')+'</div>':'')+
+    '</div><span>'+h(fmt(x.occurred_at))+'</span></div>').join('')
   :'<div class="dst-muted">Keine Zeitbuchungen vorhanden.</div>';
 }
 function renderTeam(){
@@ -420,11 +481,11 @@ function renderTeam(){
  box.style.display=roleAdmin()?'':'none';
  if(!roleAdmin())return;
  const members=new Map();
- for(const row of state.rows){
+ for(const row of modeRows()){
   if(!members.has(row.user_id))members.set(row.user_id,[]);
   members.get(row.user_id).push(row);
  }
- if(!members.size){list.innerHTML='<p class="dst-muted">Noch keine Mitarbeiterbuchungen.</p>';return;}
+ if(!members.size){list.innerHTML='<p class="dst-muted">Keine Zeitbuchungen im gewählten Modus.</p>';renderTimeReviews();return;}
  list.innerHTML=[...members.entries()].map(([id,descending])=>{
   const st=getStatus(descending.slice().reverse());
   const label=typeof profileDisplayName==='function'?profileDisplayName(id):'';
@@ -436,6 +497,21 @@ function renderTeam(){
    +'<span>'+h(st.breakOpen?'Pause':st.objectOpen?'Im Objekt':st.shiftOpen?'Im Dienst':'Dienstende')
    +'<br>'+h(tm(st.latest?.occurred_at))+'</span></div>';
  }).join('');
+ renderTimeReviews();
+}
+function renderTimeReviews(){
+ const list=el('dstReviewList');if(!list)return;
+ if(!roleAdmin()){list.innerHTML='';return;}
+ const pending=modeRows().filter(e=>e.review_status==='pending_review'&&!timeReview(e.id));
+ list.innerHTML=pending.length?pending.map(e=>{
+  const name=typeof profileDisplayName==='function'?(profileDisplayName(e.user_id)||'Mitarbeiter'):('Mitarbeiter '+String(e.user_id).slice(0,8));
+  return '<div class="dst-review"><strong>'+h(name)+' · '+h(objName(e.object_id))+'</strong>'+
+   '<div class="dst-muted">'+h(fmt(e.occurred_at))+' · '+h(gpsLabel(e.gps_result))+
+   (e.gps_distance_m!=null?' · '+h(e.gps_distance_m)+' m':'')+'</div>'+
+   '<div>'+h(e.exception_reason||'Keine Begründung (Altbuchung)')+'</div>'+
+   '<div class="dst-actions"><button type="button" data-dst-review="'+h(e.id)+'" data-dst-decision="approved">Genehmigen</button>'+
+   '<button type="button" data-dst-review="'+h(e.id)+'" data-dst-decision="rejected">Ablehnen</button></div></div>';
+ }).join(''):'<div class="dst-muted">Keine offenen GPS-Ausnahmen im gewählten Modus.</div>';
 }
 async function getGps(){
  if(!navigator.geolocation)return null;
