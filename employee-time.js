@@ -116,6 +116,11 @@ function mount(){
    const page=b.dataset.dstPage;
    if(page==='time')void book(b.dataset.dstEvent);
    else if(page==='report')location.assign('https://michi243.github.io/-duschl-objektplattform/?meldung='+escParam(state.objectId));
+   else if(page==='findings_object' && typeof openObjectOpenFindings==='function')openObjectOpenFindings(state.objectId);
+   else if(page==='docs_object' && typeof openObjectDocumentation==='function')openObjectDocumentation(state.objectId);
+   else if(page==='construction_object' && typeof openObjectDocumentationModule==='function')openObjectDocumentationModule(state.objectId);
+   else if(page==='scope_object' && typeof openObjectServicesModal==='function')openObjectServicesModal(state.objectId);
+   else if(page==='reports_object' && typeof showObjectReport==='function')showObjectReport(state.objectId);
    else if(typeof showSection==='function')showSection(page);
   });
  }
@@ -160,6 +165,9 @@ function openTime(objectId=''){
  if(typeof showSection==='function')showSection('dsTimeHub');
  if(el('navEmployeeTime'))el('navEmployeeTime').classList.add('primary');
  renderObject();
+ if(typeof cloudLoadObjectDocumentations==='function'){
+  void cloudLoadObjectDocumentations().then(()=>{if(state.objectId)renderObject();}).catch(()=>{});
+ }
  void loadRows();
 }
 window.dsTimeOpenObjectFile=(objectId)=>openTime(String(objectId||''));
@@ -194,37 +202,53 @@ function getStatus(rows){
 function render(){
  renderObject();renderBookings();renderTeam();
 }
+
 function renderObject(){
  const o=findObject(state.objectId);
  if(el('dstObjectName'))el('dstObjectName').textContent=o?.name||'Kein Objekt ausgewählt';
  if(el('dstObjectAddress'))el('dstObjectAddress').textContent=o
   ?([o.address,o.street,[o.postalCode,o.city].filter(Boolean).join(' ')].filter(Boolean)[0]||'Adresse nicht hinterlegt')
   :'Scanne den QR-Code an der Anlage und wähle „Mitarbeiter / Verwaltung“.';
- const contents=el('dstObjectContents');const actions=el('dstObjectActions');
+ const contents=el('dstObjectContents'),actions=el('dstObjectActions');
  if(!contents||!actions)return;
  if(!o){contents.textContent='';actions.innerHTML='';return;}
  const findings=(db?.findings||[]).filter(f=>String(f.objectId||f.object_id||'')===String(o.id)
    && (typeof findingVisibleInCurrentTenantUI!=='function'||findingVisibleInCurrentTenantUI(f)));
- const open=findings.filter(f=>String(f.status||'')!=='Erledigt').length;
+ const open=findings.filter(f=>String(f.status||'')!=='Erledigt');
  const docs=(typeof cloudObjectDocumentations!=='undefined'?cloudObjectDocumentations:[])
-   .filter(d=>String(d.object_id||'')===String(o.id)).length;
- contents.innerHTML='<div class="dst-row"><strong>Offene Feststellungen</strong><span>'+open+'</span></div>'
-  +'<div class="dst-row"><strong>Objektdokumentationen</strong><span>'+docs+'</span></div>'
-  +'<div class="dst-row"><strong>QR-Objektkennung</strong><span>'+h(String(o.id).slice(0,8))+'…</span></div>';
- let buttons=[];
+   .filter(d=>String(d.object_id||'')===String(o.id));
+ const latestOpen=open.slice(0,5);
+ const latestDocs=docs.slice(0,4);
+ contents.innerHTML='<div class="dst-row"><strong>Offene Feststellungen</strong><span>'+open.length+'</span></div>'
+  +'<div class="dst-row"><strong>Objektdokumentationen</strong><span>'+docs.length+'</span></div>'
+  +(latestOpen.length?'<div style="margin-top:13px"><strong>Aktuelle Feststellungen</strong>'
+    +latestOpen.map(f=>'<div class="dst-row"><div>'+h(f.title||f.description||f.type||'Feststellung')
+     +'</div><span>'+h(f.status||'Offen')+'</span></div>').join('')+'</div>':'')
+  +(latestDocs.length?'<div style="margin-top:13px"><strong>Digitale Dokumentenakte</strong>'
+     +latestDocs.map(d=>'<div class="dst-row"><div>'+h(d.title||'Dokumentation')
+       +'</div><span>'+h(d.status||'')+'</span></div>').join('')+'</div>':'')
+  +'<div class="dst-muted" style="margin-top:10px">Alle Angaben richten sich nach deiner Rolle und den bestehenden Objektberechtigungen.</div>';
+ const buttons=[];
+ const visible=id=>{const node=el(id);return node&&!node.classList.contains('hidden')&&getComputedStyle(node).display!=='none'};
  if(roleTime())buttons.push('<button type="button" data-dst-page="time" data-dst-event="object_in">Am Objekt einchecken</button>');
- // Authenticated users can open existing modules; all data is filtered by their normal roles/RLS.
- if(el('navObjects')&&!el('navObjects').classList.contains('hidden'))buttons.push('<button type="button" data-dst-page="objects">Objekte</button>');
- if(el('navFindings')&&!el('navFindings').classList.contains('hidden'))buttons.push('<button type="button" data-dst-page="findings">Dokumentation</button>');
- if(el('navOperations')&&!el('navOperations').classList.contains('hidden'))buttons.push('<button type="button" data-dst-page="operations">Touren &amp; Einsätze</button>');
- if(el('navReports')&&!el('navReports').classList.contains('hidden'))buttons.push('<button type="button" data-dst-page="reports">Berichte</button>');
+ if(visible('navFindings')){
+  buttons.push('<button type="button" data-dst-page="findings_object">Offene Punkte</button>');
+  buttons.push('<button type="button" data-dst-page="docs_object">Begehungen &amp; Dokumentation</button>');
+  buttons.push('<button type="button" data-dst-page="construction_object">Maßnahmen- / Baudokumentation</button>');
+ }
+ if(visible('navObjects')&&
+   (typeof canManageObjectsUI==='function'&&canManageObjectsUI() ||
+    typeof canViewObjectStandardsUI==='function'&&canViewObjectStandardsUI(o.id)))
+  buttons.push('<button type="button" data-dst-page="scope_object">Leistungen &amp; Standards</button>');
+ if(visible('navOperations'))buttons.push('<button type="button" data-dst-page="operations">Touren &amp; Einsätze</button>');
+ if(visible('navReports'))buttons.push('<button type="button" data-dst-page="reports_object">Objektbericht</button>');
  buttons.push('<button type="button" data-dst-page="report">Bewohnermeldung</button>');
  actions.innerHTML=buttons.join('');
  const inBtn=actions.querySelector('[data-dst-event="object_in"]');
  if(inBtn){
    const st=getStatus(myRows());
    inBtn.disabled=!!(st.objectOpen||st.breakOpen||state.busy);
-   if(st.objectOpen&&st.objectId===state.objectId){inBtn.textContent='Bereits eingecheckt';}
+   if(st.objectOpen&&st.objectId===state.objectId)inBtn.textContent='Bereits eingecheckt';
  }
 }
 function renderBookings(){
