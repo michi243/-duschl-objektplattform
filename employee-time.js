@@ -6,7 +6,7 @@
 (function(){
 'use strict';
 const VALID_ID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const state={objectId:'',rows:[],busy:false,loadedOrg:'',deepHandled:false};
+const state={objectId:'',rows:[],busy:false,loadedOrg:'',loadedUser:'',deepHandled:false};
 const h=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const el=id=>document.getElementById(id);
 const fmt=t=>t?new Date(t).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'}):'–';
@@ -142,6 +142,10 @@ function notice(msg,error=false){
  d.classList.toggle('dst-error',!!error);
 }
 function navSync(){
+ if((state.loadedUser&&state.loadedUser!==uid())||(state.loadedOrg&&state.loadedOrg!==org())){
+  state.rows=[];state.objectId='';state.loadedOrg='';state.loadedUser='';
+  if(el('dsTimeHub')?.classList.contains('active'))render();
+ }
  const nav=el('navEmployeeTime');if(nav)nav.classList.toggle('hidden',!roleTime());
  if(el('dsTimeHub')?.classList.contains('active')&&(!cloudSession?.access_token||!org())){
   // Keine Zeiterfassung anzeigen, wenn Mandantenkontext verloren geht.
@@ -157,6 +161,7 @@ function navSync(){
  }
 }
 function openTime(objectId=''){
+ if((state.loadedUser&&state.loadedUser!==uid())||(state.loadedOrg&&state.loadedOrg!==org())){state.rows=[];state.objectId='';state.loadedOrg='';state.loadedUser='';}
  if(!cloudSession?.access_token||!org()){notice('Bitte anmelden und Mandanten auswählen.',true);return;}
  if(objectId && (!VALID_ID.test(objectId)||!findObject(objectId))){
   alert('Das Objekt ist für diesen Zugang nicht freigegeben.');return;
@@ -184,6 +189,7 @@ async function loadRows(){
   if(requestedOrg!==org())return; // Tenant switch while request pending
   state.rows=Array.isArray(rows)?rows:[];
   state.loadedOrg=requestedOrg;
+  state.loadedUser=uid();
   notice('');
   render();
  }catch(err){notice('Zeiterfassung konnte nicht geladen werden: '+(err.message||err),true);}
