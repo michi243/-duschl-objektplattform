@@ -67,6 +67,7 @@ style.textContent=`
 #dsTimeHub .dst-live-banner{border:1px solid #446e78;padding:12px;border-radius:10px;margin:10px 0}
 #dsTimeHub .dst-review{border:1px solid #bf8d43;background:rgba(180,125,41,.10);padding:12px;border-radius:12px;margin:10px 0}
 #dsTimeHub .dst-review button{min-height:44px}
+.ds-modal-dialog .dst-test-banner{border:1px solid #a88039;background:rgba(198,145,56,.12);padding:10px;border-radius:9px;margin:10px 0;color:#f0d4a3;font-weight:700}
 #dsTimeHub .dst-mode-label{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 #dsTimeHub #dstModeSelect{min-height:44px;min-width:150px}
 
@@ -606,6 +607,8 @@ async function book(type){
   state.pendingScan={type,objectId:obj,organizationId:org(),userId:uid(),isTest:state.isTest,
     gps,plausibility:gpsPlausibility(gps,obj),at:Date.now()};
   notice('');
+  const pending=state.pendingScan;
+  setTimeout(()=>{if(state.pendingScan===pending)state.pendingScan=null;},60000);
   showScanPreview();
  }finally{state.busy=false;renderBookings();}
 }
