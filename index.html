@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<!-- CURRENT RELEASE 3.56.3 · Sicherheitskorrektur: Zeitdaten werden nach Mandanten- und Benutzerwechsel nur atomar geladen. -->
 <!-- CURRENT RELEASE 3.56.2 · QR-Zeiterfassung: Test- und Produktivdaten getrennt; GPS-Vorschau vor Check-in/out; begründete Ausnahmebuchung mit Adminprüfung; eigener Test-CSV-Export. -->
 <!-- CURRENT RELEASE 3.56.1 · Mitarbeiter-Zeiterfassung benötigt explizite Freigabe je Mandant. Checkbox im Benutzereditor, serverseitige Zugriffssperre, Zugang aus dem QR-Objektportal. -->
 <!-- CURRENT RELEASE 3.56.0 · QR-Objektportal: rollengebundene Objektakte, Mitarbeiter-Check-in/-out mit Schaltfläche, punktuelle GPS-Auswertung, Stundenliste und Admin-Einsatzübersicht. Bestands-QR für Bewohner bleibt erhalten. -->
@@ -12671,7 +12672,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.56.2';
+const APP_VERSION='3.56.3';
 const APP_RELEASE_DATE='21.10.2026';
 const APP_RELEASE_TIME='20:10'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -41057,6 +41058,6 @@ window.dsPrivateOffersMount=()=>{
  catch(error){root.textContent='Angebotsverwaltung konnte nicht gestartet werden: '+error.message;}
 };
 </script>
-<script src="./employee-time.js?v=3.56.2" defer></script>
+<script src="./employee-time.js?v=3.56.3" defer></script>
 </body>
 </html>

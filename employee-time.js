@@ -350,23 +350,25 @@ window.dsTimeOpenObjectFile=(objectId)=>openTime(String(objectId||''));
 async function loadRows(){
  if(!el('dsTimeHub')?.classList.contains('active'))return;
  if(!cloudSession?.access_token||!org())return;
- const requestedOrg=org();
+ const requestedOrg=org(),requestedUser=uid();
  notice('Arbeitszeiten werden geladen …');
  try{
-  // Server enforces own-user / admin visibility via RLS.
   const rows=await cloudRequest('employee_time_events?select=id,organization_id,user_id,object_id,event_type,occurred_at,gps_result,gps_distance_m,gps_accuracy_m,note,is_test,exception_reason,review_status&organization_id=eq.'
     +escParam(requestedOrg)+'&order=occurred_at.desc&limit=1000');
-  if(requestedOrg!==org())return; // Tenant switch while request pending
-  state.rows=Array.isArray(rows)?rows:[];
+  if(requestedOrg!==org()||requestedUser!==uid())return;
   const decisions=await cloudRequest('employee_time_event_reviews?select=event_id,decision,note,reviewed_at,reviewed_by&organization_id=eq.'
     +escParam(requestedOrg)+'&order=reviewed_at.desc&limit=1000');
-  if(requestedOrg!==org())return;
+  if(requestedOrg!==org()||requestedUser!==uid())return;
+  // Publish both datasets atomically only once the same tenant and user were verified.
+  state.rows=Array.isArray(rows)?rows:[];
   state.reviews=Array.isArray(decisions)?decisions:[];
-  state.loadedOrg=requestedOrg;
-  state.loadedUser=uid();
+  state.loadedOrg=requestedOrg;state.loadedUser=requestedUser;
   notice('');
   render();
- }catch(err){notice('Zeiterfassung konnte nicht geladen werden: '+(err.message||err),true);}
+ }catch(err){
+  if(requestedOrg===org()&&requestedUser===uid())
+   notice('Zeiterfassung konnte nicht geladen werden: '+(err.message||err),true);
+ }
 }
 function modeRows(){return state.rows.filter(x=>x.is_test===state.isTest)}
 function myRows(){return modeRows().filter(x=>String(x.user_id)===uid()).slice().reverse()}
