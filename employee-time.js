@@ -597,7 +597,7 @@ async function book(type){
  }
  if(type==='object_out'&&!st.objectOpen)return notice('Kein offener Objekteinsatz.',true);
  if(type==='shift_end'&&(st.objectOpen||st.breakOpen))return notice('Bitte zuerst Objekteinsatz und Pause beenden.',true);
- if(!isObject){void commitBooking(type,null,null,'');return;}
+ if(!isObject){void commitBooking(type,null,null,'').catch(()=>{});return;}
  state.busy=true;
  notice('GPS wird zur einmaligen Standortprüfung abgefragt …');
  renderBookings();
