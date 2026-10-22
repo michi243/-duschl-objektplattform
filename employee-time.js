@@ -1273,6 +1273,19 @@ async function loadPersonnel(){
    (admin&&x.status==='approved'?'<button type="button" data-void-time="'+h(x.id)+'">Stornieren</button>':'')+'</div>').join(''):'Keine manuellen Nachträge.');
   const rows=await cloudRequest('employee_absences?select=id,user_id,absence_type,starts_on,ends_on,status&'+q+'&order=starts_on.desc&limit=100');
   const selected=target;
+  const employeeAbsences=rows.filter(x=>x.user_id===selected&&x.absence_type==='vacation');
+  const countWorkdays=(from,to)=>{
+    if(!from||!to||to<from)return 0;
+    let d=new Date(from+'T12:00:00Z'),end=new Date(to+'T12:00:00Z'),n=0;
+    for(let i=0;i<370&&d<=end;i++,d.setUTCDate(d.getUTCDate()+1)){
+      const day=d.getUTCDay();if(day!==0&&day!==6)n++;
+    }
+    return n;
+  };
+  const pendingVacation=employeeAbsences.filter(x=>x.status==='requested');
+  const approvedFutureVacation=employeeAbsences.filter(x=>x.status==='approved'&&x.ends_on>=todayLocal());
+  const plannedVacationDays=pendingVacation.reduce((n,x)=>n+countWorkdays(x.starts_on,x.ends_on),0);
+  const approvedFutureDays=approvedFutureVacation.reduce((n,x)=>n+countWorkdays(x.starts_on,x.ends_on),0);
   if(admin){
    const grants=await cloudRequest('employee_annual_leave_grants?select=calendar_year,granted_days,approved_at&'+q+'&user_id=eq.'+encodeURIComponent(selected)+'&order=calendar_year.desc&limit=20');
    el('dstLeaveGrants').textContent=grants.length?grants.map(x=>x.calendar_year+': '+x.granted_days+' Tage').join(' · '):'Noch kein Jahresanspruch gebucht.';
@@ -1291,7 +1304,12 @@ async function loadPersonnel(){
    const item=Array.isArray(compare)?compare[0]:compare;
    contractual='<p class="dst-muted">Soll: '+h(Number(item?.target_hours??0).toFixed(2))+' h · Ist (Stempel): '+h(Number(item?.clocked_hours||0).toFixed(2))+' h · Ist (manuell): '+h(Number(item?.manual_hours??0).toFixed(2))+' h · Differenz: '+h(Number(item?.difference_hours||0).toFixed(2))+' h. Keine automatische Überstundenfreigabe.</p>';
   }catch(_){contractual='<p class="dst-muted">Sollstunden noch nicht berechenbar.</p>';}
-  el('dstAccounts').innerHTML='<strong>Urlaub: '+h(sum('vacation_days').toFixed(2))+' Tage · Zeitkonto: '+h(sum('time_hours').toFixed(2))+' Stunden</strong>'+
+  el('dstAccounts').innerHTML='<div class="dst-leave-status">'+
+    '<strong>Gebuchter Urlaubssaldo: '+h(sum('vacation_days').toFixed(2))+' Tage</strong>'+
+    '<div>Beantragt, noch offen: '+h(pendingVacation.length)+' Antrag/Anträge · '+h(plannedVacationDays)+' Werktage (Mo–Fr, vorläufig)</div>'+
+    '<div>Genehmigter zukünftiger Urlaub: '+h(approvedFutureVacation.length)+' Antrag/Anträge · '+h(approvedFutureDays)+' Werktage (Mo–Fr, vorläufig)</div>'+
+    '<small>Bei den geplanten Tagen sind Feiertage, individuelle Arbeitstage und Überschneidungen nicht verrechnet. Genehmigter Urlaub kann bereits im gebuchten Saldo enthalten sein.</small></div>'+
+    '<strong>Urlaub: '+h(sum('vacation_days').toFixed(2))+' Tage · Zeitkonto: '+h(sum('time_hours').toFixed(2))+' Stunden</strong>'+
    contractual+'<p class="dst-muted">Gebuchte Salden, keine automatisch errechneten arbeitsrechtlichen Ansprüche. Jahresansprüche, Ist/Soll und Freizeitausgleich bedürfen weiterer Logik.</p>'+
    (account.length?account.slice(0,15).map(x=>'<div class="dst-row"><span>'+h(x.effective_date)+' · '+h(x.source_type)+' · '+h(x.account_type)+'</span><strong>'+h(x.amount)+'</strong></div>').join(''):'Noch keine Kontobuchungen.');
   if(admin){
@@ -1302,6 +1320,7 @@ async function loadPersonnel(){
   if(!admin){
     const vac=el('dstEmployeeVacation'),hours=el('dstEmployeeHours'),abs=el('dstEmployeeAbsences'),detail=el('dstEmployeeAbsenceDetail');
     if(vac)vac.textContent=sum('vacation_days').toLocaleString('de-DE',{maximumFractionDigits:2})+' Tage';
+    if(vac)vac.parentElement.querySelector('em').textContent='Noch offen: '+pendingVacation.length+' Antrag/Anträge ('+plannedVacationDays+' Werktage, vorläufig)';
     if(hours)hours.textContent=sum('time_hours').toLocaleString('de-DE',{maximumFractionDigits:2})+' Std.';
     const pending=current.filter(x=>x.status==='requested').length;
     if(abs)abs.textContent=pending+' offen';
