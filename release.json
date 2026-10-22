@@ -1,10 +1,11 @@
 {
-  "version": "3.57.8",
+  "version": "3.57.9",
   "release_date": "2026-10-22",
   "channel": "development",
   "status": "testbetrieb",
   "scope": "Objektplattform einschließlich Personalmanagement",
   "notes": [
+    "Mobile Personalansicht: eigene Personalakte für Mitarbeiter automatisch geladen, Auswahl für Mandantenadmins vorbelegt; Mitarbeiter sehen Vertragsdaten nur lesend.",
     "Personalverwaltung: Beschäftigungsbeginn erfassbar und bei bestehendem Datensatz gezielt berichtigbar; Überschneidungen werden abgefangen",
     "Vertragsstände sichtbar einschließlich Wochenstunden, Arbeitstagen und Urlaub; Abweichung von Vertrag zu Beschäftigungsbeginn wird hervorgehoben",
     "Vertragsspeicherung nach Gültigkeitsdatum eindeutig (keine Doppelanlage); bestehender Stand kann mit Nachkontrolle berichtigt werden",
