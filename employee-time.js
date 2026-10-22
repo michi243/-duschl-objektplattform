@@ -902,10 +902,15 @@ function mountPersonnel(){
 async function loadPersonnel(){
  if(!cloudSession?.access_token||!org())return;
  const admin=roleAdmin(),person=String(el('dstPersonId')?.value||'').trim();
- for(const id of ['dstSaveRelation','dstSaveContract','dstGrantPermission','dstRevokePermission','dstLoadConflicts'])el(id).disabled=!admin;
+ for(const id of ['dstSaveRelation','dstSaveContract','dstSaveManual','dstGrantPermission','dstRevokePermission','dstLoadConflicts'])el(id).disabled=!admin;
  el('dstPersonId').disabled=!admin;
  const q='organization_id=eq.'+encodeURIComponent(org());
  try{
+  const target=admin&&VALID_ID.test(person)?person:uid();
+  const manual=await cloudRequest('employee_manual_time_entries?select=id,user_id,starts_at,ends_at,break_minutes,reason,status,created_by,created_at&'+q+'&user_id=eq.'+encodeURIComponent(target)+'&order=starts_at.desc&limit=100');
+  el('dstManualHistory').innerHTML='<h4>Manuelle Nachträge</h4>'+(manual.length?manual.map(x=>
+   '<div class="dst-row"><span>'+h(fmt(x.starts_at))+' – '+h(fmt(x.ends_at))+' · Pause '+h(x.break_minutes)+' min · '+h(x.reason)+' · '+h(x.status)+' · erfasst '+h(fmt(x.created_at))+'</span>'+
+   (admin&&x.status==='approved'?'<button type="button" data-void-time="'+h(x.id)+'">Stornieren</button>':'')+'</div>').join(''):'Keine manuellen Nachträge.');
   const rows=await cloudRequest('employee_absences?select=id,user_id,absence_type,starts_on,ends_on,status&'+q+'&order=starts_on.desc&limit=100');
   const selected=admin&&VALID_ID.test(person)?person:uid();
   const account=await cloudRequest('employee_account_entries?select=account_type,amount,effective_date,source_type,comment&'+q+'&user_id=eq.'+encodeURIComponent(selected)+'&order=effective_date.desc&limit=500');
