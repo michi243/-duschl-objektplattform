@@ -1,0 +1,13 @@
+{
+  "version": "3.57.0",
+  "release_date": "2026-10-22",
+  "channel": "development",
+  "status": "testbetrieb",
+  "scope": "Objektplattform einschließlich Personalmanagement",
+  "notes": [
+    "Zentrale Personalzuweisung und Winterdienst-Synchronisierung",
+    "Urlaubs- und Stundenkonten im Testbetrieb",
+    "Versionsanzeige und Änderungsverlauf"
+  ],
+  "baseline_commit": "f9da1ea23c40a908cca6c85b798029dd22505c08"
+}
