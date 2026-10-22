@@ -823,6 +823,14 @@ function mountPersonnel(){
  '<label>Art <select id="dstAbsenceType"><option value="vacation">Urlaub</option><option value="sick">Krankheit</option><option value="time_off_in_lieu">Überstundenabbau</option><option value="training">Fortbildung</option><option value="special_leave">Sonderurlaub</option><option value="unpaid_leave">Unbezahlter Urlaub</option><option value="other">Sonstige</option></select></label>'+
  '<label>Von <input type="date" id="dstAbsFrom"></label><label>Bis <input type="date" id="dstAbsUntil"></label>'+
  '<button type="button" id="dstRequestAbsence">Antrag speichern</button><div id="dstAbsences"></div></div>'+
+ '<div class="dst-box"><h3>Manuelle Zeitnachtragung (Mandantenverwaltung)</h3>'+
+ '<p>Nachträge werden separat von GPS-Buchungen dokumentiert und sind nur durch Stornierung korrigierbar.</p>'+
+ '<label>Beginn <input id="dstManualStart" type="datetime-local"></label>'+
+ '<label>Ende <input id="dstManualEnd" type="datetime-local"></label>'+
+ '<label>Pause (Minuten) <input id="dstManualBreak" type="number" min="0" value="0"></label>'+
+ '<label>Begründung <textarea id="dstManualReason" placeholder="Grund der Nachtragung"></textarea></label>'+
+ '<button id="dstSaveManual" type="button">Zeit nachtragen</button>'+
+ '<div id="dstManualHistory"></div></div>'+ 
  '<div class="dst-box"><h3>Arbeitszeit- und Urlaubskonten</h3><p class="dst-muted">Buchungskonten mit nachvollziehbarer Historie. Urlaubsgutschriften und Überstunden müssen explizit geprüft und gebucht werden.</p><div id="dstAccounts"></div></div>'+ 
  '<div class="dst-box"><h3>Einsatzkonflikte Winterdienst</h3><button type="button" id="dstLoadConflicts">Konflikte der nächsten 30 Tage prüfen</button><div id="dstConflicts" role="status"></div></div>'+
  '<div class="dst-box"><h3>Personalberechtigungen</h3><p class="dst-muted">Berechtigung für die oben eingetragene Benutzer-ID verwalten. Nur Mandanten-Administratoren.</p>'+
@@ -851,6 +859,23 @@ function mountPersonnel(){
   const r=await cloudRequest('rpc/personnel_assignment_conflicts_v1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_org:org(),p_from:date(from),p_to:date(to)})});
   el('dstConflicts').textContent=Array.isArray(r)&&r.length?r.length+' Einsatzkonflikte: '+r.map(x=>x.service_date+' · '+(typeof profileDisplayName==='function'?profileDisplayName(x.assigned_user_id):x.assigned_user_id)).join('; '):'Keine Konflikte im geprüften Zeitraum.';
  }catch(e){el('dstConflicts').textContent='Prüfung nicht möglich: '+e.message}};
+ el('dstSaveManual').onclick=async()=>{
+  if(!roleAdmin())return;
+  try{
+   const person=employeeId(),start=el('dstManualStart').value,end=el('dstManualEnd').value,minutes=Number(el('dstManualBreak').value||0),reason=el('dstManualReason').value.trim();
+   if(!VALID_ID.test(person))throw Error('Benutzer-ID auswählen');
+   if(!start||!end||new Date(end)<=new Date(start))throw Error('Beginn und Ende prüfen');
+   if(reason.length<8)throw Error('Begründung mit mindestens 8 Zeichen erforderlich');
+   await make('employee_manual_time_entries',{organization_id:org(),user_id:person,starts_at:new Date(start).toISOString(),ends_at:new Date(end).toISOString(),break_minutes:minutes,reason});
+   feedback('Manuelle Zeit dokumentiert.');void loadPersonnel();
+  }catch(e){feedback('Zeitnachtrag fehlgeschlagen: '+e.message)}
+ };
+ el('dstManualHistory').onclick=async e=>{
+  const b=e.target.closest('button[data-void-time]');if(!b||!roleAdmin())return;
+  if(!confirm('Zeitnachtrag stornieren?'))return;
+  try{await cloudRequest('employee_manual_time_entries?id=eq.'+encodeURIComponent(b.dataset.voidTime),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'void',voided_by:uid(),voided_at:new Date().toISOString()})});feedback('Nachtrag storniert.');void loadPersonnel()}
+  catch(err){feedback('Stornierung fehlgeschlagen: '+err.message)}
+ };
  el('dstSaveRelation').onclick=async()=>{if(!roleAdmin())return;try{
   if(!VALID_ID.test(employeeId()))throw Error('Gültige Benutzer-ID erforderlich');
   await make('personnel_relationships',{organization_id:org(),user_id:employeeId(),relationship_type:el('dstRelation').value,effective_from:new Date().toISOString().slice(0,10)});
