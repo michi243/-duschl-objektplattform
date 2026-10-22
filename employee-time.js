@@ -838,7 +838,7 @@ function mountPersonnel(){
  '<label>Jahr <input id="dstLeaveYear" type="number" min="2020" max="2100"></label>'+
  '<label>Freigegebene Urlaubstage <input id="dstLeaveGrantDays" type="number" min="0" max="100" step="0.5"></label>'+
  '<label>Begründung <textarea id="dstLeaveGrantReason" placeholder="Vertrag, Eintritt, Sonderregelung"></textarea></label>'+
- '<button id="dstGrantLeave" type="button">Jahresanspruch einmalig buchen</button><div id="dstLeaveGrants"></div></div>'+'<div class="dst-box"><h3>Resturlaub übertragen</h3><p>Nur nach Prüfung des tatsächlichen Restanspruchs. Ein Übertrag ist eine neue Kontogutschrift.</p>'+
+ '<button id="dstPreviewLeave" type="button">Anteiliges Urlaubskontingent schätzen</button><div id="dstLeavePreview"></div><button id="dstGrantLeave" type="button">Jahresanspruch einmalig buchen</button><div id="dstLeaveGrants"></div></div>'+'<div class="dst-box"><h3>Resturlaub übertragen</h3><p>Nur nach Prüfung des tatsächlichen Restanspruchs. Ein Übertrag ist eine neue Kontogutschrift.</p>'+
  '<label>Aus Jahr <input id="dstCarryFrom" type="number" min="2020" max="2100"></label>'+
  '<label>Nach Jahr <input id="dstCarryTo" type="number" min="2021" max="2101"></label>'+
  '<label>Tage <input id="dstCarryDays" type="number" step="0.5" min="0"></label>'+
@@ -894,6 +894,13 @@ function mountPersonnel(){
  await make('employee_leave_carryovers',{organization_id:org(),user_id:id,from_year:from,to_year:to,days,expires_on:expiry||null,rationale:reason});
  feedback('Urlaubsübertrag verbucht.');void loadPersonnel();
  }catch(e){feedback('Übertrag fehlgeschlagen: '+e.message)}};
+ el('dstPreviewLeave').onclick=async()=>{try{
+  const id=employeeId(),year=Number(el('dstLeaveYear').value);
+  if(!VALID_ID.test(id)||!Number.isInteger(year))throw Error('Mitarbeiter und Jahr auswählen');
+  const response=await cloudRequest('rpc/employee_leave_proration_preview_v1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_org:org(),p_user:id,p_year:year})});
+  const v=Array.isArray(response)?response[0]:response;
+  el('dstLeavePreview').textContent='Rechnerische Orientierung: '+(v?.approx_days??0)+' Tage aus '+(v?.calendar_days??0)+' vertraglich abgedeckten Kalendertagen. Keine automatische Freigabe: gesetzlicher Mindesturlaub, Wartezeit und vertragliche Sonderregeln sind gesondert zu prüfen.';
+ }catch(e){feedback('Urlaubsschätzung fehlgeschlagen: '+e.message)}};
  el('dstGrantLeave').onclick=async()=>{if(!roleAdmin())return;try{
   const id=employeeId(),year=Number(el('dstLeaveYear').value),days=Number(el('dstLeaveGrantDays').value),reason=el('dstLeaveGrantReason').value.trim();
   if(!VALID_ID.test(id)||!Number.isInteger(year)||year<2020||year>2100||!Number.isFinite(days)||days<0||days>100||reason.length<8)throw Error('Mitarbeiter, Jahr, Urlaubstage und Begründung prüfen.');
@@ -961,7 +968,7 @@ async function loadPersonnelNames(){
 async function loadPersonnel(){
  if(!cloudSession?.access_token||!org())return;
  const admin=roleAdmin(),person=String(el('dstPersonId')?.value||'').trim();
- for(const id of ['dstSaveRelation','dstSaveContract','dstSaveManual','dstGrantLeave','dstSaveCarry','dstSaveHoliday','dstApproveOvertime','dstGrantPermission','dstRevokePermission','dstLoadConflicts'])el(id).disabled=!admin;
+ for(const id of ['dstSaveRelation','dstSaveContract','dstSaveManual','dstGrantLeave','dstSaveCarry','dstPreviewLeave','dstSaveHoliday','dstApproveOvertime','dstGrantPermission','dstRevokePermission','dstLoadConflicts'])el(id).disabled=!admin;
  el('dstPersonId').disabled=!admin;
  const q='organization_id=eq.'+encodeURIComponent(org());
  try{
