@@ -545,6 +545,44 @@ function summarizeHours(){
  }
  return result.sort((a,b)=>a.name.localeCompare(b.name,'de'));
 }
+function detailedHours(){
+ const byUser=new Map();
+ for(const e of currentHoursRows().slice().sort((a,b)=>new Date(a.occurred_at)-new Date(b.occurred_at))){
+  const id=String(e.user_id);if(!byUser.has(id))byUser.set(id,[]);byUser.get(id).push(e);
+ }
+ const out=[];
+ for(const [id,events] of byUser){
+  let shift=null;
+  const finish=(end,open)=>{
+   if(!shift)return;
+   const duration=end?Math.max(0,end-shift.start):null;
+   const pause=shift.breakMs+(shift.pauseAt!==null&&end?Math.max(0,end-shift.pauseAt):0);
+   const issues=[...shift.issues];
+   if(open)issues.push('Gehen fehlt');
+   if(shift.pauseAt!==null)issues.push('Pausenende fehlt');
+   const net=duration===null?null:Math.max(0,duration-pause)/3600000;
+   out.push({id,name:timeEmployeeName(id),date:new Date(shift.start).toLocaleDateString('de-DE'),start:shift.start,end,pauseMin:pause/60000,net,issues:issues.join(' · ')||'–'});
+   shift=null;
+  };
+  for(const e of events){
+   const t=new Date(e.occurred_at).getTime();if(!Number.isFinite(t))continue;
+   if(e.event_type==='shift_start'){
+    if(shift){shift.issues.push('Weiterer Dienstbeginn');finish(null,true);}
+    shift={start:t,breakMs:0,pauseAt:null,issues:[]};
+   }else if(e.event_type==='break_start'){
+    if(shift){if(shift.pauseAt!==null)shift.issues.push('Doppelte Pause');else shift.pauseAt=t;}
+   }else if(e.event_type==='break_end'){
+    if(shift){if(shift.pauseAt===null)shift.issues.push('Pausenbeginn fehlt');else {shift.breakMs+=Math.max(0,t-shift.pauseAt);shift.pauseAt=null;}}
+   }else if(e.event_type==='shift_end'){
+    if(shift)finish(t,false);
+    else out.push({id,name:timeEmployeeName(id),date:new Date(t).toLocaleDateString('de-DE'),start:null,end:t,pauseMin:null,net:null,issues:'Kommen fehlt'});
+   }
+  }
+  if(shift)finish(null,true);
+ }
+ return out.sort((a,b)=>(b.start||b.end||0)-(a.start||a.end||0));
+}
+function hourClock(t){return t===null?'–':new Date(t).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});}
 function renderAdminHours(){
  const panel=el('dstAdminHours');if(!panel)return;
  panel.style.display=roleAdmin()?'':'none';if(!roleAdmin())return;
@@ -555,14 +593,22 @@ function renderAdminHours(){
  const result=summarizeHours();
  const format=x=>x.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
  el('dstHoursSummary').textContent=result.length+' Mitarbeiter mit Buchungen · '+format(result.reduce((a,x)=>a+x.hours,0))+' h aus abgeschlossenen Schichten (vorläufig)';
+  const details=detailedHours();
+ const detailTable='<h4 style="margin:22px 0 9px">Tagesbuchungen · Kommen / Gehen / Pause</h4>'+
+ (details.length?'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;text-align:left"><thead><tr><th>Datum</th><th>Mitarbeiter</th><th>Kommen</th><th>Gehen</th><th>Pause</th><th>Netto</th><th>Status</th></tr></thead><tbody>'+
+ details.map(x=>'<tr><td style="padding:10px 6px;border-top:1px solid #345166">'+h(x.date)+'</td><td>'+h(x.name)+'</td><td>'+hourClock(x.start)+'</td><td>'+hourClock(x.end)+'</td><td>'+(x.pauseMin===null?'–':Math.round(x.pauseMin)+' min')+'</td><td>'+(x.net===null?'–':format(x.net)+' h')+'</td><td>'+h(x.issues)+'</td></tr>').join('')+'</tbody></table></div>':'<p class="dst-muted">Keine Tagesbuchungen vorhanden.</p>');
  el('dstHoursTable').innerHTML=result.length?'<table style="width:100%;border-collapse:collapse;text-align:left"><thead><tr><th>Mitarbeiter</th><th>Abgeschlossene Dienste</th><th>Stunden</th><th>Prüfbedarf</th></tr></thead><tbody>'+
  result.map(x=>'<tr><td style="padding:10px 6px;border-top:1px solid #345166">'+h(x.name)+'</td><td>'+x.completed+'</td><td>'+format(x.hours)+' h</td><td>'+h([x.open?'Dienst offen':'',x.issue?'Buchungsfolge prüfen':'',x.exceptions?x.exceptions+' GPS-Ausnahmen':''].filter(Boolean).join(' · ')||'–')+'</td></tr>').join('')+'</tbody></table>':'<p class="dst-muted">Keine Buchungen für die Filterauswahl.</p>';
+ el('dstHoursTable').insertAdjacentHTML('beforeend',detailTable);
 }
 function downloadAdminHoursCsv(){
  if(!roleAdmin())return;
  const data=summarizeHours();if(!data.length)return;
  const safe=v=>'"'+String(v??'').replace(/^[=+@-]/,"'function renderTeam(){").replace(/"/g,'""')+'"';
  const lines=[['Mitarbeiter','Abgeschlossene Dienste','Stunden (vorläufig)','Dienst offen','Buchungsfolge prüfen','GPS-Ausnahmen','Anzahl Ereignisse'],...data.map(x=>[x.name,x.completed,x.hours.toFixed(2).replace('.',','),x.open?'Ja':'Nein',x.issue?'Ja':'Nein',x.exceptions,x.events])];
+ const details=detailedHours();
+ lines.push([],['Tagesbuchungen'],['Datum','Mitarbeiter','Kommen','Gehen','Pause (Minuten)','Netto (Stunden)','Status']);
+ details.forEach(x=>lines.push([x.date,x.name,hourClock(x.start),hourClock(x.end),x.pauseMin===null?'':Math.round(x.pauseMin),x.net===null?'':x.net.toFixed(2).replace('.',','),x.issues]));
  const csv=String.fromCharCode(0xFEFF)+'sep=;\r\n'+lines.map(x=>x.map(safe).join(';')).join('\r\n')+'\r\n';
  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
  const a=document.createElement('a');a.href=url;a.download='duschl-arbeitszeiten-vorlaeufig-'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
