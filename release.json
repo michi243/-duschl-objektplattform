@@ -1,10 +1,11 @@
 {
-  "version": "3.57.1",
+  "version": "3.57.2",
   "release_date": "2026-10-22",
   "channel": "development",
   "status": "testbetrieb",
   "scope": "Objektplattform einschließlich Personalmanagement",
   "notes": [
+    "Menüpunkt Personalmanagement öffnet die Seite wieder zuverlässig",
     "Personalmanagement als fester Menüpunkt unter Verwaltung sichtbar",
     "Zentrale Personalzuweisung und Winterdienst-Synchronisierung",
     "Urlaubs- und Stundenkonten im Testbetrieb",
