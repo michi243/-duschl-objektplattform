@@ -1,10 +1,13 @@
 {
-  "version": "3.57.7",
+  "version": "3.57.8",
   "release_date": "2026-10-22",
   "channel": "development",
   "status": "testbetrieb",
   "scope": "Objektplattform einschließlich Personalmanagement",
   "notes": [
+    "Personalverwaltung: Beschäftigungsbeginn erfassbar und bei bestehendem Datensatz gezielt berichtigbar; Überschneidungen werden abgefangen",
+    "Vertragsstände sichtbar einschließlich Wochenstunden, Arbeitstagen und Urlaub; Abweichung von Vertrag zu Beschäftigungsbeginn wird hervorgehoben",
+    "Vertragsspeicherung nach Gültigkeitsdatum eindeutig (keine Doppelanlage); bestehender Stand kann mit Nachkontrolle berichtigt werden",
     "Personalmanagement: Ladefehler 'feedback is not defined' und weitere Scope-Fehler bei asynchronen Personalabfragen behoben.",
     "Personalmanagement: mandantenbezogene explizite HR-Freischaltung für Plattformadministratoren mit Widerruf",
     "Vertragsstände erst nach nachweislich gespeichertem aktivem Arbeitnehmerverhältnis",
