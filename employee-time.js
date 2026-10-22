@@ -883,6 +883,17 @@ function mountPersonnel(){
  const tabs=document.createElement('div');tabs.className='dst-personnel-tabs';tabs.setAttribute('role','tablist');
  const present=new Set();
  const headings=['Beschäftigung','Abwesenheiten','Arbeitszeit','Administration'];
+ const syncPersonnelTabs=()=>{
+   const admin=roleAdmin();
+   tabs.querySelectorAll('.dst-personnel-tab').forEach(t=>{
+     if(t.dataset.group==='3')t.hidden=!admin;
+   });
+   section.querySelectorAll('.dst-personnel-panel').forEach(p=>{
+     if(p.dataset.group==='3'&&!admin)p.hidden=true;
+   });
+   if(!admin&&tabs.querySelector('.dst-personnel-tab[data-group="3"].active'))
+     tabs.querySelector('.dst-personnel-tab[data-group="0"]')?.click();
+ };
  groups.forEach((item,index)=>{
   const panel=document.createElement('div');panel.className='dst-personnel-panel';panel.dataset.group=String(index);
   item[1].forEach(i=>{if(boxes[i]){panel.appendChild(boxes[i]);present.add(i)}});
@@ -895,10 +906,12 @@ function mountPersonnel(){
  const identity=boxes[0];if(identity){identity.classList.add('dst-personnel-identity');section.insertBefore(identity,section.querySelector('.dst-personnel-panel'));}
  section.insertBefore(tabs,section.querySelector('.dst-personnel-panel'));
  tabs.querySelector('button')?.click();
+ syncPersonnelTabs();
 
  const feedback=t=>{el('dstPersonnelMessage').textContent=t};
  const openPersonnel=()=>{
   if(!el('dstPersonnel'))mountPersonnel();
+  syncPersonnelTabs();
   if(typeof showSection==='function')showSection('dstPersonnel');
   if(typeof closeAppMenu==='function')closeAppMenu();
   void loadPersonnelNames().then(()=>loadPersonnel()).catch(err=>{const msg=el('dstPersonnelMessage');if(msg)msg.textContent='Ladefehler: '+err.message});
@@ -1154,6 +1167,7 @@ async function loadPersonnelNames(){
 }
 async function loadPersonnel(){
  if(!cloudSession?.access_token||!org())return;
+ syncPersonnelTabs();
  const admin=roleAdmin(),person=String(el('dstPersonId')?.value||'').trim();
  try{await loadHrScope()}catch(e){feedback('Personalberechtigung nicht prüfbar: '+e.message);return}
  const writable=allowedHR();
