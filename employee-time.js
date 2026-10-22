@@ -1021,6 +1021,20 @@ async function loadPersonnel(){
   }
   if(admin){
    try{
+    const [timeRights,objectAssignments]=await Promise.all([
+     cloudRequest('employee_time_permissions?select=*&'+q+'&user_id=eq.'+encodeURIComponent(target)+'&limit=10'),
+     cloudRequest('object_user_assignments?select=object_role,active,object_id&user_id=eq.'+encodeURIComponent(target)+'&limit=30')
+    ]);
+    const old=el('dstExistingUserData');
+    if(old)old.remove();
+    const summary=document.createElement('div');summary.id='dstExistingUserData';summary.className='dst-personnel-data-summary';
+    const roles=(objectAssignments||[]).filter(x=>x.active).map(x=>String(x.object_role||'Objektrolle'));
+    summary.textContent='Bestehende Daten: '+(timeRights?.length||0)+' Zeiterfassungsberechtigung(en), '+roles.length+' aktive Objektzuordnung(en). Beschäftigungsstatus und Vertragsdaten werden aus Rollen nicht automatisch abgeleitet.';
+    el('dstPersonnelMessage').insertAdjacentElement('afterend',summary);
+   }catch(_){}
+  }
+  if(admin){
+   try{
     const [relationships,contracts]=await Promise.all([
      cloudRequest('personnel_relationships?select=relationship_type,effective_from&'+q+'&user_id=eq.'+encodeURIComponent(target)+'&order=effective_from.desc&limit=1'),
      cloudRequest('employee_contract_terms?select=valid_from,weekly_hours,working_days_per_week,annual_vacation_days,employment_type&'+q+'&user_id=eq.'+encodeURIComponent(target)+'&order=valid_from.desc&limit=1')
@@ -1033,7 +1047,7 @@ async function loadPersonnel(){
     for(const [id,key] of [['dstContractFrom','valid_from'],['dstWeeklyHours','weekly_hours'],['dstWorkDays','working_days_per_week'],['dstVacationDays','annual_vacation_days'],['dstEmploymentType','employment_type']])
      if(contract&&el(id))el(id).value=contract[key]??'';
     el('dstSaveContract').disabled=relation!=='employee';
-    if(!relation&&!contract)el('dstPersonnelMessage').textContent='Für diesen Benutzer sind hier noch keine Beschäftigungs- oder Vertragsdaten hinterlegt. Bitte Beschäftigungsstatus zuerst speichern.';
+    if(!relation&&!contract)el('dstPersonnelMessage').textContent='Noch keine Personaldaten hinterlegt. Bestehende Benutzerrollen und Zeitberechtigungen bleiben erhalten; der Beschäftigungsstatus muss separat festgelegt werden.';
    }catch(e){el('dstPersonnelMessage').textContent='Vertragsstammdaten konnten nicht geladen werden: '+e.message;}
   }
   const manual=await cloudRequest('employee_manual_time_entries?select=id,user_id,starts_at,ends_at,break_minutes,reason,status,created_by,created_at&'+q+'&user_id=eq.'+encodeURIComponent(target)+'&order=starts_at.desc&limit=100');
