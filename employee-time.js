@@ -816,9 +816,9 @@ function downloadCsv(){
 function mountPersonnel(){
  if(el('dstPersonnel'))return;
  const nav=el('navUsers')||el('navEmployeeTime');if(!nav)return;
- const b=document.createElement('button');b.id='navPersonnel';b.type='button';b.className='hidden';
+ const b=el('navPersonnel')||document.createElement('button');b.id='navPersonnel';b.type='button';b.classList.remove('hidden');
  b.innerHTML='<span class="nav-icon">♧</span><span>Personalmanagement</span>';
- nav.insertAdjacentElement('afterend',b);
+ if(!b.isConnected)nav.insertAdjacentElement('afterend',b);
  const section=document.createElement('section');section.id='dstPersonnel';section.className='section';
  section.innerHTML='<h2>Personalmanagement</h2><p>Beschäftigungsverhältnisse, Vertragsdaten und Abwesenheiten</p>'+
  '<div id="dstPersonnelMessage" role="status"></div>'+
