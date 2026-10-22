@@ -861,7 +861,7 @@ function mountPersonnel(){
  '<div class="dst-box"><h3>Personalverfügbarkeit und Einsatzkonflikte</h3><label>Prüftag <input type="date" id="dstAvailabilityDay"></label><button type="button" id="dstCheckAvailability">Verfügbarkeit prüfen</button><div id="dstAvailabilityResult" role="status"></div><button type="button" id="dstLoadConflicts">Winterdienst-Konflikte der nächsten 30 Tage prüfen</button><div id="dstConflicts" role="status"></div></div>'+
  '<div class="dst-box"><h3>Zentrale Einsatzzuweisung</h3><p>Für alle Leistungsarten mit verbindlicher Abwesenheitsprüfung.</p>'+
  '<label>Leistungsart <select id="dstAssignmentType"><option value="regular_tour">Reguläre Tour</option><option value="winter_tour">Winterdienst</option><option value="single_order">Einzelauftrag</option><option value="object_service">Objektleistung</option><option value="other">Sonstige</option></select></label>'+
- '<label>Datum <input type="date" id="dstAssignmentDate"></label><label>Beschreibung <input id="dstAssignmentDescription"></label>'+
+ '<label>Datum <input type="date" id="dstAssignmentDate"></label><label>Vorhandene Tourenvorlage <select id="dstAssignmentTour"><option value="">Ohne Tourenbezug</option></select></label><label>Beschreibung <input id="dstAssignmentDescription"></label>'+
  '<button type="button" id="dstAssignPerson">Einsatz zuweisen</button><button type="button" id="dstAllAssignmentConflicts">Alle Einsatzkonflikte prüfen</button><div id="dstAssignmentResult"></div></div>'+'<div class="dst-box"><h3>Personalberechtigungen</h3><p class="dst-muted">Berechtigung für die oben eingetragene Benutzer-ID verwalten. Nur Mandanten-Administratoren.</p>'+
  '<label>Berechtigung <select id="dstGrantType"><option value="hr_manage">Personalverwaltung</option><option value="hr_approve">Genehmigungen</option><option value="workforce_schedule">Einsatzplanung</option></select></label>'+
  '<button type="button" id="dstGrantPermission">Recht erteilen</button><button type="button" id="dstRevokePermission">Recht entziehen</button><div id="dstPermissions"></div></div>';
@@ -892,7 +892,7 @@ function mountPersonnel(){
  tabs.querySelector('button')?.click();
 
  const feedback=t=>{el('dstPersonnelMessage').textContent=t};
- b.onclick=()=>{if(typeof showSection==='function')showSection('dstPersonnel');void loadPersonnelNames().then(()=>loadPersonnel())};
+ b.onclick=()=>{if(typeof showSection==='function')showSection('dstPersonnel');void loadPersonnelNames().then(()=>loadPersonnel());void refreshPersonnelTourOptions()};
  const employeeId=()=>String(el('dstPersonId').value||'').trim();
  const selectedId=()=>roleAdmin()?employeeId():uid();
  const make=async(endpoint,data)=>cloudRequest(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
@@ -907,10 +907,20 @@ function mountPersonnel(){
    void loadPersonnel();
   }catch(e){feedback('Berechtigung nicht geändert: '+e.message);}
  };
+ async function refreshPersonnelTourOptions(){
+  const box=el('dstAssignmentTour');if(!box)return;
+  box.innerHTML='<option value="">Ohne Tourenbezug</option>';
+  try{
+   const table=el('dstAssignmentType').value==='regular_tour'?'operation_tour_templates':'winter_service_tour_templates';
+   const rows=await cloudRequest(table+'?select=id,name,active&organization_id=eq.'+encodeURIComponent(org())+'&active=eq.true&order=name.asc&limit=100');
+   for(const row of rows||[]){const item=document.createElement('option');item.value=row.id;item.textContent=row.name||row.id;box.appendChild(item)}
+  }catch(e){el('dstAssignmentResult').textContent='Tourenvorlagen nicht geladen: '+e.message;}
+ }
+ el('dstAssignmentType').addEventListener('change',()=>void refreshPersonnelTourOptions());
  el('dstAssignPerson').onclick=async()=>{if(!roleAdmin())return;try{
   const person=employeeId(),day=el('dstAssignmentDate').value;
   if(!VALID_ID.test(person)||!day)throw Error('Mitarbeiter und Datum wählen');
-  await make('personnel_assignments_v1',{organization_id:org(),user_id:person,assignment_type:el('dstAssignmentType').value,assignment_date:day,description:el('dstAssignmentDescription').value.trim()});
+  await make('personnel_assignments_v1',{organization_id:org(),user_id:person,assignment_type:el('dstAssignmentType').value,assignment_date:day,reference_id:el('dstAssignmentTour').value||null,description:el('dstAssignmentDescription').value.trim()});
   el('dstAssignmentResult').textContent='Einsatz zugewiesen.';
  }catch(e){el('dstAssignmentResult').textContent='Zuweisung nicht möglich: '+e.message}};
  el('dstAllAssignmentConflicts').onclick=async()=>{try{
