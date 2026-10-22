@@ -7494,6 +7494,60 @@ body.or-wizard-open{overflow:hidden!important}
 #privateOffersRoot .po-total{padding:16px;border:1px solid var(--line);border-radius:12px;margin:14px 0;font-weight:700;font-size:17px}
 @media(max-width:520px){#privateOffersRoot .po-item{grid-template-columns:repeat(2,minmax(0,1fr))}#privateOffersRoot{padding:12px!important}}
 </style>
+<style id="ds-om-kpi-alignment-v35713">
+/* Einheitliche operative Karten: Icon | Titel/Untertitel | KPI | Navigation.
+   Nur Objektbetreuer-Ansicht; vorhandene Statusfarben und Klicklogik bleiben bestehen. */
+#operationalDashboard.om-dashboard-mode :is(#kpiResidentReportsCard,#kpiWorkQueueCard,#kpiDocumentationCard,#kpiReportsCard){
+  display:grid!important;
+  grid-template-columns:64px minmax(0,1fr) auto 20px!important;
+  grid-template-rows:auto auto!important;
+  align-items:center!important;
+  column-gap:14px!important;
+  row-gap:3px!important;
+  text-align:left!important;
+  padding:18px 16px!important;
+}
+#operationalDashboard.om-dashboard-mode :is(#kpiResidentReportsCard,#kpiWorkQueueCard,#kpiDocumentationCard,#kpiReportsCard) .tenant-kpi-icon{
+  grid-column:1!important;grid-row:1 / span 2!important;
+  margin:0!important;justify-self:start!important;
+}
+#operationalDashboard.om-dashboard-mode :is(#kpiResidentReportsCard,#kpiWorkQueueCard,#kpiDocumentationCard,#kpiReportsCard) .tenant-kpi-label{
+  grid-column:2!important;grid-row:1!important;min-width:0!important;
+  margin:0!important;align-self:end!important;
+}
+#operationalDashboard.om-dashboard-mode :is(#kpiResidentReportsCard,#kpiWorkQueueCard,#kpiDocumentationCard,#kpiReportsCard) .tenant-kpi-sub{
+  grid-column:2!important;grid-row:2!important;min-width:0!important;
+  margin:0!important;align-self:start!important;
+}
+#operationalDashboard.om-dashboard-mode :is(#kpiResidentReportsCard,#kpiWorkQueueCard,#kpiDocumentationCard,#kpiReportsCard) .tenant-kpi-value{
+  grid-column:3!important;grid-row:1 / span 2!important;
+  justify-self:end!important;margin:0!important;text-align:right!important;
+  font-variant-numeric:tabular-nums!important;
+}
+#operationalDashboard.om-dashboard-mode :is(#kpiResidentReportsCard,#kpiWorkQueueCard,#kpiDocumentationCard,#kpiReportsCard) .tenant-kpi-arrow{
+  grid-column:4!important;grid-row:1 / span 2!important;
+  position:static!important;justify-self:end!important;align-self:center!important;
+  margin:0!important;transform:none!important;
+}
+#operationalDashboard.om-dashboard-mode #kpiReportsCard .tenant-kpi-value{
+  display:none!important;
+}
+#operationalDashboard.om-dashboard-mode #kpiReportsCard{
+  grid-template-columns:64px minmax(0,1fr) 20px!important;
+}
+#operationalDashboard.om-dashboard-mode #kpiReportsCard .tenant-kpi-arrow{
+  grid-column:3!important;
+}
+@media(max-width:520px){
+  #operationalDashboard.om-dashboard-mode :is(#kpiResidentReportsCard,#kpiWorkQueueCard,#kpiDocumentationCard,#kpiReportsCard){
+    grid-template-columns:52px minmax(0,1fr) auto 16px!important;
+    column-gap:10px!important;padding:15px 12px!important;
+  }
+  #operationalDashboard.om-dashboard-mode #kpiReportsCard{
+    grid-template-columns:52px minmax(0,1fr) 16px!important;
+  }
+}
+</style>
 <style id="ds-om-dashboard-resident-reports-v35712">
 /* Neue und ungeprüfte Bewohner-Meldungen gehören zum operativen Eingang des Objektbetreuers. */
 #operationalDashboard.om-dashboard-mode #kpiResidentReportsCard{
