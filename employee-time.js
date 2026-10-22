@@ -858,7 +858,7 @@ function mountPersonnel(){
  '<label>Übertrag gültig bis <input id="dstCarryExpiry" type="date"></label>'+
  '<label>Begründung <textarea id="dstCarryReason"></textarea></label>'+
  '<button id="dstSaveCarry" type="button">Übertrag freigeben</button><div id="dstCarryHistory"></div></div>'+'<div class="dst-box"><h3>Arbeitszeit- und Urlaubskonten</h3><p class="dst-muted">Buchungskonten mit nachvollziehbarer Historie. Urlaubsgutschriften und Überstunden müssen explizit geprüft und gebucht werden.</p><div id="dstAccounts"></div></div>'+ 
- '<div class="dst-box"><h3>Einsatzkonflikte Winterdienst</h3><button type="button" id="dstLoadConflicts">Konflikte der nächsten 30 Tage prüfen</button><div id="dstConflicts" role="status"></div></div>'+
+ '<div class="dst-box"><h3>Personalverfügbarkeit und Einsatzkonflikte</h3><label>Prüftag <input type="date" id="dstAvailabilityDay"></label><button type="button" id="dstCheckAvailability">Verfügbarkeit prüfen</button><div id="dstAvailabilityResult" role="status"></div><button type="button" id="dstLoadConflicts">Winterdienst-Konflikte der nächsten 30 Tage prüfen</button><div id="dstConflicts" role="status"></div></div>'+
  '<div class="dst-box"><h3>Personalberechtigungen</h3><p class="dst-muted">Berechtigung für die oben eingetragene Benutzer-ID verwalten. Nur Mandanten-Administratoren.</p>'+
  '<label>Berechtigung <select id="dstGrantType"><option value="hr_manage">Personalverwaltung</option><option value="hr_approve">Genehmigungen</option><option value="workforce_schedule">Einsatzplanung</option></select></label>'+
  '<button type="button" id="dstGrantPermission">Recht erteilen</button><button type="button" id="dstRevokePermission">Recht entziehen</button><div id="dstPermissions"></div></div>';
@@ -904,10 +904,16 @@ function mountPersonnel(){
    void loadPersonnel();
   }catch(e){feedback('Berechtigung nicht geändert: '+e.message);}
  };
+ el('dstCheckAvailability').onclick=async()=>{try{
+  const selected=employeeId(),day=el('dstAvailabilityDay').value;
+  if(!VALID_ID.test(selected)||!day)throw Error('Mitarbeiter und Prüftag auswählen');
+  const result=await cloudRequest('rpc/personnel_check_assignment_v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_org:org(),p_user:selected,p_day:day})});
+  el('dstAvailabilityResult').textContent=result===true?'Verfügbar (keine dokumentierte Sperre)':'Nicht verfügbar oder Berechtigung fehlt';
+ }catch(e){el('dstAvailabilityResult').textContent='Prüfung fehlgeschlagen: '+e.message}};
  el('dstLoadConflicts').onclick=async()=>{try{
   const from=new Date(),to=new Date(from);to.setDate(from.getDate()+30);
   const date=d=>d.toISOString().slice(0,10);
-  const r=await cloudRequest('rpc/personnel_assignment_conflicts_v1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_org:org(),p_from:date(from),p_to:date(to)})});
+  const r=await cloudRequest('rpc/personnel_absence_conflicts_v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_org:org(),p_from:date(from),p_to:date(to)})});
   el('dstConflicts').textContent=Array.isArray(r)&&r.length?r.length+' Einsatzkonflikte: '+r.map(x=>x.service_date+' · '+(typeof profileDisplayName==='function'?profileDisplayName(x.assigned_user_id):x.assigned_user_id)).join('; '):'Keine Konflikte im geprüften Zeitraum.';
  }catch(e){el('dstConflicts').textContent='Prüfung nicht möglich: '+e.message}};
  el('dstSaveHoliday').onclick=async()=>{if(!roleAdmin())return;try{
@@ -1006,7 +1012,7 @@ async function loadPersonnelNames(){
 async function loadPersonnel(){
  if(!cloudSession?.access_token||!org())return;
  const admin=roleAdmin(),person=String(el('dstPersonId')?.value||'').trim();
- for(const id of ['dstSaveRelation','dstSaveContract','dstSaveManual','dstGrantLeave','dstSaveCarry','dstPreviewLeave','dstSaveHoliday','dstApproveOvertime','dstGrantPermission','dstRevokePermission','dstLoadConflicts'])el(id).disabled=!admin;
+ for(const id of ['dstSaveRelation','dstSaveContract','dstSaveManual','dstGrantLeave','dstSaveCarry','dstPreviewLeave','dstSaveHoliday','dstApproveOvertime','dstGrantPermission','dstRevokePermission','dstLoadConflicts','dstCheckAvailability'])el(id).disabled=!admin;
  el('dstPersonId').disabled=!admin;
  const q='organization_id=eq.'+encodeURIComponent(org());
  try{
