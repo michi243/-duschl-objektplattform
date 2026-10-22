@@ -859,7 +859,10 @@ function mountPersonnel(){
  '<label>Begründung <textarea id="dstCarryReason"></textarea></label>'+
  '<button id="dstSaveCarry" type="button">Übertrag freigeben</button><div id="dstCarryHistory"></div></div>'+'<div class="dst-box"><h3>Arbeitszeit- und Urlaubskonten</h3><p class="dst-muted">Buchungskonten mit nachvollziehbarer Historie. Urlaubsgutschriften und Überstunden müssen explizit geprüft und gebucht werden.</p><div id="dstAccounts"></div></div>'+ 
  '<div class="dst-box"><h3>Personalverfügbarkeit und Einsatzkonflikte</h3><label>Prüftag <input type="date" id="dstAvailabilityDay"></label><button type="button" id="dstCheckAvailability">Verfügbarkeit prüfen</button><div id="dstAvailabilityResult" role="status"></div><button type="button" id="dstLoadConflicts">Winterdienst-Konflikte der nächsten 30 Tage prüfen</button><div id="dstConflicts" role="status"></div></div>'+
- '<div class="dst-box"><h3>Personalberechtigungen</h3><p class="dst-muted">Berechtigung für die oben eingetragene Benutzer-ID verwalten. Nur Mandanten-Administratoren.</p>'+
+ '<div class="dst-box"><h3>Zentrale Einsatzzuweisung</h3><p>Für alle Leistungsarten mit verbindlicher Abwesenheitsprüfung.</p>'+
+ '<label>Leistungsart <select id="dstAssignmentType"><option value="regular_tour">Reguläre Tour</option><option value="winter_tour">Winterdienst</option><option value="single_order">Einzelauftrag</option><option value="object_service">Objektleistung</option><option value="other">Sonstige</option></select></label>'+
+ '<label>Datum <input type="date" id="dstAssignmentDate"></label><label>Beschreibung <input id="dstAssignmentDescription"></label>'+
+ '<button type="button" id="dstAssignPerson">Einsatz zuweisen</button><button type="button" id="dstAllAssignmentConflicts">Alle Einsatzkonflikte prüfen</button><div id="dstAssignmentResult"></div></div>'+'<div class="dst-box"><h3>Personalberechtigungen</h3><p class="dst-muted">Berechtigung für die oben eingetragene Benutzer-ID verwalten. Nur Mandanten-Administratoren.</p>'+
  '<label>Berechtigung <select id="dstGrantType"><option value="hr_manage">Personalverwaltung</option><option value="hr_approve">Genehmigungen</option><option value="workforce_schedule">Einsatzplanung</option></select></label>'+
  '<button type="button" id="dstGrantPermission">Recht erteilen</button><button type="button" id="dstRevokePermission">Recht entziehen</button><div id="dstPermissions"></div></div>';
  document.querySelector('main')?.appendChild(section);
@@ -904,6 +907,18 @@ function mountPersonnel(){
    void loadPersonnel();
   }catch(e){feedback('Berechtigung nicht geändert: '+e.message);}
  };
+ el('dstAssignPerson').onclick=async()=>{if(!roleAdmin())return;try{
+  const person=employeeId(),day=el('dstAssignmentDate').value;
+  if(!VALID_ID.test(person)||!day)throw Error('Mitarbeiter und Datum wählen');
+  await make('personnel_assignments_v1',{organization_id:org(),user_id:person,assignment_type:el('dstAssignmentType').value,assignment_date:day,description:el('dstAssignmentDescription').value.trim()});
+  el('dstAssignmentResult').textContent='Einsatz zugewiesen.';
+ }catch(e){el('dstAssignmentResult').textContent='Zuweisung nicht möglich: '+e.message}};
+ el('dstAllAssignmentConflicts').onclick=async()=>{try{
+  const from=new Date(),until=new Date(from);until.setDate(from.getDate()+30);
+  const args={p_org:org(),p_from:from.toISOString().slice(0,10),p_to:until.toISOString().slice(0,10)};
+  const rows=await cloudRequest('rpc/personnel_assignment_conflicts_all_v1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(args)});
+  el('dstAssignmentResult').textContent=rows.length?rows.length+' Einsatzkonflikte erkannt: '+rows.map(x=>x.assignment_date+' / '+x.assignment_type).join(', '):'Keine Konflikte bei zentral erfassten Einsätzen.';
+ }catch(e){el('dstAssignmentResult').textContent='Konfliktprüfung fehlgeschlagen: '+e.message}};
  el('dstCheckAvailability').onclick=async()=>{try{
   const selected=employeeId(),day=el('dstAvailabilityDay').value;
   if(!VALID_ID.test(selected)||!day)throw Error('Mitarbeiter und Prüftag auswählen');
@@ -1012,7 +1027,7 @@ async function loadPersonnelNames(){
 async function loadPersonnel(){
  if(!cloudSession?.access_token||!org())return;
  const admin=roleAdmin(),person=String(el('dstPersonId')?.value||'').trim();
- for(const id of ['dstSaveRelation','dstSaveContract','dstSaveManual','dstGrantLeave','dstSaveCarry','dstPreviewLeave','dstSaveHoliday','dstApproveOvertime','dstGrantPermission','dstRevokePermission','dstLoadConflicts','dstCheckAvailability'])el(id).disabled=!admin;
+ for(const id of ['dstSaveRelation','dstSaveContract','dstSaveManual','dstGrantLeave','dstSaveCarry','dstPreviewLeave','dstSaveHoliday','dstApproveOvertime','dstGrantPermission','dstRevokePermission','dstLoadConflicts','dstCheckAvailability','dstAssignPerson','dstAllAssignmentConflicts'])el(id).disabled=!admin;
  el('dstPersonId').disabled=!admin;
  const q='organization_id=eq.'+encodeURIComponent(org());
  try{
