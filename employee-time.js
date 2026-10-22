@@ -121,7 +121,7 @@ function mount(){
   </div>
   <div class="dst-box" id="dstAdminHours" style="display:none;margin-top:12px">
    <h3>Personal · Arbeitszeiten</h3>
-   <p class="dst-muted">Mandanteninterne Übersicht aus Dienstbeginn, Dienstende und Pausen. Fehlende gesetzliche Mindestpause wird für die vorläufige Netto-Anzeige rechnerisch berücksichtigt und ausdrücklich zur Prüfung markiert; sie gilt nicht als nachgewiesene Pause. Keine Lohnabrechnung.</p>
+   <p class="dst-muted">Mandanteninterne Übersicht aus Dienstbeginn, Dienstende und Pausen. Nur vollständig gestempelte Pausen werden von der Arbeitszeit abgezogen. Unterschreitung gesetzlicher Mindestpausen wird als Prüfbedarf angezeigt; kein automatischer Abzug. Keine Lohnabrechnung.</p>
    <div class="dst-actions">
     <label>Mitarbeiter <select id="dstHoursEmployee"><option value="">Alle Mitarbeiter</option></select></label>
     <label>Zeitraum <select id="dstHoursPeriod"><option value="week">Diese Woche</option><option value="month" selected>Dieser Monat</option><option value="all">Alle geladenen Buchungen</option></select></label>
@@ -129,7 +129,7 @@ function mount(){
    </div>
    <div id="dstHoursSummary" class="dst-muted" style="margin-top:14px"></div>
    <div id="dstHoursTable" style="overflow-x:auto;margin-top:12px"></div>
-   <div class="dst-internal-note">Hinweis: Pausenautomatik ist nur eine rechnerische Annahme: Nicht tatsächlich genommene Pausen dürfen nicht als nachgewiesen gelten. Die Übersicht basiert auf maximal 1.000 zuletzt geladenen Ereignissen. Bei älteren Zeiträumen und periodenübergreifenden Schichten sind die Stunden nicht vollständig. Ausschließlich der aktive Mandant wird angezeigt.</div>
+   <div class="dst-internal-note">Hinweis: Keine pauschalen Pausenabzüge. Arbeitszeitrechtliche Verstöße sind organisatorisch zu klären, nicht durch rückwirkende Abzüge zu verdecken. Die Übersicht basiert auf maximal 1.000 zuletzt geladenen Ereignissen. Bei älteren Zeiträumen und periodenübergreifenden Schichten sind die Stunden nicht vollständig. Ausschließlich der aktive Mandant wird angezeigt.</div>
   </div>
   <div class="dst-box" id="dstTeamBox" style="display:none;margin-top:12px">
    <h3>Einsatzübersicht · letzter bestätigter Buchungsstand</h3>
@@ -508,51 +508,21 @@ function currentHoursRows(){
  if(period==='week'){const offset=(now.getDay()+6)%7;start.setDate(now.getDate()-offset);start.setHours(0,0,0,0);}
  return modeRows().filter(x=>(!employee||x.user_id===employee)&&(period==='all'||new Date(x.occurred_at)>=start));
 }
-function statutoryBreakMinutes(spanMs,recordedMs){
- // Model assumption for preliminary reporting, NOT evidence of an actual break.
- // Determine the legal threshold from effective working time; avoid circular boundary at 6/9h.
- const span=Math.max(0,spanMs)/60000,recorded=Math.max(0,recordedMs)/60000;
- let minimum=0;
- if(span-recorded>360)minimum=30;
- if(span-Math.max(recorded,30)>540)minimum=45;
- return Math.max(recorded,minimum);
-}
 function summarizeHours(){
- // Sequential pairing, not sum of object visits. Unmatched events are explicitly flagged.
  const grouped=new Map();
- for(const x of currentHoursRows().slice().sort((a,b)=>new Date(a.occurred_at)-new Date(b.occurred_at))){
-  const id=String(x.user_id);if(!grouped.has(id))grouped.set(id,[]);
-  grouped.get(id).push(x);
+ for(const x of currentHoursRows()){
+  const id=String(x.user_id);
+  if(!grouped.has(id))grouped.set(id,{id,name:timeEmployeeName(id),hours:0,completed:0,open:false,issue:false,exceptions:0,events:0});
+  const g=grouped.get(id);g.events++;
+  if((x.review_status==='pending_review'&&!timeReview(x.id))||timeReview(x.id)?.decision==='rejected')g.exceptions++;
  }
- const result=[];
- for(const [id,events] of grouped){
-  let shift=null,breakAt=null,breakMs=0,issue=false,exceptions=0;
-  let minutes=0,completed=0;
-  for(const e of events){
-   const when=new Date(e.occurred_at).getTime();
-   if(!Number.isFinite(when)){issue=true;continue;}
-   if(e.review_status==='pending_review'&&!timeReview(e.id) || timeReview(e.id)?.decision==='rejected')exceptions++;
-   if(e.event_type==='shift_start'){
-    if(shift!==null)issue=true;
-    shift=when;breakAt=null;breakMs=0;
-   }else if(e.event_type==='break_start'){
-    if(shift===null||breakAt!==null)issue=true;
-    else breakAt=when;
-   }else if(e.event_type==='break_end'){
-    if(breakAt===null)issue=true;
-    else {breakMs+=Math.max(0,when-breakAt);breakAt=null;}
-   }else if(e.event_type==='shift_end'){
-    if(shift===null){issue=true;continue;}
-    if(breakAt!==null){issue=true;breakMs+=Math.max(0,when-breakAt);}
-    if(when<shift)issue=true;
-    else {minutes+=Math.max(0,when-shift-statutoryBreakMinutes(when-shift,breakMs)*60000)/60000;completed++;}
-    shift=null;breakAt=null;breakMs=0;
-   }
-  }
-  if(shift!==null)issue=true;
-  result.push({id,name:timeEmployeeName(id),hours:minutes/60,completed,open:shift!==null,issue,exceptions,events:events.length});
+ for(const d of detailedHours()){
+  const g=grouped.get(d.id);if(!g)continue;
+  if(d.start!==null&&d.end!==null&&d.net!==null){g.hours+=d.net;g.completed++;}
+  if(d.end===null)g.open=true;
+  if(d.issues!=='–')g.issue=true;
  }
- return result.sort((a,b)=>a.name.localeCompare(b.name,'de'));
+ return [...grouped.values()].sort((a,b)=>a.name.localeCompare(b.name,'de'));
 }
 function detailedHours(){
  const byUser=new Map();
@@ -565,13 +535,16 @@ function detailedHours(){
   const finish=(end,open)=>{
    if(!shift)return;
    const duration=end?Math.max(0,end-shift.start):null;
-   const pause=shift.breakMs+(shift.pauseAt!==null&&end?Math.max(0,end-shift.pauseAt):0);
+   const pause=shift.breakMs;
    const issues=[...shift.issues];
    if(open)issues.push('Gehen fehlt');
    if(shift.pauseAt!==null)issues.push('Pausenende fehlt');
-   const effectivePause=duration===null?pause/60000:statutoryBreakMinutes(duration,pause);
-   if(duration!==null&&effectivePause>pause/60000)issues.push('Pausenabzug rechnerisch · tatsächliche Pause prüfen');
-   const net=duration===null?null:Math.max(0,duration-effectivePause*60000)/3600000;
+   const effectivePause=pause/60000;
+   const net=duration===null?null:Math.max(0,duration-pause)/3600000;
+   if(duration!==null){
+    const required=net>9?45:net>6?30:0;
+    if(effectivePause<required)issues.push('Mindestpause unterschritten ('+Math.round(effectivePause)+'/'+required+' Min.)');
+   }
    out.push({id,name:timeEmployeeName(id),date:new Date(shift.start).toLocaleDateString('de-DE'),start:shift.start,end,pauseMin:effectivePause,net,issues:issues.join(' · ')||'–'});
    shift=null;
   };
@@ -583,7 +556,7 @@ function detailedHours(){
    }else if(e.event_type==='break_start'){
     if(shift){if(shift.pauseAt!==null)shift.issues.push('Doppelte Pause');else shift.pauseAt=t;}
    }else if(e.event_type==='break_end'){
-    if(shift){if(shift.pauseAt===null)shift.issues.push('Pausenbeginn fehlt');else {shift.breakMs+=Math.max(0,t-shift.pauseAt);shift.pauseAt=null;}}
+    if(shift){if(shift.pauseAt===null)shift.issues.push('Pausenbeginn fehlt');else {const elapsed=Math.max(0,t-shift.pauseAt);shift.breakMs+=elapsed;if(elapsed<15*60000)shift.issues.push('Pausenabschnitt unter 15 Minuten');shift.pauseAt=null;}}
    }else if(e.event_type==='shift_end'){
     if(shift)finish(t,false);
     else out.push({id,name:timeEmployeeName(id),date:new Date(t).toLocaleDateString('de-DE'),start:null,end:t,pauseMin:null,net:null,issues:'Kommen fehlt'});
