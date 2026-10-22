@@ -1,5 +1,13 @@
 # Versionsverlauf – Duschl Service Objektplattform
 
+## v3.57.6 – 22.10.2026 (Entwicklung / Testbetrieb)
+
+- Plattformadministratoren aktivieren und widerrufen Personalzugriff explizit pro Mandant; kein pauschaler Zugriff auf Personalakten fremder Mandanten.
+- Neue RLS-geschützte Mandantenfreigabe `platform_hr_scopes`, Berechtigungssynchronisierung für Personaldaten sowie manuelle Zeitnachträge und Feiertagsregeln.
+- Vertragsdaten erst nach tatsächlich gespeichertem aktivem Arbeitnehmerverhältnis; Datum, Wochenstunden, Urlaubstage werden vor dem Speichern geprüft.
+- Rollen-/Objektzuordnungen und Zeitbuchungen bleiben unverändert; keine automatische Umdeutung zu Beschäftigungsverhältnissen.
+- Prüfungen: JavaScript-Syntax und transaktionaler RLS-/Vertragsschreibtest (Rollback). Browser-End-to-End-Abnahme bleibt im Testbetrieb ausstehend.
+
 ## v3.57.0 – 22.10.2026 (Entwicklung / Testbetrieb)
 
 - Zentrales Release-Manifest in `release.json` als einzige Quelle der Versionsnummer.
