@@ -821,7 +821,7 @@ function mountPersonnel(){
  if(!b.isConnected)nav.insertAdjacentElement('afterend',b);
  const section=document.createElement('section');section.id='dstPersonnel';section.className='section';
  section.innerHTML='<h2>Personalmanagement</h2><p>Beschäftigungsverhältnisse, Vertragsdaten und Abwesenheiten</p>'+
- '<div id="dstPersonnelMessage" role="status"></div>'+
+ '<div id="dstPersonnelMessage" role="status"></div>'+ '<div id="dstHrScope" class="dst-hr-scope" hidden aria-live="polite"></div>'+
  '<div class="dst-box"><h3>Beschäftigungsstatus</h3><label>Mitarbeiter auswählen <select id="dstPersonId"><option value="">Benutzer auswählen …</option></select></label>'+
  '<label>Verhältnis <select id="dstRelation"><option value="employee">Arbeitnehmer</option><option value="external_contractor">Externer Dienstleister</option><option value="freelancer">Freier Mitarbeiter</option><option value="business_partner">Geschäftspartner</option><option value="test_account">Testzugang</option></select></label>'+
  '<button id="dstSaveRelation" type="button">Zuordnung speichern</button></div>'+
@@ -905,6 +905,37 @@ function mountPersonnel(){
  const employeeId=()=>String(el('dstPersonId').value||'').trim();
  const selectedId=()=>roleAdmin()?employeeId():uid();
  const make=async(endpoint,data)=>cloudRequest(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+ let hrScopeActive=false,hrScopeKey='',activeRelationshipType='',activeRelationshipUser='';
+ const platformHR=()=>{try{return isAdminRole()&&isPlatformTenantMode()}catch(_){return false}};
+ const allowedHR=()=>roleAdmin()&&(!platformHR()||(hrScopeActive&&hrScopeKey===org()+':'+uid()));
+ const savedEmployee=()=>activeRelationshipUser===employeeId()&&activeRelationshipType==='employee'&&el('dstRelation').value==='employee';
+ const contractEnabled=()=>{el('dstSaveContract').disabled=!(allowedHR()&&savedEmployee()&&VALID_ID.test(employeeId()))};
+ async function loadHrScope(){
+   const area=el('dstHrScope');if(!area)return;
+   hrScopeActive=false;hrScopeKey='';
+   if(!platformHR()){area.hidden=true;return}
+   area.hidden=false;
+   const tenant=org(),user=uid();
+   const list=await cloudRequest('platform_hr_scopes?select=organization_id&organization_id=eq.'+encodeURIComponent(tenant)+'&user_id=eq.'+encodeURIComponent(user)+'&limit=1');
+   hrScopeActive=!!list?.length;hrScopeKey=tenant+':'+user;
+   const info=document.createElement('span');
+   info.textContent=hrScopeActive?'Personalzugriff für diesen Mandanten freigeschaltet.':'Personalzugriff für diesen Mandanten noch nicht freigeschaltet. Personaldaten sind geschützt.';
+   const btn=document.createElement('button');btn.type='button';
+   btn.textContent=hrScopeActive?'Personalzugriff widerrufen':'Personalzugriff für diesen Mandanten freischalten';
+   btn.onclick=async()=>{
+     const wasActive=hrScopeActive;
+     if(wasActive&&!confirm('Eigenen Personalzugriff für diesen Mandanten widerrufen?'))return;
+     btn.disabled=true;
+     try{
+       if(wasActive)await cloudRequest('platform_hr_scopes?organization_id=eq.'+encodeURIComponent(tenant)+'&user_id=eq.'+encodeURIComponent(user),{method:'DELETE'});
+       else await make('platform_hr_scopes',{organization_id:tenant,user_id:user,granted_by:user});
+       await loadPersonnel();
+       feedback(wasActive?'Personalzugriff widerrufen.':'Personalzugriff freigeschaltet.');
+     }catch(e){feedback('Personalberechtigung nicht geändert: '+e.message);btn.disabled=false}
+   };
+   area.replaceChildren(info,btn);
+ }
+
  for(const action of ['dstGrantPermission','dstRevokePermission'])el(action).onclick=async()=>{
   if(!roleAdmin())return;
   const person=employeeId(),permission=el('dstGrantType').value;
@@ -1003,19 +1034,26 @@ function mountPersonnel(){
   try{await cloudRequest('employee_manual_time_entries?id=eq.'+encodeURIComponent(b.dataset.voidTime),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'void',voided_by:uid(),voided_at:new Date().toISOString()})});feedback('Nachtrag storniert.');void loadPersonnel()}
   catch(err){feedback('Stornierung fehlgeschlagen: '+err.message)}
  };
- el('dstPersonId').addEventListener('change',()=>void loadPersonnel());
- el('dstRelation').addEventListener('change',()=>{el('dstSaveContract').disabled=!(roleAdmin()&&VALID_ID.test(employeeId())&&el('dstRelation').value==='employee');el('dstPersonnelMessage').textContent='Beschäftigungsverhältnis zuerst über „Zuordnung speichern“ bestätigen, dann Vertragsstand speichern.';});
- el('dstSaveRelation').onclick=async()=>{if(!roleAdmin())return;try{
-  if(!VALID_ID.test(employeeId()))throw Error('Gültige Benutzer-ID erforderlich');
-  await make('personnel_relationships',{organization_id:org(),user_id:employeeId(),relationship_type:el('dstRelation').value,effective_from:new Date().toISOString().slice(0,10)});
-  feedback('Beschäftigungsstatus gespeichert.');void loadPersonnel();
- }catch(e){feedback('Fehler: '+e.message)}};
- el('dstSaveContract').onclick=async()=>{if(!roleAdmin())return;try{
-  if(!VALID_ID.test(employeeId()))throw Error('Gültige Benutzer-ID erforderlich');
-  await make('employee_contract_terms',{organization_id:org(),user_id:employeeId(),valid_from:el('dstContractFrom').value,weekly_hours:Number(el('dstWeeklyHours').value),working_days_per_week:Number(el('dstWorkDays').value),annual_vacation_days:Number(el('dstVacationDays').value),employment_type:el('dstEmploymentType').value});
-  feedback('Vertragsstand gespeichert.');void loadPersonnel();
- }catch(e){feedback('Fehler: '+e.message)}};
- el('dstRequestAbsence').onclick=async()=>{try{
+
+ el('dstPersonId').addEventListener('change',()=>{activeRelationshipType='';activeRelationshipUser='';contractEnabled();void loadPersonnel()});
+ el('dstRelation').addEventListener('change',()=>{contractEnabled();if(!savedEmployee())feedback('Beschäftigungsverhältnis zuerst über „Zuordnung speichern“ bestätigen, dann Vertragsstand speichern.');});
+ el('dstSaveRelation').onclick=async()=>{if(!allowedHR())return;try{
+   if(!VALID_ID.test(employeeId()))throw Error('Bitte Mitarbeiter auswählen.');
+   const chosen=el('dstRelation').value;
+   if(activeRelationshipUser===employeeId()&&activeRelationshipType===chosen){feedback('Beschäftigungsstatus ist bereits hinterlegt.');return}
+   await make('personnel_relationships',{organization_id:org(),user_id:employeeId(),relationship_type:chosen,effective_from:new Date().toISOString().slice(0,10)});
+   await loadPersonnel();feedback('Beschäftigungsstatus gespeichert.');
+  }catch(e){feedback('Beschäftigungsstatus nicht gespeichert: '+e.message)}};
+ el('dstSaveContract').onclick=async()=>{if(!allowedHR())return;try{
+   if(!VALID_ID.test(employeeId()))throw Error('Bitte Mitarbeiter auswählen.');
+   if(!savedEmployee())throw Error('Zuerst ein aktives Beschäftigungsverhältnis als Arbeitnehmer speichern.');
+   const start=el('dstContractFrom').value,weekly=Number(el('dstWeeklyHours').value),days=Number(el('dstWorkDays').value),vacation=Number(el('dstVacationDays').value);
+   if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(start))throw Error('Bitte Vertragsbeginn festlegen.');
+   if(!el('dstWeeklyHours').value||weekly<0||weekly>60||!el('dstWorkDays').value||days<=0||days>7||!el('dstVacationDays').value||vacation<0||vacation>100)throw Error('Bitte gültige Wochenstunden, Arbeitstage und Urlaubstage eingeben.');
+   await make('employee_contract_terms',{organization_id:org(),user_id:employeeId(),valid_from:start,weekly_hours:weekly,working_days_per_week:days,annual_vacation_days:vacation,employment_type:el('dstEmploymentType').value});
+   await loadPersonnel();feedback('Vertragsstand gespeichert.');
+  }catch(e){feedback('Vertragsstand nicht gespeichert: '+e.message)}};
+  el('dstRequestAbsence').onclick=async()=>{try{
   if(!VALID_ID.test(selectedId()))throw Error('Gültige Benutzer-ID erforderlich');
   if(!roleAdmin()&&selectedId()!==uid())throw Error('Nur eigene Anträge erlaubt');
   await make('employee_absences',{organization_id:org(),user_id:selectedId(),absence_type:el('dstAbsenceType').value,starts_on:el('dstAbsFrom').value,ends_on:el('dstAbsUntil').value});
@@ -1047,9 +1085,13 @@ async function loadPersonnelNames(){
 async function loadPersonnel(){
  if(!cloudSession?.access_token||!org())return;
  const admin=roleAdmin(),person=String(el('dstPersonId')?.value||'').trim();
- for(const id of ['dstSaveRelation','dstSaveContract','dstSaveManual','dstGrantLeave','dstSaveCarry','dstPreviewLeave','dstSaveHoliday','dstApproveOvertime','dstGrantPermission','dstRevokePermission','dstLoadConflicts','dstCheckAvailability','dstAssignPerson','dstAllAssignmentConflicts'])el(id).disabled=!admin;
+ try{await loadHrScope()}catch(e){feedback('Personalberechtigung nicht prüfbar: '+e.message);return}
+ const writable=allowedHR();
+ for(const id of ['dstSaveRelation','dstSaveContract','dstSaveManual','dstGrantLeave','dstSaveCarry','dstPreviewLeave','dstSaveHoliday','dstApproveOvertime','dstGrantPermission','dstRevokePermission','dstLoadConflicts','dstCheckAvailability','dstAssignPerson','dstAllAssignmentConflicts'])el(id).disabled=!writable;
+ activeRelationshipType='';activeRelationshipUser='';contractEnabled();
  el('dstPersonId').disabled=!admin;
- const q='organization_id=eq.'+encodeURIComponent(org());
+ if(admin&&!writable){feedback('Bitte zunächst den Personalzugriff für diesen Mandanten freischalten.');return}
+  const q='organization_id=eq.'+encodeURIComponent(org());
  try{
   const target=admin?person:uid();
   if(!VALID_ID.test(target)){el('dstPersonnelMessage').textContent='Bitte zuerst einen Benutzer auswählen.';return;}
@@ -1077,17 +1119,21 @@ async function loadPersonnel(){
   if(admin){
    try{
     const [relationships,contracts]=await Promise.all([
-     cloudRequest('personnel_relationships?select=relationship_type,effective_from&'+q+'&user_id=eq.'+encodeURIComponent(target)+'&order=effective_from.desc&limit=1'),
+     cloudRequest('personnel_relationships?select=relationship_type,effective_from,effective_until&'+q+'&user_id=eq.'+encodeURIComponent(target)+'&order=effective_from.desc&limit=50'),
      cloudRequest('employee_contract_terms?select=valid_from,weekly_hours,working_days_per_week,annual_vacation_days,employment_type&'+q+'&user_id=eq.'+encodeURIComponent(target)+'&order=valid_from.desc&limit=1')
     ]);
-    const relation=relationships?.[0]?.relationship_type||'';
+    const today=new Date().toISOString().slice(0,10);
+    const current=(relationships||[]).find(r=>r.effective_from<=today&&(!r.effective_until||r.effective_until>=today));
+    const relation=current?.relationship_type||'';
+    activeRelationshipUser=current?target:'';
+    activeRelationshipType=relation;
     el('dstRelation').value=relation||'employee';
     const contract=contracts?.[0];
     for(const id of ['dstContractFrom','dstWeeklyHours','dstWorkDays','dstVacationDays'])el(id).value='';
     el('dstEmploymentType').value='full_time';
     for(const [id,key] of [['dstContractFrom','valid_from'],['dstWeeklyHours','weekly_hours'],['dstWorkDays','working_days_per_week'],['dstVacationDays','annual_vacation_days'],['dstEmploymentType','employment_type']])
      if(contract&&el(id))el(id).value=contract[key]??'';
-    el('dstSaveContract').disabled=!(admin&&el('dstRelation').value==='employee');
+    contractEnabled();
     if(!relation&&!contract)el('dstPersonnelMessage').textContent='Noch keine Personaldaten hinterlegt. Bestehende Benutzerrollen und Zeitberechtigungen bleiben erhalten; der Beschäftigungsstatus muss separat festgelegt werden.';
    }catch(e){el('dstPersonnelMessage').textContent='Vertragsstammdaten konnten nicht geladen werden: '+e.message;}
   }
