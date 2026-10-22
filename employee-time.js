@@ -1004,6 +1004,7 @@ function mountPersonnel(){
   catch(err){feedback('Stornierung fehlgeschlagen: '+err.message)}
  };
  el('dstPersonId').addEventListener('change',()=>void loadPersonnel());
+ el('dstRelation').addEventListener('change',()=>{el('dstSaveContract').disabled=!(roleAdmin()&&VALID_ID.test(employeeId())&&el('dstRelation').value==='employee');});
  el('dstSaveRelation').onclick=async()=>{if(!roleAdmin())return;try{
   if(!VALID_ID.test(employeeId()))throw Error('Gültige Benutzer-ID erforderlich');
   await make('personnel_relationships',{organization_id:org(),user_id:employeeId(),relationship_type:el('dstRelation').value,effective_from:new Date().toISOString().slice(0,10)});
@@ -1086,7 +1087,7 @@ async function loadPersonnel(){
     el('dstEmploymentType').value='full_time';
     for(const [id,key] of [['dstContractFrom','valid_from'],['dstWeeklyHours','weekly_hours'],['dstWorkDays','working_days_per_week'],['dstVacationDays','annual_vacation_days'],['dstEmploymentType','employment_type']])
      if(contract&&el(id))el(id).value=contract[key]??'';
-    el('dstSaveContract').disabled=relation!=='employee';
+    el('dstSaveContract').disabled=!(admin&&el('dstRelation').value==='employee');
     if(!relation&&!contract)el('dstPersonnelMessage').textContent='Noch keine Personaldaten hinterlegt. Bestehende Benutzerrollen und Zeitberechtigungen bleiben erhalten; der Beschäftigungsstatus muss separat festgelegt werden.';
    }catch(e){el('dstPersonnelMessage').textContent='Vertragsstammdaten konnten nicht geladen werden: '+e.message;}
   }
