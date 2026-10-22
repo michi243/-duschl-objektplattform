@@ -834,7 +834,11 @@ function mountPersonnel(){
  '<div class="dst-box"><h3>Feiertage und Arbeitsort</h3><p>Feiertagsabzug bei Sollstunden erst nach Festlegung des Arbeitsortes aktivieren.</p>'+
  '<label>Arbeitsort <select id="dstHolidayPlace"><option value="UNSET">Nicht festgelegt</option><option value="MUNICH">München</option><option value="AUGSBURG">Augsburg</option><option value="OTHER_CATHOLIC">Bayern · Mariä Himmelfahrt gilt</option><option value="OTHER_NON_CATHOLIC">Bayern · Mariä Himmelfahrt gilt nicht</option></select></label>'+
  '<label><input type="checkbox" id="dstHolidayActive"> Gesetzliche Feiertage bei der Sollzeit berücksichtigen</label>'+
- '<button type="button" id="dstSaveHoliday">Feiertagsregel speichern</button></div>'+'<div class="dst-box"><h3>Überstunden freigeben</h3><label>Von <input id="dstOverFrom" type="date"></label><label>Bis <input id="dstOverTo" type="date"></label><label>Stunden <input id="dstOverHours" type="number" step="0.25" min="0"></label><label>Grund <input id="dstOverReason"></label><button id="dstApproveOvertime" type="button">Freigeben</button></div>'+'<div class="dst-box"><h3>Arbeitszeit- und Urlaubskonten</h3><p class="dst-muted">Buchungskonten mit nachvollziehbarer Historie. Urlaubsgutschriften und Überstunden müssen explizit geprüft und gebucht werden.</p><div id="dstAccounts"></div></div>'+ 
+ '<button type="button" id="dstSaveHoliday">Feiertagsregel speichern</button></div>'+'<div class="dst-box"><h3>Überstunden freigeben</h3><label>Von <input id="dstOverFrom" type="date"></label><label>Bis <input id="dstOverTo" type="date"></label><label>Stunden <input id="dstOverHours" type="number" step="0.25" min="0"></label><label>Grund <input id="dstOverReason"></label><button id="dstApproveOvertime" type="button">Freigeben</button></div>'+'<div class="dst-box"><h3>Jahresurlaub freigeben</h3><p>Jahresanspruch nach arbeitsrechtlicher Prüfung einmalig buchen. Unterjähriger Eintritt oder Vertragswechsel muss gesondert geprüft werden.</p>'+
+ '<label>Jahr <input id="dstLeaveYear" type="number" min="2020" max="2100"></label>'+
+ '<label>Freigegebene Urlaubstage <input id="dstLeaveGrantDays" type="number" min="0" max="100" step="0.5"></label>'+
+ '<label>Begründung <textarea id="dstLeaveGrantReason" placeholder="Vertrag, Eintritt, Sonderregelung"></textarea></label>'+
+ '<button id="dstGrantLeave" type="button">Jahresanspruch einmalig buchen</button><div id="dstLeaveGrants"></div></div>'+'<div class="dst-box"><h3>Arbeitszeit- und Urlaubskonten</h3><p class="dst-muted">Buchungskonten mit nachvollziehbarer Historie. Urlaubsgutschriften und Überstunden müssen explizit geprüft und gebucht werden.</p><div id="dstAccounts"></div></div>'+ 
  '<div class="dst-box"><h3>Einsatzkonflikte Winterdienst</h3><button type="button" id="dstLoadConflicts">Konflikte der nächsten 30 Tage prüfen</button><div id="dstConflicts" role="status"></div></div>'+
  '<div class="dst-box"><h3>Personalberechtigungen</h3><p class="dst-muted">Berechtigung für die oben eingetragene Benutzer-ID verwalten. Nur Mandanten-Administratoren.</p>'+
  '<label>Berechtigung <select id="dstGrantType"><option value="hr_manage">Personalverwaltung</option><option value="hr_approve">Genehmigungen</option><option value="workforce_schedule">Einsatzplanung</option></select></label>'+
@@ -877,6 +881,13 @@ function mountPersonnel(){
   await make('employee_overtime_approvals',{organization_id:org(),user_id:id,from_date:from,to_date:to,approved_hours:hours,justification:reason});
   feedback('Überstunden freigegeben.');void loadPersonnel();
  }catch(e){feedback('Fehler: '+e.message)}};
+ el('dstGrantLeave').onclick=async()=>{if(!roleAdmin())return;try{
+  const id=employeeId(),year=Number(el('dstLeaveYear').value),days=Number(el('dstLeaveGrantDays').value),reason=el('dstLeaveGrantReason').value.trim();
+  if(!VALID_ID.test(id)||!Number.isInteger(year)||year<2020||year>2100||!Number.isFinite(days)||days<0||days>100||reason.length<8)throw Error('Mitarbeiter, Jahr, Urlaubstage und Begründung prüfen.');
+  if(!confirm('Jahresurlaub '+days+' Tage für '+year+' einmalig buchen?'))return;
+  await make('employee_annual_leave_grants',{organization_id:org(),user_id:id,calendar_year:year,granted_days:days,rationale:reason});
+  feedback('Jahresurlaub verbucht.');void loadPersonnel();
+ }catch(e){feedback('Jahresurlaubsbuchung fehlgeschlagen: '+e.message)}};
  el('dstSaveManual').onclick=async()=>{
   if(!roleAdmin())return;
   try{
@@ -937,7 +948,7 @@ async function loadPersonnelNames(){
 async function loadPersonnel(){
  if(!cloudSession?.access_token||!org())return;
  const admin=roleAdmin(),person=String(el('dstPersonId')?.value||'').trim();
- for(const id of ['dstSaveRelation','dstSaveContract','dstSaveManual','dstSaveHoliday','dstApproveOvertime','dstGrantPermission','dstRevokePermission','dstLoadConflicts'])el(id).disabled=!admin;
+ for(const id of ['dstSaveRelation','dstSaveContract','dstSaveManual','dstGrantLeave','dstSaveHoliday','dstApproveOvertime','dstGrantPermission','dstRevokePermission','dstLoadConflicts'])el(id).disabled=!admin;
  el('dstPersonId').disabled=!admin;
  const q='organization_id=eq.'+encodeURIComponent(org());
  try{
@@ -969,6 +980,11 @@ async function loadPersonnel(){
    (admin&&x.status==='approved'?'<button type="button" data-void-time="'+h(x.id)+'">Stornieren</button>':'')+'</div>').join(''):'Keine manuellen Nachträge.');
   const rows=await cloudRequest('employee_absences?select=id,user_id,absence_type,starts_on,ends_on,status&'+q+'&order=starts_on.desc&limit=100');
   const selected=target;
+  if(admin){
+   const grants=await cloudRequest('employee_annual_leave_grants?select=calendar_year,granted_days,approved_at&'+q+'&user_id=eq.'+encodeURIComponent(selected)+'&order=calendar_year.desc&limit=20');
+   el('dstLeaveGrants').textContent=grants.length?grants.map(x=>x.calendar_year+': '+x.granted_days+' Tage').join(' · '):'Noch kein Jahresanspruch gebucht.';
+   if(!el('dstLeaveYear').value)el('dstLeaveYear').value=new Date().getFullYear();
+  }
   const account=await cloudRequest('employee_account_entries?select=account_type,amount,effective_date,source_type,comment&'+q+'&user_id=eq.'+encodeURIComponent(selected)+'&order=effective_date.desc&limit=500');
   const sum=kind=>account.filter(x=>x.account_type===kind).reduce((a,x)=>a+Number(x.amount||0),0);
   const yr=new Date().getFullYear(),start=yr+'-01-01';
