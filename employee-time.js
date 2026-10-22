@@ -45,6 +45,8 @@ style.textContent=`
 #dstPersonnel.dst-personnel-workspace{max-width:1260px;margin:auto}
 #dstPersonnel .dst-personnel-identity{padding:18px 22px;border:1px solid #355168;border-radius:14px;margin:20px 0;background:#0c2231}
 #dstPersonnel .dst-personnel-identity h3{margin-top:0}
+#dstPersonnel .dst-hr-scope:not([hidden]){display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:14px 18px;margin:14px 0;border:1px solid #527388;border-radius:12px;background:#123044}
+#dstPersonnel .dst-hr-scope button{min-height:42px}
 #dstPersonnel .dst-personnel-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 20px;border-bottom:1px solid #365064;padding-bottom:13px}
 #dstPersonnel .dst-personnel-tab{border:1px solid #45647a;border-radius:10px;padding:12px 18px;min-height:44px;background:#123044;color:#e5f0f8;font-weight:650}
 #dstPersonnel .dst-personnel-tab.active{background:#215575;outline:2px solid #61a2c8}
