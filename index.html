@@ -7494,12 +7494,14 @@ body.or-wizard-open{overflow:hidden!important}
 #privateOffersRoot .po-total{padding:16px;border:1px solid var(--line);border-radius:12px;margin:14px 0;font-weight:700;font-size:17px}
 @media(max-width:520px){#privateOffersRoot .po-item{grid-template-columns:repeat(2,minmax(0,1fr))}#privateOffersRoot{padding:12px!important}}
 </style>
-<style id="ds-om-dashboard-remove-reports-kpi-v3558">
-/* Die zusätzliche Meldungs-KPI wird nur für operative Objektbetreuer ausgeblendet.
-   Meldungen bleiben über das Navigationsmenü und bei Bedarf als Hauptaktion erreichbar.
-   Administrations- und Auftraggeberansichten bleiben unverändert. */
-#operationalDashboard.om-dashboard-mode #kpiResidentReportsCard {
-  display:none!important;
+<style id="ds-om-dashboard-resident-reports-v35712">
+/* Neue und ungeprüfte Bewohner-Meldungen gehören zum operativen Eingang des Objektbetreuers. */
+#operationalDashboard.om-dashboard-mode #kpiResidentReportsCard{
+  display:flex!important;
+  order:1!important;
+}
+#operationalDashboard.om-dashboard-mode #kpiResidentReportsCard .tenant-kpi-sub{
+  color:var(--text-muted,#b4c3d1);
 }
 </style>
 </head>
