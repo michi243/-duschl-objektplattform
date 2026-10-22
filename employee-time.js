@@ -867,10 +867,10 @@ function mountPersonnel(){
  section.classList.add('dst-personnel-workspace');
  const boxes=[...section.querySelectorAll('.dst-box')];
  const groups=[
-  ['Vertrag & Beschäftigung',[0,1]],
+  ['Vertrag & Beschäftigung',[1]],
   ['Abwesenheiten & Urlaub',[2,6,7]],
-  ['Zeiterfassung & Stundenkonto',[3,8,9]],
-  ['Administration & Einsatzplanung',[4,5,10,11]]
+  ['Zeiterfassung & Stundenkonto',[3,5,8]],
+  ['Administration & Einsatzplanung',[4,9,10]]
  ];
  const tabs=document.createElement('div');tabs.className='dst-personnel-tabs';tabs.setAttribute('role','tablist');
  const present=new Set();
@@ -883,7 +883,7 @@ function mountPersonnel(){
   tab.onclick=()=>{section.querySelectorAll('.dst-personnel-tab').forEach(x=>{x.classList.toggle('active',x===tab);x.setAttribute('aria-selected',String(x===tab))});section.querySelectorAll('.dst-personnel-panel').forEach(x=>x.hidden=x.dataset.group!==String(index))};
   tabs.appendChild(tab);
  });
- boxes.forEach((box,i)=>{if(!present.has(i)){const panel=section.querySelector('.dst-personnel-panel[data-group="3"]');panel?.appendChild(box)}});
+ boxes.forEach((box,i)=>{if(i!==0&&!present.has(i)){const panel=section.querySelector('.dst-personnel-panel[data-group="3"]');panel?.appendChild(box)}});
  const identity=boxes[0];if(identity){identity.classList.add('dst-personnel-identity');section.insertBefore(identity,section.querySelector('.dst-personnel-panel'));}
  section.insertBefore(tabs,section.querySelector('.dst-personnel-panel'));
  tabs.querySelector('button')?.click();
@@ -1012,6 +1012,7 @@ async function loadPersonnel(){
  try{
   const target=admin?person:uid();
   if(!VALID_ID.test(target)){el('dstPersonnelMessage').textContent='Bitte zuerst einen Benutzer auswählen.';return;}
+  el('dstPersonnelMessage').textContent='';
   if(admin){
    try{
     const configs=await cloudRequest('employee_holiday_settings?select=municipality_code,enabled&'+q+'&limit=1');
@@ -1025,11 +1026,14 @@ async function loadPersonnel(){
      cloudRequest('employee_contract_terms?select=valid_from,weekly_hours,working_days_per_week,annual_vacation_days,employment_type&'+q+'&user_id=eq.'+encodeURIComponent(target)+'&order=valid_from.desc&limit=1')
     ]);
     const relation=relationships?.[0]?.relationship_type||'';
-    if(relation)el('dstRelation').value=relation;
+    el('dstRelation').value=relation||'employee';
     const contract=contracts?.[0];
+    for(const id of ['dstContractFrom','dstWeeklyHours','dstWorkDays','dstVacationDays'])el(id).value='';
+    el('dstEmploymentType').value='full_time';
     for(const [id,key] of [['dstContractFrom','valid_from'],['dstWeeklyHours','weekly_hours'],['dstWorkDays','working_days_per_week'],['dstVacationDays','annual_vacation_days'],['dstEmploymentType','employment_type']])
      if(contract&&el(id))el(id).value=contract[key]??'';
     el('dstSaveContract').disabled=relation!=='employee';
+    if(!relation&&!contract)el('dstPersonnelMessage').textContent='Für diesen Benutzer sind hier noch keine Beschäftigungs- oder Vertragsdaten hinterlegt. Bitte Beschäftigungsstatus zuerst speichern.';
    }catch(e){el('dstPersonnelMessage').textContent='Vertragsstammdaten konnten nicht geladen werden: '+e.message;}
   }
   const manual=await cloudRequest('employee_manual_time_entries?select=id,user_id,starts_at,ends_at,break_minutes,reason,status,created_by,created_at&'+q+'&user_id=eq.'+encodeURIComponent(target)+'&order=starts_at.desc&limit=100');
