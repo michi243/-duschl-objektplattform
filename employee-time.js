@@ -826,14 +826,14 @@ function mountPersonnel(){
  '<div id="dstPersonnelMessage" role="status"></div>'+ '<div id="dstHrScope" class="dst-hr-scope" hidden aria-live="polite"></div>'+
  '<div class="dst-box"><h3>Beschäftigungsstatus</h3><label>Mitarbeiter auswählen <select id="dstPersonId"><option value="">Benutzer auswählen …</option></select></label>'+
  '<label>Verhältnis <select id="dstRelation"><option value="employee">Arbeitnehmer</option><option value="external_contractor">Externer Dienstleister</option><option value="freelancer">Freier Mitarbeiter</option><option value="business_partner">Geschäftspartner</option><option value="test_account">Testzugang</option></select></label>'+
- '<button id="dstSaveRelation" type="button">Zuordnung speichern</button></div>'+
+ '<label>Beschäftigt seit <input type="date" id="dstRelationFrom"></label><div id="dstPersonnelStatus" class="dst-muted" role="status"></div><button id="dstSaveRelation" type="button">Zuordnung speichern / berichtigen</button></div>'+
  '<div class="dst-box"><h3>Vertrag für Arbeitnehmer</h3>'+
  '<label>Gültig ab <input type="date" id="dstContractFrom"></label>'+
  '<label>Wochenstunden <input type="number" step="0.5" id="dstWeeklyHours"></label>'+
  '<label>Arbeitstage / Woche <input type="number" step="0.5" min="1" max="7" id="dstWorkDays"></label>'+
  '<label>Urlaubstage / Jahr <input type="number" step="0.5" id="dstVacationDays"></label>'+
  '<label>Beschäftigungsform <select id="dstEmploymentType"><option value="full_time">Vollzeit</option><option value="part_time">Teilzeit</option><option value="minijob">Minijob</option><option value="other">Sonstige</option></select></label>'+
- '<button id="dstSaveContract" type="button">Vertragsstand speichern</button></div>'+
+ '<button id="dstSaveContract" type="button">Vertragsstand speichern</button><div id="dstContractHistory" class="dst-muted" role="status"></div></div>'+
  '<div class="dst-box"><h3>Abwesenheit beantragen</h3>'+
  '<label>Art <select id="dstAbsenceType"><option value="vacation">Urlaub</option><option value="sick">Krankheit</option><option value="time_off_in_lieu">Überstundenabbau</option><option value="training">Fortbildung</option><option value="special_leave">Sonderurlaub</option><option value="unpaid_leave">Unbezahlter Urlaub</option><option value="other">Sonstige</option></select></label>'+
  '<label>Von <input type="date" id="dstAbsFrom"></label><label>Bis <input type="date" id="dstAbsUntil"></label>'+
@@ -907,7 +907,9 @@ function mountPersonnel(){
  const employeeId=()=>String(el('dstPersonId').value||'').trim();
  const selectedId=()=>roleAdmin()?employeeId():uid();
  const make=async(endpoint,data)=>cloudRequest(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
- let hrScopeActive=false,hrScopeKey='',activeRelationshipType='',activeRelationshipUser='';
+ let hrScopeActive=false,hrScopeKey='',activeRelationshipType='',activeRelationshipUser='',activeRelationshipFrom='',activeRelationships=[],loadedContracts=[],loadedContractsPerson='';
+ const todayLocal=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
+ el('dstRelationFrom').value=todayLocal();
  const platformHR=()=>{try{return isAdminRole()&&isPlatformTenantMode()}catch(_){return false}};
  const allowedHR=()=>roleAdmin()&&(!platformHR()||(hrScopeActive&&hrScopeKey===org()+':'+uid()));
  const savedEmployee=()=>activeRelationshipUser===employeeId()&&activeRelationshipType==='employee'&&el('dstRelation').value==='employee';
@@ -1037,24 +1039,82 @@ function mountPersonnel(){
   catch(err){feedback('Stornierung fehlgeschlagen: '+err.message)}
  };
 
- el('dstPersonId').addEventListener('change',()=>{activeRelationshipType='';activeRelationshipUser='';contractEnabled();void loadPersonnel()});
- el('dstRelation').addEventListener('change',()=>{contractEnabled();if(!savedEmployee())feedback('Beschäftigungsverhältnis zuerst über „Zuordnung speichern“ bestätigen, dann Vertragsstand speichern.');});
- el('dstSaveRelation').onclick=async()=>{if(!allowedHR())return;try{
-   if(!VALID_ID.test(employeeId()))throw Error('Bitte Mitarbeiter auswählen.');
-   const chosen=el('dstRelation').value;
-   if(activeRelationshipUser===employeeId()&&activeRelationshipType===chosen){feedback('Beschäftigungsstatus ist bereits hinterlegt.');return}
-   await make('personnel_relationships',{organization_id:org(),user_id:employeeId(),relationship_type:chosen,effective_from:new Date().toISOString().slice(0,10)});
-   await loadPersonnel();feedback('Beschäftigungsstatus gespeichert.');
-  }catch(e){feedback('Beschäftigungsstatus nicht gespeichert: '+e.message)}};
- el('dstSaveContract').onclick=async()=>{if(!allowedHR())return;try{
-   if(!VALID_ID.test(employeeId()))throw Error('Bitte Mitarbeiter auswählen.');
+ el('dstPersonId').addEventListener('change',()=>{
+   activeRelationshipType='';activeRelationshipUser='';activeRelationshipFrom='';activeRelationships=[];
+   loadedContracts=[];loadedContractsPerson='';el('dstRelationFrom').value=todayLocal();
+   el('dstPersonnelStatus').textContent='';el('dstContractHistory').textContent='';
+   for(const id of ['dstContractFrom','dstWeeklyHours','dstWorkDays','dstVacationDays'])el(id).value='';
+   contractEnabled();void loadPersonnel();
+ });
+ el('dstRelation').addEventListener('change',()=>{contractEnabled();if(!savedEmployee())feedback('Beschäftigungsverhältnis zuerst speichern oder berichtigen, dann Vertragsstand bearbeiten.');});
+ el('dstRelationFrom').addEventListener('change',()=>{contractEnabled()});
+ el('dstSaveRelation').onclick=async()=>{
+  if(!allowedHR())return;
+  const btn=el('dstSaveRelation');btn.disabled=true;
+  try{
+   const person=employeeId(),chosen=el('dstRelation').value,start=el('dstRelationFrom').value;
+   if(!VALID_ID.test(person))throw Error('Bitte Mitarbeiter auswählen.');
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(start))throw Error('Bitte den tatsächlichen Beginn des Beschäftigungsverhältnisses eintragen.');
+   const current=activeRelationshipUser===person?activeRelationships.find(r=>r.effective_from===activeRelationshipFrom):null;
+   const others=activeRelationships.filter(r=>r!==current);
+   const overlaps=others.some(r=>r.effective_from<=start&&(!r.effective_until||r.effective_until>=start));
+   if(overlaps)throw Error('Dieses Datum überschneidet sich mit einem anderen Beschäftigungsverhältnis. Bitte die Zeiträume prüfen.');
+   if(current){
+     if(current.relationship_type===chosen&&current.effective_from===start){
+       feedback('Beschäftigungsverhältnis ist bereits korrekt hinterlegt.');return;
+     }
+     if(current.relationship_type!==chosen&&current.effective_from!==start)
+       throw Error('Gleichzeitiger Status- und Datumswechsel ist nicht zulässig. Bitte Änderungen getrennt dokumentieren.');
+     if(!confirm('Bestehenden Beschäftigungsstatus für diese Person berichtigen? Die Änderung wirkt auf die gespeicherten Stammdaten.'))return;
+     const fields={relationship_type:chosen,effective_from:start};
+     await cloudRequest('personnel_relationships?organization_id=eq.'+encodeURIComponent(org())+
+       '&user_id=eq.'+encodeURIComponent(person)+'&effective_from=eq.'+encodeURIComponent(current.effective_from),
+       {method:'PATCH',headers:{'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(fields)})
+     const verify=await cloudRequest('personnel_relationships?select=relationship_type,effective_from&organization_id=eq.'+encodeURIComponent(org())+
+       '&user_id=eq.'+encodeURIComponent(person)+'&effective_from=eq.'+encodeURIComponent(start)+'&limit=1');
+     if(!verify?.length||verify[0].relationship_type!==chosen)throw Error('Speicherung konnte nicht bestätigt werden. Bitte erneut laden.');
+   }else{
+     await make('personnel_relationships',{organization_id:org(),user_id:person,relationship_type:chosen,effective_from:start});
+   }
+   await loadPersonnel();feedback('Beschäftigungsverhältnis erfolgreich gespeichert.');
+  }catch(e){feedback('Beschäftigungsverhältnis nicht gespeichert: '+e.message)}
+  finally{btn.disabled=!allowedHR()}
+ };
+ el('dstSaveContract').onclick=async()=>{
+  if(!allowedHR())return;
+  const btn=el('dstSaveContract');btn.disabled=true;
+  try{
+   const person=employeeId();
+   if(!VALID_ID.test(person))throw Error('Bitte Mitarbeiter auswählen.');
    if(!savedEmployee())throw Error('Zuerst ein aktives Beschäftigungsverhältnis als Arbeitnehmer speichern.');
    const start=el('dstContractFrom').value,weekly=Number(el('dstWeeklyHours').value),days=Number(el('dstWorkDays').value),vacation=Number(el('dstVacationDays').value);
    if(!/^\d{4}-\d{2}-\d{2}$/.test(start))throw Error('Bitte Vertragsbeginn festlegen.');
-   if(!el('dstWeeklyHours').value||weekly<0||weekly>60||!el('dstWorkDays').value||days<=0||days>7||!el('dstVacationDays').value||vacation<0||vacation>100)throw Error('Bitte gültige Wochenstunden, Arbeitstage und Urlaubstage eingeben.');
-   await make('employee_contract_terms',{organization_id:org(),user_id:employeeId(),valid_from:start,weekly_hours:weekly,working_days_per_week:days,annual_vacation_days:vacation,employment_type:el('dstEmploymentType').value});
-   await loadPersonnel();feedback('Vertragsstand gespeichert.');
-  }catch(e){feedback('Vertragsstand nicht gespeichert: '+e.message)}};
+   if(!el('dstWeeklyHours').value||weekly<0||weekly>60||!el('dstWorkDays').value||days<=0||days>7||!el('dstVacationDays').value||vacation<0||vacation>100)
+     throw Error('Bitte gültige Wochenstunden, Arbeitstage und Urlaubstage eingeben.');
+   if(start<activeRelationshipFrom&&!confirm('Der Vertragsbeginn liegt vor dem erfassten Beschäftigungsbeginn ('+
+     activeRelationshipFrom+'). Trotzdem speichern? Ein abweichender Zeitraum sollte geprüft werden.'))return;
+   const payload={organization_id:org(),user_id:person,valid_from:start,weekly_hours:weekly,
+     working_days_per_week:days,annual_vacation_days:vacation,employment_type:el('dstEmploymentType').value};
+   const existing=loadedContractsPerson===person?loadedContracts.find(r=>r.valid_from===start):null;
+   if(existing){
+     if(!confirm('Bestehenden Vertragsstand zum '+start+' berichtigen? Es wird KEINE doppelte Vertragsversion angelegt.'))return;
+     await cloudRequest('employee_contract_terms?id=eq.'+encodeURIComponent(existing.id)+
+       '&organization_id=eq.'+encodeURIComponent(org()),
+       {method:'PATCH',headers:{'Content-Type':'application/json','Prefer':'return=representation'},
+         body:JSON.stringify({weekly_hours:weekly,working_days_per_week:days,annual_vacation_days:vacation,employment_type:payload.employment_type})});
+     const verify=await cloudRequest('employee_contract_terms?select=weekly_hours,working_days_per_week,annual_vacation_days,employment_type&id=eq.'+
+       encodeURIComponent(existing.id)+'&organization_id=eq.'+encodeURIComponent(org())+'&limit=1');
+     if(!verify?.length||Number(verify[0].weekly_hours)!==weekly||
+       Number(verify[0].working_days_per_week)!==days||Number(verify[0].annual_vacation_days)!==vacation||
+       verify[0].employment_type!==payload.employment_type)
+       throw Error('Vertragsberichtigung konnte nicht verifiziert werden.');
+   }else{
+     await make('employee_contract_terms',payload);
+   }
+   await loadPersonnel();feedback(existing?'Vertragsstand berichtigt.':'Neuer Vertragsstand gespeichert.');
+  }catch(e){feedback('Vertragsstand nicht gespeichert: '+e.message)}
+  finally{contractEnabled()}
+ };
   el('dstRequestAbsence').onclick=async()=>{try{
   if(!VALID_ID.test(selectedId()))throw Error('Gültige Benutzer-ID erforderlich');
   if(!roleAdmin()&&selectedId()!==uid())throw Error('Nur eigene Anträge erlaubt');
@@ -1121,15 +1181,27 @@ async function loadPersonnel(){
    try{
     const [relationships,contracts]=await Promise.all([
      cloudRequest('personnel_relationships?select=relationship_type,effective_from,effective_until&'+q+'&user_id=eq.'+encodeURIComponent(target)+'&order=effective_from.desc&limit=50'),
-     cloudRequest('employee_contract_terms?select=valid_from,weekly_hours,working_days_per_week,annual_vacation_days,employment_type&'+q+'&user_id=eq.'+encodeURIComponent(target)+'&order=valid_from.desc&limit=1')
+     cloudRequest('employee_contract_terms?select=id,valid_from,valid_until,weekly_hours,working_days_per_week,annual_vacation_days,employment_type&'+q+'&user_id=eq.'+encodeURIComponent(target)+'&order=valid_from.desc&limit=100')
     ]);
-    const today=new Date().toISOString().slice(0,10);
+    const today=todayLocal();
     const current=(relationships||[]).find(r=>r.effective_from<=today&&(!r.effective_until||r.effective_until>=today));
     const relation=current?.relationship_type||'';
+    activeRelationships=relationships||[];
     activeRelationshipUser=current?target:'';
     activeRelationshipType=relation;
+    activeRelationshipFrom=current?.effective_from||'';
     el('dstRelation').value=relation||'employee';
-    const contract=contracts?.[0];
+    el('dstRelationFrom').value=current?.effective_from||today;
+    loadedContracts=contracts||[];loadedContractsPerson=target;
+    const contract=(contracts||[]).find(c=>c.valid_from<=today&&(!c.valid_until||c.valid_until>=today))||(contracts||[])[0];
+    const beginning=current?.effective_from||'';
+    const mismatch=Boolean(contract&&beginning&&contract.valid_from<beginning);
+    el('dstPersonnelStatus').textContent=current?'Aktiver Status: '+relation+' · Beginn '+beginning+
+      (mismatch?' · ACHTUNG: Vertragsbeginn liegt vor dem Beschäftigungsbeginn. Bitte Stammdaten prüfen.':'')
+      :'Noch kein aktives Beschäftigungsverhältnis hinterlegt.';
+    el('dstContractHistory').textContent=loadedContracts.length?
+      loadedContracts.length+' Vertragsstand/Vertragsstände vorhanden · letzter Beginn: '+loadedContracts[0].valid_from
+      :'Noch kein Vertragsstand hinterlegt.';
     for(const id of ['dstContractFrom','dstWeeklyHours','dstWorkDays','dstVacationDays'])el(id).value='';
     el('dstEmploymentType').value='full_time';
     for(const [id,key] of [['dstContractFrom','valid_from'],['dstWeeklyHours','weekly_hours'],['dstWorkDays','working_days_per_week'],['dstVacationDays','annual_vacation_days'],['dstEmploymentType','employment_type']])
