@@ -931,6 +931,20 @@ async function loadPersonnel(){
  try{
   const target=admin?person:uid();
   if(!VALID_ID.test(target)){el('dstPersonnelMessage').textContent='Bitte zuerst einen Benutzer auswählen.';return;}
+  if(admin){
+   try{
+    const [relationships,contracts]=await Promise.all([
+     cloudRequest('personnel_relationships?select=relationship_type,effective_from&'+q+'&user_id=eq.'+encodeURIComponent(target)+'&order=effective_from.desc&limit=1'),
+     cloudRequest('employee_contract_terms?select=valid_from,weekly_hours,working_days_per_week,annual_vacation_days,employment_type&'+q+'&user_id=eq.'+encodeURIComponent(target)+'&order=valid_from.desc&limit=1')
+    ]);
+    const relation=relationships?.[0]?.relationship_type||'';
+    if(relation)el('dstRelation').value=relation;
+    const contract=contracts?.[0];
+    for(const [id,key] of [['dstContractFrom','valid_from'],['dstWeeklyHours','weekly_hours'],['dstWorkDays','working_days_per_week'],['dstVacationDays','annual_vacation_days'],['dstEmploymentType','employment_type']])
+     if(contract&&el(id))el(id).value=contract[key]??'';
+    el('dstSaveContract').disabled=relation!=='employee';
+   }catch(e){el('dstPersonnelMessage').textContent='Vertragsstammdaten konnten nicht geladen werden: '+e.message;}
+  }
   const manual=await cloudRequest('employee_manual_time_entries?select=id,user_id,starts_at,ends_at,break_minutes,reason,status,created_by,created_at&'+q+'&user_id=eq.'+encodeURIComponent(target)+'&order=starts_at.desc&limit=100');
   el('dstManualHistory').innerHTML='<h4>Manuelle Nachträge</h4>'+(manual.length?manual.map(x=>
    '<div class="dst-row"><span>'+h(fmt(x.starts_at))+' – '+h(fmt(x.ends_at))+' · Pause '+h(x.break_minutes)+' min · '+h(x.reason)+' · '+h(x.status)+' · erfasst '+h(fmt(x.created_at))+'</span>'+
