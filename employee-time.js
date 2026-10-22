@@ -47,6 +47,15 @@ style.textContent=`
 #dstPersonnel .dst-personnel-identity h3{margin-top:0}
 #dstPersonnel .dst-hr-scope:not([hidden]){display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:14px 18px;margin:14px 0;border:1px solid #527388;border-radius:12px;background:#123044}
 #dstPersonnel .dst-hr-scope button{min-height:42px}
+#dstPersonnel .dst-employee-summary:not([hidden]){display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
+#dstPersonnel .dst-employee-stat{border:1px solid #37566d;background:#102c3f;border-radius:13px;padding:18px 14px;min-width:0}
+#dstPersonnel .dst-employee-stat small{display:block;color:#bed1df;font-size:13px;line-height:1.4}
+#dstPersonnel .dst-employee-stat strong{display:block;color:#f5f9fc;font-size:clamp(19px,5vw,29px);margin:9px 0;font-variant-numeric:tabular-nums}
+#dstPersonnel .dst-employee-stat em{display:block;font-size:11px;font-style:normal;color:#a8c0d0;line-height:1.4}
+#dstPersonnel .dst-personnel-panel>.dst-box[hidden]{display:none!important}
+#dstPersonnel .dst-personnel-tab[hidden]{display:none!important}
+@media(max-width:620px){#dstPersonnel .dst-employee-summary:not([hidden]){grid-template-columns:1fr 1fr}#dstPersonnel .dst-employee-stat:last-child{grid-column:1/-1}}
+
 #dstPersonnel #dstPersonnelStatus{margin:12px 0;padding:10px 13px;background:#153246;border-radius:9px;line-height:1.5}
 #dstPersonnel #dstPersonnelStatus[data-warning="true"]{border-left:4px solid #e0a34c;background:#473419;color:#fff0d7}
 #dstPersonnel #dstContractHistory{margin:12px 0 0;line-height:1.5}
@@ -827,6 +836,10 @@ function mountPersonnel(){
  const section=document.createElement('section');section.id='dstPersonnel';section.className='section';
  section.innerHTML='<h2>Personalmanagement</h2><p>Beschäftigungsverhältnisse, Vertragsdaten und Abwesenheiten</p>'+
  '<div id="dstPersonnelMessage" role="status"></div>'+ '<div id="dstHrScope" class="dst-hr-scope" hidden aria-live="polite"></div>'+
+ '<div id="dstEmployeeSummary" class="dst-employee-summary" hidden aria-label="Meine Personalübersicht">'+
+ '<div class="dst-employee-stat"><small>Urlaubskonto</small><strong id="dstEmployeeVacation">–</strong><em>Gebuchter Saldo, kein geprüfter Anspruch</em></div>'+
+ '<div class="dst-employee-stat"><small>Stundenkonto</small><strong id="dstEmployeeHours">–</strong><em>Gebuchter Saldo, keine automatische Freigabe</em></div>'+
+ '<div class="dst-employee-stat"><small>Meine Abwesenheiten</small><strong id="dstEmployeeAbsences">–</strong><em id="dstEmployeeAbsenceDetail">Offene Anträge</em></div></div>'+
  '<div class="dst-box"><h3>Beschäftigungsstatus</h3><label>Mitarbeiter auswählen <select id="dstPersonId"><option value="">Benutzer auswählen …</option></select></label>'+
  '<label>Verhältnis <select id="dstRelation"><option value="employee">Arbeitnehmer</option><option value="external_contractor">Externer Dienstleister</option><option value="freelancer">Freier Mitarbeiter</option><option value="business_partner">Geschäftspartner</option><option value="test_account">Testzugang</option></select></label>'+
  '<label>Beschäftigt seit <input type="date" id="dstRelationFrom"></label><div id="dstPersonnelStatus" class="dst-muted" role="status"></div><button id="dstSaveRelation" type="button">Zuordnung speichern / berichtigen</button></div>'+
@@ -885,9 +898,10 @@ function mountPersonnel(){
  const headings=['Beschäftigung','Abwesenheiten','Arbeitszeit','Administration'];
  const syncPersonnelTabs=()=>{
    const admin=roleAdmin();
-   tabs.querySelectorAll('.dst-personnel-tab').forEach(t=>{
-     if(t.dataset.group==='3')t.hidden=!admin;
-   });
+   const restrictedBoxes=admin?[]:[boxes[3],boxes[5],boxes[6],boxes[7],boxes[4],boxes[9],boxes[10]];
+   boxes.forEach(box=>{if(box)box.hidden=restrictedBoxes.includes(box)});
+   const summary=el('dstEmployeeSummary');if(summary)summary.hidden=admin;
+   tabs.querySelectorAll('.dst-personnel-tab').forEach(t=>{if(t.dataset.group==='3')t.hidden=!admin});
    section.querySelectorAll('.dst-personnel-panel').forEach(p=>{
      if(p.dataset.group==='3'&&!admin)p.hidden=true;
    });
@@ -1285,6 +1299,14 @@ async function loadPersonnel(){
    el('dstPermissions').textContent=perms.length?perms.map(x=>(typeof profileDisplayName==='function'?profileDisplayName(x.user_id):x.user_id)+' · '+x.permission).join(' | '):'Keine delegierten Personalrechte.';
   }else el('dstPermissions').textContent='Nur für Mandanten-Administratoren sichtbar.';
   const current=rows.filter(x=>x.user_id===selected);
+  if(!admin){
+    const vac=el('dstEmployeeVacation'),hours=el('dstEmployeeHours'),abs=el('dstEmployeeAbsences'),detail=el('dstEmployeeAbsenceDetail');
+    if(vac)vac.textContent=sum('vacation_days').toLocaleString('de-DE',{maximumFractionDigits:2})+' Tage';
+    if(hours)hours.textContent=sum('time_hours').toLocaleString('de-DE',{maximumFractionDigits:2})+' Std.';
+    const pending=current.filter(x=>x.status==='requested').length;
+    if(abs)abs.textContent=pending+' offen';
+    if(detail)detail.textContent=current.length+' Anträge insgesamt';
+  }
   el('dstAbsences').innerHTML='<h4>Abwesenheiten</h4>'+(current.length?current.map(r=>'<div class="dst-row"><span>'+h(r.absence_type)+' · '+h(r.starts_on)+' – '+h(r.ends_on)+' · '+h(r.status)+'</span>'+
     (admin&&r.status==='requested'?'<button data-review="'+h(r.id)+'" data-decision="approved">Genehmigen</button><button data-review="'+h(r.id)+'" data-decision="rejected">Ablehnen</button>':admin&&r.status==='approved'?'<button data-review="'+h(r.id)+'" data-decision="cancelled">Stornieren</button>':'')+'</div>').join(''):'Keine Einträge');
  }catch(err){el('dstPersonnelMessage').textContent='Abwesenheiten nicht geladen: '+err.message}
