@@ -1,10 +1,11 @@
 {
-  "version": "3.57.6",
+  "version": "3.57.7",
   "release_date": "2026-10-22",
   "channel": "development",
   "status": "testbetrieb",
   "scope": "Objektplattform einschließlich Personalmanagement",
   "notes": [
+    "Personalmanagement: Ladefehler 'feedback is not defined' und weitere Scope-Fehler bei asynchronen Personalabfragen behoben.",
     "Personalmanagement: mandantenbezogene explizite HR-Freischaltung für Plattformadministratoren mit Widerruf",
     "Vertragsstände erst nach nachweislich gespeichertem aktivem Arbeitnehmerverhältnis",
     "RLS: mandantengenau getrennte Personalberechtigungen; bestehende Zeit- und Objektzuordnungen unverändert",
