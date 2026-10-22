@@ -1,5 +1,14 @@
 # Versionsverlauf – Duschl Service Objektplattform
 
+## v3.57.8 – 22.10.2026 (Entwicklung / Testbetrieb)
+
+- Personalmanagement: Beschäftigungsbeginn als konkretes Datum, mit gezielter Berichtigung eines bestehenden Datensatzes statt einer doppelten Anlage.
+- Anzeige des gespeicherten Vertragsstands (Wochenstunden, Arbeitstage, Urlaub) und Warnung bei widersprüchlichem Beschäftigungs-/Vertragsbeginn.
+- Für einen bestehenden Vertragsbeginn wird derselbe Datensatz aktualisiert und das Ergebnis erneut gelesen; neue Vertragsbeginne erzeugen historische Stände.
+- Datenbank: Eindeutigkeitsindex auf (Mandant, Mitarbeiter, Gültig ab) verhindert doppelte Vertragsstände.
+- DB-RLS-Regression: autorisierter Vertrags- und Beschäftigungs-UPDATE, Ablehnung doppelter Vertragsstände transaktional geprüft und zurückgerollt.
+- Frontend: JavaScript-Syntax geprüft; authentifizierter Browser-End-to-End-Test steht weiter aus.
+
 ## v3.57.7 – 22.10.2026 (Entwicklung / Testbetrieb)
 
 - Behebt den Ladeabbruch „feedback is not defined“ im Personalmanagement.
