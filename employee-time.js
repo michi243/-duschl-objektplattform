@@ -569,7 +569,9 @@ function detailedHours(){
    const issues=[...shift.issues];
    if(open)issues.push('Gehen fehlt');
    if(shift.pauseAt!==null)issues.push('Pausenende fehlt');
-   const effectivePause=duration===null?pause/60000:statutoryBreakMinutes(duration,pause);\n   if(duration!==null&&effectivePause>pause/60000)issues.push('Pausenabzug rechnerisch · tatsächliche Pause prüfen');\n   const net=duration===null?null:Math.max(0,duration-effectivePause*60000)/3600000;
+   const effectivePause=duration===null?pause/60000:statutoryBreakMinutes(duration,pause);
+   if(duration!==null&&effectivePause>pause/60000)issues.push('Pausenabzug rechnerisch · tatsächliche Pause prüfen');
+   const net=duration===null?null:Math.max(0,duration-effectivePause*60000)/3600000;
    out.push({id,name:timeEmployeeName(id),date:new Date(shift.start).toLocaleDateString('de-DE'),start:shift.start,end,pauseMin:effectivePause,net,issues:issues.join(' · ')||'–'});
    shift=null;
   };
