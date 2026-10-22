@@ -822,13 +822,21 @@ function mountPersonnel(){
  '<div class="dst-box"><h3>Abwesenheit beantragen</h3>'+
  '<label>Art <select id="dstAbsenceType"><option value="vacation">Urlaub</option><option value="sick">Krankheit</option><option value="time_off_in_lieu">Überstundenabbau</option><option value="training">Fortbildung</option><option value="special_leave">Sonderurlaub</option><option value="unpaid_leave">Unbezahlter Urlaub</option><option value="other">Sonstige</option></select></label>'+
  '<label>Von <input type="date" id="dstAbsFrom"></label><label>Bis <input type="date" id="dstAbsUntil"></label>'+
- '<button type="button" id="dstRequestAbsence">Antrag speichern</button><div id="dstAbsences"></div></div>';
+ '<button type="button" id="dstRequestAbsence">Antrag speichern</button><div id="dstAbsences"></div></div>'+
+ '<div class="dst-box"><h3>Einsatzkonflikte Winterdienst</h3><button type="button" id="dstLoadConflicts">Konflikte der nächsten 30 Tage prüfen</button><div id="dstConflicts" role="status"></div></div>'+
+ '<div class="dst-box"><h3>Personalberechtigungen</h3><p class="dst-muted">Mandantenverwaltung: hr_manage, hr_approve, workforce_schedule</p><div id="dstPermissions"></div></div>';
  document.querySelector('main')?.appendChild(section);
  const feedback=t=>{el('dstPersonnelMessage').textContent=t};
  b.onclick=()=>{if(typeof showSection==='function')showSection('dstPersonnel');void loadPersonnel()};
  const employeeId=()=>String(el('dstPersonId').value||'').trim();
  const selectedId=()=>employeeId()||uid();
  const make=async(endpoint,data)=>cloudRequest(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+ el('dstLoadConflicts').onclick=async()=>{try{
+  const from=new Date(),to=new Date(from);to.setDate(from.getDate()+30);
+  const date=d=>d.toISOString().slice(0,10);
+  const r=await cloudRequest('rpc/personnel_assignment_conflicts_v1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_org:org(),p_from:date(from),p_to:date(to)})});
+  el('dstConflicts').textContent=Array.isArray(r)&&r.length?r.length+' Einsatzkonflikte: '+r.map(x=>x.service_date+' · '+(typeof profileDisplayName==='function'?profileDisplayName(x.assigned_user_id):x.assigned_user_id)).join('; '):'Keine Konflikte im geprüften Zeitraum.';
+ }catch(e){el('dstConflicts').textContent='Prüfung nicht möglich: '+e.message}};
  el('dstSaveRelation').onclick=async()=>{if(!roleAdmin())return;try{
   if(!VALID_ID.test(employeeId()))throw Error('Gültige Benutzer-ID erforderlich');
   await make('personnel_relationships',{organization_id:org(),user_id:employeeId(),relationship_type:el('dstRelation').value,effective_from:new Date().toISOString().slice(0,10)});
@@ -859,6 +867,10 @@ async function loadPersonnel(){
  const q='organization_id=eq.'+encodeURIComponent(org());
  try{
   const rows=await cloudRequest('employee_absences?select=id,user_id,absence_type,starts_on,ends_on,status&'+q+'&order=starts_on.desc&limit=100');
+  if(admin){
+   const perms=await cloudRequest('employee_hr_permissions?select=user_id,permission&'+q+'&limit=200');
+   el('dstPermissions').textContent=perms.length?perms.map(x=>(typeof profileDisplayName==='function'?profileDisplayName(x.user_id):x.user_id)+' · '+x.permission).join(' | '):'Keine delegierten Personalrechte.';
+  }else el('dstPermissions').textContent='Nur für Mandanten-Administratoren sichtbar.';
   const current=admin?rows:rows.filter(x=>x.user_id===uid());
   el('dstAbsences').innerHTML='<h4>Abwesenheiten</h4>'+(current.length?current.map(r=>'<div class="dst-row"><span>'+h(r.absence_type)+' · '+h(r.starts_on)+' – '+h(r.ends_on)+' · '+h(r.status)+'</span>'+
     (admin&&r.status==='requested'?'<button data-review="'+h(r.id)+'" data-decision="approved">Genehmigen</button><button data-review="'+h(r.id)+'" data-decision="rejected">Ablehnen</button>':'')+'</div>').join(''):'Keine Einträge');
