@@ -1,10 +1,11 @@
 {
-  "version": "3.57.3",
+  "version": "3.57.4",
   "release_date": "2026-10-22",
   "channel": "development",
   "status": "testbetrieb",
   "scope": "Objektplattform einschließlich Personalmanagement",
   "notes": [
+    "Fehler beim Initialisieren des Personalmanagements korrigiert; Reiter und Mitarbeiterauswahl wieder funktionsfähig",
     "Personalmanagement-Navigation unabhängig initialisiert und Fehler sichtbar gemacht",
     "Menüpunkt Personalmanagement öffnet die Seite wieder zuverlässig",
     "Personalmanagement als fester Menüpunkt unter Verwaltung sichtbar",
