@@ -1048,7 +1048,7 @@ function mountPersonnel(){
    if(!VALID_ID.test(employeeId()))throw Error('Bitte Mitarbeiter auswählen.');
    if(!savedEmployee())throw Error('Zuerst ein aktives Beschäftigungsverhältnis als Arbeitnehmer speichern.');
    const start=el('dstContractFrom').value,weekly=Number(el('dstWeeklyHours').value),days=Number(el('dstWorkDays').value),vacation=Number(el('dstVacationDays').value);
-   if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(start))throw Error('Bitte Vertragsbeginn festlegen.');
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(start))throw Error('Bitte Vertragsbeginn festlegen.');
    if(!el('dstWeeklyHours').value||weekly<0||weekly>60||!el('dstWorkDays').value||days<=0||days>7||!el('dstVacationDays').value||vacation<0||vacation>100)throw Error('Bitte gültige Wochenstunden, Arbeitstage und Urlaubstage eingeben.');
    await make('employee_contract_terms',{organization_id:org(),user_id:employeeId(),valid_from:start,weekly_hours:weekly,working_days_per_week:days,annual_vacation_days:vacation,employment_type:el('dstEmploymentType').value});
    await loadPersonnel();feedback('Vertragsstand gespeichert.');
