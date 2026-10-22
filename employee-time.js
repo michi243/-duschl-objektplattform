@@ -824,13 +824,26 @@ function mountPersonnel(){
  '<label>Von <input type="date" id="dstAbsFrom"></label><label>Bis <input type="date" id="dstAbsUntil"></label>'+
  '<button type="button" id="dstRequestAbsence">Antrag speichern</button><div id="dstAbsences"></div></div>'+
  '<div class="dst-box"><h3>Einsatzkonflikte Winterdienst</h3><button type="button" id="dstLoadConflicts">Konflikte der nächsten 30 Tage prüfen</button><div id="dstConflicts" role="status"></div></div>'+
- '<div class="dst-box"><h3>Personalberechtigungen</h3><p class="dst-muted">Mandantenverwaltung: hr_manage, hr_approve, workforce_schedule</p><div id="dstPermissions"></div></div>';
+ '<div class="dst-box"><h3>Personalberechtigungen</h3><p class="dst-muted">Berechtigung für die oben eingetragene Benutzer-ID verwalten. Nur Mandanten-Administratoren.</p>'+
+ '<label>Berechtigung <select id="dstGrantType"><option value="hr_manage">Personalverwaltung</option><option value="hr_approve">Genehmigungen</option><option value="workforce_schedule">Einsatzplanung</option></select></label>'+
+ '<button type="button" id="dstGrantPermission">Recht erteilen</button><button type="button" id="dstRevokePermission">Recht entziehen</button><div id="dstPermissions"></div></div>';
  document.querySelector('main')?.appendChild(section);
  const feedback=t=>{el('dstPersonnelMessage').textContent=t};
  b.onclick=()=>{if(typeof showSection==='function')showSection('dstPersonnel');void loadPersonnel()};
  const employeeId=()=>String(el('dstPersonId').value||'').trim();
  const selectedId=()=>employeeId()||uid();
  const make=async(endpoint,data)=>cloudRequest(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+ for(const action of ['dstGrantPermission','dstRevokePermission'])el(action).onclick=async()=>{
+  if(!roleAdmin())return;
+  const person=employeeId(),permission=el('dstGrantType').value;
+  if(!VALID_ID.test(person)){feedback('Gültige Benutzer-ID erforderlich.');return;}
+  try{
+   if(action==='dstGrantPermission')await make('employee_hr_permissions',{organization_id:org(),user_id:person,permission,granted_by:uid()});
+   else await cloudRequest('employee_hr_permissions?organization_id=eq.'+encodeURIComponent(org())+'&user_id=eq.'+encodeURIComponent(person)+'&permission=eq.'+encodeURIComponent(permission),{method:'DELETE'});
+   feedback(action==='dstGrantPermission'?'Berechtigung vergeben.':'Berechtigung entzogen.');
+   void loadPersonnel();
+  }catch(e){feedback('Berechtigung nicht geändert: '+e.message);}
+ };
  el('dstLoadConflicts').onclick=async()=>{try{
   const from=new Date(),to=new Date(from);to.setDate(from.getDate()+30);
   const date=d=>d.toISOString().slice(0,10);
@@ -862,7 +875,7 @@ function mountPersonnel(){
 async function loadPersonnel(){
  if(!cloudSession?.access_token||!org())return;
  const admin=roleAdmin(),person=String(el('dstPersonId')?.value||'').trim();
- for(const id of ['dstSaveRelation','dstSaveContract'])el(id).disabled=!admin;
+ for(const id of ['dstSaveRelation','dstSaveContract','dstGrantPermission','dstRevokePermission','dstLoadConflicts'])el(id).disabled=!admin;
  el('dstPersonId').disabled=!admin;
  const q='organization_id=eq.'+encodeURIComponent(org());
  try{
