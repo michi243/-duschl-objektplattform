@@ -900,6 +900,7 @@ function mountPersonnel(){
   void refreshPersonnelTourOptions();
  };
  window.dsPersonnelOpen=openPersonnel;
+ window.dsPersonnelRefresh=()=>{void loadPersonnelNames().then(()=>loadPersonnel()).catch(err=>{const msg=el('dstPersonnelMessage');if(msg)msg.textContent='Ladefehler: '+err.message});void refreshPersonnelTourOptions()};
  b.onclick=openPersonnel;
  const employeeId=()=>String(el('dstPersonId').value||'').trim();
  const selectedId=()=>roleAdmin()?employeeId():uid();
