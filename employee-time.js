@@ -831,7 +831,7 @@ function mountPersonnel(){
  '<label>Begründung <textarea id="dstManualReason" placeholder="Grund der Nachtragung"></textarea></label>'+
  '<button id="dstSaveManual" type="button">Zeit nachtragen</button>'+
  '<div id="dstManualHistory"></div></div>'+ 
- '<div class="dst-box"><h3>Arbeitszeit- und Urlaubskonten</h3><p class="dst-muted">Buchungskonten mit nachvollziehbarer Historie. Urlaubsgutschriften und Überstunden müssen explizit geprüft und gebucht werden.</p><div id="dstAccounts"></div></div>'+ 
+ '<div class="dst-box"><h3>Überstunden freigeben</h3><label>Von <input id="dstOverFrom" type="date"></label><label>Bis <input id="dstOverTo" type="date"></label><label>Stunden <input id="dstOverHours" type="number" step="0.25" min="0"></label><label>Grund <input id="dstOverReason"></label><button id="dstApproveOvertime" type="button">Freigeben</button></div>'+'<div class="dst-box"><h3>Arbeitszeit- und Urlaubskonten</h3><p class="dst-muted">Buchungskonten mit nachvollziehbarer Historie. Urlaubsgutschriften und Überstunden müssen explizit geprüft und gebucht werden.</p><div id="dstAccounts"></div></div>'+ 
  '<div class="dst-box"><h3>Einsatzkonflikte Winterdienst</h3><button type="button" id="dstLoadConflicts">Konflikte der nächsten 30 Tage prüfen</button><div id="dstConflicts" role="status"></div></div>'+
  '<div class="dst-box"><h3>Personalberechtigungen</h3><p class="dst-muted">Berechtigung für die oben eingetragene Benutzer-ID verwalten. Nur Mandanten-Administratoren.</p>'+
  '<label>Berechtigung <select id="dstGrantType"><option value="hr_manage">Personalverwaltung</option><option value="hr_approve">Genehmigungen</option><option value="workforce_schedule">Einsatzplanung</option></select></label>'+
@@ -859,6 +859,12 @@ function mountPersonnel(){
   const r=await cloudRequest('rpc/personnel_assignment_conflicts_v1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_org:org(),p_from:date(from),p_to:date(to)})});
   el('dstConflicts').textContent=Array.isArray(r)&&r.length?r.length+' Einsatzkonflikte: '+r.map(x=>x.service_date+' · '+(typeof profileDisplayName==='function'?profileDisplayName(x.assigned_user_id):x.assigned_user_id)).join('; '):'Keine Konflikte im geprüften Zeitraum.';
  }catch(e){el('dstConflicts').textContent='Prüfung nicht möglich: '+e.message}};
+ el('dstApproveOvertime').onclick=async()=>{if(!roleAdmin())return;try{
+  const id=employeeId(),from=el('dstOverFrom').value,to=el('dstOverTo').value,hours=Number(el('dstOverHours').value),reason=el('dstOverReason').value.trim();
+  if(!VALID_ID.test(id)||!from||!to||to<from||hours<=0||hours>200||reason.length<8)throw Error('Eingaben prüfen');
+  await make('employee_overtime_approvals',{organization_id:org(),user_id:id,from_date:from,to_date:to,approved_hours:hours,justification:reason});
+  feedback('Überstunden freigegeben.');void loadPersonnel();
+ }catch(e){feedback('Fehler: '+e.message)}};
  el('dstSaveManual').onclick=async()=>{
   if(!roleAdmin())return;
   try{
@@ -902,7 +908,7 @@ function mountPersonnel(){
 async function loadPersonnel(){
  if(!cloudSession?.access_token||!org())return;
  const admin=roleAdmin(),person=String(el('dstPersonId')?.value||'').trim();
- for(const id of ['dstSaveRelation','dstSaveContract','dstSaveManual','dstGrantPermission','dstRevokePermission','dstLoadConflicts'])el(id).disabled=!admin;
+ for(const id of ['dstSaveRelation','dstSaveContract','dstSaveManual','dstApproveOvertime','dstGrantPermission','dstRevokePermission','dstLoadConflicts'])el(id).disabled=!admin;
  el('dstPersonId').disabled=!admin;
  const q='organization_id=eq.'+encodeURIComponent(org());
  try{
