@@ -809,7 +809,7 @@ function mountPersonnel(){
  const section=document.createElement('section');section.id='dstPersonnel';section.className='section';
  section.innerHTML='<h2>Personalmanagement</h2><p>Beschäftigungsverhältnisse, Vertragsdaten und Abwesenheiten</p>'+
  '<div id="dstPersonnelMessage" role="status"></div>'+
- '<div class="dst-box"><h3>Beschäftigungsstatus</h3><label>Benutzer-ID <input id="dstPersonId" placeholder="UUID des Benutzers"></label>'+
+ '<div class="dst-box"><h3>Beschäftigungsstatus</h3><label>Mitarbeiter auswählen <select id="dstPersonId"><option value="">Benutzer auswählen …</option></select></label>'+
  '<label>Verhältnis <select id="dstRelation"><option value="employee">Arbeitnehmer</option><option value="external_contractor">Externer Dienstleister</option><option value="freelancer">Freier Mitarbeiter</option><option value="business_partner">Geschäftspartner</option><option value="test_account">Testzugang</option></select></label>'+
  '<button id="dstSaveRelation" type="button">Zuordnung speichern</button></div>'+
  '<div class="dst-box"><h3>Vertrag für Arbeitnehmer</h3>'+
