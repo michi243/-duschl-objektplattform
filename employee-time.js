@@ -47,6 +47,9 @@ style.textContent=`
 #dstPersonnel .dst-personnel-identity h3{margin-top:0}
 #dstPersonnel .dst-hr-scope:not([hidden]){display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:14px 18px;margin:14px 0;border:1px solid #527388;border-radius:12px;background:#123044}
 #dstPersonnel .dst-hr-scope button{min-height:42px}
+#dstPersonnel #dstPersonnelStatus{margin:12px 0;padding:10px 13px;background:#153246;border-radius:9px;line-height:1.5}
+#dstPersonnel #dstPersonnelStatus[data-warning="true"]{border-left:4px solid #e0a34c;background:#473419;color:#fff0d7}
+#dstPersonnel #dstContractHistory{margin:12px 0 0;line-height:1.5}
 #dstPersonnel .dst-personnel-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 20px;border-bottom:1px solid #365064;padding-bottom:13px}
 #dstPersonnel .dst-personnel-tab{border:1px solid #45647a;border-radius:10px;padding:12px 18px;min-height:44px;background:#123044;color:#e5f0f8;font-weight:650}
 #dstPersonnel .dst-personnel-tab.active{background:#215575;outline:2px solid #61a2c8}
@@ -912,7 +915,7 @@ function mountPersonnel(){
  el('dstRelationFrom').value=todayLocal();
  const platformHR=()=>{try{return isAdminRole()&&isPlatformTenantMode()}catch(_){return false}};
  const allowedHR=()=>roleAdmin()&&(!platformHR()||(hrScopeActive&&hrScopeKey===org()+':'+uid()));
- const savedEmployee=()=>activeRelationshipUser===employeeId()&&activeRelationshipType==='employee'&&el('dstRelation').value==='employee';
+ const savedEmployee=()=>activeRelationshipUser===employeeId()&&activeRelationshipType==='employee'&&el('dstRelation').value==='employee'&&el('dstRelationFrom').value===activeRelationshipFrom;
  const contractEnabled=()=>{el('dstSaveContract').disabled=!(allowedHR()&&savedEmployee()&&VALID_ID.test(employeeId()))};
  async function loadHrScope(){
    const area=el('dstHrScope');if(!area)return;
@@ -1196,11 +1199,14 @@ async function loadPersonnel(){
     const contract=(contracts||[]).find(c=>c.valid_from<=today&&(!c.valid_until||c.valid_until>=today))||(contracts||[])[0];
     const beginning=current?.effective_from||'';
     const mismatch=Boolean(contract&&beginning&&contract.valid_from<beginning);
+    el('dstPersonnelStatus').dataset.warning=String(mismatch);
     el('dstPersonnelStatus').textContent=current?'Aktiver Status: '+relation+' · Beginn '+beginning+
-      (mismatch?' · ACHTUNG: Vertragsbeginn liegt vor dem Beschäftigungsbeginn. Bitte Stammdaten prüfen.':'')
+      (mismatch?' · ACHTUNG: Der Vertragsbeginn liegt vor dem erfassten Beschäftigungsbeginn. Prüfe das Eintrittsdatum.':'')
       :'Noch kein aktives Beschäftigungsverhältnis hinterlegt.';
-    el('dstContractHistory').textContent=loadedContracts.length?
-      loadedContracts.length+' Vertragsstand/Vertragsstände vorhanden · letzter Beginn: '+loadedContracts[0].valid_from
+    el('dstContractHistory').textContent=contract?
+      loadedContracts.length+' Vertragsstand/Vertragsstände · Aktueller Stand ab '+contract.valid_from+
+      ' · '+contract.weekly_hours+' Stunden/Woche · '+contract.working_days_per_week+
+      ' Tage/Woche · '+contract.annual_vacation_days+' Urlaubstage/Jahr'
       :'Noch kein Vertragsstand hinterlegt.';
     for(const id of ['dstContractFrom','dstWeeklyHours','dstWorkDays','dstVacationDays'])el(id).value='';
     el('dstEmploymentType').value='full_time';
