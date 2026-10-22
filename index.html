@@ -7810,7 +7810,7 @@ Ihr Name und Ihre freiwillig angegebene E-Mail-Adresse werden mit der bereits be
       <div class="pa-eyebrow">PLATTFORM-ADMIN</div>
       <h2 class="pa-title">Dashboard</h2>
       <div class="pa-subtitle">Übersicht über Mandanten, Benutzer und Speicher der Duschl Service OS.</div>
-      <div class="pa-build-meta">Version <span data-app-version>2.78</span> · Buildstand: <span data-app-release-date>19.10.2026</span> · <span data-app-release-time>08:23</span> Uhr</div>
+      <div class="pa-build-meta">Version <span data-app-version>2.78</span> · Releasestand: <span data-app-release-date>22.10.2026</span></div>
     </div>
     <div class="pa-version-pill"><span class="pa-status-dot"></span><span>Version <span data-app-version>2.78</span></span></div>
   </div>
@@ -7959,7 +7959,7 @@ Ihr Name und Ihre freiwillig angegebene E-Mail-Adresse werden mit der bereits be
     <div class="tenant-eyebrow" id="tenantDashboardEyebrow">MANDANT</div>
     <h2 class="tenant-dashboard-title">Guten Tag, <span id="dashboardGreetingName">Benutzer</span></h2>
     <div class="tenant-dashboard-subtitle" id="dashboardRoleContext">Dein aktueller Arbeitsstand</div>
-    <div class="dashboard-build-meta">Version <span data-app-version>2.78</span> · Buildstand: <span data-app-release-date>19.10.2026</span> · <span data-app-release-time>08:23</span> Uhr</div>
+    <div class="dashboard-build-meta">Version <span data-app-version>2.78</span> · Releasestand: <span data-app-release-date>22.10.2026</span></div>
     <div class="tenant-context-pill" id="tenantContextPill">Mandantenbereich</div>
   </div>
 
@@ -12709,10 +12709,10 @@ async function loadCentralReleaseMetadata(){
   const response=await fetch(new URL('./release.json',document.baseURI),{cache:'no-store'});
   if(!response.ok)throw new Error('Release-Manifest nicht erreichbar');
   const release=await response.json();
-  if(!/^\\d+\\.\\d+\\.\\d+$/.test(String(release.version||'')))throw new Error('Ungültige Release-Version');
+  if(!/^\d+\.\d+\.\d+$/.test(String(release.version||'')))throw new Error('Ungültige Release-Version');
   APP_VERSION=String(release.version);
   const date=String(release.release_date||'');
-  if(/^\\d{4}-\\d{2}-\\d{2}$/.test(date)){const a=date.split('-');APP_RELEASE_DATE=a[2]+'.'+a[1]+'.'+a[0];}
+  if(/^\d{4}-\d{2}-\d{2}$/.test(date)){const a=date.split('-');APP_RELEASE_DATE=a[2]+'.'+a[1]+'.'+a[0];}
   APP_RELEASE_TIME=String(release.release_time||'');
   document.documentElement.dataset.releaseChannel=release.channel==='production'?'production':'development';
   syncAppVersionMarkers();
