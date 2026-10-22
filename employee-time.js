@@ -121,7 +121,7 @@ function mount(){
   </div>
   <div class="dst-box" id="dstAdminHours" style="display:none;margin-top:12px">
    <h3>Personal · Arbeitszeiten</h3>
-   <p class="dst-muted">Mandanteninterne Übersicht aus Dienstbeginn, Dienstende und Pausen. Offene Schichten und ungeprüfte Ausnahmen sind keine freigegebenen Arbeitszeiten. Keine Lohnabrechnung.</p>
+   <p class="dst-muted">Mandanteninterne Übersicht aus Dienstbeginn, Dienstende und Pausen. Fehlende gesetzliche Mindestpause wird für die vorläufige Netto-Anzeige rechnerisch berücksichtigt und ausdrücklich zur Prüfung markiert; sie gilt nicht als nachgewiesene Pause. Keine Lohnabrechnung.</p>
    <div class="dst-actions">
     <label>Mitarbeiter <select id="dstHoursEmployee"><option value="">Alle Mitarbeiter</option></select></label>
     <label>Zeitraum <select id="dstHoursPeriod"><option value="week">Diese Woche</option><option value="month" selected>Dieser Monat</option><option value="all">Alle geladenen Buchungen</option></select></label>
@@ -129,7 +129,7 @@ function mount(){
    </div>
    <div id="dstHoursSummary" class="dst-muted" style="margin-top:14px"></div>
    <div id="dstHoursTable" style="overflow-x:auto;margin-top:12px"></div>
-   <div class="dst-internal-note">Hinweis: Die Übersicht basiert auf maximal 1.000 zuletzt geladenen Ereignissen. Bei älteren Zeiträumen und periodenübergreifenden Schichten sind die Stunden nicht vollständig. Ausschließlich der aktive Mandant wird angezeigt.</div>
+   <div class="dst-internal-note">Hinweis: Pausenautomatik ist nur eine rechnerische Annahme: Nicht tatsächlich genommene Pausen dürfen nicht als nachgewiesen gelten. Die Übersicht basiert auf maximal 1.000 zuletzt geladenen Ereignissen. Bei älteren Zeiträumen und periodenübergreifenden Schichten sind die Stunden nicht vollständig. Ausschließlich der aktive Mandant wird angezeigt.</div>
   </div>
   <div class="dst-box" id="dstTeamBox" style="display:none;margin-top:12px">
    <h3>Einsatzübersicht · letzter bestätigter Buchungsstand</h3>
@@ -508,6 +508,15 @@ function currentHoursRows(){
  if(period==='week'){const offset=(now.getDay()+6)%7;start.setDate(now.getDate()-offset);start.setHours(0,0,0,0);}
  return modeRows().filter(x=>(!employee||x.user_id===employee)&&(period==='all'||new Date(x.occurred_at)>=start));
 }
+function statutoryBreakMinutes(spanMs,recordedMs){
+ // Model assumption for preliminary reporting, NOT evidence of an actual break.
+ // Determine the legal threshold from effective working time; avoid circular boundary at 6/9h.
+ const span=Math.max(0,spanMs)/60000,recorded=Math.max(0,recordedMs)/60000;
+ let minimum=0;
+ if(span-recorded>360)minimum=30;
+ if(span-Math.max(recorded,30)>540)minimum=45;
+ return Math.max(recorded,minimum);
+}
 function summarizeHours(){
  // Sequential pairing, not sum of object visits. Unmatched events are explicitly flagged.
  const grouped=new Map();
@@ -536,7 +545,7 @@ function summarizeHours(){
     if(shift===null){issue=true;continue;}
     if(breakAt!==null){issue=true;breakMs+=Math.max(0,when-breakAt);}
     if(when<shift)issue=true;
-    else {minutes+=Math.max(0,when-shift-breakMs)/60000;completed++;}
+    else {minutes+=Math.max(0,when-shift-statutoryBreakMinutes(when-shift,breakMs)*60000)/60000;completed++;}
     shift=null;breakAt=null;breakMs=0;
    }
   }
@@ -560,8 +569,8 @@ function detailedHours(){
    const issues=[...shift.issues];
    if(open)issues.push('Gehen fehlt');
    if(shift.pauseAt!==null)issues.push('Pausenende fehlt');
-   const net=duration===null?null:Math.max(0,duration-pause)/3600000;
-   out.push({id,name:timeEmployeeName(id),date:new Date(shift.start).toLocaleDateString('de-DE'),start:shift.start,end,pauseMin:pause/60000,net,issues:issues.join(' · ')||'–'});
+   const effectivePause=duration===null?pause/60000:statutoryBreakMinutes(duration,pause);\n   if(duration!==null&&effectivePause>pause/60000)issues.push('Pausenabzug rechnerisch · tatsächliche Pause prüfen');\n   const net=duration===null?null:Math.max(0,duration-effectivePause*60000)/3600000;
+   out.push({id,name:timeEmployeeName(id),date:new Date(shift.start).toLocaleDateString('de-DE'),start:shift.start,end,pauseMin:effectivePause,net,issues:issues.join(' · ')||'–'});
    shift=null;
   };
   for(const e of events){
