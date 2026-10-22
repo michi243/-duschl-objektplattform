@@ -1,5 +1,11 @@
 # Versionsverlauf – Duschl Service Objektplattform
 
+## v3.57.7 – 22.10.2026 (Entwicklung / Testbetrieb)
+
+- Behebt den Ladeabbruch „feedback is not defined“ im Personalmanagement.
+- Personal-Ladefunktionen wieder im selben Gültigkeitsbereich wie `feedback`, `loadHrScope`, `allowedHR` und Vertragsstatus gehalten; verhindert weitere `ReferenceError` beim Laden.
+- Skript-Caching durch neue Version im HTML aufgehoben; JavaScript-Syntax geprüft.
+
 ## v3.57.6 – 22.10.2026 (Entwicklung / Testbetrieb)
 
 - Plattformadministratoren aktivieren und widerrufen Personalzugriff explizit pro Mandant; kein pauschaler Zugriff auf Personalakten fremder Mandanten.
