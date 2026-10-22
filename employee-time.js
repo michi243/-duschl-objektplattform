@@ -831,7 +831,10 @@ function mountPersonnel(){
  '<label>Begründung <textarea id="dstManualReason" placeholder="Grund der Nachtragung"></textarea></label>'+
  '<button id="dstSaveManual" type="button">Zeit nachtragen</button>'+
  '<div id="dstManualHistory"></div></div>'+ 
- '<div class="dst-box"><h3>Überstunden freigeben</h3><label>Von <input id="dstOverFrom" type="date"></label><label>Bis <input id="dstOverTo" type="date"></label><label>Stunden <input id="dstOverHours" type="number" step="0.25" min="0"></label><label>Grund <input id="dstOverReason"></label><button id="dstApproveOvertime" type="button">Freigeben</button></div>'+'<div class="dst-box"><h3>Arbeitszeit- und Urlaubskonten</h3><p class="dst-muted">Buchungskonten mit nachvollziehbarer Historie. Urlaubsgutschriften und Überstunden müssen explizit geprüft und gebucht werden.</p><div id="dstAccounts"></div></div>'+ 
+ '<div class="dst-box"><h3>Feiertage und Arbeitsort</h3><p>Feiertagsabzug bei Sollstunden erst nach Festlegung des Arbeitsortes aktivieren.</p>'+
+ '<label>Arbeitsort <select id="dstHolidayPlace"><option value="UNSET">Nicht festgelegt</option><option value="MUNICH">München</option><option value="AUGSBURG">Augsburg</option><option value="OTHER_CATHOLIC">Bayern · Mariä Himmelfahrt gilt</option><option value="OTHER_NON_CATHOLIC">Bayern · Mariä Himmelfahrt gilt nicht</option></select></label>'+
+ '<label><input type="checkbox" id="dstHolidayActive"> Gesetzliche Feiertage bei der Sollzeit berücksichtigen</label>'+
+ '<button type="button" id="dstSaveHoliday">Feiertagsregel speichern</button></div>'+'<div class="dst-box"><h3>Überstunden freigeben</h3><label>Von <input id="dstOverFrom" type="date"></label><label>Bis <input id="dstOverTo" type="date"></label><label>Stunden <input id="dstOverHours" type="number" step="0.25" min="0"></label><label>Grund <input id="dstOverReason"></label><button id="dstApproveOvertime" type="button">Freigeben</button></div>'+'<div class="dst-box"><h3>Arbeitszeit- und Urlaubskonten</h3><p class="dst-muted">Buchungskonten mit nachvollziehbarer Historie. Urlaubsgutschriften und Überstunden müssen explizit geprüft und gebucht werden.</p><div id="dstAccounts"></div></div>'+ 
  '<div class="dst-box"><h3>Einsatzkonflikte Winterdienst</h3><button type="button" id="dstLoadConflicts">Konflikte der nächsten 30 Tage prüfen</button><div id="dstConflicts" role="status"></div></div>'+
  '<div class="dst-box"><h3>Personalberechtigungen</h3><p class="dst-muted">Berechtigung für die oben eingetragene Benutzer-ID verwalten. Nur Mandanten-Administratoren.</p>'+
  '<label>Berechtigung <select id="dstGrantType"><option value="hr_manage">Personalverwaltung</option><option value="hr_approve">Genehmigungen</option><option value="workforce_schedule">Einsatzplanung</option></select></label>'+
@@ -859,6 +862,12 @@ function mountPersonnel(){
   const r=await cloudRequest('rpc/personnel_assignment_conflicts_v1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_org:org(),p_from:date(from),p_to:date(to)})});
   el('dstConflicts').textContent=Array.isArray(r)&&r.length?r.length+' Einsatzkonflikte: '+r.map(x=>x.service_date+' · '+(typeof profileDisplayName==='function'?profileDisplayName(x.assigned_user_id):x.assigned_user_id)).join('; '):'Keine Konflikte im geprüften Zeitraum.';
  }catch(e){el('dstConflicts').textContent='Prüfung nicht möglich: '+e.message}};
+ el('dstSaveHoliday').onclick=async()=>{if(!roleAdmin())return;try{
+  const location=el('dstHolidayPlace').value,enabled=el('dstHolidayActive').checked;
+  if(enabled&&location==='UNSET')throw Error('Zuerst gültigen Arbeitsort auswählen');
+  await cloudRequest('employee_holiday_settings?on_conflict=organization_id',{method:'POST',headers:{'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'},body:JSON.stringify({organization_id:org(),state_code:'BY',municipality_code:location,enabled,updated_by:uid(),updated_at:new Date().toISOString()})});
+  feedback('Feiertagsregel gespeichert.');void loadPersonnel();
+ }catch(e){feedback('Feiertagsregel nicht gespeichert: '+e.message)}};
  el('dstApproveOvertime').onclick=async()=>{if(!roleAdmin())return;try{
   const id=employeeId(),from=el('dstOverFrom').value,to=el('dstOverTo').value,hours=Number(el('dstOverHours').value),reason=el('dstOverReason').value.trim();
   if(!VALID_ID.test(id)||!from||!to||to<from||hours<=0||hours>200||reason.length<8)throw Error('Eingaben prüfen');
@@ -928,12 +937,18 @@ async function loadPersonnelNames(){
 async function loadPersonnel(){
  if(!cloudSession?.access_token||!org())return;
  const admin=roleAdmin(),person=String(el('dstPersonId')?.value||'').trim();
- for(const id of ['dstSaveRelation','dstSaveContract','dstSaveManual','dstApproveOvertime','dstGrantPermission','dstRevokePermission','dstLoadConflicts'])el(id).disabled=!admin;
+ for(const id of ['dstSaveRelation','dstSaveContract','dstSaveManual','dstSaveHoliday','dstApproveOvertime','dstGrantPermission','dstRevokePermission','dstLoadConflicts'])el(id).disabled=!admin;
  el('dstPersonId').disabled=!admin;
  const q='organization_id=eq.'+encodeURIComponent(org());
  try{
   const target=admin?person:uid();
   if(!VALID_ID.test(target)){el('dstPersonnelMessage').textContent='Bitte zuerst einen Benutzer auswählen.';return;}
+  if(admin){
+   try{
+    const configs=await cloudRequest('employee_holiday_settings?select=municipality_code,enabled&'+q+'&limit=1');
+    if(configs?.length){el('dstHolidayPlace').value=configs[0].municipality_code;el('dstHolidayActive').checked=!!configs[0].enabled;}
+   }catch(e){el('dstPersonnelMessage').textContent='Feiertagsregel konnte nicht geladen werden: '+e.message;}
+  }
   if(admin){
    try{
     const [relationships,contracts]=await Promise.all([
