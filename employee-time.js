@@ -1118,26 +1118,9 @@ async function loadPersonnel(){
  }catch(err){el('dstPersonnelMessage').textContent='Abwesenheiten nicht geladen: '+err.message}
 }
 
-async function showReleaseVersion(){
- if(document.getElementById('dsReleaseBadge'))return;
- const badge=document.createElement('div');badge.id='dsReleaseBadge';
- badge.style.cssText='position:fixed;right:12px;bottom:12px;z-index:5000;padding:7px 10px;border-radius:9px;border:1px solid #4d6c83;background:#102c3beF;color:#f0f7fb;font:600 12px system-ui;box-shadow:0 2px 12px #0004;cursor:pointer';
- badge.textContent='Version wird geladen …';
- badge.title='Versions- und Releaseinformationen';
- badge.addEventListener('click',()=>{window.open('CHANGELOG.md','_blank','noopener')});
- document.body.appendChild(badge);
- try{
-  const response=await fetch(new URL('release.json',document.baseURI),{cache:'no-store'});
-  if(!response.ok)throw Error('Manifest nicht erreichbar');
-  const release=await response.json();
-  badge.textContent='v'+String(release.version||'unbekannt')+' · '+(release.channel==='production'?'Produktiv':'Testbetrieb');
-  badge.title='Stand: '+String(release.release_date||'–')+' · Klick: Versionsverlauf';
- }catch(_){badge.textContent='Versionsstand nicht verfügbar';badge.title='release.json konnte nicht geladen werden'}
-}
 
 mount();
 mountPersonnel();
-void showReleaseVersion();
 installAdminTimePermissionEditor();
 navSync();
 setInterval(navSync,1800);
