@@ -1,10 +1,11 @@
 {
-  "version": "3.57.10",
+  "version": "3.57.11",
   "release_date": "2026-10-22",
   "channel": "development",
   "status": "testbetrieb",
   "scope": "Objektplattform einschließlich Personalmanagement",
   "notes": [
+    "Mitarbeiteransicht vereinfacht: kompakte Kennzahlen für gebuchten Urlaubssaldo, Stundenkonto und offene Abwesenheiten; administrative Detailmodule außerhalb der Mitarbeiterrolle ausgeblendet.",
     "Personalmanagement: Reiter Administration samt administrativer Werkzeuge für Benutzer ohne Verwaltungsrolle ausgeblendet.",
     "Mobile Personalansicht: eigene Personalakte für Mitarbeiter automatisch geladen, Auswahl für Mandantenadmins vorbelegt; Mitarbeiter sehen Vertragsdaten nur lesend.",
     "Personalverwaltung: Beschäftigungsbeginn erfassbar und bei bestehendem Datensatz gezielt berichtigbar; Überschneidungen werden abgefangen",
