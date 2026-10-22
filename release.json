@@ -1,10 +1,11 @@
 {
-  "version": "3.57.13",
+  "version": "3.57.14",
   "release_date": "2026-10-22",
   "channel": "development",
   "status": "testbetrieb",
   "scope": "Objektplattform einschließlich Personalmanagement",
   "notes": [
+    "Urlaubskonto: beantragten noch offenen Urlaub und genehmigten zukünftigen Urlaub getrennt vom gebuchten Saldo darstellen, vorläufige Werktage (Mo–Fr) kennzeichnen.",
     "Objektbetreuer-Dashboard: Berichte, Meldungen, Arbeitsvorrat und Dokumentation einheitlich ausgerichtet (Symbol links, Text mittig, Zähler rechts, Pfeil außen rechts).",
     "Objektbetreuer-Dashboard: Meldungen wieder als eigene Kachel unter Deine Aufgaben sichtbar; Anzahl neu/ungeprüfter Meldungen und direkter Einstieg in die Meldungsliste.",
     "Mitarbeiteransicht vereinfacht: kompakte Kennzahlen für gebuchten Urlaubssaldo, Stundenkonto und offene Abwesenheiten; administrative Detailmodule außerhalb der Mitarbeiterrolle ausgeblendet.",
