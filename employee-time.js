@@ -1136,7 +1136,7 @@ async function loadPersonnelNames(){
  try{
   const members=await cloudRequest('organization_memberships?select=user_id,role&organization_id=eq.'+encodeURIComponent(org())+'&limit=500');
   const ids=[...new Set((members||[]).map(x=>x.user_id).filter(x=>VALID_ID.test(x)))];
-  if(!ids.length)return;
+  if(!ids.length){el('dstPersonnelMessage').textContent='Keine Benutzer im gewählten Mandanten gefunden.';return;}
   let profiles=[];
   try{profiles=await cloudRequest('profiles?select=id,full_name,email,active,deleted_at&id=in.('+ids.join(',')+')&limit=500')}catch(_){}
   const labels=new Map((profiles||[]).filter(p=>p.active!==false&&!p.deleted_at).map(p=>[p.id,p.full_name||p.email||p.id]));
@@ -1144,6 +1144,12 @@ async function loadPersonnelNames(){
   options.sort((a,b)=>String(labels.get(a.user_id)||a.user_id).localeCompare(String(labels.get(b.user_id)||b.user_id),'de'));
   for(const m of options){const opt=document.createElement('option');opt.value=m.user_id;opt.textContent=(labels.get(m.user_id)||'Benutzer '+m.user_id.slice(0,8))+' · '+(m.role||'');box.appendChild(opt)}
   if(ids.includes(previous))box.value=previous;
+  else if(!roleAdmin())box.value=uid();
+  else {
+    const employees=options.filter(m=>['object_manager','staff','employee'].includes(String(m.role||'')));
+    const preferred=employees[0]||options[0];
+    if(preferred)box.value=preferred.user_id;
+  }
  }catch(e){el('dstPersonnelMessage').textContent='Benutzerliste konnte nicht geladen werden: '+e.message}
 }
 async function loadPersonnel(){
@@ -1154,6 +1160,23 @@ async function loadPersonnel(){
  for(const id of ['dstSaveRelation','dstSaveContract','dstSaveManual','dstGrantLeave','dstSaveCarry','dstPreviewLeave','dstSaveHoliday','dstApproveOvertime','dstGrantPermission','dstRevokePermission','dstLoadConflicts','dstCheckAvailability','dstAssignPerson','dstAllAssignmentConflicts'])el(id).disabled=!writable;
  activeRelationshipType='';activeRelationshipUser='';contractEnabled();
  el('dstPersonId').disabled=!admin;
+ if(!admin){
+   const selector=el('dstPersonId');
+   if(![...selector.options].some(x=>x.value===uid())){
+     const own=document.createElement('option');own.value=uid();own.textContent='Meine Personaldaten';selector.appendChild(own);
+   }
+   selector.value=uid();
+   selector.closest('label').style.display='none';
+   el('dstRelation').disabled=true;el('dstRelationFrom').disabled=true;el('dstEmploymentType').disabled=true;
+   for(const id of ['dstContractFrom','dstWeeklyHours','dstWorkDays','dstVacationDays'])el(id).disabled=true;
+   el('dstSaveRelation').hidden=true;el('dstSaveContract').hidden=true;
+   el('dstPersonnelStatus').textContent='Eigene Personalakte – Änderungen erfolgen über die Personalverwaltung.';
+ }else{
+   el('dstPersonId').closest('label').style.display='';
+   el('dstRelation').disabled=false;el('dstRelationFrom').disabled=false;el('dstEmploymentType').disabled=false;
+   for(const id of ['dstContractFrom','dstWeeklyHours','dstWorkDays','dstVacationDays'])el(id).disabled=false;
+   el('dstSaveRelation').hidden=false;el('dstSaveContract').hidden=false;
+ }
  if(admin&&!writable){feedback('Bitte zunächst den Personalzugriff für diesen Mandanten freischalten.');return}
   const q='organization_id=eq.'+encodeURIComponent(org());
  try{
@@ -1180,7 +1203,7 @@ async function loadPersonnel(){
     el('dstPersonnelMessage').insertAdjacentElement('afterend',summary);
    }catch(_){}
   }
-  if(admin){
+  {
    try{
     const [relationships,contracts]=await Promise.all([
      cloudRequest('personnel_relationships?select=relationship_type,effective_from,effective_until&'+q+'&user_id=eq.'+encodeURIComponent(target)+'&order=effective_from.desc&limit=50'),
