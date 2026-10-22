@@ -838,7 +838,7 @@ function mountPersonnel(){
  '<button type="button" id="dstGrantPermission">Recht erteilen</button><button type="button" id="dstRevokePermission">Recht entziehen</button><div id="dstPermissions"></div></div>';
  document.querySelector('main')?.appendChild(section);
  const feedback=t=>{el('dstPersonnelMessage').textContent=t};
- b.onclick=()=>{if(typeof showSection==='function')showSection('dstPersonnel');void loadPersonnel()};
+ b.onclick=()=>{if(typeof showSection==='function')showSection('dstPersonnel');void loadPersonnelNames().then(()=>loadPersonnel())};
  const employeeId=()=>String(el('dstPersonId').value||'').trim();
  const selectedId=()=>employeeId()||uid();
  const make=async(endpoint,data)=>cloudRequest(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
@@ -882,6 +882,7 @@ function mountPersonnel(){
   try{await cloudRequest('employee_manual_time_entries?id=eq.'+encodeURIComponent(b.dataset.voidTime),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'void',voided_by:uid(),voided_at:new Date().toISOString()})});feedback('Nachtrag storniert.');void loadPersonnel()}
   catch(err){feedback('Stornierung fehlgeschlagen: '+err.message)}
  };
+ el('dstPersonId').addEventListener('change',()=>void loadPersonnel());
  el('dstSaveRelation').onclick=async()=>{if(!roleAdmin())return;try{
   if(!VALID_ID.test(employeeId()))throw Error('Gültige Benutzer-ID erforderlich');
   await make('personnel_relationships',{organization_id:org(),user_id:employeeId(),relationship_type:el('dstRelation').value,effective_from:new Date().toISOString().slice(0,10)});
@@ -904,6 +905,22 @@ function mountPersonnel(){
   await cloudRequest('employee_absences?id=eq.'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:decision,reviewed_by:uid(),reviewed_at:new Date().toISOString()})});
   feedback('Entscheidung gespeichert.');void loadPersonnel();
  }catch(err){feedback('Fehler: '+err.message)}};
+}
+async function loadPersonnelNames(){
+ const box=el('dstPersonId');if(!box||!org())return;
+ const previous=box.value;box.innerHTML='<option value="">Benutzer auswählen …</option>';
+ try{
+  const members=await cloudRequest('organization_memberships?select=user_id,role&organization_id=eq.'+encodeURIComponent(org())+'&limit=500');
+  const ids=[...new Set((members||[]).map(x=>x.user_id).filter(x=>VALID_ID.test(x)))];
+  if(!ids.length)return;
+  let profiles=[];
+  try{profiles=await cloudRequest('profiles?select=id,full_name,email,active,deleted_at&id=in.('+ids.join(',')+')&limit=500')}catch(_){}
+  const labels=new Map((profiles||[]).filter(p=>p.active!==false&&!p.deleted_at).map(p=>[p.id,p.full_name||p.email||p.id]));
+  const options=(members||[]).filter(m=>labels.size===0||labels.has(m.user_id));
+  options.sort((a,b)=>String(labels.get(a.user_id)||a.user_id).localeCompare(String(labels.get(b.user_id)||b.user_id),'de'));
+  for(const m of options){const opt=document.createElement('option');opt.value=m.user_id;opt.textContent=(labels.get(m.user_id)||'Benutzer '+m.user_id.slice(0,8))+' · '+(m.role||'');box.appendChild(opt)}
+  if(ids.includes(previous))box.value=previous;
+ }catch(e){el('dstPersonnelMessage').textContent='Benutzerliste konnte nicht geladen werden: '+e.message}
 }
 async function loadPersonnel(){
  if(!cloudSession?.access_token||!org())return;
