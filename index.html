@@ -7781,7 +7781,7 @@ Ihr Name und Ihre freiwillig angegebene E-Mail-Adresse werden mit der bereits be
 <button id="navPartnerDirectory" onclick="showSection('partnerDirectory')"><span class="nav-icon">⌘</span><span>Partnerverzeichnis</span></button>
 <button id="navOrganizations" onclick="showSection('organizations')"><span class="nav-icon">▣</span><span>Unternehmen / Mandanten</span></button>
 <button id="navUsers" onclick="showSection('users')"><span class="nav-icon">♙</span><span>Benutzer &amp; Berechtigungen</span></button>
-<button id="navPersonnel" type="button" onclick="if(window.dsPersonnelOpen){window.dsPersonnelOpen()}else{alert('Personalmanagement konnte nicht geladen werden. Bitte Seite aktualisieren.')}" class="hidden"><span class="nav-icon">♧</span><span>Personalmanagement</span></button>
+<button id="navPersonnel" type="button" onclick="window.dsOpenPersonnelFromMenu()" class="hidden"><span class="nav-icon">♧</span><span>Personalmanagement</span></button>
 <button id="navResourcePlanning" onclick="showSection('resourcePlanning')"><span class="nav-icon">▥</span><span>Ressourcenplanung</span></button>
 <button id="navSettings" onclick="showSection('settings')"><span class="nav-icon">⚙</span><span>Einstellungen</span></button>
 <button id="navNotifications" onclick="showSection('notificationSettings')"><span class="nav-icon">✉</span><span>Benachrichtigungen</span></button>
@@ -41079,6 +41079,27 @@ window.dsPrivateOffersMount=()=>{
  catch(error){root.textContent='Angebotsverwaltung konnte nicht gestartet werden: '+error.message;}
 };
 </script>
-<script src="./employee-time.js?v=3.57.2" defer></script>
+<script>
+window.dsOpenPersonnelFromMenu=function(){
+ try{
+  var page=document.getElementById('dstPersonnel');
+  if(!page && typeof window.dsPersonnelOpen==='function'){window.dsPersonnelOpen();return}
+  if(!page){
+   alert('Personalmanagement-Modul ist nicht initialisiert. Bitte die Browserkonsole auf Ladefehler prüfen.');
+   return;
+  }
+  if(typeof showSection==='function'){showSection('dstPersonnel')}
+  else{
+   document.querySelectorAll('.section').forEach(function(e){e.classList.remove('active');e.style.display='none'});
+   page.classList.add('active');page.style.display='block';
+  }
+  document.getElementById('appMenu')?.classList.remove('open');
+  document.getElementById('appMenuBackdrop')?.classList.remove('open');
+  document.body.classList.remove('menu-open');
+  if(typeof window.dsPersonnelRefresh==='function')window.dsPersonnelRefresh();
+ }catch(error){alert('Personalmanagement konnte nicht geöffnet werden: '+error.message);console.error(error)}
+};
+</script>
+<script src="./employee-time.js?v=3.57.3" defer></script>
 </body>
 </html>
