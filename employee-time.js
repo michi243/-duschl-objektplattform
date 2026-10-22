@@ -920,7 +920,8 @@ async function loadPersonnel(){
   let contractual='';
   try{
    const expected=await cloudRequest('rpc/employee_expected_hours_v1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_org:org(),p_user:selected,p_from:start,p_to:new Date().toISOString().slice(0,10)})});
-   contractual='<p class="dst-muted">Sollstunden seit Jahresbeginn (abzüglich genehmigter Abwesenheiten): '+h(Number(expected||0).toFixed(2))+' h</p>';
+   const manualHours=await cloudRequest('rpc/employee_manual_hours_v1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_org:org(),p_user:selected,p_from:start,p_to:new Date().toISOString().slice(0,10)})});
+   contractual='<p class="dst-muted">Sollstunden seit Jahresbeginn (abzüglich genehmigter Abwesenheiten): '+h(Number(expected||0).toFixed(2))+' h · Manuell erfasste Iststunden: '+h(Number(manualHours||0).toFixed(2))+' h. Weitere Stempelzeiten sind hier noch nicht eingerechnet.</p>';
   }catch(_){contractual='<p class="dst-muted">Sollstunden noch nicht berechenbar.</p>';}
   el('dstAccounts').innerHTML='<strong>Urlaub: '+h(sum('vacation_days').toFixed(2))+' Tage · Zeitkonto: '+h(sum('time_hours').toFixed(2))+' Stunden</strong>'+
    contractual+'<p class="dst-muted">Gebuchte Salden, keine automatisch errechneten arbeitsrechtlichen Ansprüche. Jahresansprüche, Ist/Soll und Freizeitausgleich bedürfen weiterer Logik.</p>'+
