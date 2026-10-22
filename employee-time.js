@@ -862,6 +862,9 @@ function mountPersonnel(){
  el('dstApproveOvertime').onclick=async()=>{if(!roleAdmin())return;try{
   const id=employeeId(),from=el('dstOverFrom').value,to=el('dstOverTo').value,hours=Number(el('dstOverHours').value),reason=el('dstOverReason').value.trim();
   if(!VALID_ID.test(id)||!from||!to||to<from||hours<=0||hours>200||reason.length<8)throw Error('Eingaben prüfen');
+  const check=await cloudRequest('rpc/employee_time_comparison_v1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_org:org(),p_user:id,p_from:from,p_to:to})});
+  const delta=Number((Array.isArray(check)?check[0]:check)?.difference_hours||0);
+  if(hours>delta)throw Error('Freigabe überschreitet nachgewiesene Mehrarbeit ('+delta.toFixed(2)+' h).');
   await make('employee_overtime_approvals',{organization_id:org(),user_id:id,from_date:from,to_date:to,approved_hours:hours,justification:reason});
   feedback('Überstunden freigegeben.');void loadPersonnel();
  }catch(e){feedback('Fehler: '+e.message)}};
