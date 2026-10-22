@@ -838,7 +838,13 @@ function mountPersonnel(){
  '<label>Jahr <input id="dstLeaveYear" type="number" min="2020" max="2100"></label>'+
  '<label>Freigegebene Urlaubstage <input id="dstLeaveGrantDays" type="number" min="0" max="100" step="0.5"></label>'+
  '<label>Begründung <textarea id="dstLeaveGrantReason" placeholder="Vertrag, Eintritt, Sonderregelung"></textarea></label>'+
- '<button id="dstGrantLeave" type="button">Jahresanspruch einmalig buchen</button><div id="dstLeaveGrants"></div></div>'+'<div class="dst-box"><h3>Arbeitszeit- und Urlaubskonten</h3><p class="dst-muted">Buchungskonten mit nachvollziehbarer Historie. Urlaubsgutschriften und Überstunden müssen explizit geprüft und gebucht werden.</p><div id="dstAccounts"></div></div>'+ 
+ '<button id="dstGrantLeave" type="button">Jahresanspruch einmalig buchen</button><div id="dstLeaveGrants"></div></div>'+'<div class="dst-box"><h3>Resturlaub übertragen</h3><p>Nur nach Prüfung des tatsächlichen Restanspruchs. Ein Übertrag ist eine neue Kontogutschrift.</p>'+
+ '<label>Aus Jahr <input id="dstCarryFrom" type="number" min="2020" max="2100"></label>'+
+ '<label>Nach Jahr <input id="dstCarryTo" type="number" min="2021" max="2101"></label>'+
+ '<label>Tage <input id="dstCarryDays" type="number" step="0.5" min="0"></label>'+
+ '<label>Übertrag gültig bis <input id="dstCarryExpiry" type="date"></label>'+
+ '<label>Begründung <textarea id="dstCarryReason"></textarea></label>'+
+ '<button id="dstSaveCarry" type="button">Übertrag freigeben</button><div id="dstCarryHistory"></div></div>'+'<div class="dst-box"><h3>Arbeitszeit- und Urlaubskonten</h3><p class="dst-muted">Buchungskonten mit nachvollziehbarer Historie. Urlaubsgutschriften und Überstunden müssen explizit geprüft und gebucht werden.</p><div id="dstAccounts"></div></div>'+ 
  '<div class="dst-box"><h3>Einsatzkonflikte Winterdienst</h3><button type="button" id="dstLoadConflicts">Konflikte der nächsten 30 Tage prüfen</button><div id="dstConflicts" role="status"></div></div>'+
  '<div class="dst-box"><h3>Personalberechtigungen</h3><p class="dst-muted">Berechtigung für die oben eingetragene Benutzer-ID verwalten. Nur Mandanten-Administratoren.</p>'+
  '<label>Berechtigung <select id="dstGrantType"><option value="hr_manage">Personalverwaltung</option><option value="hr_approve">Genehmigungen</option><option value="workforce_schedule">Einsatzplanung</option></select></label>'+
@@ -881,6 +887,13 @@ function mountPersonnel(){
   await make('employee_overtime_approvals',{organization_id:org(),user_id:id,from_date:from,to_date:to,approved_hours:hours,justification:reason});
   feedback('Überstunden freigegeben.');void loadPersonnel();
  }catch(e){feedback('Fehler: '+e.message)}};
+ el('dstSaveCarry').onclick=async()=>{if(!roleAdmin())return;try{
+ const id=employeeId(),from=Number(el('dstCarryFrom').value),to=Number(el('dstCarryTo').value),days=Number(el('dstCarryDays').value),reason=el('dstCarryReason').value.trim(),expiry=el('dstCarryExpiry').value;
+ if(!VALID_ID.test(id)||!Number.isInteger(from)||to!==from+1||!(days>0&&days<=100)||reason.length<8)throw Error('Mitarbeiter, Jahre, Tage und Begründung prüfen.');
+ if(!confirm('Resturlaub '+days+' Tage nach '+to+' übertragen? Vorher prüfen, ob der Saldo bereits Überträge enthält.'))return;
+ await make('employee_leave_carryovers',{organization_id:org(),user_id:id,from_year:from,to_year:to,days,expires_on:expiry||null,rationale:reason});
+ feedback('Urlaubsübertrag verbucht.');void loadPersonnel();
+ }catch(e){feedback('Übertrag fehlgeschlagen: '+e.message)}};
  el('dstGrantLeave').onclick=async()=>{if(!roleAdmin())return;try{
   const id=employeeId(),year=Number(el('dstLeaveYear').value),days=Number(el('dstLeaveGrantDays').value),reason=el('dstLeaveGrantReason').value.trim();
   if(!VALID_ID.test(id)||!Number.isInteger(year)||year<2020||year>2100||!Number.isFinite(days)||days<0||days>100||reason.length<8)throw Error('Mitarbeiter, Jahr, Urlaubstage und Begründung prüfen.');
@@ -948,7 +961,7 @@ async function loadPersonnelNames(){
 async function loadPersonnel(){
  if(!cloudSession?.access_token||!org())return;
  const admin=roleAdmin(),person=String(el('dstPersonId')?.value||'').trim();
- for(const id of ['dstSaveRelation','dstSaveContract','dstSaveManual','dstGrantLeave','dstSaveHoliday','dstApproveOvertime','dstGrantPermission','dstRevokePermission','dstLoadConflicts'])el(id).disabled=!admin;
+ for(const id of ['dstSaveRelation','dstSaveContract','dstSaveManual','dstGrantLeave','dstSaveCarry','dstSaveHoliday','dstApproveOvertime','dstGrantPermission','dstRevokePermission','dstLoadConflicts'])el(id).disabled=!admin;
  el('dstPersonId').disabled=!admin;
  const q='organization_id=eq.'+encodeURIComponent(org());
  try{
@@ -984,6 +997,10 @@ async function loadPersonnel(){
    const grants=await cloudRequest('employee_annual_leave_grants?select=calendar_year,granted_days,approved_at&'+q+'&user_id=eq.'+encodeURIComponent(selected)+'&order=calendar_year.desc&limit=20');
    el('dstLeaveGrants').textContent=grants.length?grants.map(x=>x.calendar_year+': '+x.granted_days+' Tage').join(' · '):'Noch kein Jahresanspruch gebucht.';
    if(!el('dstLeaveYear').value)el('dstLeaveYear').value=new Date().getFullYear();
+  }
+  if(admin){
+   const transfers=await cloudRequest('employee_leave_carryovers?select=from_year,to_year,days,expires_on&'+q+'&user_id=eq.'+encodeURIComponent(selected)+'&order=to_year.desc&limit=20');
+   el('dstCarryHistory').textContent=transfers.length?transfers.map(x=>x.from_year+' → '+x.to_year+': '+x.days+' Tage'+(x.expires_on?' (Frist: '+x.expires_on+')':'')).join(' · '):'Noch keine Überträge.';
   }
   const account=await cloudRequest('employee_account_entries?select=account_type,amount,effective_date,source_type,comment&'+q+'&user_id=eq.'+encodeURIComponent(selected)+'&order=effective_date.desc&limit=500');
   const sum=kind=>account.filter(x=>x.account_type===kind).reduce((a,x)=>a+Number(x.amount||0),0);
