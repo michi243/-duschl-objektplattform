@@ -328,6 +328,7 @@ function navSync(){
   if(el('dsTimeHub')?.classList.contains('active'))render();
  }
  const nav=el('navEmployeeTime');if(nav)nav.classList.toggle('hidden',!eligibleTimeRole());
+ const pnav=el('navPersonnel');if(pnav)pnav.classList.toggle('hidden',!eligibleTimeRole());
  const manage=el('dstManageEmployees');if(manage)manage.style.display=roleAdmin()?'':'none';
  if(el('dsTimeHub')?.classList.contains('active')&&(!cloudSession?.access_token||!org())){
   // Keine Zeiterfassung anzeigen, wenn Mandantenkontext verloren geht.
@@ -797,7 +798,75 @@ function downloadCsv(){
  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
  if(excluded)notice(excluded+' ungeprüfte/abgelehnte Ausnahmebuchung(en) nicht in Produktiv-CSV enthalten.');
 }
+
+// Personalverwaltung: separated roles, contract terms and absences.
+function mountPersonnel(){
+ if(el('dstPersonnel'))return;
+ const nav=el('navEmployeeTime');if(!nav)return;
+ const b=document.createElement('button');b.id='navPersonnel';b.type='button';b.className='hidden';
+ b.innerHTML='<span class="nav-icon">♧</span><span>Personalmanagement</span>';
+ nav.insertAdjacentElement('afterend',b);
+ const section=document.createElement('section');section.id='dstPersonnel';section.className='section';
+ section.innerHTML='<h2>Personalmanagement</h2><p>Beschäftigungsverhältnisse, Vertragsdaten und Abwesenheiten</p>'+
+ '<div id="dstPersonnelMessage" role="status"></div>'+
+ '<div class="dst-box"><h3>Beschäftigungsstatus</h3><label>Benutzer-ID <input id="dstPersonId" placeholder="UUID des Benutzers"></label>'+
+ '<label>Verhältnis <select id="dstRelation"><option value="employee">Arbeitnehmer</option><option value="external_contractor">Externer Dienstleister</option><option value="freelancer">Freier Mitarbeiter</option><option value="business_partner">Geschäftspartner</option><option value="test_account">Testzugang</option></select></label>'+
+ '<button id="dstSaveRelation" type="button">Zuordnung speichern</button></div>'+
+ '<div class="dst-box"><h3>Vertrag für Arbeitnehmer</h3>'+
+ '<label>Gültig ab <input type="date" id="dstContractFrom"></label>'+
+ '<label>Wochenstunden <input type="number" step="0.5" id="dstWeeklyHours"></label>'+
+ '<label>Arbeitstage / Woche <input type="number" step="0.5" min="1" max="7" id="dstWorkDays"></label>'+
+ '<label>Urlaubstage / Jahr <input type="number" step="0.5" id="dstVacationDays"></label>'+
+ '<label>Beschäftigungsform <select id="dstEmploymentType"><option value="full_time">Vollzeit</option><option value="part_time">Teilzeit</option><option value="minijob">Minijob</option><option value="other">Sonstige</option></select></label>'+
+ '<button id="dstSaveContract" type="button">Vertragsstand speichern</button></div>'+
+ '<div class="dst-box"><h3>Abwesenheit beantragen</h3>'+
+ '<label>Art <select id="dstAbsenceType"><option value="vacation">Urlaub</option><option value="sick">Krankheit</option><option value="time_off_in_lieu">Überstundenabbau</option><option value="training">Fortbildung</option><option value="special_leave">Sonderurlaub</option><option value="unpaid_leave">Unbezahlter Urlaub</option><option value="other">Sonstige</option></select></label>'+
+ '<label>Von <input type="date" id="dstAbsFrom"></label><label>Bis <input type="date" id="dstAbsUntil"></label>'+
+ '<button type="button" id="dstRequestAbsence">Antrag speichern</button><div id="dstAbsences"></div></div>';
+ document.querySelector('main')?.appendChild(section);
+ const feedback=t=>{el('dstPersonnelMessage').textContent=t};
+ b.onclick=()=>{if(typeof showSection==='function')showSection('dstPersonnel');void loadPersonnel()};
+ const employeeId=()=>String(el('dstPersonId').value||'').trim();
+ const selectedId=()=>employeeId()||uid();
+ const make=async(endpoint,data)=>cloudRequest(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+ el('dstSaveRelation').onclick=async()=>{if(!roleAdmin())return;try{
+  if(!VALID_ID.test(employeeId()))throw Error('Gültige Benutzer-ID erforderlich');
+  await make('personnel_relationships',{organization_id:org(),user_id:employeeId(),relationship_type:el('dstRelation').value,effective_from:new Date().toISOString().slice(0,10)});
+  feedback('Beschäftigungsstatus gespeichert.');void loadPersonnel();
+ }catch(e){feedback('Fehler: '+e.message)}};
+ el('dstSaveContract').onclick=async()=>{if(!roleAdmin())return;try{
+  if(!VALID_ID.test(employeeId()))throw Error('Gültige Benutzer-ID erforderlich');
+  await make('employee_contract_terms',{organization_id:org(),user_id:employeeId(),valid_from:el('dstContractFrom').value,weekly_hours:Number(el('dstWeeklyHours').value),working_days_per_week:Number(el('dstWorkDays').value),annual_vacation_days:Number(el('dstVacationDays').value),employment_type:el('dstEmploymentType').value});
+  feedback('Vertragsstand gespeichert.');void loadPersonnel();
+ }catch(e){feedback('Fehler: '+e.message)}};
+ el('dstRequestAbsence').onclick=async()=>{try{
+  if(!VALID_ID.test(selectedId()))throw Error('Gültige Benutzer-ID erforderlich');
+  if(!roleAdmin()&&selectedId()!==uid())throw Error('Nur eigene Anträge erlaubt');
+  await make('employee_absences',{organization_id:org(),user_id:selectedId(),absence_type:el('dstAbsenceType').value,starts_on:el('dstAbsFrom').value,ends_on:el('dstAbsUntil').value});
+  feedback('Abwesenheit beantragt.');void loadPersonnel();
+ }catch(e){feedback('Fehler: '+e.message)}};
+ el('dstAbsences').onclick=async e=>{const btn=e.target.closest('button[data-review]');if(!btn||!roleAdmin())return;try{
+  const id=btn.dataset.review,decision=btn.dataset.decision;
+  await cloudRequest('employee_absences?id=eq.'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:decision,reviewed_by:uid(),reviewed_at:new Date().toISOString()})});
+  feedback('Entscheidung gespeichert.');void loadPersonnel();
+ }catch(err){feedback('Fehler: '+err.message)}};
+}
+async function loadPersonnel(){
+ if(!cloudSession?.access_token||!org())return;
+ const admin=roleAdmin(),person=String(el('dstPersonId')?.value||'').trim();
+ for(const id of ['dstSaveRelation','dstSaveContract'])el(id).disabled=!admin;
+ el('dstPersonId').disabled=!admin;
+ const q='organization_id=eq.'+encodeURIComponent(org());
+ try{
+  const rows=await cloudRequest('employee_absences?select=id,user_id,absence_type,starts_on,ends_on,status&'+q+'&order=starts_on.desc&limit=100');
+  const current=admin?rows:rows.filter(x=>x.user_id===uid());
+  el('dstAbsences').innerHTML='<h4>Abwesenheiten</h4>'+(current.length?current.map(r=>'<div class="dst-row"><span>'+h(r.absence_type)+' · '+h(r.starts_on)+' – '+h(r.ends_on)+' · '+h(r.status)+'</span>'+
+    (admin&&r.status==='requested'?'<button data-review="'+h(r.id)+'" data-decision="approved">Genehmigen</button><button data-review="'+h(r.id)+'" data-decision="rejected">Ablehnen</button>':'')+'</div>').join(''):'Keine Einträge');
+ }catch(err){el('dstPersonnelMessage').textContent='Abwesenheiten nicht geladen: '+err.message}
+}
+
 mount();
+mountPersonnel();
 installAdminTimePermissionEditor();
 navSync();
 setInterval(navSync,1800);
