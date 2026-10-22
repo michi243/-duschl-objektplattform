@@ -119,6 +119,18 @@ function mount(){
     <div class="dst-actions"><button id="dstExport" type="button">Stundenbuchungen als CSV exportieren</button></div>
    </div>
   </div>
+  <div class="dst-box" id="dstAdminHours" style="display:none;margin-top:12px">
+   <h3>Personal · Arbeitszeiten</h3>
+   <p class="dst-muted">Mandanteninterne Übersicht aus Dienstbeginn, Dienstende und Pausen. Offene Schichten und ungeprüfte Ausnahmen sind keine freigegebenen Arbeitszeiten. Keine Lohnabrechnung.</p>
+   <div class="dst-actions">
+    <label>Mitarbeiter <select id="dstHoursEmployee"><option value="">Alle Mitarbeiter</option></select></label>
+    <label>Zeitraum <select id="dstHoursPeriod"><option value="week">Diese Woche</option><option value="month" selected>Dieser Monat</option><option value="all">Alle geladenen Buchungen</option></select></label>
+    <button type="button" id="dstHoursCsv">Arbeitszeitübersicht CSV</button>
+   </div>
+   <div id="dstHoursSummary" class="dst-muted" style="margin-top:14px"></div>
+   <div id="dstHoursTable" style="overflow-x:auto;margin-top:12px"></div>
+   <div class="dst-internal-note">Hinweis: Die Übersicht basiert auf maximal 1.000 zuletzt geladenen Ereignissen. Bei älteren Zeiträumen und periodenübergreifenden Schichten sind die Stunden nicht vollständig. Ausschließlich der aktive Mandant wird angezeigt.</div>
+  </div>
   <div class="dst-box" id="dstTeamBox" style="display:none;margin-top:12px">
    <h3>Einsatzübersicht · letzter bestätigter Buchungsstand</h3>
    <div class="dst-muted">Kein GPS-Live-Tracking. „Im Objekt“ bedeutet: Check-in vorhanden, Check-out noch offen.</div>
@@ -132,6 +144,9 @@ function mount(){
    if(roleAdmin()&&typeof showSection==='function')showSection('users');
   });
   el('dstExport').addEventListener('click',downloadCsv);
+  el('dstHoursEmployee').addEventListener('change',renderAdminHours);
+  el('dstHoursPeriod').addEventListener('change',renderAdminHours);
+  el('dstHoursCsv').addEventListener('click',downloadAdminHoursCsv);
   el('dstModeSelect').addEventListener('change',e=>{
     const next=e.target.value==='test';
     if(state.objectId&&!!findObject(state.objectId)?.isTest!==next){
@@ -397,7 +412,7 @@ function render(){
   banner.className=state.isTest?'dst-test-banner':'dst-live-banner';
   banner.textContent=state.isTest?'TESTMODUS – keine Lohnabrechnung. Testbuchungen werden separat geführt.':'PRODUKTIV – Testbuchungen sind ausgeblendet und werden nicht exportiert.';
  }
- renderObject();renderBookings();renderTeam();
+ renderObject();renderBookings();renderTeam();renderAdminHours();
 }
 
 function renderObject(){
@@ -480,6 +495,77 @@ function renderBookings(){
       (x.exception_reason?': '+h(x.exception_reason):'')+'</div>':'')+
     '</div><span>'+h(fmt(x.occurred_at))+'</span></div>').join('')
   :'<div class="dst-muted">Keine Zeitbuchungen vorhanden.</div>';
+}
+function timeEmployeeName(id){
+ const name=typeof profileDisplayName==='function'?profileDisplayName(id):'';
+ return name||((String(id)===uid()&&currentUserProfile?.full_name)||'Mitarbeiter '+String(id).slice(0,8));
+}
+function currentHoursRows(){
+ if(!roleAdmin())return [];
+ const period=el('dstHoursPeriod')?.value||'month',employee=el('dstHoursEmployee')?.value||'';
+ const now=new Date(), start=new Date(now);
+ if(period==='month')start.setFullYear(now.getFullYear(),now.getMonth(),1),start.setHours(0,0,0,0);
+ if(period==='week'){const offset=(now.getDay()+6)%7;start.setDate(now.getDate()-offset);start.setHours(0,0,0,0);}
+ return modeRows().filter(x=>(!employee||x.user_id===employee)&&(period==='all'||new Date(x.occurred_at)>=start));
+}
+function summarizeHours(){
+ // Sequential pairing, not sum of object visits. Unmatched events are explicitly flagged.
+ const grouped=new Map();
+ for(const x of currentHoursRows().slice().sort((a,b)=>new Date(a.occurred_at)-new Date(b.occurred_at))){
+  const id=String(x.user_id);if(!grouped.has(id))grouped.set(id,[]);
+  grouped.get(id).push(x);
+ }
+ const result=[];
+ for(const [id,events] of grouped){
+  let shift=null,breakAt=null,breakMs=0,issue=false,exceptions=0;
+  let minutes=0,completed=0;
+  for(const e of events){
+   const when=new Date(e.occurred_at).getTime();
+   if(!Number.isFinite(when)){issue=true;continue;}
+   if(e.review_status==='pending_review'&&!timeReview(e.id) || timeReview(e.id)?.decision==='rejected')exceptions++;
+   if(e.event_type==='shift_start'){
+    if(shift!==null)issue=true;
+    shift=when;breakAt=null;breakMs=0;
+   }else if(e.event_type==='break_start'){
+    if(shift===null||breakAt!==null)issue=true;
+    else breakAt=when;
+   }else if(e.event_type==='break_end'){
+    if(breakAt===null)issue=true;
+    else {breakMs+=Math.max(0,when-breakAt);breakAt=null;}
+   }else if(e.event_type==='shift_end'){
+    if(shift===null){issue=true;continue;}
+    if(breakAt!==null){issue=true;breakMs+=Math.max(0,when-breakAt);}
+    if(when<shift)issue=true;
+    else {minutes+=Math.max(0,when-shift-breakMs)/60000;completed++;}
+    shift=null;breakAt=null;breakMs=0;
+   }
+  }
+  if(shift!==null)issue=true;
+  result.push({id,name:timeEmployeeName(id),hours:minutes/60,completed,open:shift!==null,issue,exceptions,events:events.length});
+ }
+ return result.sort((a,b)=>a.name.localeCompare(b.name,'de'));
+}
+function renderAdminHours(){
+ const panel=el('dstAdminHours');if(!panel)return;
+ panel.style.display=roleAdmin()?'':'none';if(!roleAdmin())return;
+ const selected=el('dstHoursEmployee'),old=selected.value;
+ const members=[...new Set(modeRows().map(x=>String(x.user_id)))].sort((a,b)=>timeEmployeeName(a).localeCompare(timeEmployeeName(b),'de'));
+ selected.innerHTML='<option value="">Alle Mitarbeiter</option>'+members.map(id=>'<option value="'+h(id)+'">'+h(timeEmployeeName(id))+'</option>').join('');
+ selected.value=members.includes(old)?old:'';
+ const result=summarizeHours();
+ const format=x=>x.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
+ el('dstHoursSummary').textContent=result.length+' Mitarbeiter mit Buchungen · '+format(result.reduce((a,x)=>a+x.hours,0))+' h aus abgeschlossenen Schichten (vorläufig)';
+ el('dstHoursTable').innerHTML=result.length?'<table style="width:100%;border-collapse:collapse;text-align:left"><thead><tr><th>Mitarbeiter</th><th>Abgeschlossene Dienste</th><th>Stunden</th><th>Prüfbedarf</th></tr></thead><tbody>'+
+ result.map(x=>'<tr><td style="padding:10px 6px;border-top:1px solid #345166">'+h(x.name)+'</td><td>'+x.completed+'</td><td>'+format(x.hours)+' h</td><td>'+h([x.open?'Dienst offen':'',x.issue?'Buchungsfolge prüfen':'',x.exceptions?x.exceptions+' GPS-Ausnahmen':''].filter(Boolean).join(' · ')||'–')+'</td></tr>').join('')+'</tbody></table>':'<p class="dst-muted">Keine Buchungen für die Filterauswahl.</p>';
+}
+function downloadAdminHoursCsv(){
+ if(!roleAdmin())return;
+ const data=summarizeHours();if(!data.length)return;
+ const safe=v=>'"'+String(v??'').replace(/^[=+@-]/,"'function renderTeam(){").replace(/"/g,'""')+'"';
+ const lines=[['Mitarbeiter','Abgeschlossene Dienste','Stunden (vorläufig)','Dienst offen','Buchungsfolge prüfen','GPS-Ausnahmen','Anzahl Ereignisse'],...data.map(x=>[x.name,x.completed,x.hours.toFixed(2).replace('.',','),x.open?'Ja':'Nein',x.issue?'Ja':'Nein',x.exceptions,x.events])];
+ const csv=String.fromCharCode(0xFEFF)+'sep=;\r\n'+lines.map(x=>x.map(safe).join(';')).join('\r\n')+'\r\n';
+ const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+ const a=document.createElement('a');a.href=url;a.download='duschl-arbeitszeiten-vorlaeufig-'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
 }
 function renderTeam(){
  const box=el('dstTeamBox'),list=el('dstTeamList');if(!box||!list)return;
