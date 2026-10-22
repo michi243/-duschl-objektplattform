@@ -1304,14 +1304,33 @@ async function loadPersonnel(){
    const item=Array.isArray(compare)?compare[0]:compare;
    contractual='<p class="dst-muted">Soll: '+h(Number(item?.target_hours??0).toFixed(2))+' h · Ist (Stempel): '+h(Number(item?.clocked_hours||0).toFixed(2))+' h · Ist (manuell): '+h(Number(item?.manual_hours??0).toFixed(2))+' h · Differenz: '+h(Number(item?.difference_hours||0).toFixed(2))+' h. Keine automatische Überstundenfreigabe.</p>';
   }catch(_){contractual='<p class="dst-muted">Sollstunden noch nicht berechenbar.</p>';}
-  el('dstAccounts').innerHTML='<div class="dst-leave-status">'+
-    '<strong>Gebuchter Urlaubssaldo: '+h(sum('vacation_days').toFixed(2))+' Tage</strong>'+
-    '<div>Beantragt, noch offen: '+h(pendingVacation.length)+' Antrag/Anträge · '+h(plannedVacationDays)+' Werktage (Mo–Fr, vorläufig)</div>'+
-    '<div>Genehmigter zukünftiger Urlaub: '+h(approvedFutureVacation.length)+' Antrag/Anträge · '+h(approvedFutureDays)+' Werktage (Mo–Fr, vorläufig)</div>'+
-    '<small>Bei den geplanten Tagen sind Feiertage, individuelle Arbeitstage und Überschneidungen nicht verrechnet. Genehmigter Urlaub kann bereits im gebuchten Saldo enthalten sein.</small></div>'+
-    '<strong>Urlaub: '+h(sum('vacation_days').toFixed(2))+' Tage · Zeitkonto: '+h(sum('time_hours').toFixed(2))+' Stunden</strong>'+
-   contractual+'<p class="dst-muted">Gebuchte Salden, keine automatisch errechneten arbeitsrechtlichen Ansprüche. Jahresansprüche, Ist/Soll und Freizeitausgleich bedürfen weiterer Logik.</p>'+
-   (account.length?account.slice(0,15).map(x=>'<div class="dst-row"><span>'+h(x.effective_date)+' · '+h(x.source_type)+' · '+h(x.account_type)+'</span><strong>'+h(x.amount)+'</strong></div>').join(''):'Noch keine Kontobuchungen.');
+  // Distinguish posted ledger balances from the status of absence requests.
+  const dayFmt=n=>Number(n).toLocaleString('de-DE',{maximumFractionDigits:2});
+  const yearEntries=account.filter(x=>x.account_type==='vacation_days'&&String(x.effective_date||'').startsWith(String(yr)));
+  const postedDebits=yearEntries.filter(x=>Number(x.amount)<0).reduce((n,x)=>n-Number(x.amount||0),0);
+  const postedCredits=yearEntries.filter(x=>Number(x.amount)>0).reduce((n,x)=>n+Number(x.amount||0),0);
+  let annualGrant=null;
+  try {
+   const grants=await cloudRequest('employee_annual_leave_grants?select=calendar_year,granted_days&'+q+'&user_id=eq.'+encodeURIComponent(selected)+'&calendar_year=eq.'+yr+'&limit=20');
+   if(grants?.length)annualGrant=grants.reduce((n,x)=>n+Number(x.granted_days||0),0);
+  } catch(_) { /* Permission errors are not evidence of zero leave entitlement. */ }
+  const vacationEntries=account.filter(x=>x.account_type==='vacation_days');
+  const leaveSummary='<div class="dst-leave-status"><h4>Urlaub '+h(yr)+'</h4>'+
+   '<div class="dst-row"><span>Jahresanspruch (freigegeben)</span><strong>'+h(annualGrant===null?'Nicht hinterlegt':dayFmt(annualGrant)+' Tage')+'</strong></div>'+
+   '<div class="dst-row"><span>Gutschriften '+h(yr)+'</span><strong>'+h(dayFmt(postedCredits))+' Tage</strong></div>'+
+   '<div class="dst-row"><span>Abgebuchte Urlaubstage '+h(yr)+'</span><strong>'+h(dayFmt(postedDebits))+' Tage</strong></div>'+
+   '<div class="dst-row"><span>Beantragt, noch offen</span><strong>'+h(pendingVacation.length)+' Anträge · '+h(dayFmt(plannedVacationDays))+' Tage (vorläufig)</strong></div>'+
+   '<div class="dst-row"><span>Genehmigt, künftig</span><strong>'+h(approvedFutureVacation.length)+' Anträge · '+h(dayFmt(approvedFutureDays))+' Tage (vorläufig)</strong></div>'+
+   '<div class="dst-row"><span>Gebuchter Saldo (alle Jahre)</span><strong>'+h(dayFmt(sum('vacation_days')))+' Tage</strong></div>'+
+   '<p class="dst-muted"><strong>Noch frei verfügbar: derzeit nicht verlässlich berechenbar.</strong> Dafür müssen Jahresanspruch, Überträge und bereits verbuchte genehmigte Abwesenheiten eindeutig abgeglichen werden.</p>'+
+   '<small>Ein negativer Saldo beschreibt Kontobuchungen, nicht den Resturlaubsanspruch. Genehmigter Urlaub kann bereits abgebucht sein und wird hier nicht erneut abgezogen. Vorläufige Tage: Mo–Fr ohne individuelle Arbeitspläne und Feiertage.</small>'+
+   '<h4>Urlaubsbuchungen</h4>'+
+   (vacationEntries.length?vacationEntries.slice(0,15).map(x=>'<div class="dst-row"><span>'+h(x.effective_date)+' · '+h(x.source_type||'Buchung')+'</span><strong>'+h(dayFmt(x.amount))+' Tage</strong></div>').join(''):'Keine Urlaubsbuchungen vorhanden.')+'</div>';
+  el('dstAccounts').innerHTML=leaveSummary+
+   '<p><strong>Zeitkonto: '+h(sum('time_hours').toFixed(2))+' Stunden</strong></p>'+
+   contractual+'<p class="dst-muted">Zeitkonten zeigen gebuchte Werte, keine automatisch errechneten arbeitsrechtlichen Ansprüche.</p>'+
+   '<h4>Weitere Kontobuchungen</h4>'+
+   (account.filter(x=>x.account_type!=='vacation_days').length?account.filter(x=>x.account_type!=='vacation_days').slice(0,15).map(x=>'<div class="dst-row"><span>'+h(x.effective_date)+' · '+h(x.source_type)+' · '+h(x.account_type)+'</span><strong>'+h(x.amount)+'</strong></div>').join(''):'Keine weiteren Kontobuchungen.');
   if(admin){
    const perms=await cloudRequest('employee_hr_permissions?select=user_id,permission&'+q+'&limit=200');
    el('dstPermissions').textContent=perms.length?perms.map(x=>(typeof profileDisplayName==='function'?profileDisplayName(x.user_id):x.user_id)+' · '+x.permission).join(' | '):'Keine delegierten Personalrechte.';
