@@ -42,6 +42,19 @@ const typeLabel=t=>({
 const style=document.createElement('style');
 style.id='ds-qr-office-styles-v3560';
 style.textContent=`
+#dstPersonnel.dst-personnel-workspace{max-width:1260px;margin:auto}
+#dstPersonnel .dst-personnel-identity{padding:18px 22px;border:1px solid #355168;border-radius:14px;margin:20px 0;background:#0c2231}
+#dstPersonnel .dst-personnel-identity h3{margin-top:0}
+#dstPersonnel .dst-personnel-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 20px;border-bottom:1px solid #365064;padding-bottom:13px}
+#dstPersonnel .dst-personnel-tab{border:1px solid #45647a;border-radius:10px;padding:12px 18px;min-height:44px;background:#123044;color:#e5f0f8;font-weight:650}
+#dstPersonnel .dst-personnel-tab.active{background:#215575;outline:2px solid #61a2c8}
+#dstPersonnel .dst-personnel-panel[hidden]{display:none!important}
+#dstPersonnel .dst-personnel-panel{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;align-items:start}
+#dstPersonnel .dst-personnel-panel>.dst-box{border:1px solid #385467;border-radius:14px;padding:18px;background:#0e2635;min-width:0}
+#dstPersonnel .dst-personnel-panel label{display:block;margin:10px 0}
+#dstPersonnel .dst-personnel-panel input:not([type=checkbox]),#dstPersonnel .dst-personnel-panel select,#dstPersonnel .dst-personnel-panel textarea{width:100%;max-width:100%;box-sizing:border-box}
+#dstPersonnel #dstPersonnelMessage:not(:empty){padding:10px 12px;border-left:3px solid #e1b35f;margin:12px 0}
+
 #dsTimeHub .dst-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 #dsTimeHub .dst-eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#a5bacb;font-weight:800}
 #dsTimeHub .dst-head h2{margin:6px 0 0}
@@ -850,6 +863,31 @@ function mountPersonnel(){
  '<label>Berechtigung <select id="dstGrantType"><option value="hr_manage">Personalverwaltung</option><option value="hr_approve">Genehmigungen</option><option value="workforce_schedule">Einsatzplanung</option></select></label>'+
  '<button type="button" id="dstGrantPermission">Recht erteilen</button><button type="button" id="dstRevokePermission">Recht entziehen</button><div id="dstPermissions"></div></div>';
  document.querySelector('main')?.appendChild(section);
+ // Compact personnel workspace: identity always visible, all other modules grouped by task.
+ section.classList.add('dst-personnel-workspace');
+ const boxes=[...section.querySelectorAll('.dst-box')];
+ const groups=[
+  ['Vertrag & Beschäftigung',[0,1]],
+  ['Abwesenheiten & Urlaub',[2,6,7]],
+  ['Zeiterfassung & Stundenkonto',[3,8,9]],
+  ['Administration & Einsatzplanung',[4,5,10,11]]
+ ];
+ const tabs=document.createElement('div');tabs.className='dst-personnel-tabs';tabs.setAttribute('role','tablist');
+ const present=new Set();
+ const headings=['Beschäftigung','Abwesenheiten','Arbeitszeit','Administration'];
+ groups.forEach((item,index)=>{
+  const panel=document.createElement('div');panel.className='dst-personnel-panel';panel.dataset.group=String(index);
+  item[1].forEach(i=>{if(boxes[i]){panel.appendChild(boxes[i]);present.add(i)}});
+  section.appendChild(panel);
+  const tab=document.createElement('button');tab.type='button';tab.className='dst-personnel-tab';tab.textContent=headings[index];tab.dataset.group=String(index);
+  tab.onclick=()=>{section.querySelectorAll('.dst-personnel-tab').forEach(x=>{x.classList.toggle('active',x===tab);x.setAttribute('aria-selected',String(x===tab))});section.querySelectorAll('.dst-personnel-panel').forEach(x=>x.hidden=x.dataset.group!==String(index))};
+  tabs.appendChild(tab);
+ });
+ boxes.forEach((box,i)=>{if(!present.has(i)){const panel=section.querySelector('.dst-personnel-panel[data-group="3"]');panel?.appendChild(box)}});
+ const identity=boxes[0];if(identity){identity.classList.add('dst-personnel-identity');section.insertBefore(identity,section.querySelector('.dst-personnel-panel'));}
+ section.insertBefore(tabs,section.querySelector('.dst-personnel-panel'));
+ tabs.querySelector('button')?.click();
+
  const feedback=t=>{el('dstPersonnelMessage').textContent=t};
  b.onclick=()=>{if(typeof showSection==='function')showSection('dstPersonnel');void loadPersonnelNames().then(()=>loadPersonnel())};
  const employeeId=()=>String(el('dstPersonId').value||'').trim();
