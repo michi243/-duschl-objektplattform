@@ -892,7 +892,15 @@ function mountPersonnel(){
  tabs.querySelector('button')?.click();
 
  const feedback=t=>{el('dstPersonnelMessage').textContent=t};
- b.onclick=()=>{if(typeof showSection==='function')showSection('dstPersonnel');if(typeof closeAppMenu==='function')closeAppMenu();void loadPersonnelNames().then(()=>loadPersonnel());void refreshPersonnelTourOptions()};
+ const openPersonnel=()=>{
+  if(!el('dstPersonnel'))mountPersonnel();
+  if(typeof showSection==='function')showSection('dstPersonnel');
+  if(typeof closeAppMenu==='function')closeAppMenu();
+  void loadPersonnelNames().then(()=>loadPersonnel()).catch(err=>{const msg=el('dstPersonnelMessage');if(msg)msg.textContent='Ladefehler: '+err.message});
+  void refreshPersonnelTourOptions();
+ };
+ window.dsPersonnelOpen=openPersonnel;
+ b.onclick=openPersonnel;
  const employeeId=()=>String(el('dstPersonId').value||'').trim();
  const selectedId=()=>roleAdmin()?employeeId():uid();
  const make=async(endpoint,data)=>cloudRequest(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
