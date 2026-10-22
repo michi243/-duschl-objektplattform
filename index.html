@@ -12674,9 +12674,9 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-const APP_VERSION='3.56.4';
-const APP_RELEASE_DATE='21.10.2026';
-const APP_RELEASE_TIME='20:10'; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
+let APP_VERSION='3.57.0';
+let APP_RELEASE_DATE='22.10.2026';
+let APP_RELEASE_TIME=''; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
    - Alle Memberships eines Users werden geladen; aktiver Mandant wird benutzerbezogen gespeichert.
@@ -12704,10 +12704,26 @@ const APP_RELEASE_TIME='20:10'; // Q-Gate Versionierung: alle aktuellen sichtbar
    - v2.20.85: Frontend-Heartbeat auf touch_my_organization_activity umgestellt; aktive Membership bestimmt den Mandanten.
    - Keine RLS-, Rollen-, Objekt-, Findings-, Entscheidungs-, Messaging- oder Routingänderung.
 */
+async function loadCentralReleaseMetadata(){
+ try{
+  const response=await fetch(new URL('./release.json',document.baseURI),{cache:'no-store'});
+  if(!response.ok)throw new Error('Release-Manifest nicht erreichbar');
+  const release=await response.json();
+  if(!/^\\d+\\.\\d+\\.\\d+$/.test(String(release.version||'')))throw new Error('Ungültige Release-Version');
+  APP_VERSION=String(release.version);
+  const date=String(release.release_date||'');
+  if(/^\\d{4}-\\d{2}-\\d{2}$/.test(date)){const a=date.split('-');APP_RELEASE_DATE=a[2]+'.'+a[1]+'.'+a[0];}
+  APP_RELEASE_TIME=String(release.release_time||'');
+  document.documentElement.dataset.releaseChannel=release.channel==='production'?'production':'development';
+  syncAppVersionMarkers();
+  if(typeof syncAppReleaseMeta==='function')syncAppReleaseMeta();
+ }catch(err){console.warn('Release-Manifest:',err.message);}
+}
 function syncAppVersionMarkers(){
   document.title=`Duschl Service – Objektplattform v${APP_VERSION}`;
   document.querySelectorAll('[data-app-version]').forEach(el=>{ el.textContent=APP_VERSION; });
 }
+void loadCentralReleaseMetadata();
 if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded',syncAppVersionMarkers,{once:true});
 }else{
@@ -41060,6 +41076,6 @@ window.dsPrivateOffersMount=()=>{
  catch(error){root.textContent='Angebotsverwaltung konnte nicht gestartet werden: '+error.message;}
 };
 </script>
-<script src="./employee-time.js?v=3.56.4" defer></script>
+<script src="./employee-time.js?v=3.57.0" defer></script>
 </body>
 </html>
