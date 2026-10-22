@@ -1004,7 +1004,7 @@ function mountPersonnel(){
   catch(err){feedback('Stornierung fehlgeschlagen: '+err.message)}
  };
  el('dstPersonId').addEventListener('change',()=>void loadPersonnel());
- el('dstRelation').addEventListener('change',()=>{el('dstSaveContract').disabled=!(roleAdmin()&&VALID_ID.test(employeeId())&&el('dstRelation').value==='employee');});
+ el('dstRelation').addEventListener('change',()=>{el('dstSaveContract').disabled=!(roleAdmin()&&VALID_ID.test(employeeId())&&el('dstRelation').value==='employee');el('dstPersonnelMessage').textContent='Beschäftigungsverhältnis zuerst über „Zuordnung speichern“ bestätigen, dann Vertragsstand speichern.';});
  el('dstSaveRelation').onclick=async()=>{if(!roleAdmin())return;try{
   if(!VALID_ID.test(employeeId()))throw Error('Gültige Benutzer-ID erforderlich');
   await make('personnel_relationships',{organization_id:org(),user_id:employeeId(),relationship_type:el('dstRelation').value,effective_from:new Date().toISOString().slice(0,10)});
