@@ -887,7 +887,7 @@ function mountPersonnel(){
   tabs.appendChild(tab);
  });
  boxes.forEach((box,i)=>{if(i!==0&&!present.has(i)){const panel=section.querySelector('.dst-personnel-panel[data-group="3"]');panel?.appendChild(box)}});
- const identity=boxes[0];if(identity){identity.classList.add('dst-personnel-identity');section.insertBefore(identity,tabs);}
+ const identity=boxes[0];if(identity){identity.classList.add('dst-personnel-identity');section.insertBefore(identity,section.querySelector('.dst-personnel-panel'));}
  section.insertBefore(tabs,section.querySelector('.dst-personnel-panel'));
  tabs.querySelector('button')?.click();
 
