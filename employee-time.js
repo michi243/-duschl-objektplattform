@@ -884,8 +884,15 @@ async function loadPersonnel(){
   const selected=admin&&VALID_ID.test(person)?person:uid();
   const account=await cloudRequest('employee_account_entries?select=account_type,amount,effective_date,source_type,comment&'+q+'&user_id=eq.'+encodeURIComponent(selected)+'&order=effective_date.desc&limit=500');
   const sum=kind=>account.filter(x=>x.account_type===kind).reduce((a,x)=>a+Number(x.amount||0),0);
+  const first=new Date();first.setDate(1);
+  const yr=first.getFullYear(),start=yr+'-01-01',end=yr+'-12-31';
+  let contractual='';
+  try{
+   const expected=await cloudRequest('rpc/employee_expected_hours_v1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_org:org(),p_user:selected,p_from:start,p_to:new Date().toISOString().slice(0,10)})});
+   contractual='<p class="dst-muted">Sollstunden seit Jahresbeginn (abzüglich genehmigter Abwesenheiten): '+h(Number(expected||0).toFixed(2))+' h</p>';
+  }catch(_){contractual='<p class="dst-muted">Sollstunden noch nicht berechenbar.</p>';}
   el('dstAccounts').innerHTML='<strong>Urlaub: '+h(sum('vacation_days').toFixed(2))+' Tage · Zeitkonto: '+h(sum('time_hours').toFixed(2))+' Stunden</strong>'+
-   '<p class="dst-muted">Gebuchte Salden, keine automatisch errechneten arbeitsrechtlichen Ansprüche. Jahresansprüche, Ist/Soll und Freizeitausgleich bedürfen weiterer Logik.</p>'+
+   contractual+'<p class="dst-muted">Gebuchte Salden, keine automatisch errechneten arbeitsrechtlichen Ansprüche. Jahresansprüche, Ist/Soll und Freizeitausgleich bedürfen weiterer Logik.</p>'+
    (account.length?account.slice(0,15).map(x=>'<div class="dst-row"><span>'+h(x.effective_date)+' · '+h(x.source_type)+' · '+h(x.account_type)+'</span><strong>'+h(x.amount)+'</strong></div>').join(''):'Noch keine Kontobuchungen.');
   if(admin){
    const perms=await cloudRequest('employee_hr_permissions?select=user_id,permission&'+q+'&limit=200');
