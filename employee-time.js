@@ -341,7 +341,7 @@ function navSync(){
   if(el('dsTimeHub')?.classList.contains('active'))render();
  }
  const nav=el('navEmployeeTime');if(nav)nav.classList.toggle('hidden',!eligibleTimeRole());
- const pnav=el('navPersonnel');if(pnav)pnav.classList.toggle('hidden',!eligibleTimeRole());
+ const pnav=el('navPersonnel');if(pnav){const allow=!!(cloudSession?.access_token&&org()&&(roleAdmin()||eligibleTimeRole()));pnav.classList.toggle('hidden',!allow);pnav.style.display=allow?'':'none';}
  const manage=el('dstManageEmployees');if(manage)manage.style.display=roleAdmin()?'':'none';
  if(el('dsTimeHub')?.classList.contains('active')&&(!cloudSession?.access_token||!org())){
   // Keine Zeiterfassung anzeigen, wenn Mandantenkontext verloren geht.
@@ -815,7 +815,7 @@ function downloadCsv(){
 // Personalverwaltung: separated roles, contract terms and absences.
 function mountPersonnel(){
  if(el('dstPersonnel'))return;
- const nav=el('navEmployeeTime');if(!nav)return;
+ const nav=el('navUsers')||el('navEmployeeTime');if(!nav)return;
  const b=document.createElement('button');b.id='navPersonnel';b.type='button';b.className='hidden';
  b.innerHTML='<span class="nav-icon">♧</span><span>Personalmanagement</span>';
  nav.insertAdjacentElement('afterend',b);
@@ -892,7 +892,7 @@ function mountPersonnel(){
  tabs.querySelector('button')?.click();
 
  const feedback=t=>{el('dstPersonnelMessage').textContent=t};
- b.onclick=()=>{if(typeof showSection==='function')showSection('dstPersonnel');void loadPersonnelNames().then(()=>loadPersonnel());void refreshPersonnelTourOptions()};
+ b.onclick=()=>{if(typeof showSection==='function')showSection('dstPersonnel');if(typeof closeAppMenu==='function')closeAppMenu();void loadPersonnelNames().then(()=>loadPersonnel());void refreshPersonnelTourOptions()};
  const employeeId=()=>String(el('dstPersonId').value||'').trim();
  const selectedId=()=>roleAdmin()?employeeId():uid();
  const make=async(endpoint,data)=>cloudRequest(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
