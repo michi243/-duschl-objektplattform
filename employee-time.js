@@ -840,7 +840,7 @@ function mountPersonnel(){
  const feedback=t=>{el('dstPersonnelMessage').textContent=t};
  b.onclick=()=>{if(typeof showSection==='function')showSection('dstPersonnel');void loadPersonnelNames().then(()=>loadPersonnel())};
  const employeeId=()=>String(el('dstPersonId').value||'').trim();
- const selectedId=()=>employeeId()||uid();
+ const selectedId=()=>roleAdmin()?employeeId():uid();
  const make=async(endpoint,data)=>cloudRequest(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
  for(const action of ['dstGrantPermission','dstRevokePermission'])el(action).onclick=async()=>{
   if(!roleAdmin())return;
@@ -929,24 +929,22 @@ async function loadPersonnel(){
  el('dstPersonId').disabled=!admin;
  const q='organization_id=eq.'+encodeURIComponent(org());
  try{
-  const target=admin&&VALID_ID.test(person)?person:uid();
+  const target=admin?person:uid();
+  if(!VALID_ID.test(target)){el('dstPersonnelMessage').textContent='Bitte zuerst einen Benutzer auswählen.';return;}
   const manual=await cloudRequest('employee_manual_time_entries?select=id,user_id,starts_at,ends_at,break_minutes,reason,status,created_by,created_at&'+q+'&user_id=eq.'+encodeURIComponent(target)+'&order=starts_at.desc&limit=100');
   el('dstManualHistory').innerHTML='<h4>Manuelle Nachträge</h4>'+(manual.length?manual.map(x=>
    '<div class="dst-row"><span>'+h(fmt(x.starts_at))+' – '+h(fmt(x.ends_at))+' · Pause '+h(x.break_minutes)+' min · '+h(x.reason)+' · '+h(x.status)+' · erfasst '+h(fmt(x.created_at))+'</span>'+
    (admin&&x.status==='approved'?'<button type="button" data-void-time="'+h(x.id)+'">Stornieren</button>':'')+'</div>').join(''):'Keine manuellen Nachträge.');
   const rows=await cloudRequest('employee_absences?select=id,user_id,absence_type,starts_on,ends_on,status&'+q+'&order=starts_on.desc&limit=100');
-  const selected=admin&&VALID_ID.test(person)?person:uid();
+  const selected=target;
   const account=await cloudRequest('employee_account_entries?select=account_type,amount,effective_date,source_type,comment&'+q+'&user_id=eq.'+encodeURIComponent(selected)+'&order=effective_date.desc&limit=500');
   const sum=kind=>account.filter(x=>x.account_type===kind).reduce((a,x)=>a+Number(x.amount||0),0);
-  const first=new Date();first.setDate(1);
-  const yr=first.getFullYear(),start=yr+'-01-01',end=yr+'-12-31';
+  const yr=new Date().getFullYear(),start=yr+'-01-01';
   let contractual='';
   try{
-   const expected=await cloudRequest('rpc/employee_expected_hours_v1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_org:org(),p_user:selected,p_from:start,p_to:new Date().toISOString().slice(0,10)})});
-   const manualHours=await cloudRequest('rpc/employee_manual_hours_v1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_org:org(),p_user:selected,p_from:start,p_to:new Date().toISOString().slice(0,10)})});
    const compare=await cloudRequest('rpc/employee_time_comparison_v1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_org:org(),p_user:selected,p_from:start,p_to:new Date().toISOString().slice(0,10)})});
    const item=Array.isArray(compare)?compare[0]:compare;
-   contractual='<p class="dst-muted">Soll: '+h(Number(item?.target_hours||0).toFixed(2))+' h · Ist (Stempel): '+h(Number(item?.clocked_hours||0).toFixed(2))+' h · Ist (manuell): '+h(Number(item?.manual_hours||0).toFixed(2))+' h · Differenz: '+h(Number(item?.difference_hours||0).toFixed(2))+' h. Keine automatische Überstundenfreigabe.</p>';
+   contractual='<p class="dst-muted">Soll: '+h(Number(item?.target_hours??0).toFixed(2))+' h · Ist (Stempel): '+h(Number(item?.clocked_hours||0).toFixed(2))+' h · Ist (manuell): '+h(Number(item?.manual_hours??0).toFixed(2))+' h · Differenz: '+h(Number(item?.difference_hours||0).toFixed(2))+' h. Keine automatische Überstundenfreigabe.</p>';
   }catch(_){contractual='<p class="dst-muted">Sollstunden noch nicht berechenbar.</p>';}
   el('dstAccounts').innerHTML='<strong>Urlaub: '+h(sum('vacation_days').toFixed(2))+' Tage · Zeitkonto: '+h(sum('time_hours').toFixed(2))+' Stunden</strong>'+
    contractual+'<p class="dst-muted">Gebuchte Salden, keine automatisch errechneten arbeitsrechtlichen Ansprüche. Jahresansprüche, Ist/Soll und Freizeitausgleich bedürfen weiterer Logik.</p>'+
@@ -955,7 +953,7 @@ async function loadPersonnel(){
    const perms=await cloudRequest('employee_hr_permissions?select=user_id,permission&'+q+'&limit=200');
    el('dstPermissions').textContent=perms.length?perms.map(x=>(typeof profileDisplayName==='function'?profileDisplayName(x.user_id):x.user_id)+' · '+x.permission).join(' | '):'Keine delegierten Personalrechte.';
   }else el('dstPermissions').textContent='Nur für Mandanten-Administratoren sichtbar.';
-  const current=admin?rows:rows.filter(x=>x.user_id===uid());
+  const current=rows.filter(x=>x.user_id===selected);
   el('dstAbsences').innerHTML='<h4>Abwesenheiten</h4>'+(current.length?current.map(r=>'<div class="dst-row"><span>'+h(r.absence_type)+' · '+h(r.starts_on)+' – '+h(r.ends_on)+' · '+h(r.status)+'</span>'+
     (admin&&r.status==='requested'?'<button data-review="'+h(r.id)+'" data-decision="approved">Genehmigen</button><button data-review="'+h(r.id)+'" data-decision="rejected">Ablehnen</button>':admin&&r.status==='approved'?'<button data-review="'+h(r.id)+'" data-decision="cancelled">Stornieren</button>':'')+'</div>').join(''):'Keine Einträge');
  }catch(err){el('dstPersonnelMessage').textContent='Abwesenheiten nicht geladen: '+err.message}
