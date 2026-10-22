@@ -869,6 +869,7 @@ function mountPersonnel(){
  }catch(e){feedback('Fehler: '+e.message)}};
  el('dstAbsences').onclick=async e=>{const btn=e.target.closest('button[data-review]');if(!btn||!roleAdmin())return;try{
   const id=btn.dataset.review,decision=btn.dataset.decision;
+  if(decision==='cancelled'&&!confirm('Genehmigte Abwesenheit stornieren? Die Kontobuchung wird durch eine Gegenbuchung ausgeglichen.'))return;
   await cloudRequest('employee_absences?id=eq.'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:decision,reviewed_by:uid(),reviewed_at:new Date().toISOString()})});
   feedback('Entscheidung gespeichert.');void loadPersonnel();
  }catch(err){feedback('Fehler: '+err.message)}};
@@ -900,7 +901,7 @@ async function loadPersonnel(){
   }else el('dstPermissions').textContent='Nur für Mandanten-Administratoren sichtbar.';
   const current=admin?rows:rows.filter(x=>x.user_id===uid());
   el('dstAbsences').innerHTML='<h4>Abwesenheiten</h4>'+(current.length?current.map(r=>'<div class="dst-row"><span>'+h(r.absence_type)+' · '+h(r.starts_on)+' – '+h(r.ends_on)+' · '+h(r.status)+'</span>'+
-    (admin&&r.status==='requested'?'<button data-review="'+h(r.id)+'" data-decision="approved">Genehmigen</button><button data-review="'+h(r.id)+'" data-decision="rejected">Ablehnen</button>':'')+'</div>').join(''):'Keine Einträge');
+    (admin&&r.status==='requested'?'<button data-review="'+h(r.id)+'" data-decision="approved">Genehmigen</button><button data-review="'+h(r.id)+'" data-decision="rejected">Ablehnen</button>':admin&&r.status==='approved'?'<button data-review="'+h(r.id)+'" data-decision="cancelled">Stornieren</button>':'')+'</div>').join(''):'Keine Einträge');
  }catch(err){el('dstPersonnelMessage').textContent='Abwesenheiten nicht geladen: '+err.message}
 }
 
