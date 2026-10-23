@@ -57,6 +57,6 @@ const {error}=await sb.from("marketing_campaigns").insert({organization_id:org,n
 if(error){msg(error.message);return}e.target.reset();await refresh()};
 el("login").onsubmit=async e=>{e.preventDefault();const {error}=await sb.auth.signInWithPassword({email:el("email").value,password:el("password").value});if(error){msg("Anmeldung fehlgeschlagen");return}await boot()};
 el("logout").onclick=async()=>{await sb.auth.signOut();await boot()};
-async function boot(){const {data:{session}}=await sb.auth.getSession();el("auth").hidden=!!session;el("app").hidden=!session;el("logout").hidden=!session;if(session)await refresh();else msg("")}
+async function boot(){const {data:{session}}=await sb.auth.getSession();el("auth").hidden=!!session;el("app").hidden=!session;el("logout").hidden=!session;if(session){const {data:allowed,error:permissionError}=await sb.from("marketing_campaigns").select("id").limit(1);if(permissionError || !allowed?.length){el("app").hidden=true;msg("Kein Zugriff: Das Marketingmodul ist nur für berechtigte Administratoren von Duschl Service freigegeben.");return;}await refresh();}else msg("")}
 await boot();
 </script></body></html>
