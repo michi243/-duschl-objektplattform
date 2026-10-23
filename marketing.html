@@ -39,7 +39,7 @@ let chosen=null,svg="";
 function msg(s){el("message").textContent=s}
 function cell(tr,s){const td=document.createElement("td");td.textContent=s;tr.append(td);return td}
 async function refresh(){
- const {data,error}=await sb.rpc("marketing_campaign_report_v1",{p_org:org});
+ const {data,error}=await sb.rpc("marketing_campaign_report_v2",{p_org:org});
  if(error){msg("Datenzugriff fehlgeschlagen: "+error.message);return}
  msg("");const rows=data||[];
  el("scans").textContent=rows.reduce((n,x)=>n+Number(x.scan_count),0);
