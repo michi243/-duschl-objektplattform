@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Duschl Service – Marketing & QR</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#172333;background:#f5f7fa}*{box-sizing:border-box}body{margin:0}
+main{max-width:1100px;margin:auto;padding:24px}header{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}
+h1{font-size:1.65rem}h2{font-size:1.15rem;margin-top:0}.panel{background:white;border:1px solid #dae2ea;border-radius:13px;padding:20px;margin:15px 0}
+input,select,button{font:inherit;padding:10px;border-radius:7px;border:1px solid #b5c4d2}input{max-width:100%}button{background:#193a5c;color:white;cursor:pointer;border:none}button.secondary{background:#e9eef4;color:#193a5c}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.metric{background:#eff4f8;border-radius:10px;padding:15px}.metric b{display:block;font-size:1.6rem}
+.form{display:flex;gap:10px;flex-wrap:wrap}.form label{display:flex;flex-direction:column;gap:4px}table{width:100%;border-collapse:collapse}th,td{padding:11px;text-align:left;border-bottom:1px solid #e3e9ef}th{font-size:.85rem}#tablewrap{overflow-x:auto}
+#qrpreview svg{max-width:250px;height:auto}small,.muted{color:#526575}#message{min-height:1.5rem;color:#a02323}
+@media(max-width:720px){.grid{grid-template-columns:repeat(2,1fr)}main{padding:12px}}
+</style></head>
+<body><main><header><div><h1>Marketing & QR-Codes</h1><p class="muted">Duschl Service · Kampagnensteuerung</p></div><button id="logout" class="secondary" hidden>Abmelden</button></header>
+<p id="message" role="status"></p>
+<section id="auth" class="panel"><h2>Anmeldung</h2><form id="login" class="form"><input type="email" id="email" placeholder="E-Mail" required autocomplete="username"><input type="password" id="password" placeholder="Passwort" required autocomplete="current-password"><button>Anmelden</button></form><small>Nur berechtigte Administratoren von Duschl Service.</small></section>
+<section id="app" hidden>
+<div class="grid"><div class="metric">QR-Aufrufe<b id="scans">0</b></div><div class="metric">Anfragen<b id="leads">0</b></div><div class="metric">Aufträge<b id="wins">0</b></div><div class="metric">Auftragswert<b id="revenue">0 €</b></div></div>
+<div class="panel"><h2>Kampagne anlegen</h2><form id="create" class="form">
+<label>Bezeichnung<input name="name" required placeholder="Flyer Schwabing 01"></label>
+<label>Werbekanal<select name="channel"><option value="flyer">Flyer</option><option value="vehicle">Fahrzeug</option><option value="business_card">Visitenkarte</option><option value="object_sign">Objektschild</option><option value="trailer">Anhänger</option><option value="other">Sonstiges</option></select></label>
+<label>Code (3–48 Zeichen)<input name="code" required pattern="[a-z0-9-]{3,48}" placeholder="fly-schwabing-01"></label>
+<label>Werbekosten (€)<input name="cost" type="number" min="0" step="0.01" value="0"></label>
+<label>Ziel-URL<input name="url" type="url" value="https://www.duschl-service.de/" required size="32"></label>
+<button>Kampagne speichern</button></form></div>
+<div class="panel"><h2>Auswertung nach Werbemittel</h2><div id="tablewrap"><table><thead><tr><th>Kampagne</th><th>QR-Aufrufe</th><th>Anfragen</th><th>Aufträge</th><th>Auftragswert</th><th>Kosten</th><th>DB minus Werbung</th><th>Aktion</th></tr></thead><tbody id="rows"></tbody></table></div>
+<small>QR-Aufrufe sind Scans, keine eindeutigen Personen. DB minus Werbung setzt erfasste Deckungsbeiträge voraus.</small></div>
+<div class="panel"><h2>QR-Code exportieren</h2><p id="selected" class="muted">Kampagne in der Tabelle auswählen.</p><div id="qrpreview"></div><p><button id="download" hidden>SVG herunterladen</button></p><small>Vor dem Großdruck QR-Code auf mehreren Smartphones testen. Die Zieladresse ist nachträglich änderbar.</small></div>
+</section></main>
+<script type="module">
+import {createClient} from "https://esm.sh/@supabase/supabase-js@2.57.0";
+import QRCode from "https://esm.sh/qrcode@1.5.4";
+const sb=createClient("https://dherkuguwqffwyzaigag.supabase.co","sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk");
+const org="8260f0ba-cda8-4854-a453-f29904edf76b";
+const endpoint="https://dherkuguwqffwyzaigag.supabase.co/functions/v1/marketing-qr?c=";
+const el=id=>document.getElementById(id);
+const euro=n=>new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR"}).format(Number(n)||0);
+let chosen=null,svg="";
+function msg(s){el("message").textContent=s}
+function cell(tr,s){const td=document.createElement("td");td.textContent=s;tr.append(td);return td}
+async function refresh(){
+ const {data,error}=await sb.rpc("marketing_campaign_report_v1",{p_org:org});
+ if(error){msg("Datenzugriff fehlgeschlagen: "+error.message);return}
+ msg("");const rows=data||[];
+ el("scans").textContent=rows.reduce((n,x)=>n+Number(x.scan_count),0);
+ el("leads").textContent=rows.reduce((n,x)=>n+Number(x.lead_count),0);
+ el("wins").textContent=rows.reduce((n,x)=>n+Number(x.won_count),0);
+ el("revenue").textContent=euro(rows.reduce((n,x)=>n+Number(x.order_value_eur),0));
+ el("rows").replaceChildren();
+ for(const x of rows){const tr=document.createElement("tr");cell(tr,x.name);cell(tr,x.scan_count);cell(tr,x.lead_count);cell(tr,x.won_count);cell(tr,euro(x.order_value_eur));cell(tr,euro(x.cost_eur));cell(tr,euro(Number(x.contribution_margin_eur)-Number(x.cost_eur)));
+ const td=document.createElement("td");const b=document.createElement("button");b.className="secondary";b.textContent="QR-Code";b.onclick=()=>selectQR(x);td.append(b);tr.append(td);el("rows").append(tr)}
+}
+async function selectQR(x){chosen=x;el("selected").textContent=x.name+" · "+endpoint+x.code;svg=await QRCode.toString(endpoint+x.code,{type:"svg",width:640,margin:4,errorCorrectionLevel:"H"});el("qrpreview").innerHTML=svg;el("download").hidden=false}
+el("download").onclick=()=>{if(!chosen)return;const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml"}));a.download="duschl-service-"+chosen.code+".svg";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+el("create").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);const url=String(f.get("url"));const parsed=new URL(url);if(parsed.protocol!=="https:"||!["duschl-service.de","www.duschl-service.de"].includes(parsed.hostname)){msg("Nur HTTPS-Adressen von duschl-service.de sind erlaubt.");return}
+const {error}=await sb.from("marketing_campaigns").insert({organization_id:org,name:f.get("name"),channel:f.get("channel"),code:f.get("code"),cost_eur:Number(f.get("cost")),target_url:url});
+if(error){msg(error.message);return}e.target.reset();await refresh()};
+el("login").onsubmit=async e=>{e.preventDefault();const {error}=await sb.auth.signInWithPassword({email:el("email").value,password:el("password").value});if(error){msg("Anmeldung fehlgeschlagen");return}await boot()};
+el("logout").onclick=async()=>{await sb.auth.signOut();await boot()};
+async function boot(){const {data:{session}}=await sb.auth.getSession();el("auth").hidden=!!session;el("app").hidden=!session;el("logout").hidden=!session;if(session)await refresh();else msg("")}
+await boot();
+</script></body></html>
