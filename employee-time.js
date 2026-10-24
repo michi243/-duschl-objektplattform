@@ -439,7 +439,6 @@ function render(){
  const adminOnly=roleAdmin()&&!roleTime();
  // Administrators receive a team management view, not a personal time clock.
  if(el('dstPersonalTimeGrid'))el('dstPersonalTimeGrid').style.display=adminOnly?'none':'';
- if(el('dstObjectBox'))el('dstObjectBox').style.display=adminOnly?'none':'';
  if(adminOnly){
   if(el('dstBookingActions'))el('dstBookingActions').replaceChildren();
   if(el('dstHistory'))el('dstHistory').replaceChildren();
