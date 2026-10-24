@@ -1,4 +1,4 @@
-/* Duschl Service · QR-Objektportal & Mitarbeiterzeiten · Release manifest v3.57.0
+/* Duschl Service · QR-Objektportal & Mitarbeiterzeiten · Release manifest v3.57.1
  * Vorhandene Bewohner-QR-Codes bleiben gültig (?meldung=...).
  * Employee time: append-only server-stamped records in Supabase.
  * GPS is taken only after a deliberate booking; precise coordinates are discarded by DB trigger.
@@ -991,12 +991,44 @@ function mountPersonnel(){
   }catch(e){el('dstAssignmentResult').textContent='Tourenvorlagen nicht geladen: '+e.message;}
  }
  el('dstAssignmentType').addEventListener('change',()=>void refreshPersonnelTourOptions());
- el('dstAssignPerson').onclick=async()=>{if(!roleAdmin())return;try{
-  const person=employeeId(),day=el('dstAssignmentDate').value;
-  if(!VALID_ID.test(person)||!day)throw Error('Mitarbeiter und Datum wählen');
-  await make('personnel_assignments_v1',{organization_id:org(),user_id:person,assignment_type:el('dstAssignmentType').value,assignment_date:day,reference_id:el('dstAssignmentTour').value||null,description:el('dstAssignmentDescription').value.trim()});
-  el('dstAssignmentResult').textContent='Einsatz zugewiesen.';
- }catch(e){el('dstAssignmentResult').textContent='Zuweisung nicht möglich: '+e.message}};
+ const checkPersonnelBeforeAssignment=async(person,day)=>{
+  // Authoritative RPC validates the current user's organization and confidential HR restrictions.
+  // Never infer availability from missing/denied RLS rows.
+  const outcome=await cloudRequest('rpc/personnel_check_assignment_v2',{
+   method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({p_org:org(),p_user:person,p_day:day})
+  });
+  if(outcome!==true)throw Error('Personalplanung: nicht verfügbar oder Prüfung nicht autorisiert.');
+  // Centralized assignment conflicts are tenant-scoped on the server.
+  const conflicts=await cloudRequest('rpc/personnel_assignment_conflicts_all_v1',{
+   method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({p_org:org(),p_from:day,p_to:day})
+  });
+  if(!Array.isArray(conflicts))throw Error('Konfliktauswertung nicht verfügbar.');
+  if(conflicts.some(c=>String(c.user_id||c.assigned_user_id||'')===person))
+   throw Error('Personalplanung: offener Einsatzkonflikt. Bitte zuerst im Personalmanagement klären.');
+  return true;
+ };
+ el('dstAssignPerson').onclick=async()=>{if(!roleAdmin())return;
+  const button=el('dstAssignPerson');if(button.disabled)return;button.disabled=true;
+  const contextOrg=org(),contextUser=uid();
+  try{
+   const person=employeeId(),day=el('dstAssignmentDate').value;
+   if(!VALID_ID.test(person)||!day)throw Error('Mitarbeiter und Datum wählen');
+   const message=el('dstAssignmentResult');
+   message.textContent='Personalverfügbarkeit und Einsatzkonflikte werden geprüft …';
+   await checkPersonnelBeforeAssignment(person,day);
+   if(contextOrg!==org()||contextUser!==uid())throw Error('Mandant oder Anmeldung während Prüfung gewechselt.');
+   await make('personnel_assignments_v1',{
+    organization_id:contextOrg,user_id:person,
+    assignment_type:el('dstAssignmentType').value,
+    assignment_date:day,reference_id:el('dstAssignmentTour').value||null,
+    description:el('dstAssignmentDescription').value.trim()
+   });
+   message.textContent='Einsatz zugewiesen – Personalprüfung erfolgreich.';
+  }catch(e){el('dstAssignmentResult').textContent='Zuweisung nicht möglich: '+e.message}
+  finally{button.disabled=false}
+ };
  el('dstAllAssignmentConflicts').onclick=async()=>{try{
   const from=new Date(),until=new Date(from);until.setDate(from.getDate()+30);
   const args={p_org:org(),p_from:from.toISOString().slice(0,10),p_to:until.toISOString().slice(0,10)};
