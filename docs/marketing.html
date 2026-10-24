@@ -30,7 +30,7 @@ input,select,button{font:inherit;padding:10px;border-radius:7px;border:1px solid
 <script type="module">
 import {createClient} from "https://esm.sh/@supabase/supabase-js@2.57.0";
 import QRCode from "https://esm.sh/qrcode@1.5.4";
-const sb=createClient("https://dherkuguwqffwyzaigag.supabase.co","sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk");
+const sb=createClient("https://dherkuguwqffwyzaigag.supabase.co","sb_publishable_acXolOKrUobf5wamZJLNmg_tw2_Egzk",{auth:{persistSession:false,autoRefreshToken:false}});
 const org="8260f0ba-cda8-4854-a453-f29904edf76b";
 const endpoint="https://dherkuguwqffwyzaigag.supabase.co/functions/v1/marketing-qr?c=";
 const el=id=>document.getElementById(id);
@@ -60,5 +60,20 @@ if(error){msg(error.message);return}e.target.reset();await refresh()};
 el("login").onsubmit=async e=>{e.preventDefault();const {error}=await sb.auth.signInWithPassword({email:el("email").value,password:el("password").value});if(error){msg("Anmeldung fehlgeschlagen");return}await boot()};
 el("logout").onclick=async()=>{await sb.auth.signOut();await boot()};
 async function boot(){const {data:{session}}=await sb.auth.getSession();el("auth").hidden=!!session;el("app").hidden=!session;el("logout").hidden=!session;if(session){const {data:allowed,error:permissionError}=await sb.from("marketing_campaigns").select("id").limit(1);if(permissionError || !allowed?.length){el("app").hidden=true;msg("Kein Zugriff: Das Marketingmodul ist nur für berechtigte Administratoren von Duschl Service freigegeben.");return;}await refresh();}else msg("")}
-await boot();
+// Same-origin host transfers its already authenticated Supabase session.
+if(window.parent!==window){
+ el("auth").hidden=true;
+ el("logout").hidden=true;
+ window.addEventListener("message",async event=>{
+  if(event.origin!==location.origin || event.source!==window.parent || event.data?.type!=="duschl-marketing-session")return;
+  const session=event.data.session;
+  if(!session?.access_token||!session?.refresh_token){el("app").hidden=true;return}
+  const {error}=await sb.auth.setSession({access_token:session.access_token,refresh_token:session.refresh_token});
+  if(error){msg("Sitzung konnte nicht übernommen werden: "+error.message);return}
+  await boot();
+  el("auth").hidden=true;
+  el("logout").hidden=true;
+ });
+ window.parent.postMessage({type:"duschl-marketing-ready"},location.origin);
+}else{await boot()}
 </script></body></html>
