@@ -11,10 +11,10 @@ input,select,button{font:inherit;padding:10px;border-radius:7px;border:1px solid
 #qrpreview svg{max-width:250px;height:auto}small,.muted{color:#526575}#message{min-height:1.5rem;color:#a02323}
 @media(max-width:720px){.grid{grid-template-columns:repeat(2,1fr)}main{padding:12px}.panel{padding:14px}h1{font-size:1.4rem}.form{display:grid;grid-template-columns:1fr}.form input,.form select,.form button{width:100%}.metric{padding:10px}.metric b{font-size:1.25rem}}
 </style></head>
-<body><main><header><div><h1>Marketing & QR-Codes</h1><p class="muted">Duschl Service · Kampagnensteuerung</p></div><button id="logout" class="secondary" hidden>Abmelden</button></header>
+<body><main><header><div><h1>Marketing & QR-Codes</h1><p class="muted">Duschl Service · Kampagnensteuerung</p></div><button id="logout" class="secondary" hidden>Marketing abmelden</button></header>
 <p id="message" role="status"></p>
 <section id="auth" class="panel"><h2>Anmeldung</h2><form id="login" class="form"><input type="email" id="email" placeholder="E-Mail" required autocomplete="username"><input type="password" id="password" placeholder="Passwort" required autocomplete="current-password"><button>Anmelden</button></form><small>Nur berechtigte Administratoren von Duschl Service.</small></section>
-<section id="app" hidden><nav class="panel" aria-label="Modulnavigation"><strong>Administration / Marketing &amp; QR-Codes</strong> · <a href="https://www.duschl-service.de/">Duschl Service Website</a></nav>
+<section id="app" hidden><nav class="panel" aria-label="Modulnavigation"><strong>Administration / Marketing &amp; QR-Codes</strong> · <a href="../">Zur Objektplattform</a> · <a href="https://www.duschl-service.de/">Duschl Service Website</a></nav>
 <div class="grid"><div class="metric">QR-Aufrufe<b id="scans">0</b></div><div class="metric">Anfragen<b id="leads">0</b></div><div class="metric">Aufträge<b id="wins">0</b></div><div class="metric">Auftragswert<b id="revenue">0 €</b></div></div>
 <div class="panel"><h2>Kampagne anlegen</h2><form id="create" class="form">
 <label>Bezeichnung<input name="name" required placeholder="Flyer Schwabing 01"></label>
@@ -93,6 +93,19 @@ if(error){msg(error.message);return}el("childPanel").hidden=true;e.currentTarget
 el("login").onsubmit=async e=>{e.preventDefault();const {error}=await sb.auth.signInWithPassword({email:el("email").value,password:el("password").value});if(error){msg("Anmeldung fehlgeschlagen");return}await boot()};
 el("logout").onclick=async()=>{await sb.auth.signOut();await boot()};
 async function boot(){const {data:{session}}=await sb.auth.getSession();el("auth").hidden=!!session;el("app").hidden=!session;el("logout").hidden=!session;if(session){const {data:allowed,error:permissionError}=await sb.from("marketing_campaigns").select("id").limit(1);if(permissionError || !allowed?.length){el("app").hidden=true;msg("Kein Zugriff: Das Marketingmodul ist nur für berechtigte Administratoren von Duschl Service freigegeben.");return;}await refresh();}else msg("")}
+// Standalone page shares the existing same-origin platform session without changing index.html.
+// Never refresh a near-expired main session from this module: doing so could rotate the refresh token.
+async function usePlatformSession(){
+ let stored=null;
+ try{stored=JSON.parse(localStorage.getItem("duschl_supabase_session_v1")||"null")}catch{}
+ if(!stored?.access_token||!stored?.refresh_token)return false;
+ const expiry=Number(stored.expires_at||0);
+ if(!expiry||expiry-Math.floor(Date.now()/1000)<180)return false;
+ const {error}=await sb.auth.setSession({access_token:stored.access_token,refresh_token:stored.refresh_token});
+ if(error){msg("Gespeicherte Plattform-Sitzung nicht verwendbar. Bitte erneut anmelden.");return false}
+ el("logout").hidden=true;
+ return true;
+}
 // Same-origin host transfers its already authenticated Supabase session.
 if(window.parent!==window){
  el("auth").hidden=true;
@@ -108,5 +121,5 @@ if(window.parent!==window){
   el("logout").hidden=true;
  });
  window.parent.postMessage({type:"duschl-marketing-ready"},location.origin);
-}else{await boot()}
+}else{await usePlatformSession();await boot();if((await sb.auth.getSession()).data.session)el("logout").hidden=true}
 </script></body></html>
