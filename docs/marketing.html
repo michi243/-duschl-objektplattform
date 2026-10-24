@@ -9,7 +9,7 @@ input,select,button{font:inherit;padding:10px;border-radius:7px;border:1px solid
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.metric{background:#eff4f8;border-radius:10px;padding:15px}.metric b{display:block;font-size:1.6rem}
 .form{display:flex;gap:10px;flex-wrap:wrap}.form label{display:flex;flex-direction:column;gap:4px}table{width:100%;border-collapse:collapse}th,td{padding:11px;text-align:left;border-bottom:1px solid #e3e9ef}th{font-size:.85rem}#tablewrap{overflow-x:auto}
 #qrpreview svg{max-width:250px;height:auto}small,.muted{color:#526575}#message{min-height:1.5rem;color:#a02323}
-@media(max-width:720px){.grid{grid-template-columns:repeat(2,1fr)}main{padding:12px}}
+@media(max-width:720px){.grid{grid-template-columns:repeat(2,1fr)}main{padding:12px}.panel{padding:14px}h1{font-size:1.4rem}.form{display:grid;grid-template-columns:1fr}.form input,.form select,.form button{width:100%}.metric{padding:10px}.metric b{font-size:1.25rem}}
 </style></head>
 <body><main><header><div><h1>Marketing & QR-Codes</h1><p class="muted">Duschl Service · Kampagnensteuerung</p></div><button id="logout" class="secondary" hidden>Abmelden</button></header>
 <p id="message" role="status"></p>
@@ -23,6 +23,18 @@ input,select,button{font:inherit;padding:10px;border-radius:7px;border:1px solid
 <label>Werbekosten (€)<input name="cost" type="number" min="0" step="0.01" value="0"></label>
 <label>Ziel-URL<input name="url" type="url" value="https://www.duschl-service.de/" required size="32"></label>
 <button>Kampagne speichern</button></form></div>
+<div class="panel" id="campaignEditPanel" hidden><h2>Kampagne bearbeiten</h2><form id="campaignEdit" class="form">
+<input type="hidden" name="id"><label>Name<input name="name" required></label><label>Beschreibung<input name="description"></label>
+<label>Ort / Platzierung<input name="placement"></label><label>Werbekanal<select name="channel"><option value="flyer">Flyer</option><option value="vehicle">Fahrzeug</option><option value="business_card">Visitenkarte</option><option value="object_sign">Objektschild</option><option value="trailer">Anhänger</option><option value="other">Sonstiges</option></select></label>
+<label>Grundkosten (€)<input type="number" min="0" step="0.01" name="cost" required></label><label>Zieladresse<input type="url" name="url" required size="34"></label>
+<button>Änderungen speichern</button><button type="button" class="secondary" id="closeCampaignEdit">Abbrechen</button></form><p class="muted">QR-Code und bisherige Ergebnisse bleiben erhalten.</p></div>
+<div class="panel" id="childPanel" hidden><h2>Teilaktion ergänzen</h2><form id="childForm" class="form"><input type="hidden" name="parent_id">
+<label>Aktion / Gebiet<input name="name" required placeholder="Schwabing · Frühjahr 2027"></label>
+<label>QR-Code Kennung<input name="code" pattern="[a-z0-9-]{3,48}" required placeholder="fly-schwabing-2027"></label>
+<label>Kosten (€)<input name="cost" type="number" min="0" step="0.01" value="0"></label>
+<label>Zieladresse<input type="url" name="url" required value="https://www.duschl-service.de/" size="34"></label>
+<button>Teilaktion anlegen</button><button type="button" class="secondary" id="closeChild">Abbrechen</button>
+</form><p class="muted">Jede Teilaktion besitzt einen eigenen dauerhaft gültigen QR-Code; die Auswertung bleibt getrennt.</p></div>
 <div class="panel"><h2>Anfrage / Auftrag erfassen</h2><form id="addLead" class="form"><label>Kampagne<select name="campaign_id" id="campaignOptions" required></select></label><label>Status<select name="lead_status"><option value="new">Neue Anfrage</option><option value="qualified">Qualifiziert</option><option value="won">Auftrag gewonnen</option><option value="lost">Verloren</option></select></label><label>Auftragswert (€)<input type="number" min="0" step=".01" name="order_value" value="0"></label><label>Deckungsbeitrag (€)<input type="number" step=".01" name="margin" placeholder="optional"></label><label>Notiz<input name="note" placeholder="Quelle / Referenz"></label><button>Anfrage speichern</button></form></div><div class="panel"><h2>Auswertung nach Werbemittel</h2><div id="tablewrap"><table><thead><tr><th>Kampagne</th><th>QR-Aufrufe</th><th>Anfragen</th><th>Aufträge</th><th>Auftragswert</th><th>Kosten</th><th>DB minus Werbung</th><th>Aktion</th></tr></thead><tbody id="rows"></tbody></table></div>
 <small>QR-Aufrufe sind Scans, keine eindeutigen Personen. DB minus Werbung setzt erfasste Deckungsbeiträge voraus.</small></div>
 <div class="panel"><h2>QR-Code exportieren</h2><p id="selected" class="muted">Kampagne in der Tabelle auswählen.</p><div id="qrpreview"></div><p><button id="download" hidden>SVG herunterladen</button></p><small>Vor dem Großdruck QR-Code auf mehreren Smartphones testen. Die Zieladresse ist nachträglich änderbar.</small><p><button type="button" id="editTarget" class="secondary" hidden>Zieladresse ändern</button></p></div>
@@ -35,20 +47,26 @@ const org="8260f0ba-cda8-4854-a453-f29904edf76b";
 const endpoint="https://dherkuguwqffwyzaigag.supabase.co/functions/v1/marketing-qr?c=";
 const el=id=>document.getElementById(id);
 const euro=n=>new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR"}).format(Number(n)||0);
-let chosen=null,svg="";
+let chosen=null,svg="",campaigns=new Map();
 function msg(s){el("message").textContent=s}
 function cell(tr,s){const td=document.createElement("td");td.textContent=s;tr.append(td);return td}
 async function refresh(){
- const {data,error}=await sb.rpc("marketing_campaign_report_v2",{p_org:org});
+ const {data,error}=await sb.rpc("marketing_campaign_report_v3",{p_org:org});
  if(error){msg("Datenzugriff fehlgeschlagen: "+error.message);return}
- msg("");const rows=data||[];
+ const detailResult=await sb.from("marketing_campaigns").select("id,name,description,code,channel,placement,active,cost_eur,target_url,parent_campaign_id").eq("organization_id",org);
+ if(detailResult.error){msg(detailResult.error.message);return}
+ campaigns=new Map((detailResult.data||[]).map(x=>[x.id,x]));msg("");const rows=data||[];
  el("scans").textContent=rows.reduce((n,x)=>n+Number(x.scan_count),0);
  el("leads").textContent=rows.reduce((n,x)=>n+Number(x.lead_count),0);
  el("wins").textContent=rows.reduce((n,x)=>n+Number(x.won_count),0);
  el("revenue").textContent=euro(rows.reduce((n,x)=>n+Number(x.order_value_eur),0));
  el("rows").replaceChildren();el("campaignOptions").replaceChildren();for(const x of rows){const op=document.createElement("option");op.value=x.id;op.textContent=x.name;el("campaignOptions").append(op)}
- for(const x of rows){const tr=document.createElement("tr");cell(tr,x.name);cell(tr,x.scan_count);cell(tr,x.lead_count);cell(tr,x.won_count);cell(tr,euro(x.order_value_eur));cell(tr,euro(x.cost_eur));cell(tr,euro(Number(x.contribution_margin_eur)-Number(x.cost_eur)));
- const td=document.createElement("td");const b=document.createElement("button");b.className="secondary";b.textContent="QR-Code";b.onclick=()=>selectQR(x);td.append(b);tr.append(td);el("rows").append(tr)}
+ for(const x of rows){const tr=document.createElement("tr");cell(tr,(campaigns.get(x.id)?.parent_campaign_id?"↳ ":"")+x.name);cell(tr,x.scan_count);cell(tr,x.lead_count);cell(tr,x.won_count);cell(tr,euro(x.order_value_eur));cell(tr,euro(Number(x.cost_eur)+Number(x.action_cost_eur)));cell(tr,euro(Number(x.contribution_margin_eur)-Number(x.cost_eur)-Number(x.action_cost_eur)));
+ const td=document.createElement("td");const b=document.createElement("button");b.className="secondary";b.textContent="QR-Code";b.onclick=()=>selectQR(x);td.append(b);
+ const edit=document.createElement("button");edit.className="secondary";edit.textContent="Bearbeiten";edit.style.margin="4px";edit.onclick=()=>openCampaignEditor(x.id);td.append(edit);
+ const toggle=document.createElement("button");toggle.className="secondary";toggle.textContent=x.active?"Pausieren":"Fortführen";toggle.style.margin="4px";toggle.onclick=()=>toggleCampaign(x.id,!x.active);td.append(toggle);
+ if(!campaigns.get(x.id)?.parent_campaign_id){const child=document.createElement("button");child.className="secondary";child.textContent="Neue Teilaktion";child.style.margin="4px";child.onclick=()=>openChildEditor(x.id);td.append(child)}
+ tr.append(td);el("rows").append(tr)}
 }
 async function selectQR(x){chosen=x;el("selected").textContent=x.name+" · "+endpoint+x.code;svg=await QRCode.toString(endpoint+x.code,{type:"svg",width:640,margin:4,errorCorrectionLevel:"H"});el("qrpreview").innerHTML=svg;el("download").hidden=false;el("editTarget").hidden=false}
 el("editTarget").onclick=async()=>{if(!chosen)return;const current=await sb.from("marketing_campaigns").select("target_url").eq("id",chosen.id).single();if(current.error){msg(current.error.message);return}const proposed=prompt("Neue Zieladresse (HTTPS, duschl-service.de):",current.data.target_url);if(proposed===null)return;let target;try{target=new URL(proposed)}catch{msg("Ungültige URL");return}if(target.protocol!=="https:"||!["www.duschl-service.de","duschl-service.de"].includes(target.hostname)){msg("Nur HTTPS-Adressen unter duschl-service.de zulässig.");return}const {error}=await sb.from("marketing_campaigns").update({target_url:target.toString()}).eq("id",chosen.id);if(error){msg(error.message);return}msg("Zieladresse aktualisiert. QR-Code bleibt unverändert.")};
@@ -57,6 +75,21 @@ el("addLead").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.targe
 el("create").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);const url=String(f.get("url"));const parsed=new URL(url);if(parsed.protocol!=="https:"||!["duschl-service.de","www.duschl-service.de"].includes(parsed.hostname)){msg("Nur HTTPS-Adressen von duschl-service.de sind erlaubt.");return}
 const {error}=await sb.from("marketing_campaigns").insert({organization_id:org,name:f.get("name"),channel:f.get("channel"),code:f.get("code"),cost_eur:Number(f.get("cost")),target_url:url});
 if(error){msg(error.message);return}e.target.reset();await refresh()};
+
+function setField(form,key,value){const item=form.elements.namedItem(key);if(item)item.value=value??""}
+function validUrl(raw){try{const u=new URL(raw);return u.protocol==="https:"&&["duschl-service.de","www.duschl-service.de"].includes(u.hostname)}catch{return false}}
+function openCampaignEditor(id){const c=campaigns.get(id);if(!c)return;const form=el("campaignEdit");for(const key of ["id","name","description","placement","channel"])setField(form,key,c[key]);setField(form,"cost",c.cost_eur);setField(form,"url",c.target_url);el("campaignEditPanel").hidden=false;el("campaignEditPanel").scrollIntoView({behavior:"smooth"})}
+function openChildEditor(id){const c=campaigns.get(id);if(!c)return;setField(el("childForm"),"parent_id",id);setField(el("childForm"),"url",c.target_url);el("childPanel").hidden=false;el("childPanel").scrollIntoView({behavior:"smooth"})}
+el("closeCampaignEdit").onclick=()=>el("campaignEditPanel").hidden=true;
+el("closeChild").onclick=()=>el("childPanel").hidden=true;
+el("campaignEdit").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget);const url=String(f.get("url"));if(!validUrl(url)){msg("Zieladresse muss HTTPS auf duschl-service.de verwenden.");return}
+const {error}=await sb.from("marketing_campaigns").update({name:String(f.get("name")),description:String(f.get("description")),placement:String(f.get("placement")),channel:String(f.get("channel")),cost_eur:Number(f.get("cost")),target_url:url,updated_at:new Date().toISOString()}).eq("id",String(f.get("id"))).eq("organization_id",org);
+if(error){msg(error.message);return}el("campaignEditPanel").hidden=true;await refresh();msg("Kampagne aktualisiert. Bestehende QR-Codes bleiben gültig.")};
+async function toggleCampaign(id,active){const {error}=await sb.from("marketing_campaigns").update({active,updated_at:new Date().toISOString()}).eq("id",id).eq("organization_id",org);if(error){msg(error.message);return}await refresh();msg(active?"Kampagne fortgeführt.":"Kampagne pausiert. QR-Code bleibt bestehen; pausierte QR-Aufrufe leiten auf die Startseite.") }
+el("childForm").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget);const parent=campaigns.get(String(f.get("parent_id")));const url=String(f.get("url"));if(!parent||parent.parent_campaign_id){msg("Ungültige Hauptkampagne.");return}if(!validUrl(url)){msg("Zieladresse muss HTTPS auf duschl-service.de verwenden.");return}
+const {error}=await sb.from("marketing_campaigns").insert({organization_id:org,parent_campaign_id:parent.id,name:String(f.get("name")),code:String(f.get("code")),channel:parent.channel,placement:String(f.get("name")),cost_eur:Number(f.get("cost")),target_url:url});
+if(error){msg(error.message);return}el("childPanel").hidden=true;e.currentTarget.reset();await refresh();msg("Teilaktion mit eigenem QR-Code angelegt.")};
+
 el("login").onsubmit=async e=>{e.preventDefault();const {error}=await sb.auth.signInWithPassword({email:el("email").value,password:el("password").value});if(error){msg("Anmeldung fehlgeschlagen");return}await boot()};
 el("logout").onclick=async()=>{await sb.auth.signOut();await boot()};
 async function boot(){const {data:{session}}=await sb.auth.getSession();el("auth").hidden=!!session;el("app").hidden=!session;el("logout").hidden=!session;if(session){const {data:allowed,error:permissionError}=await sb.from("marketing_campaigns").select("id").limit(1);if(permissionError || !allowed?.length){el("app").hidden=true;msg("Kein Zugriff: Das Marketingmodul ist nur für berechtigte Administratoren von Duschl Service freigegeben.");return;}await refresh();}else msg("")}
