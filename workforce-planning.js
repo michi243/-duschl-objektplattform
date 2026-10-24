@@ -33,7 +33,7 @@ function assessAssignment(input){
   if(withHours?overlaps(start,end,s,e):(Number.isFinite(s)&&Number.isFinite(e)&&s<Date.parse(date+'T23:59:59')&&e>Date.parse(date+'T00:00:00')))
    {issues.push({code:'UNAVAILABLE',severity:'block'});break}
  }
- const booked=select('existingAssignments').filter(a=>a.status!=='cancelled'&&a.status!=='canceled'&&a.id!==input.assignmentId&&a.assignment_date===date);
+ const booked=select('existingAssignments').filter(a=>a.status!=='cancelled'&&a.status!=='canceled'&&(!input.assignmentId||a.id!==input.assignmentId)&&a.assignment_date===date);
  if(booked.some(a=>withHours&&overlaps(start,end,dayTime(date,a.starts_at||a.start_time),dayTime(date,a.ends_at||a.end_time))))
    issues.push({code:'TIME_CONFLICT',severity:'block'});
  else if(booked.length)issues.push({code:'SAME_DAY_ASSIGNMENT_REVIEW',severity:'warning'});

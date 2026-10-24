@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const ui=fs.readFileSync(require.resolve('../resource-personnel-link.js'),'utf8');
+new vm.Script(ui,{filename:'resource-personnel-link.js'});
+assert.match(ui,/personnel_week_capacity_status_v1/);
+assert.match(ui,/org!==currentOrganizationId\(\)/);
+assert.match(ui,/textContent=/);
+assert.match(ui,/not_configured/);
+const hr=fs.readFileSync(require.resolve('../employee-time.js'),'utf8');
+new vm.Script(hr,{filename:'employee-time.js'});
+assert.match(hr,/resource-personnel-link\.js\?v=3\.57\.15/);
+assert.match(hr,/Release manifest v3\.57\.15/);
+console.log('Resource-personnel integration syntax and smoke tests passed');
