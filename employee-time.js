@@ -22,6 +22,7 @@ const roleTime=()=>{
  // Administration grants read/review privileges, never personal time booking.
  // Only an explicitly enabled operative membership may create time events.
  if(!eligibleTimeRole())return false;
+ if(isPlatformOperatorRole())return false;
  const operative=['object_manager','staff','employee','external_contractor'];
  if(!operative.includes(String(effectiveOrganizationRole()||'')))return false;
  return state.permission.key===org()+':'+uid() && state.permission.enabled===true;
