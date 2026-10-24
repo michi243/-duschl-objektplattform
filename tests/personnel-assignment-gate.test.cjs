@@ -8,5 +8,5 @@ assert.match(source,/rpc\/personnel_check_assignment_v2/);
 assert.match(source,/rpc\/personnel_assignment_conflicts_all_v1/);
 assert.match(source,/contextOrg!==org\(\)\|\|contextUser!==uid\(\)/);
 assert.match(source,/button\.disabled=true/);
-assert.match(source,/Release manifest v3\.57\.15/);
+assert.match(source,/Release manifest v3\.57\.16/);
 console.log('Employee scheduling integration static checks passed');
