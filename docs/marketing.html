@@ -92,7 +92,7 @@ td{color:#f1f6fa}
 </form><p class="muted">Jede Teilaktion besitzt einen eigenen dauerhaft gültigen QR-Code; die Auswertung bleibt getrennt.</p></div>
 <div class="panel"><h2>Anfrage / Auftrag erfassen</h2><form id="addLead" class="form"><label>Kampagne<select name="campaign_id" id="campaignOptions" required></select></label><label>Status<select name="lead_status"><option value="new">Neue Anfrage</option><option value="qualified">Qualifiziert</option><option value="won">Auftrag gewonnen</option><option value="lost">Verloren</option></select></label><label>Auftragswert (€)<input type="number" min="0" step=".01" name="order_value" value="0"></label><label>Deckungsbeitrag (€)<input type="number" step=".01" name="margin" placeholder="optional"></label><label>Notiz<input name="note" placeholder="Quelle / Referenz"></label><button>Anfrage speichern</button></form></div><div class="panel"><h2>Auswertung nach Werbemittel</h2><p class="muted">Kampagnen, Ergebnisse und Aktionen auf einen Blick.</p><div id="tablewrap"><table><thead><tr><th>Kampagne</th><th>QR-Aufrufe</th><th>Anfragen</th><th>Aufträge</th><th>Auftragswert</th><th>Kosten</th><th>DB minus Werbung</th><th>Aktion</th></tr></thead><tbody id="rows"></tbody></table></div>
 <small>QR-Aufrufe sind Scans, keine eindeutigen Personen. DB minus Werbung setzt erfasste Deckungsbeiträge voraus.</small></div>
-<div class="panel"><h2>QR-Code exportieren</h2><p id="selected" class="muted">Kampagne in der Tabelle auswählen.</p><div id="qrpreview"></div><p><button id="download" hidden>SVG herunterladen</button></p><small>Vor dem Großdruck QR-Code auf mehreren Smartphones testen. Die Zieladresse ist nachträglich änderbar.</small><p><button type="button" id="editTarget" class="secondary" hidden>Zieladresse ändern</button></p></div>
+<div class="panel"><h2>QR-Code exportieren</h2><p id="selected" class="muted">Kampagne in der Tabelle auswählen.</p><div id="qrpreview"></div><p><button id="download" hidden>PNG herunterladen</button></p><small>PNG-Export mit 1200 × 1200 Pixeln. Vor dem Druck QR-Code auf mehreren Smartphones testen. Die Zieladresse ist nachträglich änderbar.</small><p><button type="button" id="editTarget" class="secondary" hidden>Zieladresse ändern</button></p></div>
 </section></main>
 <script type="module">
 import {createClient} from "https://esm.sh/@supabase/supabase-js@2.57.0";
@@ -128,7 +128,17 @@ async function refresh(){
 }
 async function selectQR(x){chosen=x;el("selected").textContent=x.name+" · "+endpoint+x.code;svg=await QRCode.toString(endpoint+x.code,{type:"svg",width:640,margin:4,errorCorrectionLevel:"H"});el("qrpreview").innerHTML=svg;el("download").hidden=false;el("editTarget").hidden=false}
 el("editTarget").onclick=async()=>{if(!chosen)return;const current=await sb.from("marketing_campaigns").select("target_url").eq("id",chosen.id).single();if(current.error){msg(current.error.message);return}const proposed=prompt("Neue Zieladresse (HTTPS, duschl-service.de):",current.data.target_url);if(proposed===null)return;let target;try{target=new URL(proposed)}catch{msg("Ungültige URL");return}if(target.protocol!=="https:"||!["www.duschl-service.de","duschl-service.de"].includes(target.hostname)){msg("Nur HTTPS-Adressen unter duschl-service.de zulässig.");return}const {error}=await sb.from("marketing_campaigns").update({target_url:target.toString()}).eq("id",chosen.id);if(error){msg(error.message);return}msg("Zieladresse aktualisiert. QR-Code bleibt unverändert.")};
-el("download").onclick=()=>{if(!chosen)return;const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml"}));a.download="duschl-service-"+chosen.code+".svg";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+el("download").onclick=async()=>{if(!chosen)return;try{
+ const url=endpoint+encodeURIComponent(chosen.code);
+ const canvas=document.createElement("canvas");canvas.width=1200;canvas.height=1200;
+ await QRCode.toCanvas(canvas,url,{width:1200,margin:4,errorCorrectionLevel:"H",color:{dark:"#000000",light:"#FFFFFF"}});
+ const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/png"));
+ if(!blob)throw new Error("PNG-Konvertierung fehlgeschlagen");
+ const objectUrl=URL.createObjectURL(blob);const a=document.createElement("a");
+ a.href=objectUrl;a.download="duschl-service-"+chosen.code+".png";
+ document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(objectUrl),10000);
+ }catch(error){msg("PNG-Export fehlgeschlagen: "+error.message)}
+};
 el("addLead").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);const raw=String(f.get("margin")||"").trim();const {error}=await sb.from("marketing_leads").insert({organization_id:org,campaign_id:f.get("campaign_id"),lead_status:f.get("lead_status"),order_value_eur:Number(f.get("order_value")||0),contribution_margin_eur:raw===""?null:Number(raw),source_note:String(f.get("note")||"")});if(error){msg(error.message);return}e.target.reset();await refresh()};
 el("create").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);const url=String(f.get("url"));const parsed=new URL(url);if(parsed.protocol!=="https:"||!["duschl-service.de","www.duschl-service.de"].includes(parsed.hostname)){msg("Nur HTTPS-Adressen von duschl-service.de sind erlaubt.");return}
 const {error}=await sb.from("marketing_campaigns").insert({organization_id:org,name:f.get("name"),channel:f.get("channel"),code:f.get("code"),cost_eur:Number(f.get("cost")),target_url:url});
