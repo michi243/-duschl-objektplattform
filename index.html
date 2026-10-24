@@ -7837,7 +7837,7 @@ Ihr Name und Ihre freiwillig angegebene E-Mail-Adresse werden mit der bereits be
 <button id="navPartnerDirectory" onclick="showSection('partnerDirectory')"><span class="nav-icon">⌘</span><span>Partnerverzeichnis</span></button>
 <button id="navOrganizations" onclick="showSection('organizations')"><span class="nav-icon">▣</span><span>Unternehmen / Mandanten</span></button>
 <button id="navUsers" onclick="showSection('users')"><span class="nav-icon">♙</span><span>Benutzer &amp; Berechtigungen</span></button>
-<button id="navMarketingQr" type="button" class="hidden" onclick="window.open('./docs/marketing.html','_blank','noopener')"><span class="nav-icon">▦</span><span>Marketing &amp; QR-Codes</span></button>
+<button id="navMarketingQr" type="button" class="hidden" onclick="window.dsOpenMarketingDashboard()"><span class="nav-icon">▦</span><span>Marketing &amp; QR-Codes</span></button>
 <button id="navPersonnel" type="button" onclick="window.dsOpenPersonnelFromMenu()" class="hidden"><span class="nav-icon">♧</span><span>Personalmanagement</span></button>
 <button id="navResourcePlanning" onclick="showSection('resourcePlanning')"><span class="nav-icon">▥</span><span>Ressourcenplanung</span></button>
 <button id="navSettings" onclick="showSection('settings')"><span class="nav-icon">⚙</span><span>Einstellungen</span></button>
@@ -7861,6 +7861,7 @@ Ihr Name und Ihre freiwillig angegebene E-Mail-Adresse werden mit der bereits be
   </div>
   <button type="button" onclick="exitPlatformTenantMode()">Mandantenmodus verlassen</button>
 </div>
+<section class="section" id="marketingDashboard"><div class="card" style="margin:12px 0 20px;padding:14px"><h2 style="margin:0 0 10px">Marketing &amp; QR-Codes</h2><p class="muted">Kampagnenverwaltung und QR-Tracking – Duschl Service</p><iframe id="dsMarketingFrame" title="Marketing & QR-Codes" loading="lazy" referrerpolicy="same-origin" style="width:100%;min-height:82vh;border:0;border-radius:12px;background:#f5f7fa"></iframe></div></section>
 <section class="section active" id="dashboard">
 <div id="platformAdminDashboard" style="display:none">
   <div class="pa-dashboard-head">
@@ -22475,7 +22476,35 @@ function orExportInventoryExcel(){
 function orInventoryPrintHtml(){
   const data=orInventoryExportData(); if(!data.length)return '';
   const headers=Object.keys(data[0]);
-  return `<!doctype html><html><head><meta charset="utf-8"><title>Inventarliste</title><style>body{font-family:Arial,sans-serif;color:#111;padding:24px}h1{font-size:22px;margin:0 0 4px}.meta{color:#555;font-size:11px;margin-bottom:14px}table{width:100%;border-collapse:collapse;font-size:9px}th,td{border:1px solid #bbb;padding:4px;vertical-align:top}th{background:#eee;text-align:left}tr:nth-child(even){background:#fafafa}@page{size:A4 landscape;margin:9mm}</style></head><body><h1>Duschl Service · Inventarliste</h1><div class="meta">Stand ${new Date().toLocaleString('de-DE')} · ${data.length} Positionen</div><table><thead><tr>${headers.map(h=>`<th>${orXmlEsc(h)}</th>`).join('')}</tr></thead><tbody>${data.map(r=>`<tr>${headers.map(h=>`<td>${orXmlEsc(r[h])}</td>`).join('')}</tr>`).join('')}</tbody></table></body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Inventarliste</title><style>body{font-family:Arial,sans-serif;color:#111;padding:24px}h1{font-size:22px;margin:0 0 4px}.meta{color:#555;font-size:11px;margin-bottom:14px}table{width:100%;border-collapse:collapse;font-size:9px}th,td{border:1px solid #bbb;padding:4px;vertical-align:top}th{background:#eee;text-align:left}tr:nth-child(even){background:#fafafa}@page{size:A4 landscape;margin:9mm}</style></head><body><h1>Duschl Service · Inventarliste</h1><div class="meta">Stand ${new Date().toLocaleString('de-DE')} · ${data.length} Positionen</div><table><thead><tr>${headers.map(h=>`<th>${orXmlEsc(h)}</th>`).join('')}</tr></thead><tbody>${data.map(r=>`<tr>${headers.map(h=>`<td>${orXmlEsc(r[h])}</td>`).join('')}</tr>`).join('')}</tbody></table><script id="ds-marketing-single-sign-on">
+window.dsMarketingAuthorized=function(){
+ const orgId='8260f0ba-cda8-4854-a453-f29904edf76b';
+ return (typeof isAdminRole==='function' && isAdminRole()) ||
+ (typeof currentOrganizationId==='function' && String(currentOrganizationId()||'')===orgId &&
+ ((typeof isTenantAdminRole==='function'&&isTenantAdminRole())||(typeof isAdminDelegate==='function'&&isAdminDelegate())));
+};
+window.dsSendMarketingSession=async function(){
+ const frame=document.getElementById('dsMarketingFrame');
+ if(!frame?.contentWindow||!window.dsMarketingAuthorized())return;
+ if(typeof cloudEnsureFreshSession==='function' && !(await cloudEnsureFreshSession()))return;
+ if(!cloudSession?.access_token || !cloudSession?.refresh_token)return;
+ frame.contentWindow.postMessage({type:'duschl-marketing-session',session:{access_token:cloudSession.access_token,refresh_token:cloudSession.refresh_token}},location.origin);
+};
+window.addEventListener('message',event=>{
+ const frame=document.getElementById('dsMarketingFrame');
+ if(event.origin!==location.origin||event.source!==frame?.contentWindow||event.data?.type!=='duschl-marketing-ready')return;
+ window.dsSendMarketingSession();
+});
+window.dsOpenMarketingDashboard=function(){
+ if(!window.dsMarketingAuthorized())return alert('Marketing nur für berechtigte Duschl Service Administratoren.');
+ if(typeof showSection==='function')showSection('marketingDashboard');
+ const frame=document.getElementById('dsMarketingFrame');
+ if(!frame)return;
+ if(!frame.getAttribute('src'))frame.setAttribute('src','./docs/marketing.html');
+ else window.dsSendMarketingSession();
+};
+</script>
+</body></html>`;
 }
 function orExportInventoryPdf(){
   const html=orInventoryPrintHtml(); if(!html)return alert('Für diese Filter gibt es keine Inventardaten.');
