@@ -10,6 +10,6 @@ assert.match(ui,/textContent=/);
 assert.match(ui,/not_configured/);
 const hr=fs.readFileSync(require.resolve('../employee-time.js'),'utf8');
 new vm.Script(hr,{filename:'employee-time.js'});
-assert.match(hr,/resource-personnel-link\.js\?v=3\.57\.15/);
-assert.match(hr,/Release manifest v3\.57\.15/);
+assert.match(hr,/resource-personnel-link\.js\?v=3\.57\.16/);
+assert.match(hr,/Release manifest v3\.57\.16/);
 console.log('Resource-personnel integration syntax and smoke tests passed');

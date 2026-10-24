@@ -33,15 +33,15 @@ jobs:
           node --check employee-time.js
           node --check resource-personnel-link.js
           node --check workforce-planning.js
-          node --test tests/workforce-planning.test.cjs tests/personnel-assignment-gate.test.cjs tests/resource-personnel-link.test.cjs
+          node --test tests/workforce-planning.test.cjs tests/personnel-assignment-gate.test.cjs tests/resource-personnel-link.test.cjs tests/platform-admin-time-role.test.cjs
       - name: Central release and cache key
         run: |
           node - <<'NODE'
           const fs=require('fs'), assert=require('assert/strict');
           const index=fs.readFileSync('index.html','utf8');
           const manifest=JSON.parse(fs.readFileSync('release.json','utf8'));
-          assert.equal(manifest.version,'3.57.15');
-          assert.match(index,/let APP_VERSION='3\.57\.15'/);
-          assert.match(index,/employee-time\.js\?v=3\.57\.15/);
+          assert.equal(manifest.version,'3.57.16');
+          assert.match(index,/let APP_VERSION='3\.57\.16'/);
+          assert.match(index,/employee-time\.js\?v=3\.57\.16/);
           assert.equal(manifest.channel,'development');
           NODE
