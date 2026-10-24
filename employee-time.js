@@ -1,4 +1,4 @@
-/* Duschl Service · QR-Objektportal & Mitarbeiterzeiten · Release manifest v3.57.1
+/* Duschl Service · QR-Objektportal & Mitarbeiterzeiten · Release manifest v3.57.15
  * Vorhandene Bewohner-QR-Codes bleiben gültig (?meldung=...).
  * Employee time: append-only server-stamped records in Supabase.
  * GPS is taken only after a deliberate booking; precise coordinates are discarded by DB trigger.
@@ -1390,4 +1390,16 @@ installAdminTimePermissionEditor();
 navSync();
 setInterval(navSync,1800);
 setInterval(()=>{if(document.visibilityState==='visible'&&el('dsTimeHub')?.classList.contains('active')&&roleTime()&&!state.busy)void loadRows();},30000);
+// Load resource-planning HR integration from the already-included personnel module.
+// A failure here must not interrupt the existing time/HR modules.
+try{
+ if(!document.querySelector('script[data-ds-personnel-resource]')){
+  const integration=document.createElement('script');
+  integration.src='./resource-personnel-link.js?v=3.57.15';
+  integration.defer=true;
+  integration.dataset.dsPersonnelResource='v3.57.15';
+  integration.onerror=()=>console.warn('Personal-Ressourcen-Schnittstelle nicht geladen');
+  document.head.appendChild(integration);
+ }
+}catch(e){console.warn('Personal-Ressourcen-Schnittstelle nicht initialisiert',e)}
 })();
