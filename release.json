@@ -1,10 +1,13 @@
 {
-  "version": "3.57.14",
-  "release_date": "2026-10-22",
+  "version": "3.57.15",
+  "release_date": "2026-10-24",
   "channel": "development",
   "status": "testbetrieb",
   "scope": "Objektplattform einschließlich Personalmanagement",
   "notes": [
+    "Ressourcenplanung: neue datensparsame Wochenübersicht aus Personalmanagement (Abwesenheiten, Arbeitszeitmuster, Status).",
+    "Personalzuweisung: serverseitige Prüfungen auf aktives Beschäftigungsverhältnis, genehmigte Abwesenheiten, Sperrzeiten und doppelte Tourreferenzen.",
+    "Technische Integration im Testbetrieb: Produktivfreigabe erst nach Browser- und Mandanten-Q-Gate.",
     "Urlaubskonto: beantragten noch offenen Urlaub und genehmigten zukünftigen Urlaub getrennt vom gebuchten Saldo darstellen, vorläufige Werktage (Mo–Fr) kennzeichnen.",
     "Objektbetreuer-Dashboard: Berichte, Meldungen, Arbeitsvorrat und Dokumentation einheitlich ausgerichtet (Symbol links, Text mittig, Zähler rechts, Pfeil außen rechts).",
     "Objektbetreuer-Dashboard: Meldungen wieder als eigene Kachel unter Deine Aufgaben sichtbar; Anzahl neu/ungeprüfter Meldungen und direkter Einstieg in die Meldungsliste.",
