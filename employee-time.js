@@ -1,4 +1,4 @@
-/* Duschl Service · QR-Objektportal & Mitarbeiterzeiten · Release manifest v3.57.15
+/* Duschl Service · QR-Objektportal & Mitarbeiterzeiten · Release manifest v3.57.16
  * Vorhandene Bewohner-QR-Codes bleiben gültig (?meldung=...).
  * Employee time: append-only server-stamped records in Supabase.
  * GPS is taken only after a deliberate booking; precise coordinates are discarded by DB trigger.
@@ -19,8 +19,11 @@ const eligibleTimeRole=()=>{
  }catch(_){return false;}
 };
 const roleTime=()=>{
+ // Administration grants read/review privileges, never personal time booking.
+ // Only an explicitly enabled operative membership may create time events.
  if(!eligibleTimeRole())return false;
- if(roleAdmin())return true;
+ const operative=['object_manager','staff','employee','external_contractor'];
+ if(!operative.includes(String(effectiveOrganizationRole()||'')))return false;
  return state.permission.key===org()+':'+uid() && state.permission.enabled===true;
 };
 const roleAdmin=()=>{try{return hasOperationalAdminAccess()}catch(_){return false}};
@@ -135,7 +138,7 @@ function mount(){
     <div id="dstObjectContents"></div>
     <div id="dstObjectActions" class="dst-context-actions"></div>
   </div>
-  <div class="dst-grid">
+  <div class="dst-grid" id="dstPersonalTimeGrid">
    <div class="dst-box">
     <h3>Meine Arbeitszeit</h3><div id="dstMyStatus" class="dst-muted">Wird geladen …</div>
     <div class="dst-actions" id="dstBookingActions"></div>
@@ -432,6 +435,14 @@ function getStatus(rows){
  return {latest,shiftOpen,objectOpen,objectId:objectOpen?v.object_id:'',breakOpen};
 }
 function render(){
+ const adminOnly=roleAdmin()&&!roleTime();
+ // Administrators receive a team management view, not a personal time clock.
+ if(el('dstPersonalTimeGrid'))el('dstPersonalTimeGrid').style.display=adminOnly?'none':'';
+ if(el('dstObjectBox'))el('dstObjectBox').style.display=adminOnly?'none':'';
+ if(adminOnly){
+  if(el('dstBookingActions'))el('dstBookingActions').replaceChildren();
+  if(el('dstHistory'))el('dstHistory').replaceChildren();
+ }
  const exportBtn=el('dstExport');
  if(exportBtn)exportBtn.textContent=state.isTest?'Testbuchungen als CSV (nicht abrechnen)':'Produktivbuchungen als CSV (nur geprüfte)';
  const select=el('dstModeSelect'),banner=el('dstModeBanner');
@@ -1395,9 +1406,9 @@ setInterval(()=>{if(document.visibilityState==='visible'&&el('dsTimeHub')?.class
 try{
  if(!document.querySelector('script[data-ds-personnel-resource]')){
   const integration=document.createElement('script');
-  integration.src='./resource-personnel-link.js?v=3.57.15';
+  integration.src='./resource-personnel-link.js?v=3.57.16';
   integration.defer=true;
-  integration.dataset.dsPersonnelResource='v3.57.15';
+  integration.dataset.dsPersonnelResource='v3.57.16';
   integration.onerror=()=>console.warn('Personal-Ressourcen-Schnittstelle nicht geladen');
   document.head.appendChild(integration);
  }
