@@ -44,6 +44,27 @@ td{color:#f1f6fa}
 #qrpreview svg{display:block}
 [hidden]{display:none!important}
 @media(max-width:720px){main{padding:10px 12px 32px}header{padding:15px}header h1{font-size:1.45rem}.panel{padding:16px;border-radius:14px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{padding:14px}.metric b{font-size:1.55rem}.form{display:grid;grid-template-columns:minmax(0,1fr)}.form label,.form input,.form select,.form button{width:100%;min-width:0}#tablewrap{margin:0 -2px}}
+
+/* Responsive results: avoid huge cells and horizontal clipping on phones */
+#rows td{vertical-align:middle;line-height:1.35}
+#rows td:last-child{min-width:185px}
+#rows td:last-child button{margin:3px!important;min-height:36px;padding:8px 10px;font-size:.85rem}
+#tablewrap table{table-layout:auto}
+@media(max-width:800px){
+ #tablewrap{border:0;overflow:visible;margin:0}
+ #tablewrap table,#tablewrap tbody{display:block;width:100%}
+ #tablewrap thead{display:none}
+ #tablewrap tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;background:#102b3c;border:1px solid #395568;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 5px 16px rgba(0,0,0,.12)}
+ #tablewrap td{display:flex;flex-direction:column;justify-content:flex-start;gap:5px;min-width:0!important;border:0;padding:9px 5px;color:#f0f6fa;overflow-wrap:anywhere;font-size:.97rem}
+ #tablewrap td::before{content:attr(data-label);display:block;font-size:.73rem;font-weight:700;color:#9eb6c6;line-height:1.25}
+ #tablewrap td:first-child{grid-column:1/-1;font-size:1.1rem;font-weight:780;border-bottom:1px solid #395568;padding:5px 5px 13px;margin-bottom:7px}
+ #tablewrap td:first-child::before{display:none}
+ #tablewrap td:nth-child(5),#tablewrap td:nth-child(6),#tablewrap td:nth-child(7){border-top:1px solid #2b4557;margin-top:6px;padding-top:13px}
+ #tablewrap td:nth-child(8){grid-column:1/-1;display:flex;flex-direction:row;flex-wrap:wrap;gap:6px;border-top:1px solid #395568;margin-top:6px;padding-top:13px}
+ #tablewrap td:nth-child(8)::before{flex-basis:100%;margin-bottom:1px}
+ #tablewrap td:nth-child(8) button{margin:0!important;min-height:38px;flex:1 1 125px;white-space:normal}
+}
+@media(max-width:350px){#tablewrap tr{grid-template-columns:repeat(2,minmax(0,1fr))}#tablewrap td:nth-child(7){grid-column:1/-1}}
 </style></head>
 <body><main><header><div><h1>Marketing & QR-Codes</h1><p class="muted">Duschl Service · Kampagnensteuerung</p></div><button id="logout" class="secondary" hidden>Marketing abmelden</button></header>
 <p id="message" role="status"></p>
@@ -69,7 +90,7 @@ td{color:#f1f6fa}
 <label>Zieladresse<input type="url" name="url" required value="https://www.duschl-service.de/" size="34"></label>
 <button>Teilaktion anlegen</button><button type="button" class="secondary" id="closeChild">Abbrechen</button>
 </form><p class="muted">Jede Teilaktion besitzt einen eigenen dauerhaft gültigen QR-Code; die Auswertung bleibt getrennt.</p></div>
-<div class="panel"><h2>Anfrage / Auftrag erfassen</h2><form id="addLead" class="form"><label>Kampagne<select name="campaign_id" id="campaignOptions" required></select></label><label>Status<select name="lead_status"><option value="new">Neue Anfrage</option><option value="qualified">Qualifiziert</option><option value="won">Auftrag gewonnen</option><option value="lost">Verloren</option></select></label><label>Auftragswert (€)<input type="number" min="0" step=".01" name="order_value" value="0"></label><label>Deckungsbeitrag (€)<input type="number" step=".01" name="margin" placeholder="optional"></label><label>Notiz<input name="note" placeholder="Quelle / Referenz"></label><button>Anfrage speichern</button></form></div><div class="panel"><h2>Auswertung nach Werbemittel</h2><div id="tablewrap"><table><thead><tr><th>Kampagne</th><th>QR-Aufrufe</th><th>Anfragen</th><th>Aufträge</th><th>Auftragswert</th><th>Kosten</th><th>DB minus Werbung</th><th>Aktion</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="panel"><h2>Anfrage / Auftrag erfassen</h2><form id="addLead" class="form"><label>Kampagne<select name="campaign_id" id="campaignOptions" required></select></label><label>Status<select name="lead_status"><option value="new">Neue Anfrage</option><option value="qualified">Qualifiziert</option><option value="won">Auftrag gewonnen</option><option value="lost">Verloren</option></select></label><label>Auftragswert (€)<input type="number" min="0" step=".01" name="order_value" value="0"></label><label>Deckungsbeitrag (€)<input type="number" step=".01" name="margin" placeholder="optional"></label><label>Notiz<input name="note" placeholder="Quelle / Referenz"></label><button>Anfrage speichern</button></form></div><div class="panel"><h2>Auswertung nach Werbemittel</h2><p class="muted">Kampagnen, Ergebnisse und Aktionen auf einen Blick.</p><div id="tablewrap"><table><thead><tr><th>Kampagne</th><th>QR-Aufrufe</th><th>Anfragen</th><th>Aufträge</th><th>Auftragswert</th><th>Kosten</th><th>DB minus Werbung</th><th>Aktion</th></tr></thead><tbody id="rows"></tbody></table></div>
 <small>QR-Aufrufe sind Scans, keine eindeutigen Personen. DB minus Werbung setzt erfasste Deckungsbeiträge voraus.</small></div>
 <div class="panel"><h2>QR-Code exportieren</h2><p id="selected" class="muted">Kampagne in der Tabelle auswählen.</p><div id="qrpreview"></div><p><button id="download" hidden>SVG herunterladen</button></p><small>Vor dem Großdruck QR-Code auf mehreren Smartphones testen. Die Zieladresse ist nachträglich änderbar.</small><p><button type="button" id="editTarget" class="secondary" hidden>Zieladresse ändern</button></p></div>
 </section></main>
@@ -100,7 +121,10 @@ async function refresh(){
  const edit=document.createElement("button");edit.className="secondary";edit.textContent="Bearbeiten";edit.style.margin="4px";edit.onclick=()=>openCampaignEditor(x.id);td.append(edit);
  const toggle=document.createElement("button");toggle.className="secondary";toggle.textContent=x.active?"Pausieren":"Fortführen";toggle.style.margin="4px";toggle.onclick=()=>toggleCampaign(x.id,!x.active);td.append(toggle);
  if(!campaigns.get(x.id)?.parent_campaign_id){const child=document.createElement("button");child.className="secondary";child.textContent="Neue Teilaktion";child.style.margin="4px";child.onclick=()=>openChildEditor(x.id);td.append(child)}
- tr.append(td);el("rows").append(tr)}
+ tr.append(td);
+ const labels=["Kampagne","QR-Aufrufe","Anfragen","Aufträge","Auftragswert","Kosten","DB minus Werbung","Aktionen"];
+ [...tr.children].forEach((item,i)=>{item.dataset.label=labels[i]});
+ el("rows").append(tr)}
 }
 async function selectQR(x){chosen=x;el("selected").textContent=x.name+" · "+endpoint+x.code;svg=await QRCode.toString(endpoint+x.code,{type:"svg",width:640,margin:4,errorCorrectionLevel:"H"});el("qrpreview").innerHTML=svg;el("download").hidden=false;el("editTarget").hidden=false}
 el("editTarget").onclick=async()=>{if(!chosen)return;const current=await sb.from("marketing_campaigns").select("target_url").eq("id",chosen.id).single();if(current.error){msg(current.error.message);return}const proposed=prompt("Neue Zieladresse (HTTPS, duschl-service.de):",current.data.target_url);if(proposed===null)return;let target;try{target=new URL(proposed)}catch{msg("Ungültige URL");return}if(target.protocol!=="https:"||!["www.duschl-service.de","duschl-service.de"].includes(target.hostname)){msg("Nur HTTPS-Adressen unter duschl-service.de zulässig.");return}const {error}=await sb.from("marketing_campaigns").update({target_url:target.toString()}).eq("id",chosen.id);if(error){msg(error.message);return}msg("Zieladresse aktualisiert. QR-Code bleibt unverändert.")};
