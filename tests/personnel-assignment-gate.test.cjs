@@ -1,0 +1,12 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const source=fs.readFileSync(require.resolve('../employee-time.js'),'utf8');
+new vm.Script(source,{filename:'employee-time.js'});
+assert.match(source,/rpc\/personnel_check_assignment_v2/);
+assert.match(source,/rpc\/personnel_assignment_conflicts_all_v1/);
+assert.match(source,/contextOrg!==org\(\)\|\|contextUser!==uid\(\)/);
+assert.match(source,/button\.disabled=true/);
+assert.match(source,/Release manifest v3\.57\.1/);
+console.log('Employee scheduling integration static checks passed');
