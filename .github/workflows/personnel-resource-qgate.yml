@@ -41,7 +41,7 @@ jobs:
           const index=fs.readFileSync('index.html','utf8');
           const manifest=JSON.parse(fs.readFileSync('release.json','utf8'));
           assert.equal(manifest.version,'3.57.16');
-          assert.match(index,/let APP_VERSION='3\.57\.15'/);
-          assert.match(index,/employee-time\.js\?v=3\.57\.15/);
+          assert.match(index,/let APP_VERSION='3\.57\.16'/);
+          assert.match(index,/employee-time\.js\?v=3\.57\.16/);
           assert.equal(manifest.channel,'development');
           NODE
