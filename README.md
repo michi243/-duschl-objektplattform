@@ -181,11 +181,33 @@ Zusammenarbeit erforderlichen Objekte und Vorgänge.
 
 Aktuelle Frontend-Version:
 
-**v2.21.08**
+**v3.57.17** (Entwicklungs-/Testbetrieb; maßgeblich ist `release.json`)
 
 Die Plattform befindet sich in aktiver Entwicklung und wird derzeit
 anhand realer Objekt-, Hausverwaltungs- und Dienstleisterprozesse
 weiterentwickelt.
+
+------------------------------------------------------------------------
+
+## Repository-Struktur und Veröffentlichung
+
+| Pfad | Zweck | Behandlung |
+| --- | --- | --- |
+| `index.html` | Aktive GitHub-Pages-Hauptanwendung | Produktivpfad, behalten |
+| `employee-time.js` | Arbeitszeit- und Personalmanagement | Aktives Modul |
+| `resource-personnel-link.js`, `workforce-planning.js` | Personal-/Ressourcen-Schnittstelle | Aktive Module |
+| `private-offers-module.js` | Angebotsfunktionen | Aktives Modul |
+| `docs/marketing.html` | **Aktive** Marketing- und QR-Code-Verwaltung | Behalten, vom Hauptmenü verlinkt |
+| `marketing.html` | Früherer separater Einstieg | Schlanker Redirect zu `docs/marketing.html` |
+| `preview/v3.41/index.html` | Historischer Vorschau-Einstieg | Schlanker Redirect zu `index.html`; alter Code bleibt über Git-Historie rekonstruierbar |
+| `release.json` | Zentrale Release-Metadaten | Bei jeder Änderung Versionsnummer erhöhen |
+| `tests/`, `.github/workflows/` | Automatisierte Qualitätssicherung | Behalten |
+| `sql/` | Nachvollziehbare Datenbankänderungen | Behalten; produktive Supabase-Änderungen separat prüfen |
+| `docs/*.md`, `CHANGELOG.md`, `README.md` | Projektdokumentation und Historie | Behalten |
+
+**Kompatibilität:** Die beiden historischen HTML-URLs bleiben über Weiterleitungen erreichbar. Dadurch führen bestehende Lesezeichen zur aktuellen Anwendung, ohne veralteten Anwendungscode auszuliefern. Eine öffentliche externe Verlinkung lässt sich aus Repository-Referenzen allein nicht vollständig ausschließen.
+
+**Deployment:** GitHub Pages lädt die Hauptanwendung aus `index.html`. Die zentrale Versionsanzeige verwendet `release.json`; der eingebettete Fallback in `index.html` muss synchron bleiben. Nach Änderungen GitHub Actions prüfen und die veröffentlichte Browser-Version auf korrekte Weiterleitungen, Anmeldung und Mandantenrechte testen.
 
 ------------------------------------------------------------------------
 

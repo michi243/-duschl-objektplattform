@@ -1,5 +1,18 @@
 # Versionsverlauf – Duschl Service Objektplattform
 
+## v3.57.17 – 25.10.2026 (Entwicklung / Testbetrieb)
+
+- Nicht mehr gepflegte Marketing-HTML im Repository-Stamm durch eine Weiterleitung zur aktiven `docs/marketing.html` ersetzt.
+- Veraltete 3.41-Vorschau (ca. 1,86 MB) durch eine Weiterleitung zur aktuellen Objektplattform ersetzt; ursprünglicher Inhalt bleibt in der Git-Historie verfügbar.
+- Aktive Pfade und Dokumentation im README konsolidiert; Release-Metadaten und Versionsanzeige synchronisiert.
+- Keine Änderung an Supabase-Daten, Objektberechtigungen oder QR-Kampagnen.
+
+## v3.57.16 – 24.10.2026 (Entwicklung / Testbetrieb)
+
+- Plattform- und Mandantenadministration von persönlicher Zeiterfassung getrennt; serverseitige operative Zeitbuchungsberechtigung ergänzt.
+- Testbuchungen bleiben erhalten, administrative Auswertungen bleiben verfügbar.
+
+
 ## v3.57.8 – 22.10.2026 (Entwicklung / Testbetrieb)
 
 - Personalmanagement: Beschäftigungsbeginn als konkretes Datum, mit gezielter Berichtigung eines bestehenden Datensatzes statt einer doppelten Anlage.
