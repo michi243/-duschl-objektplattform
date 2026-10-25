@@ -1,10 +1,12 @@
 {
-  "version": "3.57.16",
-  "release_date": "2026-10-24",
+  "version": "3.57.17",
+  "release_date": "2026-10-25",
   "channel": "development",
   "status": "testbetrieb",
   "scope": "Objektplattform einschließlich Personalmanagement",
   "notes": [
+    "Repository-Bereinigung: veraltete Marketing- und Vorschau-HTML-Dateien durch kompatible Weiterleitungen ersetzt; aktive Funktionen unverändert.",
+    "README und Changelog: aktive Module, Archivierung über Git-Historie und Deployment-Prozess dokumentiert.",
     "Trennung von Zeiterfassung und administrativer Arbeitszeitauswertung.",
     "Ressourcenplanung: neue datensparsame Wochenübersicht aus Personalmanagement (Abwesenheiten, Arbeitszeitmuster, Status).",
     "Personalzuweisung: serverseitige Prüfungen auf aktives Beschäftigungsverhältnis, genehmigte Abwesenheiten, Sperrzeiten und doppelte Tourreferenzen.",
