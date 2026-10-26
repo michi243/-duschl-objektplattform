@@ -1,5 +1,12 @@
 # Versionsverlauf – Duschl Service Objektplattform
 
+## v3.57.20 – 26.10.2026
+
+- Telefonannahme: alle Eingaben inklusive Ansprechpartner, Kontaktweg, Leistung und Beschreibung optional; Datensätze können vollständig leer begonnen und später ergänzt werden.
+- Datenbank: geschäftliche Anfragefelder nullable, bisherige Mandanten- und Rollenprüfung unverändert. Angebotsübernahme erzeugt auch bei fehlendem Namen einen gültigen Objekttitel.
+- Bei tatsächlich ausgefüllten Werten bleiben Format- und Feldlängenprüfungen erhalten. Eine E-Mail-Adresse ist nicht verpflichtend.
+
+
 ## v3.57.19 – 26.10.2026
 
 - Fehlerbehebung: Benutzer sehen bei unvollständigen Anfragen direkt am Speichern-Button die konkrete Ursache, betroffene Pflichtfelder werden markiert und fokussiert.
