@@ -1,10 +1,11 @@
 {
-  "version": "3.57.21",
+  "version": "3.57.22",
   "release_date": "2026-10-26",
   "channel": "development",
   "status": "testbetrieb",
   "scope": "Objektplattform einschließlich Personalmanagement und Kundenanfragen",
   "notes": [
+    "Mandanten bearbeiten: zentrale Stammdatenpflege inklusive Inhaber/Geschäftsführung, Handelsregister, Logo und CI-Farben; Angebotsdruck übernimmt mandantenspezifisches Branding. SQL-Migration vor Freigabe erforderlich.",
     "Angebote Option A: mandantenbezogene DIN-A4-Anschreiben-Vorlage mit editierbarem Absender, steuerlicher Einstellung und PNG-Logo; gespeicherte Angebote als Druckvorschau öffnen und über Browserdruckdialog als PDF sichern. E-Mail-Versand bleibt manuell.",
     "Telefonannahme ohne Pflichtfelder: auch vollständig leere oder nur teilweise ausgefüllte Anfragen speichern; Kontaktdaten, Leistung und Beschreibung später ergänzen. Technische Zeichenlimits und angegebene E-Mail-Adressen werden geprüft.",
     "Kundenanfragen & Angebote: telefonische Erfassung ohne Objektbezug, Wiedervorlagen, Angebotsstatus und Auftragsübernahme als Objekt, Zuordnung oder Einzelauftrag.",
