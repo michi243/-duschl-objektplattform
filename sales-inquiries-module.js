@@ -183,7 +183,8 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
    try{
      popup.document.title='Angebotsvorschau wird erstellt';
      popup.document.body.textContent='Angebotsvorschau wird vorbereitet …';
-     const template=await getTemplate();
+     const template={...await getTemplate()};
+     if(template.logo_path){const storage=window.dsTenantLogoStorageFor?.(organizationId);if(!storage)throw Error('Logo-Storage fehlt.');template.logo_data=await storage.imageData(template.logo_path);}
      const object=inquiry.object_id?objects.find(x=>x.id===inquiry.object_id)||null:null;
      const html=buildSalesOfferPrintHtml({offer,inquiry,template,object});
      popup.document.open();
@@ -232,12 +233,14 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
      const f=area(label,current[key]||'');
      fields[key]=f.input;editor.append(f.label);
    }
-   let logoData=current.logo_data||null;
+   let logoData=current.logo_data||null,logoPath=current.logo_path||null,pendingLogo=null;
+   const storage=window.dsTenantLogoStorageFor?.(organizationId);
+   if(logoPath&&storage)logoData=await storage.imageData(logoPath);
    const logoBox=n('div');logoBox.className='sales-template-logo';
    const img=n('img','',{alt:'Aktuelles PNG-Firmenlogo'});
    Object.assign(img.style,{maxWidth:'220px',maxHeight:'110px',objectFit:'contain',background:'white',padding:'6px',borderRadius:'7px'});
-   const logoLabel=n('label','Logo hochladen · PNG bis 200 KB');
-   const picker=n('input','',{type:'file',accept:'image/png'});
+   const logoLabel=n('label','Logo hochladen · PNG/JPG/WebP bis 5 MB');
+   const picker=n('input','',{type:'file',accept:'image/png,image/jpeg,image/webp'});
    logoLabel.append(picker);
    const renderLogo=()=>{img.hidden=!logoData;if(logoData)img.src=logoData;else img.removeAttribute('src');};
    renderLogo();
@@ -245,23 +248,20 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
      try{
        const f=picker.files?.[0];
        if(!f)return;
-       if(f.type!=='image/png'||f.size>200*1024)throw Error('Bitte ein PNG mit höchstens 200 KB auswählen.');
-       const magic=new Uint8Array(await f.slice(0,8).arrayBuffer());
-       if(magic.join(',')!=='137,80,78,71,13,10,26,10')throw Error('Die Datei ist kein gültiges PNG.');
-       const data=await new Promise((resolve,reject)=>{
-         const reader=new FileReader();reader.onload=()=>resolve(reader.result);
-         reader.onerror=()=>reject(Error('Logo konnte nicht gelesen werden.'));
-         reader.readAsDataURL(f);
-       });
+       if(!['image/png','image/jpeg','image/webp'].includes(f.type)||f.size>5*1024*1024)throw Error('PNG, JPG oder WebP bis 5 MB erforderlich.');
+       if(!storage)throw Error('Logo-Storage ist nicht verfügbar.');
+       pendingLogo=f;
+       const data=URL.createObjectURL(f);
        logoData=data;renderLogo();say('Logo ausgewählt. Zum Übernehmen bitte „Vorlage speichern“ klicken.');
      }catch(err){say('Logo: '+(err.message||err));picker.value='';}
    });
-   logoBox.append(logoLabel,img,button('Logo entfernen',()=>{logoData=null;picker.value='';renderLogo();}));
+   logoBox.append(logoLabel,img,button('Logo entfernen',()=>{logoData=null;logoPath=null;pendingLogo=null;picker.value='';renderLogo();}));
    editor.append(logoBox);
    editor.append(n('p','Absenderanschrift und steuerliche Angaben vor dem Kundenversand prüfen. Fehlende Empfängerdaten werden im Ausdruck als Prüfhinweis angezeigt.'));
    editor.append(button('Mandantenstammdaten speichern',async()=>{
+     if(pendingLogo){logoPath=await storage.upload(pendingLogo);pendingLogo=null;}
      const payload={...Object.fromEntries(Object.entries(fields).map(([key,input])=>[key,input.value.trim()])),
-       tax_mode:tax.input.value,logo_data:logoData,brand_primary:primary.input.value.trim(),brand_accent:accent.input.value.trim()};
+       tax_mode:tax.input.value,logo_data:null,logo_path:logoPath,brand_primary:primary.input.value.trim(),brand_accent:accent.input.value.trim()};
      if(!validHex(payload.brand_primary)||!validHex(payload.brand_accent))throw Error('CI-Farben müssen im Format #RRGGBB angegeben werden.');
      if(!payload.sender_name)throw Error('Für eine nutzbare Angebotsvorlage ist ein Firmenname erforderlich.');
      const saved=await rpc('save_sales_document_template_v1',{p_organization_id:organizationId,p_settings:payload});
