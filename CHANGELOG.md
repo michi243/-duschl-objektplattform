@@ -1,5 +1,13 @@
 # Versionsverlauf – Duschl Service Objektplattform
 
+## v3.57.21 – 26.10.2026
+
+- Angebotsvorlage je Mandant: Briefkopf, Steuerstatus, Bank- und Kontaktdaten sowie PNG-Logo verwalten.
+- Gespeicherte Angebote als DIN-A4-Druckvorschau öffnen; PDF im Browserdialog speichern oder ausdrucken.
+- Fehlende Pflichtangaben für den Kundenversand werden in der Dokumentvorschau als Prüfhinweis angezeigt. Anfragen bleiben ohne Pflichtfelder erfassbar.
+- E-Mail-Versand und PDF-Ablage verbleiben in Option A manuell.
+
+
 ## v3.57.20 – 26.10.2026
 
 - Telefonannahme: alle Eingaben inklusive Ansprechpartner, Kontaktweg, Leistung und Beschreibung optional; Datensätze können vollständig leer begonnen und später ergänzt werden.
