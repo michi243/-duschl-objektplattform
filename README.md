@@ -181,7 +181,7 @@ Zusammenarbeit erforderlichen Objekte und Vorgänge.
 
 Aktuelle Frontend-Version:
 
-**v3.57.17** (Entwicklungs-/Testbetrieb; maßgeblich ist `release.json`)
+**v3.57.18** (Entwicklungs-/Testbetrieb; maßgeblich ist `release.json`)
 
 Die Plattform befindet sich in aktiver Entwicklung und wird derzeit
 anhand realer Objekt-, Hausverwaltungs- und Dienstleisterprozesse
@@ -196,7 +196,7 @@ weiterentwickelt.
 | `index.html` | Aktive GitHub-Pages-Hauptanwendung | Produktivpfad, behalten |
 | `employee-time.js` | Arbeitszeit- und Personalmanagement | Aktives Modul |
 | `resource-personnel-link.js`, `workforce-planning.js` | Personal-/Ressourcen-Schnittstelle | Aktive Module |
-| `private-offers-module.js` | Angebotsfunktionen | Aktives Modul |
+| `private-offers-module.js`, `sales-inquiries-module.js` | Geschützte Anfragen, Angebote und Auftragsübernahme | Aktive Module |
 | `docs/marketing.html` | **Aktive** Marketing- und QR-Code-Verwaltung | Behalten, vom Hauptmenü verlinkt |
 | `marketing.html` | Früherer separater Einstieg | Schlanker Redirect zu `docs/marketing.html` |
 | `preview/v3.41/index.html` | Historischer Vorschau-Einstieg | Schlanker Redirect zu `index.html`; alter Code bleibt über Git-Historie rekonstruierbar |
