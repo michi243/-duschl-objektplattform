@@ -1,3 +1,5 @@
+import {mountSalesInquiries} from './sales-inquiries-module.js';
+
 /**
  * Duschl Service – private resident inquiries & offers.
  * Integrate into the authenticated admin workspace:
@@ -9,14 +11,16 @@ export function mountPrivateOffers({root, supabase, organizationId}) {
   if (!root || !supabase || !organizationId) throw new Error('root, supabase and organizationId required');
   const el=(name,text='',attrs={})=>{const e=document.createElement(name);e.textContent=text;for(const [k,v] of Object.entries(attrs)) e.setAttribute(k,v);return e;};
   const message=el('p'); message.setAttribute('role','status');
-  const heading=el('h2','Private Bewohneranfragen');
+  const salesRoot=el('div');
+  const heading=el('h2','Bestehende private Bewohneranfragen');
   const list=el('div');const editor=el('div');let cached=[];
   const notify=(m)=>{message.textContent=m;};
   const api=async(name,args)=>{const {data,error}=await supabase.rpc(name,args); if(error)throw error;return data;};
   const action=(label,fn)=>{const b=el('button',label,{type:'button'});b.addEventListener('click',async()=>{b.disabled=true;try{await fn();}catch(err){notify('Fehler: '+(err.message||err));}finally{b.disabled=false;}});return b;};
   const input=(label,value='',type='text')=>{const wrap=el('label',label+' '), e=el('input','',{type});e.value=value;wrap.append(e);return {wrap,e};};
   const textArea=(label,value='')=>{const wrap=el('label',label+' '),e=el('textarea');e.value=value;wrap.append(e);return {wrap,e};};
-  const filters=el('div');const search=input('Suche');const status=el('select');[['all','Alle'],['new','Neu'],['in_progress','In Bearbeitung'],['closed','Abgeschlossen']].forEach(([v,t])=>status.append(el('option',t,{value:v})));filters.append(search.wrap,status);root.replaceChildren(heading,message,filters,list,editor);
+  const filters=el('div');const search=input('Suche');const status=el('select');[['all','Alle'],['new','Neu'],['in_progress','In Bearbeitung'],['closed','Abgeschlossen']].forEach(([v,t])=>status.append(el('option',t,{value:v})));filters.append(search.wrap,status);root.replaceChildren(salesRoot,heading,message,filters,list,editor);
+  const salesInstance=mountSalesInquiries({root:salesRoot,supabase,organizationId});
   async function showMessages(inquiry){
     editor.replaceChildren(el('h3','Nachrichten · '+inquiry.resident_name));
     const messages=await api('list_resident_private_messages_v1',{p_inquiry_id:inquiry.id});
@@ -89,6 +93,10 @@ export function mountPrivateOffers({root, supabase, organizationId}) {
       card.append(el('p',inquiry.object_name+' · '+new Date(inquiry.created_at).toLocaleDateString('de-DE')+' · '+(inquiry.status||'Neu')));
       card.append(el('p',inquiry.description));
       card.append(action('Angebote öffnen',()=>showOffers(inquiry)),action('Nachrichten',()=>showMessages(inquiry)));
+      card.append(action('In Kundenanfragen übernehmen',async()=>{
+        const id=await api('import_resident_private_inquiry_v1',{p_resident_inquiry_id:inquiry.id});
+        await salesInstance.refresh();notify('Bewohneranfrage und vorhandene Angebote als Geschäftsanfrage übernommen ('+String(id).slice(0,8)+').');
+      }));
       list.append(card);
     }
     notify(filtered.length+' von '+cached.length+' Privatanfragen');
@@ -98,9 +106,11 @@ export function mountPrivateOffers({root, supabase, organizationId}) {
     notify('Lade Privatanfragen…');
     cached=await api('list_resident_private_inquiries_v1',{p_organization_id:organizationId})||[];
     const outstanding=cached.filter(q=>!['closed','completed','rejected','cancelled'].includes(String(q.status||'new').toLowerCase())).length;
-    if(typeof window.dsPrivateBadgeSet==='function'){window.dsPrivateBadgeSet(outstanding);}else{const count=document.getElementById('privateOffersNavCount');if(count)count.textContent=String(outstanding);}
+    const combined=await api('count_open_all_inquiries_v1',{p_organization_id:organizationId});
+    if(typeof window.dsPrivateBadgeSet==='function'){window.dsPrivateBadgeSet(Math.max(0,Number(combined)||0));}
+    else{const count=document.getElementById('privateOffersNavCount');if(count)count.textContent=String(combined);}
     renderList();
   }
   load().catch(err=>notify('Zugriff oder Laden fehlgeschlagen: '+err.message));
-  return {refresh:load,destroy:()=>root.replaceChildren()};
+  return {refresh:()=>Promise.all([load(),salesInstance.refresh()]),destroy:()=>{salesInstance.destroy();root.replaceChildren();}};
 }
