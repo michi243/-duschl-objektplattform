@@ -20,6 +20,8 @@ assert.match(sales,/new_object/);
 assert.match(sales,/existing_object/);
 assert.match(sales,/standalone/);
 assert.match(html,/rpc\/count_open_all_inquiries_v1/);
+assert.match(html,/private-offers-module\\.js\\?v=3\\.57\\.18/);
+assert.match(offers,/sales-inquiries-module\\.js\\?v=3\\.57\\.18/);
 assert.match(db,/alter table public.sales_inquiries enable row level security/i);
 assert.match(db,/alter table public.sales_offers enable row level security/i);
 assert.match(db,/alter table public.sales_orders enable row level security/i);
