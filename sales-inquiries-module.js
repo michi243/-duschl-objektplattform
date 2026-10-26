@@ -69,10 +69,10 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
    if(!visible.length)list.append(n('p','Keine passenden Anfragen.'));
    for(const q of visible){
      const card=n('article');card.className='sales-card';
-     const h=n('h3',((q.company?q.company+' · ':'')+q.contact_name)+' – '+q.service_category);card.append(h);
+     const h=n('h3',((q.company?q.company+' · ':'')+(q.contact_name||'Kontakt offen'))+' – '+(q.service_category||'Leistung offen'));card.append(h);
      const object=q.object_id?(q.object_name||'Bestehendes Objekt'):'Noch ohne Objekt';
      card.append(n('p',statusName(q.status)+' · '+object+' · '+date(q.created_at)));
-     card.append(n('p',q.description));
+     card.append(n('p',q.description||'Anliegen noch nicht dokumentiert.'));
      if(q.follow_up_date){const d=n('p',(due(q)?'Wiedervorlage fällig: ':'Wiedervorlage: ')+date(q.follow_up_date));if(due(q))d.className='sales-overdue';card.append(d);}
      if(q.phone||q.email)card.append(n('p',[q.phone,q.email].filter(Boolean).join(' · ')));
      if(q.status==='converted')card.append(n('p','Auftrag übernommen'+(q.converted_object_id?' · Objekt-ID: '+q.converted_object_id:' · Einzelauftrag')));
@@ -87,14 +87,15 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
  function editInquiry(q=null){
    activeEditor=q?.id||'new';editor.replaceChildren();editor.hidden=false;
    editor.append(n('h3',q?'Anfrage bearbeiten':'Neue Anfrage – Telefonannahme'));
+   editor.append(n('p','Alle Angaben sind freiwillig. Die Anfrage kann sofort gespeichert und später vervollständigt werden.'));
    const channel=select('Eingang',[['phone','Telefon'],['email','E-Mail'],['website','Website'],['personal','Persönlich'],['other','Sonstige'],['resident','Bewohneranfrage']],q?.channel||'phone');
-   const name=field('Ansprechpartner *',q?.contact_name);
+   const name=field('Ansprechpartner',q?.contact_name);
    const company=field('Firma / WEG',q?.company);
    const phone=field('Telefon',q?.phone,'tel');
    const email=field('E-Mail',q?.email,'email');
    const type=select('Kundengruppe',[['private','Privat'],['weg','WEG'],['business','Gewerbe'],['other','Sonstige']],q?.customer_type||'private');
-   const category=field('Leistung *',q?.service_category);
-   const description=area('Anliegen / gewünschte Arbeiten *',q?.description);
+   const category=field('Leistung',q?.service_category);
+   const description=area('Anliegen / gewünschte Arbeiten',q?.description);
    const obj=select('Objektbezug',[['','Ohne Objektbezug'],...objects.map(o=>[o.id,o.name+' · '+[o.street,o.city].filter(Boolean).join(', ')])],q?.object_id||'');
    const street=field('Straße / Hausnummer',q?.street);
    const postal=field('PLZ',q?.postal_code);
@@ -108,13 +109,14 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
    editor.append(description.label);
    const validate=(data)=>{
      const failures=[];
-     const requireField=(value,element,message,min,max)=>{
-       if(String(value).length<min||String(value).length>max)failures.push({element,message});
+     // Keine Pflichtfelder: auch ein vollständig leerer Erstkontakt darf als Anfrage gespeichert werden.
+     // Nur ausgefüllte Werte auf Format bzw. technische Feldlänge prüfen.
+     const checkMax=(value,element,message,max)=>{
+       if(String(value||'').length>max)failures.push({element,message});
      };
-     requireField(data.contact_name,name.input,'Ansprechpartner: mindestens 2 Zeichen eingeben.',2,120);
-     requireField(data.service_category,category.input,'Leistung: mindestens 2 Zeichen eingeben.',2,120);
-     requireField(data.description,description.input,'Anliegen: mindestens 3 Zeichen eingeben.',3,3000);
-     if(!data.phone&&!data.email)failures.push({element:phone.input,message:'Bitte Telefonnummer oder E-Mail-Adresse eintragen, damit ein Rückruf möglich ist.'});
+     checkMax(data.contact_name,name.input,'Ansprechpartner: maximal 120 Zeichen.',120);
+     checkMax(data.service_category,category.input,'Leistung: maximal 120 Zeichen.',120);
+     checkMax(data.description,description.input,'Anliegen: maximal 3000 Zeichen.',3000);
      if(data.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))failures.push({element:email.input,message:'Die E-Mail-Adresse ist ungültig.'});
      if(data.phone.length>80)failures.push({element:phone.input,message:'Telefonnummer ist zu lang.'});
      if(data.email.length>240)failures.push({element:email.input,message:'E-Mail-Adresse ist zu lang.'});
@@ -144,7 +146,7 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
    editor.scrollIntoView({behavior:'smooth',block:'nearest'});
  }
  async function showOffers(q){
-   activeEditor=q.id;editor.hidden=false;editor.replaceChildren(n('h3','Angebote – '+q.contact_name));
+   activeEditor=q.id;editor.hidden=false;editor.replaceChildren(n('h3','Angebote – '+(q.contact_name||'Kontakt offen')));
    const offers=await rpc('list_sales_offers_v1',{p_inquiry_id:q.id});
    if(!offers.length)editor.append(n('p','Für diese Anfrage wurde noch kein Angebot erstellt.'));
    for(const offer of offers){
@@ -164,8 +166,8 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
    editor.append(button('Schließen',close));
  }
  function editOffer(q,offer=null){
-   activeEditor=q.id;editor.hidden=false;editor.replaceChildren(n('h3',offer?'Angebot bearbeiten':'Neues Angebot – '+q.contact_name));
-   const title=field('Titel *',offer?.title||q.service_category);
+   activeEditor=q.id;editor.hidden=false;editor.replaceChildren(n('h3',offer?'Angebot bearbeiten':'Neues Angebot – '+(q.contact_name||'Kontakt offen')));
+   const title=field('Titel *',offer?.title||q.service_category||'Leistungsangebot');
    const vat=select('Umsatzsteuer',[['0','0 % (z. B. § 19 UStG)'],['7','7 %'],['19','19 %']],String(offer?.vat_rate??0));
    const valid=field('Gültig bis',offer?.valid_until,'date');
    const terms=area('Konditionen',offer?.terms);
@@ -183,7 +185,7 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
      items.append(c);rows.push({container:c,description:d.input,quantity:qty.input,price:price.input});
      [qty.input,price.input].forEach(x=>x.addEventListener('input',calc));calc();
    };
-   (offer?.items?.length?offer.items:[{description:q.service_category,quantity:1,unit_price:0}]).forEach(addItem);
+   (offer?.items?.length?offer.items:[{description:q.service_category||'Leistungsangebot',quantity:1,unit_price:0}]).forEach(addItem);
    vat.input.addEventListener('change',calc);calc();
    editor.append(button('+ Position',()=>addItem()));
    editor.append(button('Angebot speichern',async()=>{
