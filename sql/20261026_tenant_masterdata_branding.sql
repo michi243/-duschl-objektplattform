@@ -70,26 +70,9 @@ begin
       if length(coalesce(v_item.value,''))>1500 then
         raise exception 'Dokumentfeld zu lang: %',v_item.key;
       end if;
-      if v_item.key in ('brand_primary','brand_accent') and v_item.value !~ '^#[0-9A-Fa-f]{6} and v_item.value not in ('unspecified','small_business','standard')
-      then raise exception 'Ungültige Steuerregel';end if;
-      v_payload:=v_payload||jsonb_build_object(v_item.key,coalesce(v_item.value,''));
-    end if;
-  end loop;
-  if length(trim(coalesce(v_payload->>'sender_name','')))=0
-  then raise exception 'Absendername für Angebotsvorlage erforderlich';end if;
-  insert into public.sales_document_templates(organization_id,settings,updated_by)
-  values(p_organization_id,v_payload,auth.uid())
-  on conflict(organization_id) do update
-  set settings=excluded.settings,updated_by=auth.uid(),updated_at=now();
-  return public.get_sales_document_template_v1(p_organization_id);
-end; $function$;
-
-revoke execute on function public.get_sales_document_template_v1(uuid) from public, anon;
-revoke execute on function public.save_sales_document_template_v1(uuid,jsonb) from public, anon;
-grant execute on function public.get_sales_document_template_v1(uuid),
-                  public.save_sales_document_template_v1(uuid,jsonb) to authenticated;
-
-      then raise exception 'Ungültiger CI-Farbwert'; end if;
+      if v_item.key in ('brand_primary','brand_accent') and v_item.value !~ '^#[0-9A-Fa-f]{6}$' then
+        raise exception 'Ungültiger CI-Farbwert';
+      end if;
       if v_item.key='tax_mode' and v_item.value not in ('unspecified','small_business','standard')
       then raise exception 'Ungültige Steuerregel';end if;
       v_payload:=v_payload||jsonb_build_object(v_item.key,coalesce(v_item.value,''));
