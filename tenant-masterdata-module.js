@@ -43,7 +43,7 @@ export function mountTenantMasterdata({root,supabase,organizationId}){
   const api=async(name,args)=>{const {data,error}=await supabase.rpc(name,args);if(error)throw error;return data};
   const paintLogo=()=>{logo.hidden=!logoData;if(logoData)logo.src=logoData;else logo.removeAttribute('src')};
   function loadValues(data){
-    for(const [key,input] of Object.entries(fields))input.value=data?.[key]??'';
+    for(const [key,input] of Object.entries(fields))input.value=data?.[key]??(key==='brand_primary'?'#102d41':key==='brand_accent'?'#ccab55':'');
     tax.value=data?.tax_mode||'unspecified';logoData=data?.logo_data||null;paintLogo();
   }
   const refresh=async()=>{notify('Lade Stammdaten …');const data=await api('get_sales_document_template_v1',{p_organization_id:organizationId});if(!disposed){loadValues(data);notify('Mandantenstammdaten geladen.')}return data};
