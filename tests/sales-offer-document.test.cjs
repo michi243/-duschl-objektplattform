@@ -37,4 +37,13 @@ const without19=render({offer:{...offer,vat_rate:0,gross_amount:200},inquiry,tem
 assert.doesNotMatch(without19,/Gemäß § 19 UStG/);
 assert.match(without19,/Steuerliche Behandlung bei 0 % prüfen/);
 assert.ok(html.indexOf('Kunden-Passwort')<0);
-console.log('Offer A4 document renderer syntax and safety gate passed.');
+const branded=render({offer,inquiry,template:{...template,brand_primary:'#123456',brand_accent:'#ABCDEF',managing_director:'Max Muster',commercial_register:'HRB 12345'}});
+assert.match(branded,/--brand-primary:#123456/);
+assert.match(branded,/--brand-accent:#ABCDEF/);
+assert.match(branded,/Geschäftsführung: Max Muster/);
+assert.match(branded,/Register: HRB 12345/);
+const badColor=render({offer,inquiry,template:{...template,brand_primary:'red;position:absolute',brand_accent:'url(javascript:alert(1))'}});
+assert.match(badColor,/--brand-primary:#102d41/);
+assert.match(badColor,/--brand-accent:#ccab55/);
+assert.doesNotMatch(badColor,/red;position:absolute/);
+console.log('Offer A4 document renderer syntax, safety and tenant branding gate passed.');
