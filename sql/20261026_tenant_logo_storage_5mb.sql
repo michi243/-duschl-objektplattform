@@ -33,7 +33,7 @@ begin
   if v_item.key='logo_path' then
     v_path:=nullif(v_item.value,'');
     if v_path is not null then
-      if v_path !~ ('^'||p_organization_id::text||'/logo-[a-f0-9-]{36}\\.(png|jpg|webp)$') then raise exception 'Ungültiger Logo-Pfad'; end if;
+      if v_path !~ ('^'||p_organization_id::text||'/logo-[a-f0-9-]{36}[.](png|jpg|webp)$') then raise exception 'Ungültiger Logo-Pfad'; end if;
       if not exists(select 1 from storage.objects where bucket_id='tenant-logos' and name=v_path)
       then raise exception 'Logo wurde nicht hochgeladen';end if;
     end if;
