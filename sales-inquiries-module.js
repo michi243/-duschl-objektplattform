@@ -11,7 +11,7 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
  const section=n('section');section.className='sales-intake';
  const header=n('div');header.className='row space';header.append(n('h2','Kundenanfragen & Angebote'));
  const add=n('button','+ Anfrage erfassen',{type:'button'});
- const templateButton=n('button','Angebotsvorlage',{type:'button'});
+ const templateButton=n('button','Mandanten bearbeiten',{type:'button'});
  header.append(templateButton,add);
  const summary=n('div');summary.className='muted';
  const bar=n('div');bar.className='sales-toolbar';
@@ -173,7 +173,7 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
  async function getTemplate(){
    if(templateCache)return templateCache;
    const loaded=await rpc('get_sales_document_template_v1',{p_organization_id:organizationId});
-   if(!loaded||typeof loaded!=='object')throw Error('Angebotsvorlage konnte nicht geladen werden.');
+   if(!loaded||typeof loaded!=='object')throw Error('Mandantenstammdaten konnten nicht geladen werden.');
    templateCache=loaded;return loaded;
  }
  async function previewOffer(inquiry,offer){
@@ -194,14 +194,14 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
    }catch(err){popup.close();throw err;}
  }
  async function editTemplate(){
-   activeEditor='template';editor.hidden=false;editor.replaceChildren(n('h3','Angebotsvorlage · Mandant'));
-   editor.append(n('p','Firmenbriefkopf einmalig hinterlegen. Diese Vorlage gilt für alle Angebote dieses Mandanten. Der Versand erfolgt weiterhin manuell.'));
+   activeEditor='template';editor.hidden=false;editor.replaceChildren(n('h3','Mandanten bearbeiten · Stammdaten & Angebotsdesign'));
+   editor.append(n('p','Mandantenstammdaten zentral pflegen. Diese Daten, das Logo und die CI-Farben werden automatisch in neuen Angebots-PDFs verwendet. Der Versand erfolgt weiterhin manuell.'));
    const current=await getTemplate();
    if(activeEditor!=='template'||disposed)return;
    const schema=[
-     ['sender_name','Firmenname'],['sender_street','Straße / Hausnummer'],['sender_postal','Postleitzahl'],['sender_city','Ort'],
+     ['sender_name','Firmenname / rechtlicher Absender'],['sender_street','Straße / Hausnummer'],['sender_postal','Postleitzahl'],['sender_city','Ort'],
      ['sender_phone','Telefon'],['sender_email','E-Mail'],['sender_website','Website'],
-     ['tax_number','Steuernummer / USt-IdNr.'],['bank_name','Bank'],['account_holder','Kontoinhaber'],
+     ['tax_number','Steuernummer / USt-IdNr.'],['managing_director','Geschäftsführung / Inhaber'],['commercial_register','Handelsregister (sofern vorhanden)'],['bank_name','Bank'],['account_holder','Kontoinhaber'],
      ['bank_iban','IBAN'],['bank_bic','BIC']
    ];
    const fields={};
@@ -212,6 +212,11 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
      group.append(f.label);
    }
    editor.append(group);
+   const colors=row();
+   const primary=field('CI Primärfarbe (Hex)',current.brand_primary||'#102d41');
+   const accent=field('CI Akzentfarbe (Hex)',current.brand_accent||'#ccab55');
+   colors.append(primary.label,accent.label);editor.append(n('h4','Corporate Design'),colors);
+   const validHex=x=>/^#[0-9a-fA-F]{6}$/.test(x);
    const tax=select('Steuerliche Behandlung',[
      ['unspecified','Noch nicht festgelegt (bei 0 % Prüfhinweis)'],
      ['small_business','Kleinunternehmer gemäß § 19 UStG'],
@@ -254,13 +259,14 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
    logoBox.append(logoLabel,img,button('Logo entfernen',()=>{logoData=null;picker.value='';renderLogo();}));
    editor.append(logoBox);
    editor.append(n('p','Absenderanschrift und steuerliche Angaben vor dem Kundenversand prüfen. Fehlende Empfängerdaten werden im Ausdruck als Prüfhinweis angezeigt.'));
-   editor.append(button('Vorlage speichern',async()=>{
+   editor.append(button('Mandantenstammdaten speichern',async()=>{
      const payload={...Object.fromEntries(Object.entries(fields).map(([key,input])=>[key,input.value.trim()])),
-       tax_mode:tax.input.value,logo_data:logoData};
+       tax_mode:tax.input.value,logo_data:logoData,brand_primary:primary.input.value.trim(),brand_accent:accent.input.value.trim()};
+     if(!validHex(payload.brand_primary)||!validHex(payload.brand_accent))throw Error('CI-Farben müssen im Format #RRGGBB angegeben werden.');
      if(!payload.sender_name)throw Error('Für eine nutzbare Angebotsvorlage ist ein Firmenname erforderlich.');
      const saved=await rpc('save_sales_document_template_v1',{p_organization_id:organizationId,p_settings:payload});
      templateCache=saved;
-     close();say('Angebotsvorlage für den Mandanten gespeichert.');
+     close();say('Mandantenstammdaten und Angebotsdesign gespeichert.');
    }),button('Abbrechen',close));
    editor.scrollIntoView?.({behavior:'smooth',block:'start'});
  }
@@ -323,7 +329,7 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
    }catch(err){say('Kundenanfragen konnten nicht geladen werden: '+(err.message||err));}
  }
  add.addEventListener('click',()=>editInquiry());
- templateButton.addEventListener('click',()=>editTemplate().catch(err=>{say('Vorlage konnte nicht geöffnet werden: '+(err.message||err));inlineFeedback('Angebotsvorlage konnte nicht geladen werden: '+(err.message||err),templateButton);}));
+ templateButton.addEventListener('click',()=>editTemplate().catch(err=>{say('Mandantenstammdaten konnten nicht geöffnet werden: '+(err.message||err));inlineFeedback('Angebotsvorlage konnte nicht geladen werden: '+(err.message||err),templateButton);}));
  search.addEventListener('input',render);filter.addEventListener('change',render);
  load();
  return {refresh:load,destroy:()=>{disposed=true;close();section.remove();},openNew:()=>editInquiry()};
