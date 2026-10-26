@@ -181,7 +181,7 @@ Zusammenarbeit erforderlichen Objekte und Vorgänge.
 
 Aktuelle Frontend-Version:
 
-**v3.57.20** (Entwicklungs-/Testbetrieb; maßgeblich ist `release.json`)
+**v3.57.21** (Entwicklungs-/Testbetrieb; maßgeblich ist `release.json`)
 
 Die Plattform befindet sich in aktiver Entwicklung und wird derzeit
 anhand realer Objekt-, Hausverwaltungs- und Dienstleisterprozesse
@@ -196,7 +196,7 @@ weiterentwickelt.
 | `index.html` | Aktive GitHub-Pages-Hauptanwendung | Produktivpfad, behalten |
 | `employee-time.js` | Arbeitszeit- und Personalmanagement | Aktives Modul |
 | `resource-personnel-link.js`, `workforce-planning.js` | Personal-/Ressourcen-Schnittstelle | Aktive Module |
-| `private-offers-module.js`, `sales-inquiries-module.js` | Geschützte Anfragen, Angebote und Auftragsübernahme | Aktive Module |
+| `private-offers-module.js`, `sales-inquiries-module.js`, `sales-offer-document.js` | Geschützte Anfragen, Angebote und Auftragsübernahme | Aktive Module |
 | `docs/marketing.html` | **Aktive** Marketing- und QR-Code-Verwaltung | Behalten, vom Hauptmenü verlinkt |
 | `marketing.html` | Früherer separater Einstieg | Schlanker Redirect zu `docs/marketing.html` |
 | `preview/v3.41/index.html` | Historischer Vorschau-Einstieg | Schlanker Redirect zu `index.html`; alter Code bleibt über Git-Historie rekonstruierbar |
@@ -223,3 +223,7 @@ Ziel ist ein durchgängiger Prozess mit:
 
 **klaren Zuständigkeiten, weniger Rückfragen, vollständiger
 Dokumentation und nachvollziehbaren Entscheidungen.**
+
+## Angebotsvorlagen und PDF (Option A)
+
+Mandantenadministratoren pflegen unter **Anfragen & Angebote → Angebotsvorlage** Absender, Logo (PNG), Steuerhinweis, Bankdaten und Texte. Gespeicherte Angebote können über **PDF-Vorschau / Drucken** als DIN-A4-Dokument geöffnet werden. Im Browserdruckdialog kann **Als PDF speichern** gewählt werden. E-Mail-Versand und PDF-Archivierung erfolgen in dieser Version noch manuell. Die Vorlage ist mandantenbezogen und durch Backend-RPCs gesichert.
