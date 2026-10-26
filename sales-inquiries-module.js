@@ -1,15 +1,18 @@
+import {buildSalesOfferPrintHtml} from './sales-offer-document.js?v=3.57.21';
 /**
  * Duschl Service – mandantengetrennte Geschäftsanfragen, Angebote und Auftragsübernahme.
  * Alle Zugriffe laufen über autorisierte Supabase-RPCs; keine lokale Ablage von Kundendaten.
  */
 export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{}}){
  if(!root||!organizationId||!supabase)throw Error('Mandant und Anmeldung erforderlich');
- let inquiries=[], objects=[],activeEditor=null,disposed=false;
+ let inquiries=[], objects=[],activeEditor=null,disposed=false,templateCache=null;
  const n=(tag,content='',props={})=>{const e=document.createElement(tag);e.textContent=content;for(const [key,value] of Object.entries(props))e.setAttribute(key,value);return e;};
  const rpc=async(name,args)=>{const {data,error}=await supabase.rpc(name,args);if(error)throw error;return data;};
  const section=n('section');section.className='sales-intake';
  const header=n('div');header.className='row space';header.append(n('h2','Kundenanfragen & Angebote'));
- const add=n('button','+ Anfrage erfassen',{type:'button'});header.append(add);
+ const add=n('button','+ Anfrage erfassen',{type:'button'});
+ const templateButton=n('button','Angebotsvorlage',{type:'button'});
+ header.append(templateButton,add);
  const summary=n('div');summary.className='muted';
  const bar=n('div');bar.className='sales-toolbar';
  const search=n('input','',{type:'search',placeholder:'Interessent, Leistung oder Adresse suchen','aria-label':'Kundenanfragen durchsuchen'});
@@ -152,6 +155,7 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
    for(const offer of offers){
      const card=n('article');card.className='sales-offer';
      card.append(n('strong',offer.offer_number+' · '+offer.title),n('p',euros(offer.gross_amount)+' · '+({draft:'Entwurf',ready:'Freigabebereit',sent:'Versendet',accepted:'Angenommen',rejected:'Abgelehnt',cancelled:'Storniert'}[offer.status]||offer.status)));
+     card.append(button('PDF-Vorschau / Drucken',()=>previewOffer(q,offer)));
      if(['draft','ready'].includes(offer.status))card.append(button('Bearbeiten',()=>editOffer(q,offer)));
      if(offer.status==='draft')card.append(button('Zur Freigabe',async()=>{await rpc('set_sales_offer_status_v1',{p_offer_id:offer.id,p_status:'ready'});await showOffers(q);}));
      if(offer.status==='ready')card.append(button('Als versendet markieren',async()=>{await rpc('set_sales_offer_status_v1',{p_offer_id:offer.id,p_status:'sent'});await showOffers(q);},'Angebot wurde tatsächlich versendet? Eine E-Mail wird nicht automatisch verschickt.'));
@@ -165,17 +169,114 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
    if(!['converted','lost'].includes(q.status))editor.append(button('+ Neues Angebot',()=>editOffer(q,null)));
    editor.append(button('Schließen',close));
  }
+
+ async function getTemplate(){
+   if(templateCache)return templateCache;
+   const loaded=await rpc('get_sales_document_template_v1',{p_organization_id:organizationId});
+   if(!loaded||typeof loaded!=='object')throw Error('Angebotsvorlage konnte nicht geladen werden.');
+   templateCache=loaded;return loaded;
+ }
+ async function previewOffer(inquiry,offer){
+   // A browser popup must be opened synchronously during the user click, before the async RPC.
+   const popup=window.open('about:blank','_blank');
+   if(!popup)throw Error('Bitte Pop-ups für die Objektplattform erlauben, um die Angebotsvorschau zu öffnen.');
+   try{
+     popup.document.title='Angebotsvorschau wird erstellt';
+     popup.document.body.textContent='Angebotsvorschau wird vorbereitet …';
+     const template=await getTemplate();
+     const object=inquiry.object_id?objects.find(x=>x.id===inquiry.object_id)||null:null;
+     const html=buildSalesOfferPrintHtml({offer,inquiry,template,object});
+     popup.document.open();
+     popup.document.write(html);
+     popup.document.close();
+     popup.focus();
+     say('Angebotsvorschau geöffnet. Im neuen Fenster „Drucken / als PDF speichern“ wählen. Versand erfolgt manuell.');
+   }catch(err){popup.close();throw err;}
+ }
+ async function editTemplate(){
+   activeEditor='template';editor.hidden=false;editor.replaceChildren(n('h3','Angebotsvorlage · Mandant'));
+   editor.append(n('p','Firmenbriefkopf einmalig hinterlegen. Diese Vorlage gilt für alle Angebote dieses Mandanten. Der Versand erfolgt weiterhin manuell.'));
+   const current=await getTemplate();
+   if(activeEditor!=='template'||disposed)return;
+   const schema=[
+     ['sender_name','Firmenname'],['sender_street','Straße / Hausnummer'],['sender_postal','Postleitzahl'],['sender_city','Ort'],
+     ['sender_phone','Telefon'],['sender_email','E-Mail'],['sender_website','Website'],
+     ['tax_number','Steuernummer / USt-IdNr.'],['bank_name','Bank'],['account_holder','Kontoinhaber'],
+     ['bank_iban','IBAN'],['bank_bic','BIC']
+   ];
+   const fields={};
+   const group=row();
+   for(const [key,label] of schema){
+     const f=field(label,current[key]||'');
+     fields[key]=f.input;
+     group.append(f.label);
+   }
+   editor.append(group);
+   const tax=select('Steuerliche Behandlung',[
+     ['unspecified','Noch nicht festgelegt (bei 0 % Prüfhinweis)'],
+     ['small_business','Kleinunternehmer gemäß § 19 UStG'],
+     ['standard','Regelbesteuerung']
+   ],current.tax_mode||'unspecified');
+   editor.append(tax.label);
+   const texts=[
+     ['intro_text','Einleitung'],
+     ['closing_text','Abschlusstext'],
+     ['payment_terms','Standard-Zahlungsbedingungen']
+   ];
+   for(const [key,label] of texts){
+     const f=area(label,current[key]||'');
+     fields[key]=f.input;editor.append(f.label);
+   }
+   let logoData=current.logo_data||null;
+   const logoBox=n('div');logoBox.className='sales-template-logo';
+   const img=n('img','',{alt:'Aktuelles PNG-Firmenlogo'});
+   Object.assign(img.style,{maxWidth:'220px',maxHeight:'110px',objectFit:'contain',background:'white',padding:'6px',borderRadius:'7px'});
+   const logoLabel=n('label','Logo hochladen · PNG bis 200 KB');
+   const picker=n('input','',{type:'file',accept:'image/png'});
+   logoLabel.append(picker);
+   const renderLogo=()=>{img.hidden=!logoData;if(logoData)img.src=logoData;else img.removeAttribute('src');};
+   renderLogo();
+   picker.addEventListener('change',async()=>{
+     try{
+       const f=picker.files?.[0];
+       if(!f)return;
+       if(f.type!=='image/png'||f.size>200*1024)throw Error('Bitte ein PNG mit höchstens 200 KB auswählen.');
+       const magic=new Uint8Array(await f.slice(0,8).arrayBuffer());
+       if(magic.join(',')!=='137,80,78,71,13,10,26,10')throw Error('Die Datei ist kein gültiges PNG.');
+       const data=await new Promise((resolve,reject)=>{
+         const reader=new FileReader();reader.onload=()=>resolve(reader.result);
+         reader.onerror=()=>reject(Error('Logo konnte nicht gelesen werden.'));
+         reader.readAsDataURL(f);
+       });
+       logoData=data;renderLogo();say('Logo ausgewählt. Zum Übernehmen bitte „Vorlage speichern“ klicken.');
+     }catch(err){say('Logo: '+(err.message||err));picker.value='';}
+   });
+   logoBox.append(logoLabel,img,button('Logo entfernen',()=>{logoData=null;picker.value='';renderLogo();}));
+   editor.append(logoBox);
+   editor.append(n('p','Absenderanschrift und steuerliche Angaben vor dem Kundenversand prüfen. Fehlende Empfängerdaten werden im Ausdruck als Prüfhinweis angezeigt.'));
+   editor.append(button('Vorlage speichern',async()=>{
+     const payload={...Object.fromEntries(Object.entries(fields).map(([key,input])=>[key,input.value.trim()])),
+       tax_mode:tax.input.value,logo_data:logoData};
+     if(!payload.sender_name)throw Error('Für eine nutzbare Angebotsvorlage ist ein Firmenname erforderlich.');
+     const saved=await rpc('save_sales_document_template_v1',{p_organization_id:organizationId,p_settings:payload});
+     templateCache=saved;
+     close();say('Angebotsvorlage für den Mandanten gespeichert.');
+   }),button('Abbrechen',close));
+   editor.scrollIntoView?.({behavior:'smooth',block:'start'});
+ }
  function editOffer(q,offer=null){
    activeEditor=q.id;editor.hidden=false;editor.replaceChildren(n('h3',offer?'Angebot bearbeiten':'Neues Angebot – '+(q.contact_name||'Kontakt offen')));
    const title=field('Titel *',offer?.title||q.service_category||'Leistungsangebot');
-   const vat=select('Umsatzsteuer',[['0','0 % (z. B. § 19 UStG)'],['7','7 %'],['19','19 %']],String(offer?.vat_rate??0));
+   const suggestedVat=offer?String(offer.vat_rate):(templateCache?.tax_mode==='small_business'?'0':templateCache?.tax_mode==='standard'?'19':'');
+   const vat=select('Umsatzsteuer',[['','Bitte Steuerbehandlung auswählen'],['0','0 %'],['7','7 %'],['19','19 %']],suggestedVat);
    const valid=field('Gültig bis',offer?.valid_until,'date');
    const terms=area('Konditionen',offer?.terms);
    const r=row();r.append(title.label,vat.label,valid.label);editor.append(r,terms.label);
+   editor.append(n('p','Die Angebotsvorlage bestimmt, ob bei 0 % ein Hinweis auf § 19 UStG ausgegeben wird. Preis- und Steuerangaben vor dem Versand prüfen.'));
    const items=n('div');editor.append(items);
    const total=n('strong','');editor.append(total);
    const rows=[];
-   const calc=()=>{let net=0;for(const x of rows){if(!x.container.isConnected)continue;net+=(Number(x.quantity.value)||0)*(Number(x.price.value)||0);}total.textContent='Netto '+euros(net)+' · Brutto '+euros(net*(1+Number(vat.input.value)/100));};
+   const calc=()=>{let net=0;for(const x of rows){if(!x.container.isConnected)continue;net+=(Number(x.quantity.value)||0)*(Number(x.price.value)||0);}total.textContent=vat.input.value===''?'Netto '+euros(net)+' · Umsatzsteuer noch auswählen':'Netto '+euros(net)+' · Brutto '+euros(net*(1+Number(vat.input.value)/100));};
    const addItem=(item={})=>{
      const c=row();c.className+=' sales-line';
      const d=field('Leistung',item.description||''),qty=field('Menge',item.quantity??1,'number'),price=field('Einzelpreis netto',item.unit_price??0,'number');
@@ -191,6 +292,7 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
    editor.append(button('Angebot speichern',async()=>{
      const data=rows.filter(x=>x.container.isConnected).map(x=>({description:x.description.value.trim(),quantity:x.quantity.value,unit_price:x.price.value}));
      if(!data.length||data.some(x=>!x.description||Number(x.quantity)<=0||Number(x.unit_price)<0))throw Error('Mindestens eine gültige Angebotsposition erforderlich.');
+     if(vat.input.value==='')throw Error('Bitte Umsatzsteuer bzw. steuerliche Behandlung für dieses Angebot auswählen.');
      await rpc('save_sales_offer_v1',{p_inquiry_id:q.id,p_offer_id:offer?.id||null,p_title:title.input.value,p_items:data,p_vat_rate:Number(vat.input.value),p_valid_until:valid.input.value||null,p_terms:terms.input.value});
      say('Angebot gespeichert; kein automatischer Versand.');await showOffers(q);await load();
    }),button('Zurück',()=>showOffers(q)));
@@ -221,6 +323,7 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
    }catch(err){say('Kundenanfragen konnten nicht geladen werden: '+(err.message||err));}
  }
  add.addEventListener('click',()=>editInquiry());
+ templateButton.addEventListener('click',()=>editTemplate().catch(err=>{say('Vorlage konnte nicht geöffnet werden: '+(err.message||err));inlineFeedback('Angebotsvorlage konnte nicht geladen werden: '+(err.message||err),templateButton);}));
  search.addEventListener('input',render);filter.addEventListener('change',render);
  load();
  return {refresh:load,destroy:()=>{disposed=true;close();section.remove();},openNew:()=>editInquiry()};
