@@ -8507,6 +8507,7 @@ Ihr Name und Ihre freiwillig angegebene E-Mail-Adresse werden mit der bereits be
 </section>
 <section class="section" id="organizations">
 <div class="row space"><div><h2>Unternehmen / Mandanten</h2><div class="muted">Plattformweite Mandantenverwaltung. Der Plattform-Admin legt den Mandanten und dessen initialen Mandanten-Admin an. Die weitere Benutzer- und Objektverwaltung erfolgt innerhalb des Mandanten.</div></div><button class="primary" id="addOrganizationBtn" onclick="openOrganizationModal()">+ Mandant</button></div>
+<div class="row" style="margin-top:12px"><button type="button" onclick="window.dsEditTenantMasterdata?.()">Stammdaten des aktiven Mandanten bearbeiten</button></div>
 <div class="grid g2" id="organizationList" style="margin-top:14px"></div>
 
 <div class="pa-panel" id="platformMessagingCard" style="display:none;margin-top:18px">
@@ -12745,7 +12746,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-let APP_VERSION='3.57.21';
+let APP_VERSION='3.57.23';
 let APP_RELEASE_DATE='26.10.2026';
 let APP_RELEASE_TIME=''; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -41145,7 +41146,7 @@ async function dsIntakeSubmit(){
 }
 </script>
 <script type="module">
-import {mountPrivateOffers} from './private-offers-module.js?v=3.57.21';
+import {mountPrivateOffers} from './private-offers-module.js?v=3.57.23';
 window.dsPrivateOffersMount=()=>{
  const organizationId=currentOrganizationId();
  const root=document.getElementById('privateOffersRoot');
@@ -41177,6 +41178,18 @@ window.dsOpenPersonnelFromMenu=function(){
   document.body.classList.remove('menu-open');
   if(typeof window.dsPersonnelRefresh==='function')window.dsPersonnelRefresh();
  }catch(error){alert('Personalmanagement konnte nicht geöffnet werden: '+error.message);console.error(error)}
+};
+</script>
+<script type="module">
+import {mountTenantMasterdata} from './tenant-masterdata-module.js?v=3.57.23';
+window.dsEditTenantMasterdata=()=>{
+ if(!(hasOperationalAdminAccess()||isPlatformTenantMode())){alert('Mandantenadministration erforderlich.');return;}
+ const organizationId=currentOrganizationId();
+ if(!organizationId){alert('Bitte zuerst einen Mandanten auswählen.');return;}
+ modal('<div class="row space"><h2>Mandantenstammdaten</h2><button type="button" onclick="closeModal()">Schließen</button></div><div id="dsTenantMasterdataRoot"></div>');
+ const root=document.getElementById('dsTenantMasterdataRoot');
+ const rpc=async(name,args)=>{try{return {data:await cloudRequest('rpc/'+name,{method:'POST',body:JSON.stringify(args)}),error:null};}catch(error){return {data:null,error};}};
+ mountTenantMasterdata({root,supabase:{rpc},organizationId});
 };
 </script>
 <script src="./employee-time.js?v=3.57.16" defer></script>
