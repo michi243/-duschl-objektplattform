@@ -1,4 +1,4 @@
-import {buildSalesOfferPrintHtml} from './sales-offer-document.js?v=3.57.23';
+import {buildSalesOfferPrintHtml} from './sales-offer-document.js?v=3.57.24';
 /**
  * Duschl Service – mandantengetrennte Geschäftsanfragen, Angebote und Auftragsübernahme.
  * Alle Zugriffe laufen über autorisierte Supabase-RPCs; keine lokale Ablage von Kundendaten.
@@ -261,7 +261,7 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
    editor.append(button('Mandantenstammdaten speichern',async()=>{
      if(pendingLogo){logoPath=await storage.upload(pendingLogo);pendingLogo=null;}
      const payload={...Object.fromEntries(Object.entries(fields).map(([key,input])=>[key,input.value.trim()])),
-       tax_mode:tax.input.value,logo_data:null,logo_path:logoPath,brand_primary:primary.input.value.trim(),brand_accent:accent.input.value.trim()};
+       tax_mode:tax.input.value,logo_data:!logoPath&&/^data:image\/png;base64,/.test(logoData||'')?logoData:null,logo_path:logoPath,brand_primary:primary.input.value.trim(),brand_accent:accent.input.value.trim()};
      if(!validHex(payload.brand_primary)||!validHex(payload.brand_accent))throw Error('CI-Farben müssen im Format #RRGGBB angegeben werden.');
      if(!payload.sender_name)throw Error('Für eine nutzbare Angebotsvorlage ist ein Firmenname erforderlich.');
      const saved=await rpc('save_sales_document_template_v1',{p_organization_id:organizationId,p_settings:payload});
