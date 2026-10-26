@@ -8,6 +8,7 @@ on:
       - 'sales-inquiries-module.js'
       - 'sales-offer-document.js'
       - 'tenant-masterdata-module.js'
+      - 'tenant-logo-storage.js'
       - 'sql/**'
       - 'workforce-planning.js'
       - 'tests/**'
@@ -55,6 +56,7 @@ jobs:
           node --check sales-inquiries-module.js
           node --check sales-offer-document.js
           node --check tenant-masterdata-module.js
+          node --check tenant-logo-storage.js
           node --check private-offers-module.js
           node --test tests/workforce-planning.test.cjs tests/personnel-assignment-gate.test.cjs tests/resource-personnel-link.test.cjs tests/platform-admin-time-role.test.cjs tests/repository-cleanup.test.cjs tests/sales-inquiries-gate.test.cjs tests/sales-offer-document.test.cjs
       - name: Central release and cache key
