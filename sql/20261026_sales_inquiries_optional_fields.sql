@@ -50,7 +50,7 @@ begin
    v_id:=p_inquiry_id;
  end if;
  return v_id;
-end; $function$
+end; $function$;
 
 
 CREATE OR REPLACE FUNCTION public.convert_sales_offer_v1(p_offer_id uuid, p_mode text, p_object_id uuid DEFAULT NULL::uuid)
@@ -89,7 +89,7 @@ begin
  returning id into v_order;
  update public.sales_inquiries set status='converted',converted_object_id=v_object,updated_at=now() where id=q.id;
  return jsonb_build_object('order_id',v_order,'object_id',v_object,'order_type',case when v_object is null then 'standalone' else 'object' end);
-end; $function$
+end; $function$;
 
 
 -- Berechtigungen bleiben auf authenticated begrenzt; keinerlei Zugriffsänderung an Tabellen.
