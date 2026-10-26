@@ -18,10 +18,33 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
  const notice=n('div');notice.className='muted';notice.setAttribute('role','status');
  const list=n('div');const editor=n('div');editor.className='sales-editor';editor.hidden=true;
  section.append(header,summary,bar,notice,editor,list);root.append(section);
+
  const say=s=>{notice.textContent=s;};
+ const inlineFeedback=(message,buttonElement)=>{
+   // Feedback must remain visible at the action point, including on small screens.
+   const previous=editor.querySelector('.sales-inline-feedback');
+   if(previous)previous.remove();
+   if(!message)return;
+   const alert=n('div',message,{role:'alert','aria-live':'assertive'});
+   alert.className='sales-inline-feedback';
+   Object.assign(alert.style,{background:'rgba(136,39,39,.26)',border:'1px solid #da7777',color:'#ffe5e5',padding:'12px 14px',borderRadius:'10px',margin:'12px 0',fontWeight:'650'});
+   if(editor.contains(buttonElement))buttonElement.after(alert);
+   else if(!editor.hidden)editor.append(alert);
+   else section.append(alert);
+   alert.scrollIntoView?.({behavior:'smooth',block:'nearest'});
+ };
  const button=(title,fn,confirmText)=>{const b=n('button',title,{type:'button'});b.addEventListener('click',async()=>{
    if(confirmText&&!window.confirm(confirmText))return;
-   b.disabled=true;try{await fn();}catch(err){say('Fehler: '+(err.message||err));}finally{b.disabled=false;}
+   if(disposed)return;
+   const priorLabel=b.textContent;
+   b.disabled=true;b.textContent=title==='Anfrage speichern'?'Speichere Anfrage …':title;
+   if(editor.contains(b)){const prior=editor.querySelector('.sales-inline-feedback');if(prior)prior.remove();}
+   try{await fn();}
+   catch(err){
+     const message='Speichern / Aktion fehlgeschlagen: '+(err?.message||String(err));
+     say(message);inlineFeedback(message,b);
+   }
+   finally{b.disabled=false;b.textContent=priorLabel;}
  });return b;};
  const field=(title,value='',type='text')=>{const label=n('label',title),input=n('input','',{type});input.value=value??'';label.append(input);return {label,input};};
  const area=(title,value='')=>{const label=n('label',title),input=n('textarea');input.value=value??'';label.append(input);return {label,input};};
@@ -83,14 +106,40 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
      const r=row();group.forEach(x=>r.append(x.label));editor.append(r);
    }
    editor.append(description.label);
+   const validate=(data)=>{
+     const failures=[];
+     const requireField=(value,element,message,min,max)=>{
+       if(String(value).length<min||String(value).length>max)failures.push({element,message});
+     };
+     requireField(data.contact_name,name.input,'Ansprechpartner: mindestens 2 Zeichen eingeben.',2,120);
+     requireField(data.service_category,category.input,'Leistung: mindestens 2 Zeichen eingeben.',2,120);
+     requireField(data.description,description.input,'Anliegen: mindestens 3 Zeichen eingeben.',3,3000);
+     if(!data.phone&&!data.email)failures.push({element:phone.input,message:'Bitte Telefonnummer oder E-Mail-Adresse eintragen, damit ein Rückruf möglich ist.'});
+     if(data.email&&!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(data.email))failures.push({element:email.input,message:'Die E-Mail-Adresse ist ungültig.'});
+     if(data.phone.length>80)failures.push({element:phone.input,message:'Telefonnummer ist zu lang.'});
+     if(data.email.length>240)failures.push({element:email.input,message:'E-Mail-Adresse ist zu lang.'});
+     if(data.company.length>200)failures.push({element:company.input,message:'Firmenname ist zu lang.'});
+     [name.input,category.input,description.input,phone.input,email.input,company.input].forEach(x=>x.removeAttribute('aria-invalid'));
+     if(failures.length){
+       failures.forEach(x=>x.element.setAttribute('aria-invalid','true'));
+       const first=failures[0];
+       first.element.focus();
+       throw Error(failures.map(x=>x.message).join(' '));
+     }
+   };
    editor.append(button('Anfrage speichern',async()=>{
       const data={channel:channel.input.value,contact_name:name.input.value.trim(),company:company.input.value.trim(),phone:phone.input.value.trim(),email:email.input.value.trim(),
        customer_type:type.input.value,service_category:category.input.value.trim(),description:description.input.value.trim(),object_id:obj.input.value||null,
        street:street.input.value.trim(),postal_code:postal.input.value.trim(),city:city.input.value.trim(),desired_date:desired.input.value||null,
        follow_up_date:follow.input.value||null,priority:priority.input.value};
-      if(!data.contact_name||!data.service_category||!data.description||(!data.email&&!data.phone))throw Error('Name, Kontaktmöglichkeit, Leistung und Anliegen sind erforderlich.');
-      await rpc('save_sales_inquiry_v1',{p_organization_id:organizationId,p_inquiry_id:q?.id||null,p_details:data});
-      close();say('Anfrage gespeichert.');await load();
+      validate(data);
+      const savedId=await rpc('save_sales_inquiry_v1',{p_organization_id:organizationId,p_inquiry_id:q?.id||null,p_details:data});
+      // Do not erase the editor before the database acknowledged the operation.
+      close();
+      search.value='';filter.value='all';
+      await load();
+      say('Anfrage erfolgreich gespeichert · Referenz: '+String(savedId).slice(0,8).toUpperCase());
+      list.scrollIntoView?.({behavior:'smooth',block:'start'});
    }),button('Abbrechen',close));
    editor.scrollIntoView({behavior:'smooth',block:'nearest'});
  }
