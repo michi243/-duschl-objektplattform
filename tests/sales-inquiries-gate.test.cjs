@@ -11,7 +11,7 @@ const release=JSON.parse(read('release.json'));
 const db=read('sql/20261026_sales_inquiries_and_order_conversion.sql');
 const dbOptional=read('sql/20261026_sales_inquiries_optional_fields.sql');
 const templateSql=read('sql/20261026_sales_offer_document_template.sql');
-new vm.Script(sales.replace(/\bexport function\b/g,'function'),{filename:'sales-inquiries-module.js'});
+new vm.Script(sales.replace(/^import .*?;\s*$/gm,'').replace(/\bexport function\b/g,'function'),{filename:'sales-inquiries-module.js'});
 new vm.Script(offers.replace(/^import .*?;\s*$/gm,'').replace(/\bexport function\b/g,'function'),{filename:'private-offers-module.js'});
 assert.match(offers,/import \{mountSalesInquiries\}/);
 assert.match(offers,/import_resident_private_inquiry_v1/);
