@@ -1,5 +1,11 @@
 # Versionsverlauf – Duschl Service Objektplattform
 
+## v3.57.19 – 26.10.2026
+
+- Fehlerbehebung: Benutzer sehen bei unvollständigen Anfragen direkt am Speichern-Button die konkrete Ursache, betroffene Pflichtfelder werden markiert und fokussiert.
+- Nach erfolgreichem Datenbank-Commit: Liste sichtbar aktualisieren und Speicherbestätigung mit Anfrage-Referenz ausgeben.
+- Frontendmodule mit Versionsparametern zur Cache-Aktualisierung.
+
 ## v3.57.18 – 26.10.2026
 
 - Neues Mandantenmodul für telefonische und sonstige Kundenanfragen ohne Pflicht-Objektbezug, inklusive Schnellaufnahme, Wiedervorlage und Suchfiltern.
