@@ -64,10 +64,9 @@ begin
       end if;
       v_payload:=v_payload||jsonb_build_object('logo_data',v_logo);
     else
-      if length(coalesce(v_item.value,''))>case
-        when v_item.key in ('intro_text','closing_text','payment_terms') then 1500
-        else 250 end
-      then raise exception 'Dokumentfeld zu lang: %',v_item.key;end if;
+      if length(coalesce(v_item.value,''))>1500 then
+        raise exception 'Dokumentfeld zu lang: %',v_item.key;
+      end if;
       if v_item.key='tax_mode' and v_item.value not in ('unspecified','small_business','standard')
       then raise exception 'Ungültige Steuerregel';end if;
       v_payload:=v_payload||jsonb_build_object(v_item.key,coalesce(v_item.value,''));
