@@ -15,7 +15,7 @@ export function buildSalesOfferPrintHtml({offer,inquiry,template={},object=null}
   const primary=safeColor(template.brand_primary,'#102d41');
   const accent=safeColor(template.brand_accent,'#ccab55');
   const recipient=trim(inquiry.company)||trim(inquiry.contact_name);
-  const logo=typeof template.logo_data==='string' && template.logo_data.length<=280000 && /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(template.logo_data)?template.logo_data:'';
+  const logo=typeof template.logo_data==='string' && template.logo_data.length<=7200000 && /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(template.logo_data)?template.logo_data:'';
   const warnings=[];
   if(!sender||!trim(template.sender_street)||!trim(template.sender_city))warnings.push('Absenderanschrift vervollständigen');
   if(!recipient)warnings.push('Empfänger ergänzen');
