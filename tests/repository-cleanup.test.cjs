@@ -10,7 +10,7 @@ const activeMarketing=read('docs/marketing.html');
 const index=read('index.html');
 const manifest=JSON.parse(read('release.json'));
 const readme=read('README.md');
-assert.equal(manifest.version,'3.57.21','release manifest');
+assert.equal(manifest.version,'3.57.24','release manifest');
 assert.match(index,/let APP_VERSION='3\.57\.21'/,'fallback version');
 assert.match(index,/let APP_RELEASE_DATE='26\.10\.2026'/,'fallback release date');
 assert.match(index,/\.\/docs\/marketing\.html\?v=/,'active marketing navigation');
