@@ -7480,6 +7480,19 @@ body.or-wizard-open{overflow:hidden!important}
 #privateOffersNavCount.warn {background:rgba(231,184,60,.19)!important;color:#f2d36d!important;border:1px solid rgba(231,184,60,.4)!important;}
 #privateOffersNavCount.neutral {background:rgba(121,145,164,.19)!important;color:#aebdca!important;border:1px solid rgba(121,145,164,.3)!important;}
 </style>
+<style id="sales-intake-v35718">
+#privateOffersRoot .sales-intake{padding-bottom:24px;border-bottom:1px solid var(--line);margin-bottom:28px}
+#privateOffersRoot .sales-intake h2{font-size:clamp(21px,3vw,28px);margin:8px 0}
+#privateOffersRoot .sales-toolbar{display:grid;grid-template-columns:minmax(0,2fr) minmax(180px,1fr);gap:10px;margin:14px 0}
+#privateOffersRoot .sales-card,#privateOffersRoot .sales-offer{padding:16px;margin:12px 0;border:1px solid var(--line);border-radius:12px;background:rgba(8,22,32,.27)}
+#privateOffersRoot .sales-card h3{margin:0 0 10px}
+#privateOffersRoot .sales-editor{padding:16px;border:1px solid var(--line);border-radius:12px;margin:15px 0;background:rgba(20,42,56,.8)}
+#privateOffersRoot .sales-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;align-items:end;margin:6px 0}
+#privateOffersRoot .sales-editor textarea{min-height:100px}
+#privateOffersRoot .sales-overdue{color:#f2c875;font-weight:700}
+#privateOffersRoot .sales-line{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:9px}
+@media(max-width:600px){#privateOffersRoot .sales-toolbar{grid-template-columns:1fr}#privateOffersRoot .sales-intake .row.space{flex-wrap:wrap;gap:10px}}
+</style>
 <style id="private-offers-mobile-v3545">
 #privateOffersRoot{max-width:100%;overflow-x:hidden}
 #privateOffersRoot label{display:flex;flex-direction:column;gap:6px;margin:0 0 13px;font-size:14px;font-weight:600;min-width:0}
@@ -7818,7 +7831,7 @@ Ihr Name und Ihre freiwillig angegebene E-Mail-Adresse werden mit der bereits be
 <button class="primary" id="navDashboard" onclick="showSection('dashboard')"><span class="nav-icon">⌂</span><span>Dashboard</span></button>
 
 <div class="ds-menu-group-label">Arbeit</div>
-<button id="navPrivateOffers" style="display:none" onclick="showSection('privateOffers')"><span class="nav-icon">▤</span><span>Privatanfragen & Angebote</span><span class="badge nav-count" id="privateOffersNavCount">–</span></button>
+<button id="navPrivateOffers" style="display:none" onclick="showSection('privateOffers')"><span class="nav-icon">▤</span><span>Anfragen & Angebote</span><span class="badge nav-count" id="privateOffersNavCount">–</span></button>
 <button id="navResidentReports" onclick="showSection('residentReports')"><span class="nav-icon">◯</span><span>Meldungen</span><span class="badge nav-count" id="residentReportNavCount">0</span></button>
 <button id="navDecisions" onclick="showSection('decisions')"><span class="nav-icon">✓</span><span>Entscheidungen</span><span class="badge nav-count" id="decisionNavCount">0</span></button>
 <button id="navWorkqueue" onclick="showSection('workqueue')"><span class="nav-icon">⌁</span><span>Arbeitsvorrat</span><span class="badge nav-count" id="workqueueNavCount">0</span></button>
@@ -10235,7 +10248,7 @@ WINTERDIENST RÄUMKARTE
   <div class="card" style="margin-top:14px"><div class="row space"><div><strong>Dauerhafte Objektbetreuung</strong><div class="muted" style="margin-top:4px">Dienstleister je Objekt anbinden und mehrere Leistungsumfänge pro Beziehung definieren.</div><div id="myTenantPublicCode" class="muted" style="margin-top:7px"></div></div><button id="shareObjectCareBtn" type="button" onclick="openObjectCollaborationModal()">Betreuung vergeben</button></div><div id="objectCollaborationsList" style="margin-top:12px"><span class="muted">Noch keine Betreuungsbeziehungen geladen.</span></div></div>
   <div class="card" style="margin-top:14px"><div class="row space"><strong>Aufträge</strong><button type="button" onclick="cloudLoadExternalOrders()">↻ Aktualisieren</button></div><div id="externalOrdersList" style="margin-top:12px"><span class="muted">Noch keine Daten geladen.</span></div></div>
 </section>
-<section class="section" id="privateOffers"><div class="row space"><div><div class="ds-section-eyebrow">VERTRAULICH · PRIVATKUNDEN</div><h2>Privatanfragen & Angebote</h2><div class="muted">Nur für berechtigte Administratoren. Nicht Bestandteil von Objekt- und Verwaltungsberichten.</div></div></div><div class="card" id="privateOffersRoot" style="margin-top:16px">Lade Angebotsverwaltung …</div></section>
+<section class="section" id="privateOffers"><div class="row space"><div><div class="ds-section-eyebrow">VERTRAULICH · KUNDENANFRAGEN</div><h2>Anfragen & Angebote</h2><div class="muted">Nur für berechtigte Administratoren. Nicht Bestandteil von Objekt- und Verwaltungsberichten.</div></div></div><div class="card" id="privateOffersRoot" style="margin-top:16px">Lade Angebotsverwaltung …</div></section>
 </main>
 <div id="modalRoot"></div>
 <script id="duschl-qr-local-v2183">
@@ -12732,8 +12745,8 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-let APP_VERSION='3.57.17';
-let APP_RELEASE_DATE='25.10.2026';
+let APP_VERSION='3.57.18';
+let APP_RELEASE_DATE='26.10.2026';
 let APP_RELEASE_TIME=''; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
@@ -20833,7 +20846,7 @@ async function dsPrivateBadgeRefresh(force=false){
  cache.org=org;
  cache.pending=(async()=>{
  try{
-   const count=await cloudRequest('rpc/count_open_resident_private_inquiries_v1',{method:'POST',body:JSON.stringify({p_organization_id:org})});
+   const count=await cloudRequest('rpc/count_open_all_inquiries_v1',{method:'POST',body:JSON.stringify({p_organization_id:org})});
    if(dsPrivateCountCache.org===org){
      dsPrivateCountCache.value=Math.max(0,Number(count)||0);
      dsPrivateCountCache.at=Date.now();
