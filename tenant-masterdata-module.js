@@ -68,7 +68,7 @@ export function mountTenantMasterdata({root,supabase,organizationId}){
       if(!/^#[a-fA-F0-9]{6}$/.test(payload.brand_primary)||!/^#[a-fA-F0-9]{6}$/.test(payload.brand_accent))throw Error('CI-Farben müssen im Format #RRGGBB sein.');
       payload.tax_mode=tax.value;
       if(pendingFile){logoPath=await storage.upload(pendingFile);pendingFile=null;}
-      payload.logo_path=logoPath;payload.logo_data=null;
+      payload.logo_path=logoPath;payload.logo_data=!logoPath&&/^data:image\/png;base64,/.test(logoData||'')?logoData:null;
       const saved=await api('save_sales_document_template_v1',{p_organization_id:organizationId,p_settings:payload});
       if(!disposed){loadValues(saved);notify('Mandantenstammdaten erfolgreich gespeichert.')}
     }catch(error){notify('Speichern fehlgeschlagen: '+(error.message||error))}
