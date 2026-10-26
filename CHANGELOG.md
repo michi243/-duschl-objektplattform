@@ -1,5 +1,13 @@
 # Versionsverlauf – Duschl Service Objektplattform
 
+## v3.57.18 – 26.10.2026
+
+- Neues Mandantenmodul für telefonische und sonstige Kundenanfragen ohne Pflicht-Objektbezug, inklusive Schnellaufnahme, Wiedervorlage und Suchfiltern.
+- Angebotsverwaltung mit Positionskalkulation, manueller Annahme und kontrollierter Übernahme als neues Objekt, vorhandenes Objekt oder objektfreier Einzelauftrag.
+- Bestehende private Bewohneranfragen einschließlich vorhandener Angebote können kontrolliert in die Geschäftsanfragen übernommen werden, ohne deren Ursprungsvorgänge zu verändern.
+- Vertriebliche Tabellen mit RLS-Sperre, ausschließlich mandantenautorisierten RPCs, Dublettenprüfung und neuen Q-Gates; Browsermodule versioniert.
+
+
 ## v3.57.17 – 25.10.2026 (Entwicklung / Testbetrieb)
 
 - Nicht mehr gepflegte Marketing-HTML im Repository-Stamm durch eine Weiterleitung zur aktiven `docs/marketing.html` ersetzt.
