@@ -115,7 +115,7 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
      requireField(data.service_category,category.input,'Leistung: mindestens 2 Zeichen eingeben.',2,120);
      requireField(data.description,description.input,'Anliegen: mindestens 3 Zeichen eingeben.',3,3000);
      if(!data.phone&&!data.email)failures.push({element:phone.input,message:'Bitte Telefonnummer oder E-Mail-Adresse eintragen, damit ein Rückruf möglich ist.'});
-     if(data.email&&!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(data.email))failures.push({element:email.input,message:'Die E-Mail-Adresse ist ungültig.'});
+     if(data.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))failures.push({element:email.input,message:'Die E-Mail-Adresse ist ungültig.'});
      if(data.phone.length>80)failures.push({element:phone.input,message:'Telefonnummer ist zu lang.'});
      if(data.email.length>240)failures.push({element:email.input,message:'E-Mail-Adresse ist zu lang.'});
      if(data.company.length>200)failures.push({element:company.input,message:'Firmenname ist zu lang.'});
