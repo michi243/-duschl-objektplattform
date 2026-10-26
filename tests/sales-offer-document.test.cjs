@@ -47,3 +47,8 @@ assert.match(badColor,/--brand-primary:#102d41/);
 assert.match(badColor,/--brand-accent:#ccab55/);
 assert.doesNotMatch(badColor,/red;position:absolute/);
 console.log('Offer A4 document renderer syntax, safety and tenant branding gate passed.');
+
+const brandedLogo=render({offer,inquiry,template:{...template,logo_data:'data:image/webp;base64,AA=='}});
+assert.match(brandedLogo,/data:image\/webp;base64,AA==/);
+const unsafeLogo=render({offer,inquiry,template:{...template,logo_data:'data:image\/svg+xml;base64,AA=='}});
+assert.doesNotMatch(unsafeLogo,/data:image\/svg\+xml;base64,AA==/);
