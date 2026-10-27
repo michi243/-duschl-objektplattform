@@ -1,3 +1,7 @@
+## 3.57.27 – Duschl Service Angebots-CI
+
+- Kopfbereich mit größerem Logo und dunkelblauen Akzenten statt Gold, angelehnt an das bestehende Angebotsschema.
+
 # Versionsverlauf – Duschl Service Objektplattform
 
 ## v3.57.21 – 26.10.2026
