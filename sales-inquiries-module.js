@@ -215,7 +215,7 @@ export function mountSalesInquiries({root,supabase,organizationId,onChange=()=>{
    editor.append(group);
    const colors=row();
    const primary=field('CI Primärfarbe (Hex)',current.brand_primary||'#102d41');
-   const accent=field('CI Akzentfarbe (Hex)',current.brand_accent||'#ccab55');
+   const accent=field('CI Akzentfarbe (Hex)',current.brand_accent||'#102d41');
    colors.append(primary.label,accent.label);editor.append(n('h4','Corporate Design'),colors);
    const validHex=x=>/^#[0-9a-fA-F]{6}$/.test(x);
    const tax=select('Steuerliche Behandlung',[
