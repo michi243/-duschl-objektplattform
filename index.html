@@ -7571,6 +7571,24 @@ body.or-wizard-open{overflow:hidden!important}
   color:var(--text-muted,#b4c3d1);
 }
 </style>
+<style id="ds-autofill-contrast-v35725">
+/* iOS Safari/WebKit: system autofill may paint pale yellow while the input text remains white.
+   Keep the field consistently dark and use an explicit readable foreground. */
+@supports (-webkit-appearance: none) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="color"]):-webkit-autofill,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="color"]):-webkit-autofill:hover,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="color"]):-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  select:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px #071b29 inset !important;
+    box-shadow: 0 0 0 1000px #071b29 inset !important;
+    -webkit-text-fill-color: #f5f8fb !important;
+    caret-color: #f5f8fb !important;
+    border-color: #52748a !important;
+    transition: background-color 99999s ease-out 0s;
+  }
+}
+</style>
 </head>
 <body class="role-context-loading">
 <div id="roleContextLoader" aria-live="polite" aria-busy="true">
@@ -12751,7 +12769,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-let APP_VERSION='3.57.24';
+let APP_VERSION='3.57.25';
 let APP_RELEASE_DATE='26.10.2026';
 let APP_RELEASE_TIME=''; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -41151,7 +41169,7 @@ async function dsIntakeSubmit(){
 }
 </script>
 <script type="module">
-import {mountPrivateOffers} from './private-offers-module.js?v=3.57.24';
+import {mountPrivateOffers} from './private-offers-module.js?v=3.57.25';
 window.dsPrivateOffersMount=()=>{
  const organizationId=currentOrganizationId();
  const root=document.getElementById('privateOffersRoot');
@@ -41186,8 +41204,8 @@ window.dsOpenPersonnelFromMenu=function(){
 };
 </script>
 <script type="module">
-import {mountTenantMasterdata} from './tenant-masterdata-module.js?v=3.57.24';
-import {createTenantLogoStorage} from './tenant-logo-storage.js?v=3.57.24';
+import {mountTenantMasterdata} from './tenant-masterdata-module.js?v=3.57.25';
+import {createTenantLogoStorage} from './tenant-logo-storage.js?v=3.57.25';
 window.dsTenantLogoStorageFor=(organizationId)=>createTenantLogoStorage({organizationId,request:async(path,options)=>{
   if(!cloudSession?.access_token)throw Error('Bitte anmelden.');
   await cloudEnsureFreshSession();
