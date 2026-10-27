@@ -1,4 +1,4 @@
-import {mountSalesInquiries} from './sales-inquiries-module.js?v=3.57.26';
+import {mountSalesInquiries} from './sales-inquiries-module.js?v=3.57.27';
 
 /**
  * Duschl Service – private resident inquiries & offers.
