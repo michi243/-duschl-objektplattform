@@ -41205,7 +41205,7 @@ window.dsOpenPersonnelFromMenu=function(){
 </script>
 <script type="module">
 import {mountTenantMasterdata} from './tenant-masterdata-module.js?v=3.57.27';
-import {createTenantLogoStorage} from './tenant-logo-storage.js?v=3.57.26';
+import {createTenantLogoStorage} from './tenant-logo-storage.js?v=3.57.27';
 window.dsTenantLogoStorageFor=(organizationId)=>createTenantLogoStorage({organizationId,request:async(path,options)=>{
   if(!cloudSession?.access_token)throw Error('Bitte anmelden.');
   await cloudEnsureFreshSession();
