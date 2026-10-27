@@ -1,4 +1,4 @@
-import {buildSalesOfferPrintHtml} from './sales-offer-document.js?v=3.57.25';
+import {buildSalesOfferPrintHtml} from './sales-offer-document.js?v=3.57.26';
 /**
  * Duschl Service – mandantengetrennte Geschäftsanfragen, Angebote und Auftragsübernahme.
  * Alle Zugriffe laufen über autorisierte Supabase-RPCs; keine lokale Ablage von Kundendaten.
