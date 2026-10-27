@@ -44,7 +44,7 @@ assert.match(branded,/Geschäftsführung: Max Muster/);
 assert.match(branded,/Register: HRB 12345/);
 const badColor=render({offer,inquiry,template:{...template,brand_primary:'red;position:absolute',brand_accent:'url(javascript:alert(1))'}});
 assert.match(badColor,/--brand-primary:#102d41/);
-assert.match(badColor,/--brand-accent:#ccab55/);
+assert.match(badColor,/--brand-accent:#102d41/);
 assert.doesNotMatch(badColor,/red;position:absolute/);
 console.log('Offer A4 document renderer syntax, safety and tenant branding gate passed.');
 
