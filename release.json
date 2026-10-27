@@ -1,10 +1,11 @@
 {
-  "version": "3.57.25",
+  "version": "3.57.26",
   "release_date": "2026-10-26",
   "channel": "development",
   "status": "testbetrieb",
   "scope": "Objektplattform einschließlich Personalmanagement und Kundenanfragen",
   "notes": [
+    "iPhone/Safari Angebotsvorschau: sichtbare Zurück-Schaltfläche, Rücksprung zur Plattform und responsives Layout für Bildschirm; A4-Druckansicht bleibt unverändert.",
     "Safari/iPhone: Browser-Autofill zeigt dunklen Hintergrund, helle Schrift und lesbare Einträge in allen Formularen; Pflichtfeld-, Rollen- und Datenlogik unverändert.",
     "Mandantenlogo PNG/JPG/WebP bis 5 MB, transparente WebP-Optimierung auf max. 1600 Pixel, mandantenisolierter privater Supabase Storage und Ausgabe im Angebots-PDF; bestehende Legacy-PNGs weiter unterstützt.",
     "Eigenständiges Verwaltungsmodul tenant-masterdata-module.js für die zentrale Administration; Host-Einbindung in die Hauptanwendung erst möglich, wenn deren Quellcode im Repository verfügbar ist.",
