@@ -181,7 +181,7 @@ Zusammenarbeit erforderlichen Objekte und Vorgänge.
 
 Aktuelle Frontend-Version:
 
-**v3.57.24** (Entwicklungs-/Testbetrieb; maßgeblich ist `release.json`)
+**v3.57.25** (Entwicklungs-/Testbetrieb; maßgeblich ist `release.json`)
 
 Die Plattform befindet sich in aktiver Entwicklung und wird derzeit
 anhand realer Objekt-, Hausverwaltungs- und Dienstleisterprozesse
