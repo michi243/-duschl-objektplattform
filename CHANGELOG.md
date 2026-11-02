@@ -1,3 +1,12 @@
+## v3.57.28 – 02.11.2026 – Personen & Rollen je Objekt
+
+- In der aufgeklappten Objektkarte zeigt die Administration jetzt einen Abschnitt **Personen & Rollen**.
+- Übersicht über direkte Objektzuweisungen mit Mandantenrolle, Objektrolle, Aktivitäts- und Gültigkeitsstatus.
+- Mandanten-Admins und Admin-Vertretungen mit mandantenweitem Zugriff ohne explizite Objektrolle werden gesondert ausgewiesen; keine impliziten Objektrollen für neue Benutzer.
+- Benutzer- und Berechtigungsdaten werden erst beim Aufklappen frisch über bereits vorhandene, serverseitig autorisierte Endpunkte abgerufen; kein Anzeigezugriff für operative Rollen oder Auftraggeber.
+- Keine neuen Berechtigungen, keine Änderungen an RLS, Datenbankschema, Migrationen oder Mandantenzuordnungen.
+- Q-Gate: Rollen-/Mandantentrennung, deaktivierte Benutzer, fehlende Objektzuweisung und Mandantenwechsel im Browser testen.
+
 ## 3.57.27 – Duschl Service Angebots-CI
 
 - Kopfbereich mit größerem Logo und dunkelblauen Akzenten statt Gold, angelehnt an das bestehende Angebotsschema.
