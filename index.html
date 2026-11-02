@@ -2,7 +2,8 @@
 
 <html lang="de">
 <head>
-<!-- RELEASE 3.57.28 · Lesende, mandantenisolierte Objektübersicht Personen & Rollen für die Administration. Keine neue Objektrolle, kein SQL-/RLS-Eingriff. -->
+<!-- RELEASE 3.57.29 · Personen & Rollen: Rollen bearbeiten führt mit Benutzer- und Objektvorauswahl in die bestehende Benutzerverwaltung. -->
+<!-- RELEASE 3.57.29 · Lesende, mandantenisolierte Objektübersicht Personen & Rollen für die Administration. Keine neue Objektrolle, kein SQL-/RLS-Eingriff. -->
 <!-- PREVIOUS RELEASE 3.56.4 · GPS-Check-out auch nach Verlassen des Objekts mit Begründung und Freigabe; Testmodus akzeptiert kurze Gründe ab vier Zeichen. -->
 <!-- PREVIOUS RELEASE 3.56.4 · Excel-CSV: echter UTF-8-BOM, CRLF-Zeilenumbrüche und Semikolon-Erkennung; Arbeitszeiterfassung startet sicher im Testmodus. -->
 <!-- CURRENT RELEASE 3.56.3 · Sicherheitskorrektur: Zeitdaten werden nach Mandanten- und Benutzerwechsel nur atomar geladen. -->
@@ -12770,7 +12771,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-let APP_VERSION='3.57.28';
+let APP_VERSION='3.57.29';
 let APP_RELEASE_DATE='02.11.2026';
 let APP_RELEASE_TIME=''; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -24842,6 +24843,8 @@ async function loadUserAdminData(){
     }).join('');
     if(keep&&userAdminProfiles.some(p=>p.id===keep))sel.value=keep;
     loadUserAdminEditor();
+    // Verlinkung aus Objektkarte: erst nach Abschluss des asynchronen Benutzerdaten-Ladens fokussieren.
+    if(typeof window.dsFocusObjectRoleEditorSelection==='function')window.dsFocusObjectRoleEditorSelection();
   }catch(e){ed.innerHTML=`<div class="card"><h3>Fehler</h3><p>${esc(e.message)}</p></div>`}
 }
 
@@ -41174,7 +41177,7 @@ async function dsIntakeSubmit(){
 }
 </script>
 <script type="module">
-import {mountPrivateOffers} from './private-offers-module.js?v=3.57.28';
+import {mountPrivateOffers} from './private-offers-module.js?v=3.57.29';
 window.dsPrivateOffersMount=()=>{
  const organizationId=currentOrganizationId();
  const root=document.getElementById('privateOffersRoot');
@@ -41209,8 +41212,8 @@ window.dsOpenPersonnelFromMenu=function(){
 };
 </script>
 <script type="module">
-import {mountTenantMasterdata} from './tenant-masterdata-module.js?v=3.57.28';
-import {createTenantLogoStorage} from './tenant-logo-storage.js?v=3.57.28';
+import {mountTenantMasterdata} from './tenant-masterdata-module.js?v=3.57.29';
+import {createTenantLogoStorage} from './tenant-logo-storage.js?v=3.57.29';
 window.dsTenantLogoStorageFor=(organizationId)=>createTenantLogoStorage({organizationId,request:async(path,options)=>{
   if(!cloudSession?.access_token)throw Error('Bitte anmelden.');
   await cloudEnsureFreshSession();
@@ -41229,7 +41232,7 @@ window.dsEditTenantMasterdata=()=>{
  mountTenantMasterdata({root,supabase:{rpc},organizationId});
 };
 </script>
-<script src="./object-role-overview.js?v=3.57.28" defer></script>
+<script src="./object-role-overview.js?v=3.57.29" defer></script>
 <script src="./employee-time.js?v=3.57.16" defer></script>
 </body>
 </html>
