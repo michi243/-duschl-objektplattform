@@ -1,3 +1,10 @@
+## v3.57.29 – 02.11.2026 – Objektrollen direkt zur Bearbeitung verlinkt
+
+- Schaltfläche **Rollen bearbeiten** bei jeder Person unter **Personen & Rollen** in der Objektkarte.
+- Öffnet die bestehende Benutzerverwaltung mit vorausgewähltem Benutzer, Objektrolle und Mandantenrolle; bestehender Speichervorgang bleibt maßgeblich.
+- Einschließlich inaktiver Objektzuweisungen und mandantenweit berechtigter Administratoren; neue Objektrollen werden nicht automatisch vergeben.
+- Mandantenprüfung vor Navigation und nach dem Laden; kein neuer Schreibpfad, keine SQL-, RLS- oder Backend-Änderung.
+
 ## v3.57.28 – 02.11.2026 – Personen & Rollen je Objekt
 
 - In der aufgeklappten Objektkarte zeigt die Administration jetzt einen Abschnitt **Personen & Rollen**.
