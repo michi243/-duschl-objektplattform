@@ -1,6 +1,6 @@
-/* Duschl Service · Objektplattform 3.57.28
+/* Duschl Service · Objektplattform 3.57.29
  * Personen und Rollen in eigenen Objekten (nur Mandanten-/Plattformadministration).
- * Ausschliesslich lesender Zugriff auf bestehende, serverseitig autorisierte APIs.
+ * Lesende Übersicht; Rollenaenderung ausschliesslich ueber bestehende Benutzerverwaltung.
  */
 (function(){
   'use strict';
@@ -28,7 +28,7 @@
       return tenantWide?'Objektrolle abgelaufen · mandantenweiter Zugriff':'Abgelaufen am '+String(assignment.valid_until).slice(0,10);
     return tenantWide?'Aktiv · mandantenweiter Zugriff':'Aktiv';
   }
-  function personRow(user,assignment,today){
+  function personRow(user,assignment,today,objectId,organizationId){
     const name=String(user.full_name||user.email||'Benutzer ohne Anzeigenamen');
     const role=typeof roleLabel==='function'?roleLabel(user.membership_role):user.membership_role||'Nicht festgelegt';
     const objectRole=assignment
@@ -42,8 +42,62 @@
       '<div><strong>Mandantenrolle:</strong> '+escapeHtml(role)+'</div>'+
       '<div><strong>Objektrolle:</strong> '+escapeHtml(objectRole)+'</div>'+
       '<div class="muted"><strong>Status:</strong> '+escapeHtml(status)+'</div>'+
+      '<div style="margin-top:9px"><button type="button" data-user-id="'+escapeHtml(user.user_id)+'" data-object-id="'+escapeHtml(objectId)+'" data-organization-id="'+escapeHtml(organizationId)+'" onclick="dsOpenObjectRoleEditor(this)">Rollen bearbeiten</button></div>'+
       '</div></div>';
   }
+  // Eine Person im bestehenden Rollen-Editor vorauswaehlen. Keine Rollenmutation in der Objektansicht.
+  window.dsOpenObjectRoleEditor=function(button){
+    if(typeof canManageUsersUI!=='function'||!canManageUsersUI())return;
+    const userId=String(button?.dataset?.userId||'');
+    const objectId=String(button?.dataset?.objectId||'');
+    const orgId=String(button?.dataset?.organizationId||'');
+    const sameTenant=orgId && orgId===String(currentOrganizationId()||'');
+    const ownObject=sameTenant && (db.objects||[]).some(o=>
+      String(o.id)===objectId && !o.externalManaged && String(o.organizationId||'')===orgId
+    );
+    if(!userId||!objectId||!ownObject)return;
+    if(typeof showSection!=='function')return;
+    window.dsPendingObjectRoleEditor={userId,objectId,orgId};
+    showSection('users'); // laedt die Benutzerverwaltung serverseitig und ruft den Fokus-Hook auf
+  };
+
+  window.dsFocusObjectRoleEditorSelection=function(){
+    const pending=window.dsPendingObjectRoleEditor;
+    if(!pending)return;
+    window.dsPendingObjectRoleEditor=null;
+    if(!canManageUsersUI()||String(currentOrganizationId()||'')!==pending.orgId)return;
+    const sel=document.getElementById('userAdminSelect');
+    const ed=document.getElementById('userAdminEditor');
+    if(!sel||!ed)return;
+    const candidate=[...sel.options].find(o=>o.value===pending.userId);
+    if(!candidate){
+      console.warn('Rollenbearbeitung: Benutzer im aktiven Mandanten nicht gefunden.');
+      return;
+    }
+    sel.value=pending.userId;
+    if(typeof loadUserAdminEditor==='function')loadUserAdminEditor();
+
+    const controls=[...ed.querySelectorAll('.userObjectRole')];
+    const roleControl=controls.find(el=>String(el.dataset.objectId||'')===pending.objectId);
+    const mandantControl=ed.querySelector('#userAdminRole');
+    const object=(db.objects||[]).find(o=>String(o.id)===pending.objectId);
+    const notice=document.createElement('div');
+    notice.setAttribute('role','status');
+    notice.style.cssText='padding:10px 12px;margin-bottom:12px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.05)';
+    notice.textContent='Rollenbearbeitung: '+String(object?.name||'Objekt')+
+      ' · '+String(candidate.textContent||'Benutzer')+
+      '. Objektrolle und Mandantenrolle sind getrennt. Änderungen mit „Berechtigungen speichern“ bestätigen.';
+    ed.prepend(notice);
+    const target=roleControl||mandantControl;
+    if(target){
+      setTimeout(()=>{
+        if(String(currentOrganizationId()||'')!==pending.orgId||sel.value!==pending.userId||!target.isConnected)return;
+        target.scrollIntoView({block:'center',behavior:'smooth'});
+        target.focus({preventScroll:true});
+      },0);
+    }
+  };
+
   window.dsLoadObjectRoleOverview=async function(event,objectId){
     const details=event&&event.currentTarget;
     if(!details||!details.open)return;
@@ -93,11 +147,11 @@
       let html='<p class="muted" style="margin:0 0 8px">Objektzuweisungen und Mandantenrollen sind getrennte Berechtigungen. Mandanten-Admins und Admin-Vertretungen haben auch ohne Objektrolle Zugriff.</p>';
       html+='<div style="font-weight:750;margin-top:12px">Direkte Objektzuweisungen ('+direct.length+')</div>';
       html+=direct.length
-        ?direct.map(x=>personRow(x.user,x.assignment,today)).join('')
+        ?direct.map(x=>personRow(x.user,x.assignment,today,oid,orgId)).join('')
         :'<div class="muted" style="margin-top:8px">Keine personenbezogene Objektrolle vergeben.</div>';
       html+='<div style="font-weight:750;margin-top:16px">Mandantenweiter Zugriff ohne Objektzuweisung ('+inherited.length+')</div>';
       html+=inherited.length
-        ?inherited.map(u=>personRow(u,null,today)).join('')
+        ?inherited.map(u=>personRow(u,null,today,oid,orgId)).join('')
         :'<div class="muted" style="margin-top:8px">Keine weiteren mandantenweit berechtigten Personen.</div>';
       if(unassignedTenantUsers)html+='<p class="muted">Hinweis: '+unassignedTenantUsers+' Objektzuordnung(en) ohne lesbare Mandantenzugehörigkeit. Berechtigungen in der Benutzerverwaltung prüfen.</p>';
       html+='<p class="muted" style="margin:12px 0 0">Änderungen erfolgen ausschließlich in der Benutzerverwaltung. Plattformadministratoren ohne Mandantenmitgliedschaft sind hier nicht aufgeführt.</p>';
