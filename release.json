@@ -1,10 +1,11 @@
 {
-  "version": "3.57.28",
+  "version": "3.57.29",
   "release_date": "2026-11-02",
   "channel": "development",
   "status": "testbetrieb",
   "scope": "Objektplattform einschließlich Personalmanagement und Kundenanfragen",
   "notes": [
+    "Objekt-Personen/Rollen: pro Person Schaltfläche Rollen bearbeiten. Mit Mandanten- und Objektkontext wird der zugehörige Benutzer und die Objektrolle im bestehenden Benutzereditor automatisch vorausgewählt. Speichern ausschließlich über vorhandenen Berechtigungsworkflow; keine SQL-/RLS-/API-Änderung.",
     "Objektansicht: Personen & Rollen zeigt direkte Objektzuweisungen, Mandantenrolle, Objektrolle und Gültigkeit; mandantenweiter Administrationszugriff ist gesondert ausgewiesen. Nur berechtigte Administration; bestehende RLS/SQL unverändert.",
     "Corporate Design: Angebotsdruck auf Duschl-Service-Logo und dunkelblaue Akzente abgestimmt, statt goldener Gestaltung; Nutzerlogo per Dokumentenvorlage hinterlegbar.",
     "iPhone/Safari Angebotsvorschau: sichtbare Zurück-Schaltfläche, Rücksprung zur Plattform und responsives Layout für Bildschirm; A4-Druckansicht bleibt unverändert.",
