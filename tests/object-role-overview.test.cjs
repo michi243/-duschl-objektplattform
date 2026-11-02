@@ -7,9 +7,10 @@ const ui=fs.readFileSync(require.resolve('../object-role-overview.js'),'utf8');
 const index=fs.readFileSync(require.resolve('../index.html'),'utf8');
 new vm.Script(ui,{filename:'object-role-overview.js'});
 assert.match(index,/ontoggle="dsLoadObjectRoleOverview\(event,/);
-assert.match(index,/object-role-overview\.js\?v=3\.57\.28/);
-assert.match(index,/let APP_VERSION='3\.57\.28'/);
+assert.match(index,/object-role-overview\.js\?v=3\.57\.29/);
+assert.match(index,/let APP_VERSION='3\.57\.29'/);
 assert.match(ui,/canManageUsersUI\(\)/);
+assert.match(index,/window\.dsFocusObjectRoleEditorSelection\(\)/,'user administration selects object after async load');
 assert.match(ui,/String\(currentOrganizationId\(\)\|\|''\)!==orgId/);
 
 (async()=>{
@@ -50,6 +51,43 @@ assert.match(ui,/String\(currentOrganizationId\(\)\|\|''\)!==orgId/);
   assert.match(host.innerHTML,/Mandantenweiter Zugriff ohne Objektzuweisung \(1\)/);
   assert.doesNotMatch(host.innerHTML,/Fremder/);
   assert.match(summary.textContent,/\(2\)/);
+  assert.match(host.innerHTML,/Rollen bearbeiten<\/button>/,'action visible per person');
+  assert.match(host.innerHTML,/data-user-id="staff"/);
+  assert.match(host.innerHTML,/data-user-id="admin"/);
+
+  // Navigation: richtige Person und eigenes Objekt, Mandantenwechsel blockiert.
+  const sections=[];
+  sandbox.showSection=id=>sections.push(id);
+  sandbox.window.dsOpenObjectRoleEditor({
+    dataset:{userId:'staff',objectId:'obj-1',organizationId:'org-A'}
+  });
+  assert.equal(sections[0],'users');
+  assert.equal(sandbox.window.dsPendingObjectRoleEditor.userId,'staff');
+  assert.equal(sandbox.window.dsPendingObjectRoleEditor.objectId,'obj-1');
+  const focused=[];
+  const roleControl={dataset:{objectId:'obj-1'},isConnected:true,
+    scrollIntoView:()=>focused.push('scroll'),focus:()=>focused.push('focus')};
+  const select={options:[{value:'staff',textContent:'Anna'},{value:'admin',textContent:'Admin'}],value:''};
+  const notices=[];
+  const editor={querySelectorAll:()=>[roleControl],querySelector:()=>null,prepend:x=>notices.push(x)};
+  sandbox.document={
+    getElementById:id=>id==='userAdminSelect'?select:id==='userAdminEditor'?editor:null,
+    createElement:()=>({setAttribute(){},style:{},textContent:''})
+  };
+  sandbox.loadUserAdminEditor=()=>{};
+  sandbox.setTimeout=fn=>fn();
+  sandbox.window.dsFocusObjectRoleEditorSelection();
+  assert.equal(select.value,'staff');
+  assert.equal(sandbox.window.dsPendingObjectRoleEditor,null);
+  assert.deepEqual(focused,['scroll','focus']);
+  assert.match(notices[0].textContent,/Berechtigungen speichern/);
+
+  // Navigation fuer Fremdmandanten darf keine zweite Benutzerverwaltung oeffnen.
+  const before=sections.length;
+  sandbox.window.dsOpenObjectRoleEditor({
+    dataset:{userId:'staff',objectId:'obj-1',organizationId:'org-B'}
+  });
+  assert.equal(sections.length,before);
 
   allowed=false;calls=[];
   await sandbox.window.dsLoadObjectRoleOverview({currentTarget:details},'obj-1');
