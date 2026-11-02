@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<!-- RELEASE 3.57.28 · Lesende, mandantenisolierte Objektübersicht Personen & Rollen für die Administration. Keine neue Objektrolle, kein SQL-/RLS-Eingriff. -->
 <!-- PREVIOUS RELEASE 3.56.4 · GPS-Check-out auch nach Verlassen des Objekts mit Begründung und Freigabe; Testmodus akzeptiert kurze Gründe ab vier Zeichen. -->
 <!-- PREVIOUS RELEASE 3.56.4 · Excel-CSV: echter UTF-8-BOM, CRLF-Zeilenumbrüche und Semikolon-Erkennung; Arbeitszeiterfassung startet sicher im Testmodus. -->
 <!-- CURRENT RELEASE 3.56.3 · Sicherheitskorrektur: Zeitdaten werden nach Mandanten- und Benutzerwechsel nur atomar geladen. -->
@@ -12769,8 +12770,8 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-let APP_VERSION='3.57.27';
-let APP_RELEASE_DATE='26.10.2026';
+let APP_VERSION='3.57.28';
+let APP_RELEASE_DATE='02.11.2026';
 let APP_RELEASE_TIME=''; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
@@ -28595,6 +28596,10 @@ function renderObjects(){
             ? `<details class="ds-object-context-details"><summary>Betreuung & Leistungsumfang</summary><div class="ds-object-context">${o.serviceScope?`<div><strong>Leistungsumfang:</strong> ${esc(o.serviceScope)}</div>`:''}<div>Zur Betreuung durch dein Unternehmen freigegeben.</div></div></details>`
             : (collaborationHtml?`<details class="ds-object-context-details"><summary>Betreuung & Zugriff</summary><div class="ds-object-context">${collaborationHtml}</div></details>`:'')}
 
+          ${!o.externalManaged&&canManageUsersUI()?`<details class="ds-object-context-details" ontoggle="dsLoadObjectRoleOverview(event, '${esc(o.id)}')">
+            <summary>Personen &amp; Rollen</summary>
+            <div class="ds-object-context" data-ds-object-roles><span class="muted">Zum Anzeigen der personenbezogenen Objektrollen aufklappen.</span></div>
+          </details>`:''}
           <div class="ds-object-actions">
             <button class="primary ds-object-primary-action" onclick="openFindingModal('${esc(o.id)}','')">+ Dokumentation erfassen</button>
             <div class="ds-object-secondary-actions">
@@ -41169,7 +41174,7 @@ async function dsIntakeSubmit(){
 }
 </script>
 <script type="module">
-import {mountPrivateOffers} from './private-offers-module.js?v=3.57.27';
+import {mountPrivateOffers} from './private-offers-module.js?v=3.57.28';
 window.dsPrivateOffersMount=()=>{
  const organizationId=currentOrganizationId();
  const root=document.getElementById('privateOffersRoot');
@@ -41204,8 +41209,8 @@ window.dsOpenPersonnelFromMenu=function(){
 };
 </script>
 <script type="module">
-import {mountTenantMasterdata} from './tenant-masterdata-module.js?v=3.57.27';
-import {createTenantLogoStorage} from './tenant-logo-storage.js?v=3.57.27';
+import {mountTenantMasterdata} from './tenant-masterdata-module.js?v=3.57.28';
+import {createTenantLogoStorage} from './tenant-logo-storage.js?v=3.57.28';
 window.dsTenantLogoStorageFor=(organizationId)=>createTenantLogoStorage({organizationId,request:async(path,options)=>{
   if(!cloudSession?.access_token)throw Error('Bitte anmelden.');
   await cloudEnsureFreshSession();
@@ -41224,6 +41229,7 @@ window.dsEditTenantMasterdata=()=>{
  mountTenantMasterdata({root,supabase:{rpc},organizationId});
 };
 </script>
+<script src="./object-role-overview.js?v=3.57.28" defer></script>
 <script src="./employee-time.js?v=3.57.16" defer></script>
 </body>
 </html>

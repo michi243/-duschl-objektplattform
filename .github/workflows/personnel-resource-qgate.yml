@@ -14,6 +14,7 @@ on:
       - 'tests/**'
       - 'release.json'
       - 'index.html'
+      - 'object-role-overview.js'
       - 'marketing.html'
       - 'docs/marketing.html'
       - 'preview/**'
@@ -52,13 +53,14 @@ jobs:
         run: |
           node --check employee-time.js
           node --check resource-personnel-link.js
+          node --check object-role-overview.js
           node --check workforce-planning.js
           node --check sales-inquiries-module.js
           node --check sales-offer-document.js
           node --check tenant-masterdata-module.js
           node --check tenant-logo-storage.js
           node --check private-offers-module.js
-          node --test tests/workforce-planning.test.cjs tests/personnel-assignment-gate.test.cjs tests/resource-personnel-link.test.cjs tests/platform-admin-time-role.test.cjs tests/repository-cleanup.test.cjs tests/sales-inquiries-gate.test.cjs tests/sales-offer-document.test.cjs
+          node --test tests/workforce-planning.test.cjs tests/personnel-assignment-gate.test.cjs tests/resource-personnel-link.test.cjs tests/platform-admin-time-role.test.cjs tests/repository-cleanup.test.cjs tests/sales-inquiries-gate.test.cjs tests/sales-offer-document.test.cjs tests/object-role-overview.test.cjs
       - name: Central release and cache key
         run: |
           node - <<'NODE'
