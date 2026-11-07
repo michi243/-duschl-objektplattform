@@ -7615,7 +7615,54 @@ body.or-wizard-open{overflow:hidden!important}
 #dsWasteObjectModal .waste-object-context{flex:1 1 100%;padding:10px 12px;border:1px solid rgba(128,145,160,.3);border-radius:10px}
 #dsWasteObjectModal .waste-object-context strong{font-size:15px}
 #dsWasteObjectModal .waste-controls button{max-height:48px}
-#dsWasteObjectModal .waste-body{max-width:100%;overflow-x:auto}
+#dsWasteObjectModal .waste-body{max-width:100%;min-width:0;overflow-x:visible}
+/* v3.57.33 – gezielte iPhone-Optimierung nur für den Müllmanagement-Dialog */
+#modalRoot .ds-waste-dialog>.ds-global-modal-close{display:none!important}
+#modalRoot .ds-waste-dialog{padding:12px 14px!important;overscroll-behavior:contain}
+#dsWasteObjectModal{min-width:0}
+#dsWasteObjectModal .ds-waste-modal-head{
+  position:sticky;top:-12px;z-index:6;display:flex;align-items:center;
+  justify-content:space-between;gap:12px;margin:-12px -4px 12px;padding:12px 4px 13px;
+  background:#102739;border-bottom:1px solid rgba(150,175,192,.23)
+}
+#dsWasteObjectModal .ds-waste-modal-head h2{font-size:clamp(18px,4vw,23px)!important;line-height:1.15}
+#dsWasteObjectModal .ds-waste-modal-head .muted{font-size:12px}
+#dsWasteObjectModal .ds-waste-modal-head button{flex:0 0 auto;white-space:nowrap}
+#dsWasteObjectModal .waste-controls{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:end}
+#dsWasteObjectModal .waste-controls .waste-field{min-width:0;flex:initial}
+#dsWasteObjectModal .waste-controls button{white-space:normal;padding:10px 12px}
+#dsWasteObjectModal .waste-card{padding:13px;margin:9px 0}
+#dsWasteObjectModal .waste-card h4{margin:0 0 10px}
+#dsWasteObjectModal .waste-report-mobile{display:none}
+#dsWasteObjectModal .waste-report-method{margin-top:13px;font-size:13px}
+#dsWasteObjectModal .waste-report-method summary{cursor:pointer;font-weight:600;padding:8px 2px}
+#dsWasteObjectModal .waste-report-method p{line-height:1.5;margin:6px 0 0}
+@media(max-width:600px){
+  #modalRoot .ds-waste-dialog{width:calc(100vw - 20px)!important;max-height:calc(100dvh - 36px)!important;padding:11px 12px!important}
+  #dsWasteObjectModal .ds-waste-modal-head{margin:-11px -2px 10px;padding:10px 2px;gap:8px}
+  #dsWasteObjectModal .ds-waste-modal-head button{padding:8px!important;font-size:12px}
+  #dsWasteObjectModal .ds-waste-modal-head h2{font-size:18px!important}
+  #dsWasteObjectModal .waste-head{margin:4px 0 6px}
+  #dsWasteObjectModal .waste-head h3{font-size:17px}
+  #dsWasteObjectModal .waste-controls{grid-template-columns:minmax(0,1fr) auto;gap:8px}
+  #dsWasteObjectModal .waste-controls .waste-field{min-width:0}
+  #dsWasteObjectModal .waste-create-button{grid-column:1/-1;justify-self:start}
+  #dsWasteObjectModal .waste-bin .waste-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  #dsWasteObjectModal .waste-bin .waste-row>div:first-child{grid-column:1/-1;min-width:0}
+  #dsWasteObjectModal .waste-bin .waste-row>button.primary{grid-column:1/-1}
+  #dsWasteObjectModal .waste-bin .waste-row button{width:100%;min-width:0;padding:10px 6px!important;white-space:normal}
+  #dsWasteObjectModal .waste-report .waste-table{display:none}
+  #dsWasteObjectModal .waste-report-mobile{display:grid;gap:8px}
+  #dsWasteObjectModal .waste-report-entry{padding:10px;border:1px solid rgba(150,175,192,.23);border-radius:10px}
+  #dsWasteObjectModal .waste-report-code{display:block;font-size:14px;margin-bottom:8px}
+  #dsWasteObjectModal .waste-report-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  #dsWasteObjectModal .waste-report-metric{min-width:0;display:flex;flex-direction:column;gap:4px}
+  #dsWasteObjectModal .waste-report-metric span{font-size:11px;line-height:1.2;color:#a9bac5}
+  #dsWasteObjectModal .waste-report-metric strong{font-size:16px;white-space:nowrap}
+  #dsWasteObjectModal .waste-report-verdict{font-size:12px;margin-top:8px;color:#c5d7e5}
+  #dsWasteObjectModal .waste-report>.waste-row{display:grid;grid-template-columns:minmax(0,1fr)}
+  #dsWasteObjectModal .waste-report>.waste-row button{width:100%;min-width:0;white-space:normal}
+}
 </style>
 </head>
 <body class="role-context-loading">
@@ -12797,7 +12844,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-let APP_VERSION='3.57.32';
+let APP_VERSION='3.57.33';
 let APP_RELEASE_DATE='07.11.2026';
 let APP_RELEASE_TIME=''; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -30334,15 +30381,16 @@ async function dsOpenWasteForObject(objectId){
     if(!allowed.has(String(objectId)))throw Error('Müllbereitstellung für dieses Objekt nicht aktiv beauftragt oder Zugriff nicht freigegeben.');
     if(typeof window.dsWasteMountObject!=='function')throw Error('Müllmanagement-Modul nicht geladen.');
     modal('<div id="dsWasteObjectModal">'+
-      '<div class="row space" style="gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:12px">'+
+      '<div class="ds-waste-modal-head">'+
         '<div><div class="ds-section-eyebrow">OBJEKT · BEAUFTRAGTE LEISTUNG</div>'+
         '<h2 style="margin:4px 0 0">Abfall / Müllbereitstellung</h2>'+
         '<div class="muted">'+esc(object.name||'Objekt')+'</div></div>'+
-        '<button type="button" onclick="closeModal()">Zurück zum Objekt</button>'+
+        '<button type="button" onclick="closeModal()" aria-label="Zurück zum Objekt">Zurück</button>'+
       '</div><div id="dsWasteObjectRoot"></div></div>');
     const wrapper=document.getElementById('dsWasteObjectModal');
     const dialog=wrapper?.closest('.ds-modal-dialog');
     if(dialog){
+      dialog.classList.add('ds-waste-dialog');
       dialog.style.width='min(980px,calc(100vw - 24px))';
       dialog.style.maxHeight='calc(100dvh - 24px)';
       dialog.style.overflowY='auto';
@@ -41319,7 +41367,7 @@ async function dsIntakeSubmit(){
 }
 </script>
 <script type="module">
-import {mountPrivateOffers} from './private-offers-module.js?v=3.57.32';
+import {mountPrivateOffers} from './private-offers-module.js?v=3.57.33';
 window.dsPrivateOffersMount=()=>{
  const organizationId=currentOrganizationId();
  const root=document.getElementById('privateOffersRoot');
@@ -41354,8 +41402,8 @@ window.dsOpenPersonnelFromMenu=function(){
 };
 </script>
 <script type="module">
-import {mountTenantMasterdata} from './tenant-masterdata-module.js?v=3.57.32';
-import {createTenantLogoStorage} from './tenant-logo-storage.js?v=3.57.32';
+import {mountTenantMasterdata} from './tenant-masterdata-module.js?v=3.57.33';
+import {createTenantLogoStorage} from './tenant-logo-storage.js?v=3.57.33';
 window.dsTenantLogoStorageFor=(organizationId)=>createTenantLogoStorage({organizationId,request:async(path,options)=>{
   if(!cloudSession?.access_token)throw Error('Bitte anmelden.');
   await cloudEnsureFreshSession();
@@ -41375,7 +41423,7 @@ window.dsEditTenantMasterdata=()=>{
 };
 </script>
 <script type="module">
-import {mountWasteMonitoring} from './waste-monitoring.js?v=3.57.32';
+import {mountWasteMonitoring} from './waste-monitoring.js?v=3.57.33';
 window.dsWasteMountObject=objectId=>{
   const organizationId=currentOrganizationId();
   const root=document.getElementById('dsWasteObjectRoot');
