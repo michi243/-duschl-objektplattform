@@ -2,6 +2,16 @@
  * Duschl Service v3.57.30 – QR-Müllmonitoring.
  * Authenticated-only, object/tenant scope is enforced by server-side RLS.
  */
+export function summarizeWasteBins(relevant, scans) {
+  return relevant.map(bin => {
+    const values=scans.filter(s=>s.bin_id===bin.id).map(s=>Number(s.fill_percent)).sort((a,b)=>a-b);
+    const count=values.length;
+    const average=count ? values.reduce((sum,value)=>sum+value,0)/count : null;
+    const p90=count ? values[Math.ceil(count*0.9)-1] : null;
+    return {bin,count,average,p90,probe:count>=8 && p90<=50};
+  });
+}
+
 export function mountWasteMonitoring(config) {
   const {root, api, organizationId, objects, admin} = config;
   if (!root || !organizationId) throw Error('Aktiven Mandanten auswählen.');
@@ -213,16 +223,7 @@ export function mountWasteMonitoring(config) {
       .catch(e=>message('QR-Code konnte nicht erzeugt werden: '+e.message,true));
   }
   function safeText(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-  function summarize(relevant){
-    const rows=relevant.map(b=>{
-      const data=scans.filter(s=>s.bin_id===b.id).map(s=>s.fill_percent).sort((a,z)=>a-z);
-      const n=data.length;
-      const avg=n?data.reduce((a,z)=>a+z,0)/n:null;
-      const p90=n?data[Math.ceil(n*0.9)-1]:null;
-      return {bin:b,count:n,average:avg,p90:p90,probe:n>=8 && p90<=50};
-    });
-    return rows;
-  }
+  function summarize(relevant){return summarizeWasteBins(relevant,scans);}
   function showReport(relevant){
     const report=card();report.append(node('h4','Jahresauswertung '+year));
     const summary=summarize(relevant);
