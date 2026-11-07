@@ -80,9 +80,9 @@ export function wasteQrLabelPrintHtml(pngData,format='62x40'){
 }
 
 export function mountWasteMonitoring(config) {
-  const {root, api, organizationId, objects, admin} = config;
+  const {root, api, organizationId, objects, admin, fixedObjectId='', readOnly=false} = config;
   if (!root || !organizationId) throw Error('Aktiven Mandanten auswählen.');
-  let bins = [], scans = [], selected = '', chosen = '', year = new Date().getFullYear();
+  let bins = [], scans = [], selected = String(fixedObjectId||''), chosen = '', year = new Date().getFullYear();
   let commissioned = null, busy = false, renderSerial = 0;
   const types = {rest:'Restmüll',paper:'Papier',bio:'Bio',plastic:'Wertstoffe',glass:'Glas',other:'Sonstige'};
   const fmtEuro = value => value == null ? 'nicht hinterlegt' :
@@ -129,7 +129,10 @@ export function mountWasteMonitoring(config) {
   const post = (table,values) => api(table,{method:'POST',headers:{'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(values)});
   const patch = (table,id,values) => api(table+'?id=eq.'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(values)});
   const objectName = id => (objects.find(o=>o.id===id)||{}).name || 'Objekt';
-  const eligible = () => objects.filter(o=>commissioned === null ? true : commissioned.has(o.id)); // Supabase RLS verifies own/delegated object access.
+  const eligible = () => objects.filter(o=>
+    (!fixedObjectId || String(o.id)===String(fixedObjectId)) &&
+    (commissioned === null || commissioned.has(o.id))
+  ); // Server-RPC und RLS prüfen Beauftragung sowie Mandanten-/Objektzugriff.
   async function getCommissioned(){
     if (!admin) return;
     const [typesRows,assignments] = await Promise.all([
@@ -159,18 +162,30 @@ export function mountWasteMonitoring(config) {
   }
   function layout(){
     controls.replaceChildren(); body.replaceChildren();
-    const select=node('select');select.setAttribute('aria-label','Objekt für Müllmanagement');
-    select.append(option('','Objekt auswählen'));
-    eligible().forEach(o=>select.append(option(o.id,o.name)));
-    if(!eligible().some(o=>o.id===selected))selected='';
-    select.value=selected;
-    select.addEventListener('change',async()=>{
-      selected=select.value;chosen='';const serial=++renderSerial;
-      message('Lade Müllbehälter …');
-      try{await loadScans();if(serial===renderSerial){message('');layout();}}
-      catch(e){message('Auswertung fehlgeschlagen: '+e.message,true);}
-    });
-    controls.append(labelInput('Objekt',select));
+    if(fixedObjectId){
+      const o=objects.find(o=>String(o.id)===String(fixedObjectId));
+      const label=node('div',null,'waste-object-context');
+      label.append(node('strong',o?.name||'Objekt'));
+      if(o?.street)label.append(node('div',o.street,'waste-muted'));
+      controls.append(label);
+      if(!eligible().length){
+        const info=card();info.append(node('p','Für dieses Objekt ist die Leistung „Abfall / Müllbereitstellung“ nicht aktiv oder nicht freigegeben.'));
+        body.append(info);return;
+      }
+    }else{
+      const select=node('select');select.setAttribute('aria-label','Objekt für Müllmanagement');
+      select.append(option('','Objekt auswählen'));
+      eligible().forEach(o=>select.append(option(o.id,o.name)));
+      if(!eligible().some(o=>o.id===selected))selected='';
+      select.value=selected;
+      select.addEventListener('change',async()=>{
+        selected=select.value;chosen='';const serial=++renderSerial;
+        message('Lade Müllbehälter …');
+        try{await loadScans();if(serial===renderSerial){message('');layout();}}
+        catch(e){message('Auswertung fehlgeschlagen: '+e.message,true);}
+      });
+      controls.append(labelInput('Objekt',select));
+    }
     const years=node('select');years.setAttribute('aria-label','Auswertungsjahr');
     for(let y=new Date().getFullYear();y>=2025;y--)years.append(option(String(y),String(y)));
     years.value=String(year);
@@ -187,13 +202,13 @@ export function mountWasteMonitoring(config) {
       body.append(info);return;
     }
     const relevant=bins.filter(b=>b.object_id===selected);
-    if(admin)controls.append(button('+ Mülltonne',()=>editBin()));
+    if(admin && !readOnly)controls.append(button('+ Mülltonne',()=>editBin()));
     if(!relevant.length){
       const empty=card();empty.append(node('p','Noch keine Mülltonnen für dieses Objekt angelegt.'));
       if(!admin)empty.append(node('p','Bitte die Objektverwaltung um die Anlage der Behälter bitten.'));
       body.append(empty);return;
     }
-    if(chosen){
+    if(chosen && !readOnly){
       const b=relevant.find(x=>x.id===chosen);
       if(b && b.active){showCapture(b);return;}
       chosen='';
@@ -206,9 +221,9 @@ export function mountWasteMonitoring(config) {
       desc.append(node('strong',(types[b.waste_type]||'Abfall')+' · '+b.code));
       desc.append(node('div',b.volume_liters+' Liter'+(b.active?'':' · deaktiviert'),'waste-muted'));
       bar.append(desc);
-      if(b.active)bar.append(button('Füllstand erfassen',()=>{chosen=b.id;layout();},'primary'));
-      if(admin)bar.append(button('QR / Etikett',()=>showQr(b)));
-      if(admin)bar.append(button('Bearbeiten',()=>editBin(b)));
+      if(b.active && !readOnly)bar.append(button('Füllstand erfassen',()=>{chosen=b.id;layout();},'primary'));
+      if(admin && !readOnly)bar.append(button('QR / Etikett',()=>showQr(b)));
+      if(admin && !readOnly)bar.append(button('Bearbeiten',()=>editBin(b)));
       el.append(bar);body.append(el);
     }
     showReport(relevant);
@@ -235,7 +250,7 @@ export function mountWasteMonitoring(config) {
     body.append(wrap);
   }
   function editBin(bin){
-    if(!admin)return;
+    if(!admin || readOnly)return;
     const existing=!!bin;
     const form=card();form.append(node('h4',existing?'Mülltonne bearbeiten':'Mülltonne anlegen'));
     const code=field('text',bin?.code||'','z. B. RM-001');code.maxLength=32;
@@ -371,9 +386,12 @@ export function mountWasteMonitoring(config) {
       if(urlToken){
         const b=bins.find(x=>x.qr_token===urlToken);
         if(!b){message('QR-Code nicht zugänglich: Mandantenwechsel, Berechtigung oder Beauftragung prüfen.',true);}
-        else {selected=b.object_id;chosen=b.id;message('QR-Code erkannt: '+b.code);}
+        else if(fixedObjectId && String(b.object_id)!==String(fixedObjectId)){
+          message('Der QR-Code gehört zu einem anderen Objekt.',true);
+        }else {selected=b.object_id;chosen=readOnly?'':b.id;message('QR-Code erkannt: '+b.code);}
       }
       if(!selected && eligible().length===1)selected=eligible()[0].id;
+      if(fixedObjectId && String(selected)!==String(fixedObjectId))throw Error('Objektkontext konnte nicht geprüft werden.');
       await loadScans();layout();
     }catch(e){message('Müllmonitoring nicht verfügbar: '+(e.message||String(e)),true);}
   }

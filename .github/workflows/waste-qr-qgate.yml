@@ -5,6 +5,8 @@ on:
       - 'waste-monitoring.js'
       - 'index.html'
       - 'sql/20261107_waste_bin_qr_monitoring_v35730.sql'
+      - 'sql/20261107_waste_object_navigation_v35732.sql'
+      - 'sql/20261107_waste_object_navigation_harden_v35732.sql'
       - 'tests/waste-monitoring.test.cjs'
       - 'release.json'
       - '.github/workflows/waste-qr-qgate.yml'
@@ -14,6 +16,8 @@ on:
       - 'waste-monitoring.js'
       - 'index.html'
       - 'sql/20261107_waste_bin_qr_monitoring_v35730.sql'
+      - 'sql/20261107_waste_object_navigation_v35732.sql'
+      - 'sql/20261107_waste_object_navigation_harden_v35732.sql'
       - 'tests/waste-monitoring.test.cjs'
       - 'release.json'
 jobs:
