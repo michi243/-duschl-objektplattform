@@ -1,3 +1,12 @@
+## v3.57.33 – 07.11.2026 – Mobiles Müllmanagement übersichtlich bedienen
+
+- Objekt-Dialog: fixer Kopfbereich mit einer eindeutigen Zurück-Schaltfläche; schwebendes X über Bedienelementen im Müllmanagement ausgeblendet.
+- iPhone: kompakte Tonnendarstellung und lesbare Karten mit Messungen, Ø-Füllstand, P90 und Bewertung statt fünfspaltiger Tabelle.
+- Methodik hinter „Erläuterung zur Bewertung“ aufklappbar; fehlende Entsorgungsgebühren werden nicht als angebliche 0,00 € dargestellt.
+- Objektkontext wird nicht redundant im Steuerbereich wiederholt.
+- Bestehende QR-Codes, Füllstände, Touren, Rollen, Mandanten und RLS unverändert.
+- Q-Gate: mobile Layoutregeln, bestehende Sicherheits- und Versionskontrollen prüfen.
+
 ## v3.57.32 – 07.11.2026 – Müllmanagement direkt im Objekt
 
 - Separaten Hamburger-Menüpunkt „Müllmanagement / QR“ entfernt.

@@ -163,11 +163,7 @@ export function mountWasteMonitoring(config) {
   function layout(){
     controls.replaceChildren(); body.replaceChildren();
     if(fixedObjectId){
-      const o=objects.find(o=>String(o.id)===String(fixedObjectId));
-      const label=node('div',null,'waste-object-context');
-      label.append(node('strong',o?.name||'Objekt'));
-      if(o?.street)label.append(node('div',o.street,'waste-muted'));
-      controls.append(label);
+      // Der Objektname steht bereits im fixierten Modalkopf. Keine redundante zweite Objektkarte.
       if(!eligible().length){
         const info=card();info.append(node('p','Für dieses Objekt ist die Leistung „Abfall / Müllbereitstellung“ nicht aktiv oder nicht freigegeben.'));
         body.append(info);return;
@@ -202,7 +198,7 @@ export function mountWasteMonitoring(config) {
       body.append(info);return;
     }
     const relevant=bins.filter(b=>b.object_id===selected);
-    if(admin && !readOnly)controls.append(button('+ Mülltonne',()=>editBin()));
+    if(admin && !readOnly)controls.append(button('+ Mülltonne',()=>editBin(),'waste-create-button'));
     if(!relevant.length){
       const empty=card();empty.append(node('p','Noch keine Mülltonnen für dieses Objekt angelegt.'));
       if(!admin)empty.append(node('p','Bitte die Objektverwaltung um die Anlage der Behälter bitten.'));
@@ -334,11 +330,14 @@ export function mountWasteMonitoring(config) {
   function safeText(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function summarize(relevant){return summarizeWasteBins(relevant,scans);}
   function showReport(relevant){
-    const report=card();report.append(node('h4','Jahresauswertung '+year));
+    const report=card();report.classList.add('waste-report');
+    report.append(node('h4','Jahresauswertung '+year));
     const summary=summarize(relevant);
     const known=summary.filter(s=>s.bin.annual_fee_eur!=null);
     const total=known.reduce((v,s)=>v+Number(s.bin.annual_fee_eur),0);
-    report.append(node('p',scans.length+' Erfassungen · '+summary.length+' Behälter · Hinterlegte Ist-Gebühren: '+fmtEuro(total)+(known.length<summary.length?' (unvollständig)':''),'waste-muted'));
+    const feesComplete=known.length===summary.length;
+    const feesLabel=known.length ? 'Ist-Gebühren: '+fmtEuro(total)+(feesComplete?'':' (teilweise erfasst)') : 'Ist-Gebühren nicht hinterlegt';
+    report.append(node('p',scans.length+' '+(scans.length===1?'Erfassung':'Erfassungen')+' · '+summary.length+' '+(summary.length===1?'Behälter':'Behälter')+' · '+feesLabel,'waste-muted'));
     const table=node('table',null,'waste-table');
     const hr=node('tr');['Behälter','Messungen','Ø Füllung','P90','Prüfung'].forEach(x=>hr.append(node('th',x)));
     const th=node('thead');th.append(hr);table.append(th);
@@ -351,7 +350,30 @@ export function mountWasteMonitoring(config) {
       tb.append(tr);
     });
     table.append(tb);report.append(table);
-    report.append(node('p','P90 = 90. Perzentil der erfassten Füllstände. Prüffall nur ab 8 Messungen und P90 ≤ 50 %. Spitzen, Reservekapazität, gesetzliche Mindestgrößen, Abholintervalle und tatsächliche Gebühren vor jeder Anpassung prüfen. Keine automatische Gebührenersparnis unterstellt.','waste-muted'));
+    // Mobile Karten statt fünf unlesbarer Tabellenspalten auf dem iPhone.
+    const mobile=node('div',null,'waste-report-mobile');
+    for(const r of summary){
+      const entry=node('div',null,'waste-report-entry');
+      entry.append(node('strong',r.bin.code,'waste-report-code'));
+      const metrics=node('div',null,'waste-report-metrics');
+      for(const [label,value] of [
+        ['Messungen',String(r.count)],
+        ['Ø Füllstand',r.average==null?'–':Math.round(r.average)+' %'],
+        ['P90',r.p90==null?'–':r.p90+' %']
+      ]){
+        const cell=node('div',null,'waste-report-metric');
+        cell.append(node('span',label),node('strong',value));
+        metrics.append(cell);
+      }
+      entry.append(metrics);
+      entry.append(node('div',r.probe?'Kapazität prüfen':r.count<8?'Datenbasis zu klein':'Keine Empfehlung','waste-report-verdict'));
+      mobile.append(entry);
+    }
+    report.append(mobile);
+    const method=node('details',null,'waste-report-method');
+    method.append(node('summary','Erläuterung zur Bewertung'));
+    method.append(node('p','P90 ist das 90. Perzentil der beobachteten Füllstände. Ein Prüffall wird erst ab acht Messungen und P90 ≤ 50 % markiert. Vor einer Anpassung sind Spitzen, Reservekapazität, Mindestgrößen, Leerungsintervalle und tatsächliche Gebühren zu prüfen. Keine automatische Einsparzusage.','waste-muted'));
+    report.append(method);
     const bar=node('div',null,'waste-row');
     bar.append(button('Jahresdaten CSV',()=>{
       const columns=['Objekt','Tonne','Abfallart','Volumen Liter','Datum','Füllstand %','Mitarbeiter-ID','Bemerkung'];
@@ -367,8 +389,7 @@ export function mountWasteMonitoring(config) {
       const html='<!doctype html><html lang="de"><meta charset="utf-8"><title>Müllmanagement Jahresbericht</title>'+
         '<style>body{font:14px Arial;margin:22mm;color:#18283b}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #bbb;text-align:left}h1{font-size:24px}p{line-height:1.5}</style>'+
         '<h1>Duschl Service · Müllmanagement</h1><h2>'+safeText(objectName(selected))+' · '+year+'</h2>'+
-        '<p>'+scans.length+' Erfassungen; '+summary.length+' Behälter. Dokumentierte jährliche Ist-Gebühren: '+safeText(fmtEuro(total))+
-        (known.length<summary.length?' (Gebührendaten unvollständig)':'')+'</p>'+
+        '<p>'+scans.length+' Erfassungen; '+summary.length+' Behälter. '+safeText(feesLabel)+'</p>'+
         '<table><tr><th>Behälter</th><th>Typ</th><th>Volumen</th><th>N</th><th>Ø</th><th>P90</th><th>Bewertung</th></tr>'+
         summary.map(s=>'<tr><td>'+safeText(s.bin.code)+'</td><td>'+safeText(types[s.bin.waste_type])+'</td><td>'+s.bin.volume_liters+
         ' L</td><td>'+s.count+'</td><td>'+(s.average==null?'–':Math.round(s.average)+' %')+'</td><td>'+(s.p90==null?'–':s.p90+' %')+
