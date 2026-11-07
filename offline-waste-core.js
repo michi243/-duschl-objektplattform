@@ -53,12 +53,18 @@ const get=(name,key)=>operation(name,'readonly',s=>s.get(key));
 const all=name=>operation(name,'readonly',s=>s.getAll());
 const put=(name,value)=>operation(name,'readwrite',s=>s.put(value));
 const del=(name,key)=>operation(name,'readwrite',s=>s.delete(key));
-export async function activeOfflineWaste(){
+export async function activeOfflineWaste(qrToken=''){
   const active=(await get(STORE.settings,'active'))?.value;
   if(!active||Date.now()>Number(active.expiresAt||0))return null;
-  const snapshot=await get(STORE.snapshots,active.scope);
+  let snapshot;
+  if(qrToken){
+    // Resolve QR to previously provisioned objects of THIS user and tenant only.
+    const candidates=await all(STORE.snapshots);
+    snapshot=candidates.find(x=>x.userId===active.userId&&x.organizationId===active.organizationId &&
+      x.expiresAt>Date.now()&&x.bins.some(b=>b.qr_token===qrToken));
+  }else snapshot=await get(STORE.snapshots,active.scope);
   if(!snapshot||snapshot.userId!==active.userId||snapshot.organizationId!==active.organizationId
-     ||snapshot.objectId!==active.objectId||Date.now()>snapshot.expiresAt)return null;
+     ||Date.now()>snapshot.expiresAt)return null;
   return snapshot;
 }
 export async function provisionOfflineWaste({userId,organizationId,objectId,objectName,bins}){
