@@ -27,10 +27,19 @@ test('annual report uses observed P90 and minimum eight entries',async()=>{
   assert.deepEqual(summarize([bin],[])[0].average,null);
 });
 test('frontend enforces logged-in scan route and central release number',()=>{
-  assert.equal(release.version,'3.57.31');
-  assert.ok(index.includes("let APP_VERSION='3.57.31'"));
-  assert.ok(index.includes('waste-monitoring.js?v=3.57.31'));
-  assert.ok(index.includes("showSection('wasteManagement')"));
+  assert.equal(release.version,'3.57.32');
+  assert.ok(index.includes("let APP_VERSION='3.57.32'"));
+  assert.ok(index.includes('waste-monitoring.js?v=3.57.32'));
+  assert.doesNotMatch(index,/id="navWasteManagement"/);
+  assert.doesNotMatch(index,/showSection\('wasteManagement'\)/);
+  assert.match(index,/dsOpenWasteForObject/);
+  assert.match(index,/data-ds-waste-object/);
+  assert.match(index,/Müllmanagement · Tonnen & Auswertung/);
+  assert.match(index,/window\.dsWasteQrMaybeOpen/);
+  assert.match(index,/rpc\/ds_list_commissioned_waste_objects_v1/);
+  assert.match(index,/fixedObjectId:objectId/);
+  assert.match(moduleText,/if\(fixedObjectId\)/);
+  assert.match(index,/readOnly:isPropertyManagerRole\(\)/);
   assert.ok(index.includes('window.dsWasteQrMaybeOpen'));
   assert.ok(index.includes('cloudSession?.access_token'));
   assert.ok(moduleText.includes('waste_bin_scans'));
@@ -89,4 +98,21 @@ test('printed media size equals selected physical QR label size, not A4',async()
   }
   assert.throws(()=>wasteQrLabelPrintHtml('javascript:alert(1)','62x40'));
   assert.throws(()=>wasteQrLabelPrintHtml(png,'A4'));
+});
+
+test('object-scoped waste discovery keeps tenant/object and active service gates',()=>{
+  const sqlNavigation=fs.readFileSync('sql/20261107_waste_object_navigation_v35732.sql','utf8');
+  assert.match(sqlNavigation,/create or replace function public\.ds_list_commissioned_waste_objects_v1\(p_organization_id uuid\)/i);
+  assert.match(sqlNavigation,/private\.ds_waste_can_access\(p_organization_id,o\.id,false\)/i);
+  assert.match(sqlNavigation,/private\.ds_waste_service_commissioned\(p_organization_id,o\.id\)/i);
+  assert.match(sqlNavigation,/o\.active is true/i);
+  assert.match(sqlNavigation,/revoke all on function public\.ds_list_commissioned_waste_objects_v1\(uuid\) from public, anon/i);
+  assert.match(sqlNavigation,/grant execute on function public\.ds_list_commissioned_waste_objects_v1\(uuid\) to authenticated/i);
+  assert.match(index,/dsWasteGetCommissionedObjectIds\(true\)/,'the object is re-authorized before opening');
+  assert.match(index,/qr_token:'eq\.'\+token/,'QR still identifies individual bin');
+  assert.match(index,/window\.dsWasteMountObject\(objectId\)/);
+  assert.match(moduleText,/selected = String\(fixedObjectId\|\|''\)/);
+  assert.match(moduleText,/if\(fixedObjectId && String\(b\.object_id\)!==String\(fixedObjectId\)\)/);
+  assert.doesNotMatch(index,/id="dsWasteRoot"/);
+  assert.doesNotMatch(index,/id="wasteManagement"/);
 });
