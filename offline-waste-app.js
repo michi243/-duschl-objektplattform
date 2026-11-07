@@ -104,7 +104,8 @@ async function boot(){
     navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(e=>console.warn('Offline-Cache',e));
   }
   try{
-    snapshot=await activeOfflineWaste();
+    const qrToken=new URLSearchParams(location.search).get('muelltonne')||'';
+    snapshot=await activeOfflineWaste(qrToken);
     if(!snapshot){msg('Keine gültige Offline-Freigabe. Objekt online öffnen und Müllmanagement vorbereiten.',true);return;}
     await render();
     msg(navigator.onLine?'Offline-Erfassung bereit – online wird automatisch abgeglichen.':'Offline bereit. Erfassungen werden lokal gesichert.');
