@@ -1,3 +1,11 @@
+## v3.57.31 – 07.11.2026 – Kompakte QR-Tonnenetiketten
+
+- Drucketikett und PNG-Export zeigen ausschließlich **Straße/Objekt**, **individuellen QR-Code** und **Behälternummer**.
+- Etikettenformate **62 × 40 mm (Standard)** und **50 × 30 mm** auswählbar; Etikettendruck nutzt passende Seitengröße ohne A4-Ränder.
+- Hochauflösendes Schwarz-Weiß-Etikett (ca. 305 dpi), QR-Inhalt unverändert, ausschließlich UI/Druckdarstellung geändert.
+- Kein Eingriff in Datenbank, RLS, Rollen, Scans, Erfassungs- oder Jahresauswertungslogik.
+- QR-Label-Q-Gate ergänzt; tatsächlicher Etikettendruck am jeweiligen Druckermodell ist separat zu prüfen.
+
 ## v3.57.30 – 07.11.2026 – Müllmanagement mit individuellen Tonnen-QR-Codes
 
 - Eigener QR-Code pro Mülltonne; Scan führt nach Anmeldung unmittelbar zur 0/25/50/75/100-%-Erfassung.
