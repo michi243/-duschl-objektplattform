@@ -27,9 +27,9 @@ test('annual report uses observed P90 and minimum eight entries',async()=>{
   assert.deepEqual(summarize([bin],[])[0].average,null);
 });
 test('frontend enforces logged-in scan route and central release number',()=>{
-  assert.equal(release.version,'3.57.30');
-  assert.ok(index.includes("let APP_VERSION='3.57.30'"));
-  assert.ok(index.includes('waste-monitoring.js?v=3.57.30'));
+  assert.equal(release.version,'3.57.31');
+  assert.ok(index.includes("let APP_VERSION='3.57.31'"));
+  assert.ok(index.includes('waste-monitoring.js?v=3.57.31'));
   assert.ok(index.includes("showSection('wasteManagement')"));
   assert.ok(index.includes('window.dsWasteQrMaybeOpen'));
   assert.ok(index.includes('cloudSession?.access_token'));
@@ -49,4 +49,44 @@ test('SQL Q-Gate: append only, active commissioned service, restricted REST writ
   assert.doesNotMatch(sql,/create policy waste_bin_scans_update/i);
   assert.doesNotMatch(sql,/grant update.*waste_bin_scans/i);
   assert.match(sql,/grant update\(code,waste_type,volume_liters,pickups_per_week,annual_fee_eur,active\)/i);
+});
+
+
+test('label formats and high-resolution graphic contain exactly object, QR image and bin number',async()=>{
+  const url='data:text/javascript;base64,'+Buffer.from(moduleText).toString('base64');
+  const {drawWasteQrLabel,WASTE_QR_LABEL_FORMATS}=await import(url);
+  assert.deepEqual(Object.keys(WASTE_QR_LABEL_FORMATS),['62x40','50x30']);
+  for(const [format,w,h] of [['62x40',744,480],['50x30',600,360]]){
+    const textDrawn=[],images=[];
+    const ctx={
+      fillStyle:'',textAlign:'',textBaseline:'',font:'',imageSmoothingEnabled:true,
+      fillRect(){},
+      measureText(t){return {width:String(t).length*14}},
+      fillText(t){textDrawn.push(t)},
+      drawImage(...args){images.push(args)}
+    };
+    const target={width:0,height:0,getContext:()=>ctx};
+    const qrSource={id:'test-qr'};
+    const result=drawWasteQrLabel(target,qrSource,'Musterstraße 12','RM001',format);
+    assert.equal(target.width,w);assert.equal(target.height,h);
+    assert.deepEqual(textDrawn,['Musterstraße 12','RM001']);
+    assert.equal(images.length,1);
+    assert.equal(images[0][0],qrSource);
+    assert.ok(result.qrSizePx>=190,'QR must remain large enough for mobile scan');
+  }
+  assert.doesNotMatch(moduleText,/DUSCHL SERVICE · MÜLLMONITORING<\/div>/);
+  assert.doesNotMatch(moduleText,/<p>QR scannen und Füllstand erfassen/);
+});
+test('printed media size equals selected physical QR label size, not A4',async()=>{
+  const url='data:text/javascript;base64,'+Buffer.from(moduleText).toString('base64');
+  const {wasteQrLabelPrintHtml}=await import(url);
+  const png='data:image/png;base64,AAAA';
+  for(const [format,mm] of [['62x40','62mm 40mm'],['50x30','50mm 30mm']]){
+    const html=wasteQrLabelPrintHtml(png,format);
+    assert.ok(html.includes('@page{size:'+mm+';margin:0}'));
+    assert.ok(html.includes('<img id="wasteLabelImage"'));
+    assert.doesNotMatch(html,/DUSCHL SERVICE|Restmüll|Liter|QR scannen/);
+  }
+  assert.throws(()=>wasteQrLabelPrintHtml('javascript:alert(1)','62x40'));
+  assert.throws(()=>wasteQrLabelPrintHtml(png,'A4'));
 });
