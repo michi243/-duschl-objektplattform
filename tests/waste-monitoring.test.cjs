@@ -27,9 +27,9 @@ test('annual report uses observed P90 and minimum eight entries',async()=>{
   assert.deepEqual(summarize([bin],[])[0].average,null);
 });
 test('frontend enforces logged-in scan route and central release number',()=>{
-  assert.equal(release.version,'3.57.32');
-  assert.ok(index.includes("let APP_VERSION='3.57.32'"));
-  assert.ok(index.includes('waste-monitoring.js?v=3.57.32'));
+  assert.equal(release.version,'3.57.33');
+  assert.ok(index.includes("let APP_VERSION='3.57.33'"));
+  assert.ok(index.includes('waste-monitoring.js?v=3.57.33'));
   assert.doesNotMatch(index,/id="navWasteManagement"/);
   assert.doesNotMatch(index,/showSection\('wasteManagement'\)/);
   assert.match(index,/dsOpenWasteForObject/);
@@ -122,4 +122,18 @@ test('object-scoped waste discovery keeps tenant/object and active service gates
   assert.match(moduleText,/if\(fixedObjectId && String\(b\.object_id\)!==String\(fixedObjectId\)\)/);
   assert.doesNotMatch(index,/id="dsWasteRoot"/);
   assert.doesNotMatch(index,/id="wasteManagement"/);
+});
+
+test('mobile waste modal is unobstructed and annual data remains legible',()=>{
+  assert.match(index,/#modalRoot \.ds-waste-dialog>\.ds-global-modal-close\{display:none!important\}/);
+  assert.match(index,/\.ds-waste-modal-head\{[\s\S]*?position:sticky/);
+  assert.match(index,/dialog\.classList\.add\('ds-waste-dialog'\)/);
+  assert.match(index,/\.waste-report \.waste-table\{display:none\}/);
+  assert.match(index,/\.waste-report-mobile\{display:grid/);
+  assert.match(moduleText,/waste-report-metrics/);
+  assert.match(moduleText,/Erläuterung zur Bewertung/);
+  assert.match(moduleText,/Ist-Gebühren nicht hinterlegt/);
+  assert.match(moduleText,/scans\.length===1\?'Erfassung':'Erfassungen'/);
+  assert.doesNotMatch(moduleText,/Hinterlegte Ist-Gebühren: '\+fmtEuro\(total\)/);
+  assert.match(index,/waste-monitoring\.js\?v=3\.57\.33/);
 });
