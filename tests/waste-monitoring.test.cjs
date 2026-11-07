@@ -27,9 +27,9 @@ test('annual report uses observed P90 and minimum eight entries',async()=>{
   assert.deepEqual(summarize([bin],[])[0].average,null);
 });
 test('frontend enforces logged-in scan route and central release number',()=>{
-  assert.equal(release.version,'3.57.33');
-  assert.ok(index.includes("let APP_VERSION='3.57.33'"));
-  assert.ok(index.includes('waste-monitoring.js?v=3.57.33'));
+  assert.equal(release.version,'3.57.34');
+  assert.ok(index.includes("let APP_VERSION='3.57.34'"));
+  assert.ok(index.includes('waste-monitoring.js?v=3.57.34'));
   assert.doesNotMatch(index,/id="navWasteManagement"/);
   assert.doesNotMatch(index,/showSection\('wasteManagement'\)/);
   assert.match(index,/dsOpenWasteForObject/);
