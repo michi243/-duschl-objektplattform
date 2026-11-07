@@ -1,10 +1,14 @@
 {
-  "version": "3.57.29",
-  "release_date": "2026-11-02",
+  "version": "3.57.30",
+  "release_date": "2026-11-07",
   "channel": "development",
   "status": "testbetrieb",
   "scope": "Objektplattform einschließlich Personalmanagement und Kundenanfragen",
   "notes": [
+    "QR-basiertes Müllmonitoring: eigene Behälter-ID mit individuellem Etikett je beauftragtem Objekt, Füllstand 0/25/50/75/100 vor Leerung, Login- und RLS-Pflicht.",
+    "Jahresauswertung mit Durchschnitt/P90 je Behälter, CSV, druckbarem PDF-Bericht und optional hinterlegter Jahresgebühr; keine pauschale Einsparzusage.",
+    "Neue additive Tabellen waste_bins und waste_bin_scans samt mandanten- und objektbezogener RLS, Append-only-Füllstandsdaten; Migration vor Inbetriebnahme erforderlich.",
+    "Q-Gate: Objekt- und Mandantengrenzen, deaktivierte Beauftragung, unberechtigte QR-Zugriffe, Duplikate und Version 3.57.30 prüfen.",
     "Objekt-Personen/Rollen: pro Person Schaltfläche Rollen bearbeiten. Mit Mandanten- und Objektkontext wird der zugehörige Benutzer und die Objektrolle im bestehenden Benutzereditor automatisch vorausgewählt. Speichern ausschließlich über vorhandenen Berechtigungsworkflow; keine SQL-/RLS-/API-Änderung.",
     "Objektansicht: Personen & Rollen zeigt direkte Objektzuweisungen, Mandantenrolle, Objektrolle und Gültigkeit; mandantenweiter Administrationszugriff ist gesondert ausgewiesen. Nur berechtigte Administration; bestehende RLS/SQL unverändert.",
     "Corporate Design: Angebotsdruck auf Duschl-Service-Logo und dunkelblaue Akzente abgestimmt, statt goldener Gestaltung; Nutzerlogo per Dokumentenvorlage hinterlegbar.",
