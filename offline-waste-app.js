@@ -85,7 +85,7 @@ async function render(){
   const token=new URLSearchParams(location.search).get('muelltonne');
   const exact=token?snapshot.bins.find(b=>b.qr_token===token):null;
   if(token&&!exact)msg('Dieser QR-Code ist nicht für das vorbereitete Objekt gespeichert.',true);
-  const bins=exact?[exact]:snapshot.bins;
+  const bins=token?(exact?[exact]:[]):snapshot.bins;
   for(const bin of bins){
     const recorded=events.some(e=>e.binId===bin.id&&e.observedDate===day);
     const box=make('section',null,'bin');
