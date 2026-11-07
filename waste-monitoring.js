@@ -12,6 +12,73 @@ export function summarizeWasteBins(relevant, scans) {
   });
 }
 
+
+/**
+ * Einheitliches, minimalistisches Tonnenetikett für Etikettendruck und PNG:
+ * ausschließlich Straße/Objekt, QR-Code und Behälterkennung.
+ * 12 px/mm entspricht rund 305 dpi, damit QR-Module scharf bleiben.
+ */
+export const WASTE_QR_LABEL_FORMATS = Object.freeze({
+  '62x40': Object.freeze({widthMm:62,heightMm:40}),
+  '50x30': Object.freeze({widthMm:50,heightMm:30})
+});
+
+export function drawWasteQrLabel(canvas, qrCanvas, objectLabel, binCode, format='62x40') {
+  const spec=WASTE_QR_LABEL_FORMATS[format];
+  if(!spec)throw Error('Unbekanntes Etikettenformat.');
+  if(!canvas || !qrCanvas)throw Error('QR-Bild für das Etikett fehlt.');
+  const mm=n=>Math.round(n*12);
+  const width=mm(spec.widthMm),height=mm(spec.heightMm);
+  canvas.width=width;canvas.height=height;
+  const ctx=canvas.getContext('2d');
+  if(!ctx)throw Error('Etikett kann nicht gezeichnet werden.');
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,width,height);
+  ctx.fillStyle='#000000';ctx.textAlign='center';ctx.textBaseline='middle';
+  const compact=format==='50x30';
+  const edge=mm(compact?0.9:1.2);
+  const top=mm(compact?3.4:4);
+  const bottom=mm(compact?3.4:4.2);
+  const gap=mm(0.3);
+  const maxTextWidth=width-2*edge;
+  function fittedText(value,y,maxPx,minPx){
+    const original=String(value||'').trim().replace(/\s+/g,' ') || '–';
+    let label=original,fontPx=maxPx;
+    ctx.font='700 '+fontPx+'px Arial, Helvetica, sans-serif';
+    while(fontPx>minPx && ctx.measureText(label).width>maxTextWidth){
+      fontPx--;
+      ctx.font='700 '+fontPx+'px Arial, Helvetica, sans-serif';
+    }
+    if(ctx.measureText(label).width>maxTextWidth){
+      while(label.length>1 && ctx.measureText(label+'…').width>maxTextWidth)label=label.slice(0,-1);
+      label+='…';
+    }
+    ctx.fillText(label,width/2,y);
+  }
+  fittedText(objectLabel,edge+top/2,compact?36:42,compact?23:26);
+  const qrSize=Math.floor(Math.min(width-2*edge,height-2*edge-top-bottom-2*gap));
+  if(qrSize<mm(16))throw Error('Etikett für den QR-Code zu klein.');
+  const qrTop=edge+top+gap;
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(qrCanvas,Math.floor((width-qrSize)/2),qrTop,qrSize,qrSize);
+  fittedText(binCode,height-edge-bottom/2,compact?38:46,compact?26:30);
+  return {...spec,widthPx:width,heightPx:height,qrSizePx:qrSize};
+}
+
+export function wasteQrLabelPrintHtml(pngData,format='62x40'){
+  const size=WASTE_QR_LABEL_FORMATS[format];
+  if(!size)throw Error('Unbekanntes Etikettenformat.');
+  if(!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(String(pngData||'')))throw Error('PNG-Etikett fehlt.');
+  const {widthMm,heightMm}=size;
+  return '<!doctype html><html lang="de"><head><meta charset="utf-8">'+
+    '<meta name="viewport" content="width=device-width,initial-scale=1">'+
+    '<title>Tonnenetikett</title>'+
+    '<style>@page{size:'+widthMm+'mm '+heightMm+'mm;margin:0}'+
+    '*{box-sizing:border-box}html,body{width:'+widthMm+'mm;height:'+heightMm+'mm;margin:0;padding:0;'+
+    'background:#fff;overflow:hidden}img{display:block;width:'+widthMm+'mm;height:'+heightMm+
+    'mm;object-fit:contain;print-color-adjust:exact;-webkit-print-color-adjust:exact}</style>'+
+    '</head><body><img id="wasteLabelImage" alt="" src="'+pngData+'"></body></html>';
+}
+
 export function mountWasteMonitoring(config) {
   const {root, api, organizationId, objects, admin} = config;
   if (!root || !organizationId) throw Error('Aktiven Mandanten auswählen.');
@@ -197,29 +264,56 @@ export function mountWasteMonitoring(config) {
   }
   function showQr(bin){
     const overlay=card();overlay.classList.add('waste-qr-sheet');
-    overlay.append(node('h4','Etikett '+bin.code));
-    overlay.append(node('p',objectName(bin.object_id)+' · '+types[bin.waste_type]));
-    const canvas=node('canvas');canvas.width=260;canvas.height=260;overlay.append(canvas);
-    const tiny=node('div',bin.code+' · '+bin.volume_liters+' L','waste-muted');overlay.append(tiny);
-    const address=node('div',urlFor(bin),'waste-muted');address.style.overflowWrap='anywhere';overlay.append(address);
+    overlay.append(node('h4','Tonnenetikett · '+bin.code));
+    const formatSelect=node('select');
+    formatSelect.setAttribute('aria-label','Etikettenformat');
+    formatSelect.append(option('62x40','62 × 40 mm (empfohlen)'));
+    formatSelect.append(option('50x30','50 × 30 mm'));
+    formatSelect.value='62x40';
+    overlay.append(labelInput('Etikettenformat',formatSelect));
+    const qrCanvas=node('canvas'); // Nur Bildquelle: der QR-Code selbst wird nicht verändert.
+    const labelCanvas=node('canvas');labelCanvas.className='waste-label-preview';
+    labelCanvas.setAttribute('aria-label','Etikett mit Straße, QR-Code und Tonnennummer');
+    labelCanvas.style.cssText='display:block;width:100%;max-width:320px;height:auto;margin:14px auto;background:white';
+    overlay.append(labelCanvas);
+    const object=objects.find(o=>o.id===bin.object_id)||{};
+    const objectLabel=String(object.street||object.name||'Objekt').trim();
+    let qrReady=false;
+    const redraw=()=>{
+      if(!qrReady)return;
+      drawWasteQrLabel(labelCanvas,qrCanvas,objectLabel,bin.code,formatSelect.value);
+    };
+    formatSelect.addEventListener('change',redraw);
     const actions=node('div',null,'waste-row');
-    actions.append(button('PNG herunterladen',()=>{
-      const a=node('a');a.download='Duschl-Muelltonne-'+bin.code.replace(/[^a-zA-Z0-9_-]/g,'_')+'.png';
-      a.href=canvas.toDataURL('image/png');document.body.append(a);a.click();a.remove();
+    actions.append(button('Etikett als PNG',()=>{
+      if(!qrReady)throw Error('QR-Code wird noch erstellt.');
+      redraw();
+      const a=node('a');
+      a.download='Tonnenetikett_'+formatSelect.value+'_'+bin.code.replace(/[^a-zA-Z0-9_-]/g,'_')+'.png';
+      a.href=labelCanvas.toDataURL('image/png');
+      document.body.append(a);a.click();a.remove();
+    }));
+    actions.append(button('Etikett drucken',()=>{
+      if(!qrReady)throw Error('QR-Code wird noch erstellt.');
+      redraw();
+      const printWindow=window.open('','_blank');
+      if(!printWindow)throw Error('Druckfenster blockiert.');
+      printWindow.document.write(wasteQrLabelPrintHtml(labelCanvas.toDataURL('image/png'),formatSelect.value));
+      printWindow.document.close();
+      const image=printWindow.document.getElementById('wasteLabelImage');
+      const printNow=()=>window.setTimeout(()=>{printWindow.focus();printWindow.print();},100);
+      if(image?.complete)printNow();
+      else image?.addEventListener('load',printNow,{once:true});
     }));
     actions.append(button('Link kopieren',()=>navigator.clipboard.writeText(urlFor(bin))));
-    actions.append(button('Drucken',()=>{
-      const win=window.open('','_blank');
-      if(!win)throw Error('Druckfenster blockiert.');
-      win.document.write('<!doctype html><html lang="de"><meta charset="utf-8"><title>QR-Etikett</title><style>@page{size:A4;margin:15mm}body{font:18px Arial;text-align:center;padding:25mm}img{width:55mm;height:55mm}.code{font-weight:bold;font-size:23px}</style><div>DUSCHL SERVICE · MÜLLMONITORING</div><h3>'+safeText(objectName(bin.object_id))+'</h3><img src="'+canvas.toDataURL('image/png')+'"><div class="code">'+safeText(bin.code)+'</div><p>'+safeText(types[bin.waste_type])+' · '+bin.volume_liters+' Liter</p><p>QR scannen und Füllstand erfassen.</p></html>');
-      win.document.close();win.focus();win.print();
-    }));
     actions.append(button('Zurück',()=>layout()));
     overlay.append(actions);body.replaceChildren(overlay);
     if(!window.QRCode || typeof window.QRCode.toCanvas!=='function'){
       message('QR-Bibliothek nicht verfügbar.',true);return;
     }
-    window.QRCode.toCanvas(canvas,urlFor(bin),{width:260,margin:2,errorCorrectionLevel:'M',color:{dark:'#000000',light:'#ffffff'}})
+    window.QRCode.toCanvas(qrCanvas,urlFor(bin),{
+      width:512,margin:2,errorCorrectionLevel:'M',color:{dark:'#000000',light:'#ffffff'}
+    }).then(()=>{qrReady=true;redraw();})
       .catch(e=>message('QR-Code konnte nicht erzeugt werden: '+e.message,true));
   }
   function safeText(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
