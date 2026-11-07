@@ -100,6 +100,8 @@ test('offline storage: scope, daily deduplication, replay, and no data loss on n
   assert.equal((await m.activeOfflineWaste('token1')).objectId,UUID_OBJ);
   assert.equal((await m.activeOfflineWaste('token3')).objectId,second.objectId);
   assert.equal(await m.activeOfflineWaste('wrong-token'),null);
+  await m.reconcileOfflineWasteUser('another-user');
+  assert.equal(await m.activeOfflineWaste(),null,'new account must lose previous offline access');
   await m.lockOfflineWaste();
   assert.equal(await m.activeOfflineWaste(),null);
   assert.equal((await m.offlineWasteEvents(UUID_A,UUID_B)).length,1,'signout must not discard work');
