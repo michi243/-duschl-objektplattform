@@ -1,0 +1,29 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#16283a"><meta name="robots" content="noindex">
+<link rel="manifest" href="./manifest.webmanifest"><title>Duschl Service · Offline-Müllerfassung</title>
+<style>
+:root{font-family:system-ui,-apple-system,sans-serif;color:#203143;background:#f2f5f8}
+*{box-sizing:border-box}body{margin:0;padding:0 12px 60px}main{max-width:640px;margin:auto}
+header{background:#16283a;color:white;padding:18px max(18px,env(safe-area-inset-left));margin:0 -12px 16px}
+header strong{font-size:1.25rem}a{color:inherit}header a{display:block;margin-top:10px;font-size:.9rem}
+.card,.bin{background:#fff;border:1px solid #d9e0e8;border-radius:14px;padding:16px;margin:12px 0}
+h1{font-size:1.35rem;margin:0 0 8px}h2{font-size:1.05rem;margin:0 0 14px}
+p{line-height:1.45}small{color:#52657a}button{border:0;background:#17385b;color:#fff;border-radius:10px;padding:12px;min-height:46px;font-weight:650;font-size:1rem;cursor:pointer}
+.fills{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+input{padding:12px;border:1px solid #acbac8;border-radius:8px;width:100%;font-size:1rem}
+#status{padding:12px;background:#eaf1f7;border-radius:10px;min-height:48px}#status.error{background:#fff0e9;color:#8a291f}
+#pendingList p{font-size:.85rem;border-bottom:1px solid #e2e7ed;padding-bottom:8px;overflow-wrap:anywhere}
+footer{font-size:.85rem;color:#52657a;padding:10px}
+</style></head>
+<body><header><main><strong>Duschl Service · Offline-Erfassung</strong>
+<a href="./index.html">Zur Objektplattform</a></main></header>
+<main><div class="card"><h1 id="objectName">Objekt wird geladen …</h1>
+<small id="offlineUntil"></small>
+<p>Füllstände vor der Leerung erfassen. Ohne Verbindung erfolgt die Übertragung später automatisch, sobald die Seite geöffnet und eine gültige Anmeldung vorhanden ist.</p>
+<div id="status" role="status" aria-live="polite"></div>
+<label for="note"><p>Bemerkung (optional)</p></label><input id="note" maxlength="500" placeholder="z. B. Fehlbefüllung">
+</div><div id="binList"></div>
+<div class="card" id="pendingList" aria-live="polite"></div>
+<button id="syncButton" type="button">Jetzt synchronisieren</button>
+<footer>Offline-Freigabe gilt 72 Stunden auf diesem Gerät. Kein Zugriff auf andere Objektfunktionen. Berechtigungen werden beim Upload serverseitig geprüft; Konflikte werden nicht gelöscht.</footer>
+</main><script type="module" src="./offline-waste-app.js"></script></body></html>
