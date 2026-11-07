@@ -1,0 +1,32 @@
+name: QR Waste Monitoring Q-Gate
+on:
+  pull_request:
+    paths:
+      - 'waste-monitoring.js'
+      - 'index.html'
+      - 'sql/20261107_waste_bin_qr_monitoring_v35730.sql'
+      - 'tests/waste-monitoring.test.cjs'
+      - 'release.json'
+      - '.github/workflows/waste-qr-qgate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'waste-monitoring.js'
+      - 'index.html'
+      - 'sql/20261107_waste_bin_qr_monitoring_v35730.sql'
+      - 'tests/waste-monitoring.test.cjs'
+      - 'release.json'
+jobs:
+  qgate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: node --check waste-monitoring.js
+      - name: Behaviour and security invariants
+        run: node --test tests/waste-monitoring.test.cjs

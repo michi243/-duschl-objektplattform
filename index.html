@@ -7591,6 +7591,27 @@ body.or-wizard-open{overflow:hidden!important}
   }
 }
 </style>
+<style id="ds-waste-styles">
+#wasteManagement .waste-head{margin:10px 0 12px}#wasteManagement .waste-head h3{margin:0}
+#wasteManagement .waste-controls{display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;margin-bottom:15px}
+#wasteManagement .waste-controls .waste-field{min-width:170px;flex:1}
+#wasteManagement .waste-field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:inherit}
+#wasteManagement .waste-field input,#wasteManagement .waste-field select{width:100%;max-width:100%;box-sizing:border-box;padding:11px;border-radius:9px}
+#wasteManagement .waste-card{border:1px solid var(--border,rgba(128,145,160,.35));border-radius:13px;padding:16px;margin:10px 0;background:var(--card-bg,rgba(128,145,160,.07))}
+#wasteManagement .waste-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+#wasteManagement .waste-row>div:first-child{flex:1;min-width:150px}
+#wasteManagement .waste-message{min-height:20px;padding:6px 0;color:inherit}#wasteManagement .waste-message.error{color:#ff8585}
+#wasteManagement .waste-muted{font-size:12px;opacity:.78;margin-top:5px}
+#wasteManagement .waste-fill{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:16px 0}
+#wasteManagement .waste-fill .waste-fill-button{white-space:normal;min-height:62px;padding:8px 2px;font-size:14px;font-weight:700}
+#wasteManagement .waste-table{width:100%;border-collapse:collapse;font-size:12px;overflow-wrap:anywhere}
+#wasteManagement .waste-table th,#wasteManagement .waste-table td{text-align:left;padding:8px 5px;border-bottom:1px solid rgba(125,141,155,.35)}
+#wasteManagement .waste-qr-sheet{max-width:520px}
+#wasteManagement .waste-qr-sheet canvas{display:block;max-width:100%;background:white;margin:15px auto}
+@media(max-width:540px){#wasteManagement .waste-controls .waste-field{min-width:135px}
+#wasteManagement .waste-table th,#wasteManagement .waste-table td{padding:6px 3px;font-size:11px}
+#wasteManagement .waste-fill .waste-fill-button{font-size:12px;min-height:68px}}
+</style>
 </head>
 <body class="role-context-loading">
 <div id="roleContextLoader" aria-live="polite" aria-busy="true">
@@ -7858,6 +7879,7 @@ Ihr Name und Ihre freiwillig angegebene E-Mail-Adresse werden mit der bereits be
 
 <div class="ds-menu-group-label">Betrieb</div>
 <button id="navObjects" onclick="showSection('objects')"><span class="nav-icon">▦</span><span>Objekte</span></button>
+<button id="navWasteManagement" class="hidden" type="button" onclick="showSection('wasteManagement')"><span class="nav-icon">▧</span><span>Müllmanagement / QR</span></button>
 <button id="navDocumentManagement" onclick="showSection('documentManagement')"><span class="nav-icon">▤</span><span>Dokumentenmanagement</span></button>
 <button id="navProcessStandards" onclick="showSection('processStandards')"><span class="nav-icon">≡</span><span>Prozesse &amp; Standards</span></button>
 <button id="navSopServices" class="hidden" style="display:none!important" onclick="showSection('sopServices')"><span class="nav-icon">▣</span><span>SOP &amp; Leistungen (Legacy)</span></button>
@@ -10024,6 +10046,7 @@ WINTERDIENST RÄUMKARTE
   </div>
 </section>
 
+<section class="section" id="wasteManagement"><div class="row space ds-section-head"><div><div class="ds-section-eyebrow">BETRIEB · OBJEKTSERVICE</div><h2>Müllmanagement</h2><div class="muted">QR je Behälter · Füllstand vor Leerung · Jahresauswertung</div></div></div><div id="dsWasteRoot"></div></section>
 <section class="section" id="resourcePlanning">
   <div class="row space" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
     <div>
@@ -12771,8 +12794,8 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-let APP_VERSION='3.57.29';
-let APP_RELEASE_DATE='02.11.2026';
+let APP_VERSION='3.57.30';
+let APP_RELEASE_DATE='07.11.2026';
 let APP_RELEASE_TIME=''; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
    - Multi-User/Multi-Mandant: User-Identität und Mandantenrolle getrennt.
@@ -15255,6 +15278,8 @@ function canUsePrivateOffersUI(){
     && !isObjectManagerDashboardRole();
 }
 function applyRoleUI(){
+ const wasteEntry=document.getElementById('navWasteManagement');
+ if(wasteEntry){const allowed=Boolean(currentOrganizationId()) && (hasOperationalAdminAccess()||isObjectManagerRole()||isPropertyManagerRole());wasteEntry.classList.toggle('hidden',!allowed);wasteEntry.hidden=!allowed;}
  const marketingEntry=document.getElementById('navMarketingQr');
  if(marketingEntry){
   const dsOrg='8260f0ba-cda8-4854-a453-f29904edf76b';
@@ -15622,6 +15647,7 @@ async function cloudLogin(){
       return;
     }
     await cloudReloadObjects();
+    queueMicrotask(()=>window.dsWasteQrMaybeOpen?.());
     endRoleContextLoading();
   }catch(e){
     console.error('Anmeldung / Profilinitialisierung fehlgeschlagen',e);
@@ -20373,6 +20399,7 @@ async function bootCloud(){
       return;
     }
     await cloudReloadObjects();
+    queueMicrotask(()=>window.dsWasteQrMaybeOpen?.());
     endRoleContextLoading();
   }catch(firstError){
     console.warn('Initialisierung mit gespeicherter Sitzung fehlgeschlagen',firstError);
@@ -20385,6 +20412,7 @@ async function bootCloud(){
         return;
       }
       await cloudReloadObjects();
+    queueMicrotask(()=>window.dsWasteQrMaybeOpen?.());
     }catch(e){
       console.error('Profilinitialisierung nach Session-Refresh fehlgeschlagen',e);
       currentUserProfile=null;
@@ -23327,6 +23355,10 @@ async function loadAndRenderDocumentationOverview(){
 }
 
 function showSection(id){
+  if(id==='wasteManagement'){
+    if(!currentOrganizationId() || !(hasOperationalAdminAccess()||isObjectManagerRole()||isPropertyManagerRole())){alert('Nur berechtigte Mitarbeiter oder die Verwaltung können Müllstände erfassen.');return;}
+    setTimeout(()=>{if(window.dsWasteMount)window.dsWasteMount();else document.getElementById('dsWasteRoot').textContent='Müllmanagement-Modul konnte nicht geladen werden.';},0);
+  }
   if(id==='privateOffers'){
     if(!canUsePrivateOffersUI())return requireAdminUI('Private Angebote');
     if(!currentOrganizationId()){alert('Bitte zuerst einen Mandanten auswählen.');return;}
@@ -41177,7 +41209,7 @@ async function dsIntakeSubmit(){
 }
 </script>
 <script type="module">
-import {mountPrivateOffers} from './private-offers-module.js?v=3.57.29';
+import {mountPrivateOffers} from './private-offers-module.js?v=3.57.30';
 window.dsPrivateOffersMount=()=>{
  const organizationId=currentOrganizationId();
  const root=document.getElementById('privateOffersRoot');
@@ -41212,8 +41244,8 @@ window.dsOpenPersonnelFromMenu=function(){
 };
 </script>
 <script type="module">
-import {mountTenantMasterdata} from './tenant-masterdata-module.js?v=3.57.29';
-import {createTenantLogoStorage} from './tenant-logo-storage.js?v=3.57.29';
+import {mountTenantMasterdata} from './tenant-masterdata-module.js?v=3.57.30';
+import {createTenantLogoStorage} from './tenant-logo-storage.js?v=3.57.30';
 window.dsTenantLogoStorageFor=(organizationId)=>createTenantLogoStorage({organizationId,request:async(path,options)=>{
   if(!cloudSession?.access_token)throw Error('Bitte anmelden.');
   await cloudEnsureFreshSession();
@@ -41231,6 +41263,26 @@ window.dsEditTenantMasterdata=()=>{
  const rpc=async(name,args)=>{try{return {data:await cloudRequest('rpc/'+name,{method:'POST',body:JSON.stringify(args)}),error:null};}catch(error){return {data:null,error};}};
  mountTenantMasterdata({root,supabase:{rpc},organizationId});
 };
+</script>
+<script type="module">
+import {mountWasteMonitoring} from './waste-monitoring.js?v=3.57.30';
+window.dsWasteMount=()=>{
+  const organizationId=currentOrganizationId();
+  const root=document.getElementById('dsWasteRoot');
+  if(!root || !organizationId || !cloudSession?.access_token)return;
+  mountWasteMonitoring({root,organizationId,objects:db.objects||[],
+    admin:hasOperationalAdminAccess(),
+    api:(path,options)=>cloudRequest(path,options||{})
+  });
+};
+window.dsWasteQrMaybeOpen=()=>{
+  const token=(new URLSearchParams(window.location.search).get('muelltonne')||'').trim();
+  if(!token||window.__dsWasteQrOpened||!cloudSession?.access_token||!currentOrganizationId())return;
+  window.__dsWasteQrOpened=true;showSection('wasteManagement');
+};
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>window.dsWasteQrMaybeOpen(),{once:true});
+}else{queueMicrotask(()=>window.dsWasteQrMaybeOpen());}
 </script>
 <script src="./object-role-overview.js?v=3.57.29" defer></script>
 <script src="./employee-time.js?v=3.57.16" defer></script>
