@@ -15622,6 +15622,7 @@ function cloudShowGate(show=true){
 }
 function cloudStoreSession(s){
   if(!s)void window.dsWasteLockOffline?.();
+  else if(s.user?.id)void window.dsWasteReconcileUser?.(s.user.id);
   cloudSession=s||null;
   if(s)localStorage.setItem(SUPABASE_SESSION_KEY,JSON.stringify(s));
   else localStorage.removeItem(SUPABASE_SESSION_KEY);
@@ -41465,8 +41466,11 @@ if(document.readyState==='loading'){
 }else{queueMicrotask(()=>void window.dsWasteQrMaybeOpen());}
 </script>
 <script type="module">
-import {lockOfflineWaste,syncOfflineWaste} from './offline-waste-core.js';
+import {lockOfflineWaste,reconcileOfflineWasteUser,syncOfflineWaste} from './offline-waste-core.js';
 window.dsWasteLockOffline=()=>lockOfflineWaste().catch(e=>console.warn('Offline sperren',e));
+window.dsWasteReconcileUser=id=>reconcileOfflineWasteUser(id).catch(e=>console.warn('Offline-Kontoabgleich',e));
+const savedUser=cloudSession?.user?.id||cloudLoadStoredSession()?.user?.id;
+if(savedUser)void window.dsWasteReconcileUser(savedUser);
 async function dsAutoSyncWaste(){
   if(!cloudSession?.access_token||!navigator.onLine||document.hidden)return;
   const userId=currentUserId(),organizationId=currentOrganizationId();
