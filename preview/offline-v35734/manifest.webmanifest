@@ -1,0 +1,9 @@
+{
+  "name": "Duschl Service – Offline-Müllerfassung",
+  "short_name": "Duschl Offline",
+  "start_url": "./offline-waste.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f2f5f8",
+  "theme_color": "#16283a"
+}
