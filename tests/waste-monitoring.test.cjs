@@ -2,12 +2,13 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const moduleText=fs.readFileSync('waste-monitoring.js','utf8');
+const standaloneModuleText=moduleText.replace(/^import \{[\s\S]*?\} from '\.\/offline-waste-core\.js';\s*/,'');
 const sql=fs.readFileSync('sql/20261107_waste_bin_qr_monitoring_v35730.sql','utf8');
 const index=fs.readFileSync('index.html','utf8');
 const release=JSON.parse(fs.readFileSync('release.json','utf8'));
 
 async function loadSummary(){
-  const url='data:text/javascript;base64,'+Buffer.from(moduleText).toString('base64');
+  const url='data:text/javascript;base64,'+Buffer.from(standaloneModuleText).toString('base64');
   return (await import(url)).summarizeWasteBins;
 }
 test('annual report uses observed P90 and minimum eight entries',async()=>{
@@ -27,9 +28,9 @@ test('annual report uses observed P90 and minimum eight entries',async()=>{
   assert.deepEqual(summarize([bin],[])[0].average,null);
 });
 test('frontend enforces logged-in scan route and central release number',()=>{
-  assert.equal(release.version,'3.57.33');
-  assert.ok(index.includes("let APP_VERSION='3.57.33'"));
-  assert.ok(index.includes('waste-monitoring.js?v=3.57.33'));
+  assert.equal(release.version,'3.57.34');
+  assert.ok(index.includes("let APP_VERSION='3.57.34'"));
+  assert.ok(index.includes('waste-monitoring.js?v=3.57.34'));
   assert.doesNotMatch(index,/id="navWasteManagement"/);
   assert.doesNotMatch(index,/showSection\('wasteManagement'\)/);
   assert.match(index,/dsOpenWasteForObject/);
@@ -62,7 +63,7 @@ test('SQL Q-Gate: append only, active commissioned service, restricted REST writ
 
 
 test('label formats and high-resolution graphic contain exactly object, QR image and bin number',async()=>{
-  const url='data:text/javascript;base64,'+Buffer.from(moduleText).toString('base64');
+  const url='data:text/javascript;base64,'+Buffer.from(standaloneModuleText).toString('base64');
   const {drawWasteQrLabel,WASTE_QR_LABEL_FORMATS}=await import(url);
   assert.deepEqual(Object.keys(WASTE_QR_LABEL_FORMATS),['62x40','50x30']);
   for(const [format,w,h] of [['62x40',744,480],['50x30',600,360]]){
@@ -87,7 +88,7 @@ test('label formats and high-resolution graphic contain exactly object, QR image
   assert.doesNotMatch(moduleText,/<p>QR scannen und Füllstand erfassen/);
 });
 test('printed media size equals selected physical QR label size, not A4',async()=>{
-  const url='data:text/javascript;base64,'+Buffer.from(moduleText).toString('base64');
+  const url='data:text/javascript;base64,'+Buffer.from(standaloneModuleText).toString('base64');
   const {wasteQrLabelPrintHtml}=await import(url);
   const png='data:image/png;base64,AAAA';
   for(const [format,mm] of [['62x40','62mm 40mm'],['50x30','50mm 30mm']]){
@@ -135,5 +136,5 @@ test('mobile waste modal is unobstructed and annual data remains legible',()=>{
   assert.match(moduleText,/Ist-Gebühren nicht hinterlegt/);
   assert.match(moduleText,/scans\.length===1\?'Erfassung':'Erfassungen'/);
   assert.doesNotMatch(moduleText,/Hinterlegte Ist-Gebühren: '\+fmtEuro\(total\)/);
-  assert.match(index,/waste-monitoring\.js\?v=3\.57\.33/);
+  assert.match(index,/waste-monitoring\.js\?v=3\.57\.34/);
 });

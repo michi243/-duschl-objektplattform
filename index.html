@@ -2,6 +2,7 @@
 
 <html lang="de">
 <head>
+<link rel="manifest" href="./manifest.webmanifest">
 <!-- RELEASE 3.57.29 · Personen & Rollen: Rollen bearbeiten führt mit Benutzer- und Objektvorauswahl in die bestehende Benutzerverwaltung. -->
 <!-- RELEASE 3.57.29 · Lesende, mandantenisolierte Objektübersicht Personen & Rollen für die Administration. Keine neue Objektrolle, kein SQL-/RLS-Eingriff. -->
 <!-- PREVIOUS RELEASE 3.56.4 · GPS-Check-out auch nach Verlassen des Objekts mit Begründung und Freigabe; Testmodus akzeptiert kurze Gründe ab vier Zeichen. -->
@@ -12844,7 +12845,7 @@ BACKEND: keine neue SQL-/RLS-Änderung.
    - Read-only-Einsatzansicht bleibt unverändert.
    - Keine SQL-, RLS-, Edge-, Login-, Rollen- oder Mandantenlogik geändert.
 */
-let APP_VERSION='3.57.33';
+let APP_VERSION='3.57.34';
 let APP_RELEASE_DATE='07.11.2026';
 let APP_RELEASE_TIME=''; // Q-Gate Versionierung: alle aktuellen sichtbaren Build-/Versionsmarker werden zentral aus APP_VERSION synchronisiert.
 /* RELEASE 2.20.79 | Basis 2.20.78 | 17.09.2026
@@ -15620,6 +15621,8 @@ function cloudShowGate(show=true){
   document.getElementById('authGate')?.classList.toggle('hidden',!show);
 }
 function cloudStoreSession(s){
+  if(!s)void window.dsWasteLockOffline?.();
+  else if(s.user?.id)void window.dsWasteReconcileUser?.(s.user.id);
   cloudSession=s||null;
   if(s)localStorage.setItem(SUPABASE_SESSION_KEY,JSON.stringify(s));
   else localStorage.removeItem(SUPABASE_SESSION_KEY);
@@ -41367,7 +41370,7 @@ async function dsIntakeSubmit(){
 }
 </script>
 <script type="module">
-import {mountPrivateOffers} from './private-offers-module.js?v=3.57.33';
+import {mountPrivateOffers} from './private-offers-module.js?v=3.57.34';
 window.dsPrivateOffersMount=()=>{
  const organizationId=currentOrganizationId();
  const root=document.getElementById('privateOffersRoot');
@@ -41402,8 +41405,8 @@ window.dsOpenPersonnelFromMenu=function(){
 };
 </script>
 <script type="module">
-import {mountTenantMasterdata} from './tenant-masterdata-module.js?v=3.57.33';
-import {createTenantLogoStorage} from './tenant-logo-storage.js?v=3.57.33';
+import {mountTenantMasterdata} from './tenant-masterdata-module.js?v=3.57.34';
+import {createTenantLogoStorage} from './tenant-logo-storage.js?v=3.57.34';
 window.dsTenantLogoStorageFor=(organizationId)=>createTenantLogoStorage({organizationId,request:async(path,options)=>{
   if(!cloudSession?.access_token)throw Error('Bitte anmelden.');
   await cloudEnsureFreshSession();
@@ -41423,13 +41426,13 @@ window.dsEditTenantMasterdata=()=>{
 };
 </script>
 <script type="module">
-import {mountWasteMonitoring} from './waste-monitoring.js?v=3.57.33';
+import {mountWasteMonitoring} from './waste-monitoring.js?v=3.57.34';
 window.dsWasteMountObject=objectId=>{
   const organizationId=currentOrganizationId();
   const root=document.getElementById('dsWasteObjectRoot');
   if(!root||!organizationId||!cloudSession?.access_token)return;
   mountWasteMonitoring({
-    root,organizationId,objects:db.objects||[],fixedObjectId:objectId,
+    root,organizationId,userId:currentUserId(),objects:db.objects||[],fixedObjectId:objectId,
     admin:hasOperationalAdminAccess(),readOnly:isPropertyManagerRole(),
     api:(path,options)=>cloudRequest(path,options||{})
   });
@@ -41461,6 +41464,32 @@ window.dsWasteQrMaybeOpen=async()=>{
 if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded',()=>void window.dsWasteQrMaybeOpen(),{once:true});
 }else{queueMicrotask(()=>void window.dsWasteQrMaybeOpen());}
+</script>
+<script type="module">
+import {lockOfflineWaste,reconcileOfflineWasteUser,syncOfflineWaste} from './offline-waste-core.js';
+window.dsWasteLockOffline=()=>lockOfflineWaste().catch(e=>console.warn('Offline sperren',e));
+window.dsWasteReconcileUser=id=>reconcileOfflineWasteUser(id).catch(e=>console.warn('Offline-Kontoabgleich',e));
+const savedUser=cloudSession?.user?.id||cloudLoadStoredSession()?.user?.id;
+if(savedUser)void window.dsWasteReconcileUser(savedUser);
+async function dsAutoSyncWaste(){
+  if(!cloudSession?.access_token||!navigator.onLine||document.hidden)return;
+  const userId=currentUserId(),organizationId=currentOrganizationId();
+  if(!userId||!organizationId)return;
+  try{
+    const result=await syncOfflineWaste({userId,organizationId,api:(path,options)=>cloudRequest(path,options)});
+    if(result?.blocked)console.warn('Offline-Müllerfassung: blockierte Ereignisse',result.blocked);
+  }catch(e){console.warn('Offline-Müllerfassung: Abgleich fehlgeschlagen',e);}
+}
+window.addEventListener('online',()=>void dsAutoSyncWaste());
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)void dsAutoSyncWaste();});
+setInterval(()=>{if(!document.hidden)void dsAutoSyncWaste();},60000);
+</script>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(e=>console.warn('Offline-Cache:',e));
+  },{once:true});
+}
 </script>
 <script src="./object-role-overview.js?v=3.57.29" defer></script>
 <script src="./employee-time.js?v=3.57.16" defer></script>

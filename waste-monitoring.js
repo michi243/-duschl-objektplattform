@@ -1,5 +1,8 @@
+import {activeOfflineWaste,berlinDay,captureOfflineWaste,isNetworkFailure,
+  offlineWasteEvents,provisionOfflineWaste,syncOfflineWaste} from './offline-waste-core.js';
+
 /**
- * Duschl Service v3.57.30 – QR-Müllmonitoring.
+ * Duschl Service v3.57.34 – QR-Müllmonitoring.
  * Authenticated-only, object/tenant scope is enforced by server-side RLS.
  */
 export function summarizeWasteBins(relevant, scans) {
@@ -80,7 +83,7 @@ export function wasteQrLabelPrintHtml(pngData,format='62x40'){
 }
 
 export function mountWasteMonitoring(config) {
-  const {root, api, organizationId, objects, admin, fixedObjectId='', readOnly=false} = config;
+  const {root, api, organizationId, userId, objects, admin, fixedObjectId='', readOnly=false} = config;
   if (!root || !organizationId) throw Error('Aktiven Mandanten auswählen.');
   let bins = [], scans = [], selected = String(fixedObjectId||''), chosen = '', year = new Date().getFullYear();
   let commissioned = null, busy = false, renderSerial = 0;
@@ -120,8 +123,46 @@ export function mountWasteMonitoring(config) {
   head.append(node('h3','Müllmanagement & QR-Erfassung'));
   const banner = node('div',null,'waste-message');banner.setAttribute('role','status');
   const controls = node('div',null,'waste-controls');
+  const offlinePanel = node('div',null,'waste-offline-status');
   const body = node('div',null,'waste-body');
-  root.replaceChildren(head,banner,controls,body);
+  root.replaceChildren(head,banner,offlinePanel,controls,body);
+  async function prepareOffline(){
+    if(!userId||readOnly||!selected||navigator.onLine===false)return;
+    if(!eligible().some(o=>o.id===selected))return;
+    const relevant=bins.filter(b=>b.object_id===selected && b.active);
+    if(!relevant.length)return;
+    await provisionOfflineWaste({
+      userId,organizationId,objectId:selected,objectName:objectName(selected),bins:relevant
+    });
+  }
+  async function updateOfflinePanel(){
+    offlinePanel.replaceChildren();
+    if(!userId||readOnly||!selected)return;
+    const current=await activeOfflineWaste();
+    const active=current && current.userId===userId &&
+      current.organizationId===organizationId && current.objectId===selected;
+    const events=(await offlineWasteEvents(userId,organizationId)).filter(e=>e.objectId===selected);
+    const pending=events.filter(e=>e.status==='pending').length;
+    const blocked=events.filter(e=>e.status==='conflict').length;
+    offlinePanel.append(node('div',(active?'Offline vorbereitet':'Offline noch nicht vorbereitet')+
+      ' · '+pending+' ausstehend'+(blocked?' · '+blocked+' Konflikt(e)':''),'waste-muted'));
+    if(active)offlinePanel.append(button('Offline-Erfassung öffnen',()=>{
+      window.location.assign(new URL('./offline-waste.html',import.meta.url).href);
+    }));
+    else if(navigator.onLine)offlinePanel.append(button('Offline vorbereiten',async()=>{
+      await prepareOffline();await updateOfflinePanel();
+    }));
+    if(events.length && navigator.onLine)offlinePanel.append(button('Jetzt synchronisieren',sendOffline));
+  }
+  async function sendOffline(){
+    if(!userId||!organizationId||navigator.onLine===false)return;
+    const result=await syncOfflineWaste({userId,organizationId,api});
+    if(result?.sent){await loadScans();layout();}
+    if(result?.blocked)message('Offline-Synchronisation: '+result.blocked+
+      ' Konflikt(e). Datensätze bleiben erhalten und müssen geprüft werden.',true);
+    else if(result?.sent)message(result.sent+' Offline-Erfassung(en) übertragen.');
+    await updateOfflinePanel();
+  }
   function message(value,isError=false){banner.textContent=value;banner.classList.toggle('error',isError);}
   function urlFor(bin){return new URL(window.location.pathname+'?muelltonne='+encodeURIComponent(bin.qr_token),window.location.href).href;}
   const qs = (base,params) => base+'?'+new URLSearchParams(params).toString();
@@ -177,7 +218,7 @@ export function mountWasteMonitoring(config) {
       select.addEventListener('change',async()=>{
         selected=select.value;chosen='';const serial=++renderSerial;
         message('Lade Müllbehälter …');
-        try{await loadScans();if(serial===renderSerial){message('');layout();}}
+        try{await loadScans();if(serial===renderSerial){message('');layout();await prepareOffline();await updateOfflinePanel();}}
         catch(e){message('Auswertung fehlgeschlagen: '+e.message,true);}
       });
       controls.append(labelInput('Objekt',select));
@@ -187,10 +228,13 @@ export function mountWasteMonitoring(config) {
     years.value=String(year);
     years.addEventListener('change',async()=>{
       year=Number(years.value);
-      try{await loadScans();layout();}catch(e){message(e.message,true);}
+      try{await loadScans();layout();await updateOfflinePanel();}catch(e){message(e.message,true);}
     });
     controls.append(labelInput('Auswertungsjahr',years));
-    controls.append(button('Aktualisieren',async()=>{await getCommissioned();await loadBins();await loadScans();layout();}));
+    controls.append(button('Aktualisieren',async()=>{
+      await getCommissioned();await loadBins();await loadScans();layout();
+      await prepareOffline();await updateOfflinePanel();
+    }));
     if(!selected){
       const info=card();info.append(node('p',admin && !eligible().length ?
         'Keine aktive Beauftragung „Abfall / Müllbereitstellung“ im gewählten Mandanten vorhanden. Zuerst die Leistung am Objekt hinterlegen.' :
@@ -232,10 +276,33 @@ export function mountWasteMonitoring(config) {
     const row=node('div',null,'waste-fill');
     for(const pct of [0,25,50,75,100]){
       const b=button(pct===0?'Leer':pct+' %',async()=>{
-        const existing=scans.find(s=>s.bin_id===bin.id && s.observed_date===new Date().toLocaleDateString('sv-SE'));
-        if(existing)throw Error('Für diese Tonne wurde heute bereits ein Füllstand erfasst. Keine Doppelbuchung.');
-        await post('waste_bin_scans',{bin_id:bin.id,fill_percent:pct,note:note.value.trim()||null});
-        chosen='';await loadScans();message('Gespeichert: '+bin.code+' · '+pct+' %. Weiter mit der nächsten Tonne.');layout();
+        const today=berlinDay(new Date().toISOString());
+        const existing=scans.find(s=>s.bin_id===bin.id && s.observed_date===today);
+        const waiting=(await offlineWasteEvents(userId,organizationId))
+          .some(e=>e.binId===bin.id && e.observedDate===today);
+        if(existing||waiting)throw Error('Für diese Tonne wurde heute bereits ein Füllstand erfasst. Keine Doppelbuchung.');
+        const queue=async()=>{
+          const snapshot=await activeOfflineWaste();
+          if(!snapshot||snapshot.userId!==userId||
+             snapshot.organizationId!==organizationId||snapshot.objectId!==bin.object_id)
+            throw Error('Offline-Daten fehlen. Bitte das Objekt online vorbereiten.');
+          await captureOfflineWaste({snapshot,binId:bin.id,fillPercent:pct,note:note.value.trim()});
+        };
+        let queued=navigator.onLine===false;
+        if(!queued){
+          try{await post('waste_bin_scans',{bin_id:bin.id,fill_percent:pct,note:note.value.trim()||null});}
+          catch(e){
+            if(!isNetworkFailure(e)&&!/Sitzung abgelaufen/i.test(String(e.message||'')))throw e;
+            queued=true;
+          }
+        }
+        if(queued)await queue();
+        chosen='';
+        if(!queued)await loadScans();
+        message(queued
+          ?'Offline lokal gespeichert: '+bin.code+' · '+pct+' %. Automatischer Abgleich folgt.'
+          :'Gespeichert: '+bin.code+' · '+pct+' %. Weiter mit der nächsten Tonne.');
+        layout();await updateOfflinePanel();
       },'waste-fill-button');
       row.append(b);
     }
@@ -414,7 +481,15 @@ export function mountWasteMonitoring(config) {
       if(!selected && eligible().length===1)selected=eligible()[0].id;
       if(fixedObjectId && String(selected)!==String(fixedObjectId))throw Error('Objektkontext konnte nicht geprüft werden.');
       await loadScans();layout();
-    }catch(e){message('Müllmonitoring nicht verfügbar: '+(e.message||String(e)),true);}
+      if(!readOnly && userId){
+        await prepareOffline();
+        await updateOfflinePanel();
+        if(navigator.onLine)void sendOffline().catch(e=>message('Offline-Abgleich: '+e.message,true));
+      }
+    }catch(e){
+      message('Müllmonitoring nicht verfügbar: '+(e.message||String(e)),true);
+      if(userId&&!readOnly)void updateOfflinePanel().catch(console.warn);
+    }
   }
   start();
 }
