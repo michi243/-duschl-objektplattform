@@ -136,5 +136,5 @@ test('mobile waste modal is unobstructed and annual data remains legible',()=>{
   assert.match(moduleText,/Ist-Gebühren nicht hinterlegt/);
   assert.match(moduleText,/scans\.length===1\?'Erfassung':'Erfassungen'/);
   assert.doesNotMatch(moduleText,/Hinterlegte Ist-Gebühren: '\+fmtEuro\(total\)/);
-  assert.match(index,/waste-monitoring\.js\?v=3\.57\.33/);
+  assert.match(index,/waste-monitoring\.js\?v=3\.57\.34/);
 });
