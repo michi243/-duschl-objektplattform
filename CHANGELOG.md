@@ -7,6 +7,7 @@
 - Bereits gedruckte Tonnen-QR-Codes führen nach Anmeldung direkt in diesen Objektkontext.
 - Verwaltung mit Lesezugriff sieht Auswertungen, kann jedoch keine Tonnen oder Füllstände verändern.
 - Ein ergänzender read-only-RPC liefert ausschließlich aktuell beauftragte, berechtigte Objekt-IDs; vorhandene RLS-Policies und Messdaten bleiben unverändert.
+- Sicherheitsnachschärfung: öffentlich erreichbarer RPC läuft als `SECURITY INVOKER`, privilegierte Objektprüfung nur in privatem, nicht veröffentlichtem Funktionsschema.
 - Q-Gate: Mandantenwechsel, Fremdobjekte, Leistungsende, QR-Deep-Link und Versionierung vor Veröffentlichung prüfen.
 
 ## v3.57.31 – 07.11.2026 – Kompakte QR-Tonnenetiketten
