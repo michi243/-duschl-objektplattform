@@ -1,3 +1,13 @@
+## v3.57.30 – 07.11.2026 – Müllmanagement mit individuellen Tonnen-QR-Codes
+
+- Eigener QR-Code pro Mülltonne; Scan führt nach Anmeldung unmittelbar zur 0/25/50/75/100-%-Erfassung.
+- Pro Behälter: Objekt, Abfallart, Volumen, optionale Leerungen/Woche und tatsächliche jährliche Ist-Gebühr.
+- Beauftragung „Abfall / Müllbereitstellung“ ist serverseitige Voraussetzung für die Erfassung.
+- Pro Tonne und Tag maximal eine append-only-Erfassung; Uhrzeit und Mitarbeiter werden serverseitig gesetzt.
+- Jahresbericht mit Durchschnitt und P90, CSV-Export und Druck/PDF; ab acht Messwerten werden Prüfpotenziale markiert.
+- Additive Tabellen mit RLS und expliziten Data-API-GRANTs, keine Änderung bestehender Service-/Tourendaten.
+- **Rollout-Gate:** SQL-Migration, Mandanten-/Objekt-Berechtigungen und mobiler Scan müssen vor Produktivfreigabe verifiziert werden.
+
 ## v3.57.29 – 02.11.2026 – Objektrollen direkt zur Bearbeitung verlinkt
 
 - Schaltfläche **Rollen bearbeiten** bei jeder Person unter **Personen & Rollen** in der Objektkarte.
