@@ -1,10 +1,12 @@
 {
-  "version": "3.57.33",
+  "version": "3.57.34",
   "release_date": "2026-11-07",
   "channel": "development",
   "status": "testbetrieb",
   "scope": "Objektplattform einschließlich Personalmanagement und Kundenanfragen",
   "notes": [
+    "Offline-Müllmonitoring-Pilot: PWA-Offlineoberfläche mit lokalem IndexedDB-Puffer (72 Stunden), QR-Erkennung, täglichem Dublettencheck und automatischer Synchronisation nach Wiederverbindung. Mandant, Benutzer und Objekt strikt getrennt; keine Offline-Freigaben oder Entscheidungen.",
+    "Neue separate SQL-Migration für idempotentes Offline-Upload-RPC mit unverändertem Echtdatum (Zeitzone Europe/Berlin), erneutem Rollen-/Objekt-/Leistungsgate und Konflikterhalt. Migration und Browser-Q-Gate vor Produktivfreigabe erforderlich.",
     "iPhone-Optimierung Müllmanagement: Dialogkopf mit Zurück-Schaltfläche bleibt sichtbar, doppelter Schließen-Button entfernt, kompakte Behälterkarten und auf Mobilgeräten lesbare Jahresauswertung statt fünfspaltiger Tabelle. Bewertungsdetails einklappbar, fehlende Gebührendaten ausdrücklich gekennzeichnet. Keine RLS-/Backend-/Berechtigungsänderung.",
     "Müllmanagement gehört ausschließlich zur beauftragten Objektleistung: Hauptmenüeintrag entfernt; Objekt und Leistungsansicht öffnen direkt die tonnenbezogene Erfassung und Auswertung. Bestehende QR-Tokens bleiben gültig und führen nach Login zum passenden Objekt. Lesende Objektverwalter können Berichte sehen, nicht erfassen.",
     "QR-Tonnenetiketten kompakt: Straße/Objekt, QR-Code und Behälternummer. Einheitliche druckfertige Formate 62 × 40 mm und 50 × 30 mm, auch als hochauflösendes PNG; keine Kosten-/Volumen-/Werbetexte auf dem Label.",
