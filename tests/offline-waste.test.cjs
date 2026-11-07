@@ -91,6 +91,15 @@ test('offline storage: scope, daily deduplication, replay, and no data loss on n
   assert.equal(conflict.blocked,1);
   pending=await m.offlineWasteEvents(UUID_A,UUID_B);
   assert.equal(pending[0].status,'conflict','authorization failure retains record');
+  // Previously prepared objects remain accessible only via their own QR in this tenant.
+  const second=await m.provisionOfflineWaste({
+    userId:UUID_A,organizationId:UUID_B,objectId:'44444444-4444-4444-8444-444444444444',
+    objectName:'Zweites Objekt',
+    bins:[{id:'bin3',object_id:'44444444-4444-4444-8444-444444444444',code:'BIO-3',active:true,qr_token:'token3'}]
+  });
+  assert.equal((await m.activeOfflineWaste('token1')).objectId,UUID_OBJ);
+  assert.equal((await m.activeOfflineWaste('token3')).objectId,second.objectId);
+  assert.equal(await m.activeOfflineWaste('wrong-token'),null);
   await m.lockOfflineWaste();
   assert.equal(await m.activeOfflineWaste(),null);
   assert.equal((await m.offlineWasteEvents(UUID_A,UUID_B)).length,1,'signout must not discard work');
