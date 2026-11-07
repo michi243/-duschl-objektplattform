@@ -114,6 +114,8 @@ test('object-scoped waste discovery keeps tenant/object and active service gates
   assert.match(hardened,/security definer/i);
   assert.match(hardened,/revoke all on function public\.ds_list_commissioned_waste_objects_v1\(uuid\) from public, anon/i);
   assert.match(index,/dsWasteGetCommissionedObjectIds\(true\)/,'the object is re-authorized before opening');
+  assert.match(index,/commissionedWasteIds\.has\(String\(objectId\)\)/,'service card must use server-validated commission');
+  assert.match(index,/originalTenant!==String\(currentOrganizationId\(\)\|\|''\)/,'tenant switch blocks stale navigation');
   assert.match(index,/qr_token:'eq\.'\+token/,'QR still identifies individual bin');
   assert.match(index,/window\.dsWasteMountObject\(objectId\)/);
   assert.match(moduleText,/selected = String\(fixedObjectId\|\|''\)/);
