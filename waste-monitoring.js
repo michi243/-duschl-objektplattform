@@ -62,7 +62,7 @@ export function mountWasteMonitoring(config) {
   const post = (table,values) => api(table,{method:'POST',headers:{'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(values)});
   const patch = (table,id,values) => api(table+'?id=eq.'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(values)});
   const objectName = id => (objects.find(o=>o.id===id)||{}).name || 'Objekt';
-  const eligible = () => objects.filter(o=>o.organizationId===organizationId && !o.externalManaged && (commissioned === null || commissioned.has(o.id)));
+  const eligible = () => objects.filter(o=>commissioned === null ? true : commissioned.has(o.id)); // Supabase RLS verifies own/delegated object access.
   async function getCommissioned(){
     if (!admin) return;
     const [typesRows,assignments] = await Promise.all([
