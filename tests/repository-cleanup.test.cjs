@@ -24,7 +24,7 @@ assert.match(legacyPreview,/location\.replace\(target\.href\)/);
 assert.ok(Buffer.byteLength(legacyMarketing)<2000,'legacy marketing is a small redirect, not a duplicate application');
 assert.ok(Buffer.byteLength(legacyPreview)<2000,'old preview code no longer deployed');
 assert.ok(activeMarketing.includes('marketing_campaigns'),'active marketing application retained');
-assert.match(readme,/v3\.57\.27/);
+assert.ok(readme.includes('v'+manifest.version),'README reflects current release');
 assert.equal(new URL('./docs/marketing.html','https://example.test/project/marketing.html').pathname,'/project/docs/marketing.html');
 assert.equal(new URL('../../index.html','https://example.test/project/preview/v3.41/index.html').pathname,'/project/index.html');
 console.log('Repository cleanup, redirects and version gate passed');
