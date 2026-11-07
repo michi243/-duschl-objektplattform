@@ -30326,7 +30326,11 @@ async function dsOpenWasteForObject(objectId){
   if(!object)return alert('Objekt nicht zugänglich.');
   try{
     // Force refresh blocks stale client-side menus after termination or tenant switch.
+    const originalTenant=String(currentOrganizationId()||'');
+    const originalUser=String(currentUserId()||'');
     const allowed=await dsWasteGetCommissionedObjectIds(true);
+    if(originalTenant!==String(currentOrganizationId()||'') || originalUser!==String(currentUserId()||''))
+      throw Error('Mandant oder Benutzer hat sich während der Prüfung geändert.');
     if(!allowed.has(String(objectId)))throw Error('Müllbereitstellung für dieses Objekt nicht aktiv beauftragt oder Zugriff nicht freigegeben.');
     if(typeof window.dsWasteMountObject!=='function')throw Error('Müllmanagement-Modul nicht geladen.');
     modal('<div id="dsWasteObjectModal">'+
@@ -34296,6 +34300,10 @@ async function openObjectServicesModal(objectId){
       document.body.appendChild(modal);
     }
     const rows=osaState.assignments.filter(x=>String(x.object_id)===String(objectId));
+    // Auch im Leistungsdialog keine verwaisten Zuordnungen nach beendeter Kooperation zeigen.
+    const commissionedWasteIds=dsWasteCanUseObjectUI()
+      ? await dsWasteGetCommissionedObjectIds(true).catch(e=>{console.warn('Müllbeauftragung nicht ladbar',e);return new Set();})
+      : new Set();
     const allowedServices=osaExternalAllowedServices(obj);
     await Promise.all(rows.map(a=>
       canEdit
@@ -34306,6 +34314,7 @@ async function openObjectServicesModal(objectId){
       const st=osaState.services.find(x=>String(x.id)===String(a.service_type_id));
       const validDate=new Date().toLocaleDateString('sv-SE');
       const wasteServiceActive=a.active!==false
+        && commissionedWasteIds.has(String(objectId))
         && (!a.valid_from||String(a.valid_from)<=validDate)
         && (!a.valid_until||String(a.valid_until)>=validDate)
         && /müll|abfall|waste|muell/i.test(String(st?.name||'')+' '+String(st?.code||''));
