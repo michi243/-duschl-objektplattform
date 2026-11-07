@@ -86,6 +86,10 @@ export async function lockOfflineWaste(){
   await del(STORE.settings,'active');
   // Queued measurements stay in the database; never discard unsynced work on sign-out.
 }
+export async function reconcileOfflineWasteUser(userId){
+  const active=(await get(STORE.settings,'active'))?.value;
+  if(active&&(!userId||active.userId!==userId))await lockOfflineWaste();
+}
 export async function offlineWasteEvents(userId,organizationId){
   return (await all(STORE.events)).filter(e=>
     (!userId||e.userId===userId)&&(!organizationId||e.organizationId===organizationId))
