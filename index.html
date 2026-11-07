@@ -30260,6 +30260,98 @@ function dsEnsureGlobalModalClose(){
   dialog.insertBefore(btn,dialog.firstChild);
 }
 
+
+// v3.57.32: Müllmonitoring ist eine Objektleistung, kein eigener Navigationspunkt.
+// Die autorisierte Objektliste wird für jede Anmeldung/Mandantentrennung live geprüft.
+const dsWasteObjectNavigation={key:'',ids:null,pending:null,loadedAt:0};
+function dsWasteCanUseObjectUI(){
+  return hasOperationalAdminAccess() || isObjectManagerRole() || isPropertyManagerRole();
+}
+function dsWasteInvalidateObjectActions(){
+  dsWasteObjectNavigation.key='';
+  dsWasteObjectNavigation.ids=null;
+  dsWasteObjectNavigation.pending=null;
+  dsWasteObjectNavigation.loadedAt=0;
+}
+async function dsWasteGetCommissionedObjectIds(force=false){
+  if(!cloudSession?.access_token || !currentOrganizationId() || !dsWasteCanUseObjectUI())return new Set();
+  const key=String(currentOrganizationId())+':'+String(currentUserId()||'');
+  if(!force && dsWasteObjectNavigation.key===key && dsWasteObjectNavigation.ids
+    && Date.now()-dsWasteObjectNavigation.loadedAt<30000)return dsWasteObjectNavigation.ids;
+  if(!force && dsWasteObjectNavigation.key===key && dsWasteObjectNavigation.pending)
+    return dsWasteObjectNavigation.pending;
+  dsWasteObjectNavigation.key=key;
+  const pending=(async()=>{
+    const rows=await cloudRequest('rpc/ds_list_commissioned_waste_objects_v1',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({p_organization_id:currentOrganizationId()})
+    });
+    const ids=new Set((Array.isArray(rows)?rows:[]).map(row=>String(row.object_id||'')).filter(Boolean));
+    if(dsWasteObjectNavigation.key===key){
+      dsWasteObjectNavigation.ids=ids;
+      dsWasteObjectNavigation.loadedAt=Date.now();
+    }
+    return ids;
+  })();
+  dsWasteObjectNavigation.pending=pending;
+  try{return await pending;}
+  finally{if(dsWasteObjectNavigation.pending===pending)dsWasteObjectNavigation.pending=null;}
+}
+async function dsWasteRefreshObjectActions(){
+  const buttons=[...document.querySelectorAll('[data-ds-waste-object]')];
+  if(!buttons.length)return;
+  if(!dsWasteCanUseObjectUI() || !cloudSession?.access_token){
+    buttons.forEach(b=>{b.hidden=true;b.classList.add('hidden');});
+    return;
+  }
+  const org=String(currentOrganizationId()||'');
+  try{
+    const ids=await dsWasteGetCommissionedObjectIds();
+    if(org!==String(currentOrganizationId()||''))return;
+    document.querySelectorAll('[data-ds-waste-object]').forEach(b=>{
+      const o=(db.objects||[]).find(x=>String(x.id)===String(b.dataset.dsWasteObject||''));
+      const allowed=!!o && ids.has(String(o.id));
+      b.hidden=!allowed;
+      b.classList.toggle('hidden',!allowed);
+    });
+  }catch(error){
+    console.warn('Müllleistung konnte nicht für die Objektliste geprüft werden:',error);
+  }
+}
+async function dsOpenWasteForObject(objectId){
+  if(!cloudSession?.access_token || !dsWasteCanUseObjectUI())
+    return alert('Müllmanagement ist nur für berechtigte Objektrollen verfügbar.');
+  const object=(db.objects||[]).find(o=>String(o.id)===String(objectId));
+  if(!object)return alert('Objekt nicht zugänglich.');
+  try{
+    // Force refresh blocks stale client-side menus after termination or tenant switch.
+    const allowed=await dsWasteGetCommissionedObjectIds(true);
+    if(!allowed.has(String(objectId)))throw Error('Müllbereitstellung für dieses Objekt nicht aktiv beauftragt oder Zugriff nicht freigegeben.');
+    if(typeof window.dsWasteMountObject!=='function')throw Error('Müllmanagement-Modul nicht geladen.');
+    modal('<div id="dsWasteObjectModal">'+
+      '<div class="row space" style="gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:12px">'+
+        '<div><div class="ds-section-eyebrow">OBJEKT · BEAUFTRAGTE LEISTUNG</div>'+
+        '<h2 style="margin:4px 0 0">Abfall / Müllbereitstellung</h2>'+
+        '<div class="muted">'+esc(object.name||'Objekt')+'</div></div>'+
+        '<button type="button" onclick="closeModal()">Zurück zum Objekt</button>'+
+      '</div><div id="dsWasteObjectRoot"></div></div>');
+    const wrapper=document.getElementById('dsWasteObjectModal');
+    const dialog=wrapper?.closest('.ds-modal-dialog');
+    if(dialog){
+      dialog.style.width='min(980px,calc(100vw - 24px))';
+      dialog.style.maxHeight='calc(100dvh - 24px)';
+      dialog.style.overflowY='auto';
+    }
+    window.dsWasteMountObject(objectId);
+  }catch(error){
+    console.warn('Objektbezogener Müllzugriff verweigert:',error);
+    alert(error?.message||'Müllmanagement kann nicht geöffnet werden.');
+  }
+}
+window.dsWasteRefreshObjectActions=dsWasteRefreshObjectActions;
+window.dsWasteInvalidateObjectActions=dsWasteInvalidateObjectActions;
+
 function modal(html){
   const root=document.getElementById('modalRoot');
   if(!root)return;
@@ -34307,7 +34399,9 @@ async function osaSave(objectId){
     };
     if(osaUsesExternalScopeFilter(obj))payload.p_collaboration_id=obj.collaborationId||null;
     await cloudRequest(rpc,{method:'POST',body:JSON.stringify(payload)});
+    dsWasteInvalidateObjectActions();
     await openObjectServicesModal(objectId);
+    void dsWasteRefreshObjectActions();
   }catch(e){alert('Leistung konnte nicht zugeordnet werden: '+(e.message||e));}
 }
 
@@ -34315,7 +34409,9 @@ async function osaDeactivate(id,objectId){
   if(!confirm('Diese Objekt-Leistungszuordnung beenden? Historische Einsätze bleiben erhalten.'))return;
   try{
     await cloudRequest('rpc/deactivate_object_service_assignment_v1',{method:'POST',body:JSON.stringify({p_assignment_id:id})});
+    dsWasteInvalidateObjectActions();
     await openObjectServicesModal(objectId);
+    void dsWasteRefreshObjectActions();
   }catch(e){alert('Zuordnung konnte nicht beendet werden: '+(e.message||e));}
 }
 
@@ -41271,23 +41367,43 @@ window.dsEditTenantMasterdata=()=>{
 </script>
 <script type="module">
 import {mountWasteMonitoring} from './waste-monitoring.js?v=3.57.32';
-window.dsWasteMount=()=>{
+window.dsWasteMountObject=objectId=>{
   const organizationId=currentOrganizationId();
-  const root=document.getElementById('dsWasteRoot');
-  if(!root || !organizationId || !cloudSession?.access_token)return;
-  mountWasteMonitoring({root,organizationId,objects:db.objects||[],
-    admin:hasOperationalAdminAccess(),
+  const root=document.getElementById('dsWasteObjectRoot');
+  if(!root||!organizationId||!cloudSession?.access_token)return;
+  mountWasteMonitoring({
+    root,organizationId,objects:db.objects||[],fixedObjectId:objectId,
+    admin:hasOperationalAdminAccess(),readOnly:isPropertyManagerRole(),
     api:(path,options)=>cloudRequest(path,options||{})
   });
 };
-window.dsWasteQrMaybeOpen=()=>{
+// Physical QR labels always resolve back to the assigned object, without menu navigation.
+window.dsWasteQrMaybeOpen=async()=>{
   const token=(new URLSearchParams(window.location.search).get('muelltonne')||'').trim();
-  if(!token||window.__dsWasteQrOpened||!cloudSession?.access_token||!currentOrganizationId())return;
-  window.__dsWasteQrOpened=true;showSection('wasteManagement');
+  if(!token||window.__dsWasteQrOpened||window.__dsWasteQrOpening
+     ||!cloudSession?.access_token||!currentOrganizationId())return;
+  window.__dsWasteQrOpening=true;
+  try{
+    if(!validUuid(token))throw Error('Ungültiger Tonnen-QR-Code.');
+    const org=String(currentOrganizationId());
+    const rows=await cloudRequest('waste_bins?'+new URLSearchParams({
+      select:'id,object_id,qr_token',
+      organization_id:'eq.'+org,
+      qr_token:'eq.'+token,
+      limit:'1'
+    }).toString());
+    if(org!==String(currentOrganizationId()))return;
+    const item=(Array.isArray(rows)?rows:[])[0];
+    if(!item)throw Error('Mülltonne nicht für den aktiven Mandanten freigegeben.');
+    await dsOpenWasteForObject(item.object_id);
+    window.__dsWasteQrOpened=!!document.getElementById('dsWasteObjectModal');
+  }catch(error){
+    alert('Mülltonnen-QR konnte nicht geöffnet werden: '+(error.message||error));
+  }finally{window.__dsWasteQrOpening=false;}
 };
 if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded',()=>window.dsWasteQrMaybeOpen(),{once:true});
-}else{queueMicrotask(()=>window.dsWasteQrMaybeOpen());}
+  document.addEventListener('DOMContentLoaded',()=>void window.dsWasteQrMaybeOpen(),{once:true});
+}else{queueMicrotask(()=>void window.dsWasteQrMaybeOpen());}
 </script>
 <script src="./object-role-overview.js?v=3.57.29" defer></script>
 <script src="./employee-time.js?v=3.57.16" defer></script>
