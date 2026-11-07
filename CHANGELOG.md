@@ -1,3 +1,14 @@
+## v3.57.32 – 07.11.2026 – Müllmanagement direkt im Objekt
+
+- Separaten Hamburger-Menüpunkt „Müllmanagement / QR“ entfernt.
+- Eintrag bei **Objekt → Leistungen & Standards → Abfall / Müllbereitstellung**, nur bei aktiver Beauftragung im Gültigkeitszeitraum.
+- Zusätzlich ein **objektbezogener Schnellzugriff** in der Objektkarte für berechtigte Mitarbeiter; Sichtbarkeit aus serverseitigem Beauftragungs- und Berechtigungs-RPC, nicht aus Browserannahmen.
+- Müllmodul öffnet in einem Objektkontext, ohne Objektauswahl; Tonnenverwaltung, QR-Druck, Füllstandserfassung und Jahresauswertung bleiben erhalten.
+- Bereits gedruckte Tonnen-QR-Codes führen nach Anmeldung direkt in diesen Objektkontext.
+- Verwaltung mit Lesezugriff sieht Auswertungen, kann jedoch keine Tonnen oder Füllstände verändern.
+- Ein ergänzender read-only-RPC liefert ausschließlich aktuell beauftragte, berechtigte Objekt-IDs; vorhandene RLS-Policies und Messdaten bleiben unverändert.
+- Q-Gate: Mandantenwechsel, Fremdobjekte, Leistungsende, QR-Deep-Link und Versionierung vor Veröffentlichung prüfen.
+
 ## v3.57.31 – 07.11.2026 – Kompakte QR-Tonnenetiketten
 
 - Drucketikett und PNG-Export zeigen ausschließlich **Straße/Objekt**, **individuellen QR-Code** und **Behälternummer**.
