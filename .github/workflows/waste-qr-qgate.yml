@@ -3,6 +3,13 @@ on:
   pull_request:
     paths:
       - 'waste-monitoring.js'
+      - 'offline-waste-core.js'
+      - 'offline-waste-app.js'
+      - 'offline-waste.html'
+      - 'sw.js'
+      - 'manifest.webmanifest'
+      - 'sql/20261107_offline_waste_sync_v35734.sql'
+      - 'tests/offline-waste.test.cjs'
       - 'index.html'
       - 'sql/20261107_waste_bin_qr_monitoring_v35730.sql'
       - 'sql/20261107_waste_object_navigation_v35732.sql'
@@ -31,6 +38,10 @@ jobs:
         with:
           node-version: '22'
       - name: JavaScript syntax
-        run: node --check waste-monitoring.js
+        run: |
+          node --check waste-monitoring.js
+          node --check offline-waste-core.js
+          node --check offline-waste-app.js
+          node --check sw.js
       - name: Behaviour and security invariants
-        run: node --test tests/waste-monitoring.test.cjs
+        run: node --test tests/waste-monitoring.test.cjs tests/offline-waste.test.cjs
