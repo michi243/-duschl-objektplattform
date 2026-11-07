@@ -1,10 +1,11 @@
 {
-  "version": "3.57.30",
+  "version": "3.57.31",
   "release_date": "2026-11-07",
   "channel": "development",
   "status": "testbetrieb",
   "scope": "Objektplattform einschließlich Personalmanagement und Kundenanfragen",
   "notes": [
+    "QR-Tonnenetiketten kompakt: Straße/Objekt, QR-Code und Behälternummer. Einheitliche druckfertige Formate 62 × 40 mm und 50 × 30 mm, auch als hochauflösendes PNG; keine Kosten-/Volumen-/Werbetexte auf dem Label.",
     "QR-basiertes Müllmonitoring: eigene Behälter-ID mit individuellem Etikett je beauftragtem Objekt, Füllstand 0/25/50/75/100 vor Leerung, Login- und RLS-Pflicht.",
     "Jahresauswertung mit Durchschnitt/P90 je Behälter, CSV, druckbarem PDF-Bericht und optional hinterlegter Jahresgebühr; keine pauschale Einsparzusage.",
     "Neue additive Tabellen waste_bins und waste_bin_scans samt mandanten- und objektbezogener RLS, Append-only-Füllstandsdaten; Migration vor Inbetriebnahme erforderlich.",
