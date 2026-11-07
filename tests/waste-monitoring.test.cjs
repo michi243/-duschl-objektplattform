@@ -108,6 +108,11 @@ test('object-scoped waste discovery keeps tenant/object and active service gates
   assert.match(sqlNavigation,/o\.active is true/i);
   assert.match(sqlNavigation,/revoke all on function public\.ds_list_commissioned_waste_objects_v1\(uuid\) from public, anon/i);
   assert.match(sqlNavigation,/grant execute on function public\.ds_list_commissioned_waste_objects_v1\(uuid\) to authenticated/i);
+  const hardened=fs.readFileSync('sql/20261107_waste_object_navigation_harden_v35732.sql','utf8');
+  assert.match(hardened,/create or replace function private\.ds_list_commissioned_waste_objects_impl_v1/i);
+  assert.match(hardened,/security invoker/i);
+  assert.match(hardened,/security definer/i);
+  assert.match(hardened,/revoke all on function public\.ds_list_commissioned_waste_objects_v1\(uuid\) from public, anon/i);
   assert.match(index,/dsWasteGetCommissionedObjectIds\(true\)/,'the object is re-authorized before opening');
   assert.match(index,/qr_token:'eq\.'\+token/,'QR still identifies individual bin');
   assert.match(index,/window\.dsWasteMountObject\(objectId\)/);
