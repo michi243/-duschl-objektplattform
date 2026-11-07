@@ -1,10 +1,11 @@
 {
-  "version": "3.57.31",
+  "version": "3.57.32",
   "release_date": "2026-11-07",
   "channel": "development",
   "status": "testbetrieb",
   "scope": "Objektplattform einschließlich Personalmanagement und Kundenanfragen",
   "notes": [
+    "Müllmanagement gehört ausschließlich zur beauftragten Objektleistung: Hauptmenüeintrag entfernt; Objekt und Leistungsansicht öffnen direkt die tonnenbezogene Erfassung und Auswertung. Bestehende QR-Tokens bleiben gültig und führen nach Login zum passenden Objekt. Lesende Objektverwalter können Berichte sehen, nicht erfassen.",
     "QR-Tonnenetiketten kompakt: Straße/Objekt, QR-Code und Behälternummer. Einheitliche druckfertige Formate 62 × 40 mm und 50 × 30 mm, auch als hochauflösendes PNG; keine Kosten-/Volumen-/Werbetexte auf dem Label.",
     "QR-basiertes Müllmonitoring: eigene Behälter-ID mit individuellem Etikett je beauftragtem Objekt, Füllstand 0/25/50/75/100 vor Leerung, Login- und RLS-Pflicht.",
     "Jahresauswertung mit Durchschnitt/P90 je Behälter, CSV, druckbarem PDF-Bericht und optional hinterlegter Jahresgebühr; keine pauschale Einsparzusage.",
